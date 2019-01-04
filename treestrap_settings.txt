@@ -1,0 +1,7 @@
+﻿batch_size 1
+search_depth 1
+optimizer SGD
+learn_rate 0.01
+thread_num 1
+random_turn 20
+step_size 100
