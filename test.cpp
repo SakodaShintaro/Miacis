@@ -208,28 +208,6 @@ void testKifuOutput() {
     //printf("finish testKifuOutput()\n");
 }
 
-void testMirror() {
-    for (Square sq : SquareList) {
-        auto num = SquareToNum[sq];
-        std::cout << num << "->" << mirrorSqNum(num) << std::endl;
-    }
-
-    std::vector<std::pair<PieceState, PieceState>> q = {
-        { pieceState(BLACK_PAWN, SQ17),pieceState(BLACK_PAWN, SQ97) },
-        { pieceState(WHITE_LANCE, SQ64),pieceState(WHITE_LANCE, SQ44) },
-        { pieceState(BLACK_KNIGHT, SQ25),pieceState(BLACK_KNIGHT, SQ85) },
-        { pieceState(WHITE_SILVER, SQ54),pieceState(WHITE_SILVER, SQ54) },
-        { pieceState(BLACK_GOLD, SQ69),pieceState(BLACK_GOLD, SQ49) },
-        { pieceState(WHITE_BISHOP, SQ22),pieceState(WHITE_BISHOP, SQ82) },
-        { pieceState(BLACK_ROOK, SQ34),pieceState(BLACK_ROOK, SQ74) },
-        { pieceState(WHITE_PAWN_PROMOTE, SQ37),pieceState(WHITE_PAWN_PROMOTE, SQ77) }
-    };
-
-    for (auto p : q) {
-        assert(mirrorPieceState(p.first) == p.second);
-    }
-}
-
 void testSFENoutput() {
     std::random_device rd;
     std::default_random_engine engine(rd());

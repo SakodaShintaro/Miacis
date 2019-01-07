@@ -77,10 +77,6 @@ public:
         return enough_size_;
     }
 
-    bool alreadyInit() {
-        return table_.size() > 0;
-    }
-
     int64_t size() {
         return size_;
     }

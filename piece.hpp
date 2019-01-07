@@ -86,9 +86,7 @@ constexpr uint32_t HAND_PIECE_KIND_NUM = 7;
 constexpr uint32_t INPUT_CHANNEL_NUM = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2;
 
 extern const std::array<Piece, PIECE_KIND_NUM * 2> PieceList;
-extern const std::array<std::array<Piece, 14>, 2> ColoredPieceList;
 extern const std::array<std::array<Piece, 3>, 2> ColoredJumpPieceList;
-extern const ArrayMap<int32_t, PieceNum> pieceToIndex;
 
 inline Piece kind(Piece p) { return static_cast<Piece>(p & PIECE_KIND_MASK); }
 inline Piece promote(Piece p) { return static_cast<Piece>(p | PROMOTE); }

@@ -23,7 +23,6 @@ struct Game {
     static constexpr double RESULT_DRAW_OVER_LIMIT = -2.0;
 	double result;
 
-    void writeCSAFile(std::string dir_path) const;
     void writeKifuFile(std::string dir_path) const;
 };
 

@@ -5,7 +5,6 @@
 #include"piece.hpp"
 #include"move.hpp"
 #include"hand.hpp"
-#include"eval_elements.hpp"
 #include"types.hpp"
 #include"bitboard.hpp"
 #include<random>
@@ -48,7 +47,7 @@ public:
     bool isRepeating(Score& score) const;
 
     //特徴量作成
-    Features makeFeature() const;
+    std::vector<float> makeFeature() const;
 
     //toとfromしか与えられない状態から完全なMoveに変換する関数
     Move transformValidMove(Move move);
@@ -73,7 +72,6 @@ public:
     Color color() const { return color_; }
     int64_t hash_value() const { return hash_value_; }
     Piece on(const Square sq) const { return board_[sq]; }
-    Features features() { return ee_; }
     bool isChecked() { return isChecked_; }
 private:
     //--------------------
@@ -125,12 +123,10 @@ private:
         Hand hand[ColorNum];
         bool isChecked;
 
-        Features features;
-
         Bitboard pinners;
 
         StateInfo(Position& pos) :
-            board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), isChecked(pos.isChecked_), features(pos.ee_), pinners(pos.pinners_) {
+            board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), isChecked(pos.isChecked_), pinners(pos.pinners_) {
             hand[BLACK] = pos.hand_[BLACK];
             hand[WHITE] = pos.hand_[WHITE];
         }
@@ -142,9 +138,6 @@ private:
     Bitboard occupied_bb_[ColorNum];
     Bitboard pieces_bb_[PieceNum];
     Bitboard pinners_;
-
-    //特徴量
-    Features ee_;
 };
 
 #endif

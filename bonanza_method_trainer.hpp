@@ -6,7 +6,6 @@
 #include"base_trainer.hpp"
 #include"piece.hpp"
 #include"common.hpp"
-#include"piece_state.hpp"
 #include"game.hpp"
 #include<mutex>
 #include<atomic>
@@ -28,9 +27,6 @@ private:
     //--------------------
     //各スレッドで動かす学習を行う関数
     void trainSlave(uint32_t thread_id);
-
-    //pvをたどった先の局面の特徴を得る関数
-    Features getLeafFeatures(Position& pos, const std::vector<Move>& pv);
 
     //更新作業をまとめた関数
     void update();

@@ -184,24 +184,6 @@ void BonanzaMethodTrainer::trainSlave(uint32_t thread_id) {
     std::cout << "BonanzaMethod finish" << std::endl;
 }
 
-Features BonanzaMethodTrainer::getLeafFeatures(Position& pos,const std::vector<Move>& pv) {
-    //pvがうまくとれているとは限らないので局面を動かした回数を数えておく
-    int counter = 0;
-    for (Move move : pv) {
-        if (pos.isLegalMove(move)) {
-            pos.doMove(move);
-            counter++;
-        } else {
-            break;
-        }
-    }
-    Features ee = pos.features();
-    for (int i = 0; i < counter; i++) {
-        pos.undo();
-    }
-    return ee;
-}
-
 void BonanzaMethodTrainer::update() {
     std::unique_lock<std::mutex> lock(MUTEX);
     //学習局面、局数を合算

@@ -161,41 +161,6 @@ const std::array<Piece, 28> PieceList{
     WHITE_ROOK_PROMOTE,
 };
 
-const std::array<std::array<Piece, 14>, 2> ColoredPieceList{ {
-    {
-        BLACK_PAWN,
-        BLACK_LANCE,
-        BLACK_KNIGHT,
-        BLACK_SILVER,
-        BLACK_GOLD,
-        BLACK_BISHOP,
-        BLACK_ROOK,
-        BLACK_KING,
-        BLACK_PAWN_PROMOTE,
-        BLACK_LANCE_PROMOTE,
-        BLACK_KNIGHT_PROMOTE,
-        BLACK_SILVER_PROMOTE,
-        BLACK_BISHOP_PROMOTE,
-        BLACK_ROOK_PROMOTE
-    },
-    {
-        WHITE_PAWN,
-        WHITE_LANCE,
-        WHITE_KNIGHT,
-        WHITE_SILVER,
-        WHITE_GOLD,
-        WHITE_BISHOP,
-        WHITE_ROOK,
-        WHITE_KING,
-        WHITE_PAWN_PROMOTE,
-        WHITE_LANCE_PROMOTE,
-        WHITE_KNIGHT_PROMOTE,
-        WHITE_SILVER_PROMOTE,
-        WHITE_BISHOP_PROMOTE,
-        WHITE_ROOK_PROMOTE
-    }
-}};
-
 const std::array<std::array<Piece, 3>, 2> ColoredJumpPieceList {{
     { BLACK_LANCE, BLACK_BISHOP, BLACK_ROOK },
     { WHITE_LANCE, WHITE_BISHOP, WHITE_ROOK }
@@ -205,34 +170,3 @@ std::ostream& operator<<(std::ostream& os, const Piece piece) {
     os << PieceToStr[piece];
     return os;
 }
-
-const ArrayMap<int32_t, PieceNum> pieceToIndex = {
-    { BLACK_PAWN,   1 },
-    { BLACK_LANCE,  2 },
-    { BLACK_KNIGHT, 3 },
-    { BLACK_SILVER, 4 },
-    { BLACK_GOLD,   5 },
-    { BLACK_BISHOP, 6 },
-    { BLACK_ROOK,   7 },
-    { BLACK_PAWN_PROMOTE,   5 },
-    { BLACK_LANCE_PROMOTE,  5 },
-    { BLACK_KNIGHT_PROMOTE, 5 },
-    { BLACK_SILVER_PROMOTE, 5 },
-    { BLACK_BISHOP_PROMOTE, 8 },
-    { BLACK_ROOK_PROMOTE,   9 },
-    { BLACK_KING, 10 },
-    { WHITE_PAWN,   -1 },
-    { WHITE_LANCE,  -2 },
-    { WHITE_KNIGHT, -3 },
-    { WHITE_SILVER, -4 },
-    { WHITE_GOLD,   -5 },
-    { WHITE_BISHOP, -6 },
-    { WHITE_ROOK,   -7 },
-    { WHITE_PAWN_PROMOTE,   -5 },
-    { WHITE_LANCE_PROMOTE,  -5 },
-    { WHITE_KNIGHT_PROMOTE, -5 },
-    { WHITE_SILVER_PROMOTE, -5 },
-    { WHITE_BISHOP_PROMOTE, -8 },
-    { WHITE_ROOK_PROMOTE,   -9 },
-    { WHITE_KING, -10 }
-};

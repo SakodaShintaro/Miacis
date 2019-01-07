@@ -1,5 +1,4 @@
 ﻿#include"usi.hpp"
-#include"piece_state.hpp"
 #include"usi_options.hpp"
 #include"test.hpp"
 #include"bitboard.hpp"
@@ -19,13 +18,10 @@ int main()
 	nn->init();
 	nn->save(MODEL_PATH);
 
-	initPieceToStateIndex();
-	initInvPieceState();
-
 	initCanMove();
 	initCanJump();
 
-    initConDirToOppositeDir();
+    //initConDirToOppositeDir();
 
     Position::initHashSeed();
 

@@ -236,7 +236,7 @@ ValueType MCTSearcher<Var>::uctSearch(Position & pos, Index current_index) {
 #ifdef USE_CATEGORICAL
         result = onehotDist(1.0 - sigmoid(score, CP_GAIN));
 #else
-        result = 1.0f - (CalcType)sigmoid((int32_t)score, CP_GAIN);
+        result = 1.0f - score;
 #endif
     } else if (child_indices[next_index] == UctHashTable::NOT_EXPANDED) {
         // ノードの展開
@@ -359,7 +359,7 @@ void MCTSearcher<Var>::evalNode(Position& pos, Index index) {
 #ifdef USE_CATEGORICAL
         current_node.value_dist = onehotDist(sigmoid(repeat_score, CP_GAIN));
 #else
-        current_node.value = (CalcType)sigmoid((int)repeat_score, CP_GAIN);
+        current_node.value = repeat_score;
 #endif
     }
 

@@ -2,7 +2,6 @@
 #include"piece.hpp"
 #include"move.hpp"
 #include"common.hpp"
-#include"piece_state.hpp"
 #include"usi_options.hpp"
 #include<iostream>
 #include<cstdio>
@@ -12,8 +11,6 @@
 #include<iterator>
 #include<algorithm>
 #include<set>
-
-extern int piece_value[];
 
 int64_t Position::HashSeed[PieceNum][SquareNum];
 int64_t Position::HandHashSeed[ColorNum][PieceNum][19];
@@ -423,7 +420,6 @@ void Position::undo() {
     turn_number_--;
 
     //計算が面倒なものはコピーで戻してみる
-    ee_ = stack_.back().features;
     pinners_ = stack_.back().pinners;
     isChecked_ = stack_.back().isChecked;
 
@@ -469,7 +465,6 @@ void Position::undoNullMove() {
 
     //計算が面倒なものはコピーで戻してみる
     //NullMoveだからほとんど変わってないはずだけどなんかバグる
-    ee_ = stack_.back().features;
     pinners_ = stack_.back().pinners;
     isChecked_ = stack_.back().isChecked;
     //Stack更新
@@ -1372,9 +1367,9 @@ bool Position::isRepeating(Score& score) const {
         if (board_hash_ == stack_[index].board_hash) { //局面が一致
             if (hand_hash_ == stack_[index].hand_hash) { //手駒も一致
                 if ((index == (int32_t)stack_.size() - 4) && (stack_[index].isChecked && stack_[index + 2].isChecked)) { //手番側が連続王手された
-                    score = MAX_SCORE + 1;
+                    score = MAX_SCORE;
                 } else { //普通の千日手
-                    score = (color_ == BLACK ? Score(usi_option.draw_score) : -Score(usi_option.draw_score));
+                    score = 0;
                 }
             } else { //局面だけが一致
                 if (hand_[color_].superior(stack_[index].hand[color_])) { //優等局面
@@ -1419,7 +1414,6 @@ void Position::initHashValue() {
 
 std::vector<float> Position::makeFeature() const {
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
-    int32_t index = 81;
     if (color_ == BLACK) {
         for (int32_t i = 0; i < PieceList.size(); i++) {
             Piece p = PieceList[i];
@@ -1427,12 +1421,31 @@ std::vector<float> Position::makeFeature() const {
                 features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[sq] == p ? 1 : 0);
             }
         }
+        auto i = PieceList.size();
         for (int c : {BLACK, WHITE}) {
             for (Piece p : {PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK}) {
-                features[index++] = (float)hand_[c].num(p);
+                for (Square sq : SquareList) {
+                    features[i * SQUARE_NUM + SquareToNum[sq]] = (hand_[c].num(p));
+                }
+                i++;
             }
         }
     } else {
+        for (int32_t i = 0; i < PieceList.size(); i++) {
+            Piece p = oppositeColor(PieceList[i]);
+            for (Square sq : SquareList) {
+                features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[InvSquare[sq]] == p ? 1 : 0);
+            }
+        }
+        auto i = PieceList.size();
+        for (int c : {WHITE, BLACK}) {
+            for (Piece p : {PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK}) {
+                for (Square sq : SquareList) {
+                    features[i * SQUARE_NUM + SquareToNum[sq]] = (hand_[c].num(p));
+                }
+                i++;
+            }
+        }
     }
 
     return features;

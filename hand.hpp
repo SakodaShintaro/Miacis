@@ -43,14 +43,6 @@ class Hand {
 public:
 	//コンストラクタ
 	Hand() : hand_(0) {}
-	Hand(int pawn, int lance, int knight, int silver, int gold, int bishop, int rook) : hand_(uint32_t(
-			pawn << HAND_PAWN_SHIFT |
-			lance << HAND_LANCE_SHIFT |
-			knight << HAND_KNIGHT_SHIFT |
-			silver << HAND_SILVER_SHIFT |
-			gold << HAND_GOLD_SHIFT |
-			bishop << HAND_BISHOP_SHIFT |
-			rook << HAND_ROOK_SHIFT)) {}
 
 	//持ち駒の数を返す
 	inline int num(Piece p) const { 

@@ -150,31 +150,17 @@ static inline bool isOnBoard(Square pos) {
     return (Rank1 <= SquareToRank[pos] && SquareToRank[pos] <= Rank9 && File1 <= SquareToFile[pos] && SquareToFile[pos] <= File9);
 }
 
-static Dir DirList[8] = {
-    //前から時計回りに
-    U, RU, R, RD, D, LD, L, LU
-};
-
-static ControlDir LongControlList[8] = {
-    //前から時計回りに
-    Con_U,	Con_RU, Con_R, Con_RD,	Con_D,	Con_LD, Con_L, Con_LU,
-};
-
-inline static Dir oppositeDir(const Dir d) {
-    return static_cast<Dir>(-d);
-}
-
-extern Dir ConDirToOppositeDir[129];
-static void initConDirToOppositeDir() {
-    ConDirToOppositeDir[Con_U] = D;
-    ConDirToOppositeDir[Con_RU] = LD;
-    ConDirToOppositeDir[Con_R] = L;
-    ConDirToOppositeDir[Con_RD] = LU;
-    ConDirToOppositeDir[Con_D] = U;
-    ConDirToOppositeDir[Con_LD] = RU;
-    ConDirToOppositeDir[Con_L] = R;
-    ConDirToOppositeDir[Con_LU] = RD;
-}
+//extern Dir ConDirToOppositeDir[129];
+//static void initConDirToOppositeDir() {
+//    ConDirToOppositeDir[Con_U] = D;
+//    ConDirToOppositeDir[Con_RU] = LD;
+//    ConDirToOppositeDir[Con_R] = L;
+//    ConDirToOppositeDir[Con_RD] = LU;
+//    ConDirToOppositeDir[Con_D] = U;
+//    ConDirToOppositeDir[Con_LD] = RU;
+//    ConDirToOppositeDir[Con_L] = R;
+//    ConDirToOppositeDir[Con_LU] = RD;
+//}
 
 inline Dir directionAtoB(Square A, Square B) {
     //8方向のうちどれかか、あるいはどれでもないかだけ判定できればいい
@@ -220,7 +206,5 @@ extern const ArrayMap<std::string, FileNum> fileToString;
 extern const ArrayMap<std::string, RankNum> rankToString;
 
 std::ostream& operator<<(std::ostream&, Square sq);
-
-int32_t mirrorSqNum(int32_t sq_num);
 
 #endif

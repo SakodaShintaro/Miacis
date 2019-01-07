@@ -64,8 +64,6 @@ void USI::loop() {
 //        } else if (input == "testLearn") {
 //            AlphaZeroTrainer trainer("alphazero_settings.txt");
 //            trainer.testLearn();
-        } else if (input == "testMirror") {
-            testMirror();
         } else if (input == "testSFEN") {
             testSFENoutput();
         } else {
@@ -75,12 +73,8 @@ void USI::loop() {
 }
 
 void USI::usi() {
-#ifdef USE_NN
 #ifdef USE_CATEGORICAL
     printf("id name kaitei_cat\n");
-#else
-    printf("id name kaitei_nn\n");
-#endif
 #else
     printf("id name Miacis\n");
 #endif

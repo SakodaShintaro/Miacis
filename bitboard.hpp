@@ -118,7 +118,6 @@ extern Bitboard RANK_BB[RankNum];
 extern Bitboard PROMOTION_ZONE_BB[ColorNum];
 extern Bitboard FRONT_BB[ColorNum][RankNum];
 extern Bitboard BETWEEN_BB[SquareNum][SquareNum];
-extern Bitboard ADJACENT_CONTROL_BB[PieceNum];
 
 extern Bitboard PAWN_CONTROL_BB[ColorNum][SquareNum];
 extern Bitboard KNIGHT_CONTROL_BB[ColorNum][SquareNum];
@@ -137,20 +136,12 @@ extern int Slide[];
 
 std::ostream& operator << (std::ostream& os, const Bitboard& rhs);
 
-inline Bitboard pawnControl(const Color color, const Square sq) {
-    return PAWN_CONTROL_BB[color][sq];
-}
-
 inline Bitboard blackPawnControl(const Square sq, const Bitboard &occ) {
     return PAWN_CONTROL_BB[BLACK][sq];
 }
 
 inline Bitboard whitePawnControl(const Square sq, const Bitboard &occ) {
     return PAWN_CONTROL_BB[WHITE][sq];
-}
-
-inline Bitboard knightControl(const Color color, const Square sq) {
-    return KNIGHT_CONTROL_BB[color][sq];
 }
 
 inline Bitboard blackNightControl(const Square sq, const Bitboard& occ) {
@@ -161,20 +152,12 @@ inline Bitboard whiteNightControl(const Square sq, const Bitboard& occ) {
     return KNIGHT_CONTROL_BB[WHITE][sq];
 }
 
-inline Bitboard silverControl(const Color color, const Square sq) {
-    return SILVER_CONTROL_BB[color][sq];
-}
-
 inline Bitboard blackSilverControl(const Square sq, const Bitboard& occ) {
     return SILVER_CONTROL_BB[BLACK][sq];
 }
 
 inline Bitboard whiteSilverControl(const Square sq, const Bitboard& occ) {
     return SILVER_CONTROL_BB[WHITE][sq];
-}
-
-inline Bitboard goldControl(const Color color, const Square sq) {
-    return GOLD_CONTROL_BB[color][sq];
 }
 
 inline Bitboard blackGoldControl(const Square sq, const Bitboard& occ) {
@@ -298,12 +281,6 @@ inline Bitboard farRank1FromColor(const Color c) {
 //手番側から見て奥から2つ目の段を返す(駒打ちの時に利用)
 inline Bitboard farRank2FromColor(const Color c) {
     return (c == BLACK ? RANK_BB[Rank2] : RANK_BB[Rank8]);
-}
-
-//手番側から見て手前にある7段を返す(駒打ちの時に利用)
-inline Bitboard frontRank7FromColor(const Color c) {
-    return (c == BLACK ? RANK_BB[Rank3] | RANK_BB[Rank4] | RANK_BB[Rank5] | RANK_BB[Rank6] | RANK_BB[Rank7] | RANK_BB[Rank8] | RANK_BB[Rank9] 
-        : RANK_BB[Rank1] | RANK_BB[Rank2] | RANK_BB[Rank3] | RANK_BB[Rank4] | RANK_BB[Rank5] | RANK_BB[Rank6] | RANK_BB[Rank7]);
 }
 
 #endif // !BITBOARD_HPP
