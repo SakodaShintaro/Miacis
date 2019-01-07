@@ -85,10 +85,6 @@ void Position::init() {
     //ハッシュ値の初期化
     initHashValue();
 
-#ifndef USE_NN
-    initFeature();
-#endif
-
     stack_.clear();
     stack_.reserve(512);
     kifu_.clear();
@@ -266,11 +262,9 @@ void Position::doMove(const Move move) {
     }
 
     //玉を動かす手ならblack_king_pos,white_king_posに反映
-#ifdef USE_NN
     if (kind(move.subject()) == KING) {
         king_sq_[color_] = move.to();
     }
-#endif
 
     //occupied_all_を更新
     occupied_all_ = occupied_bb_[BLACK] | occupied_bb_[WHITE];
@@ -376,38 +370,6 @@ void Position::undo() {
 
     //王手は自玉へのattackers
     //checkers_ = attackersTo(~color_, king_sq_[color_]);
-
-    //リストの更新
-#ifndef USE_NN
-    if (kind(last_move.subject()) == KING) {
-        if (last_move.capture() == EMPTY) {
-            //変化なし
-        } else {
-            PieceState before = pieceState(kind(last_move.capture()), hand_[color_].num(kind(last_move.capture())) + 1, pieceToColor(last_move.subject()));
-            PieceState after = pieceState(last_move.capture(), last_move.to(), pieceToColor(last_move.capture()));
-            updatePieceStateList(before, after);
-        }
-} else {
-        if (last_move.isDrop()) {
-            PieceState dropped = pieceState(last_move.subject(), last_move.to(), pieceToColor(last_move.subject()));
-            PieceState in_hand = pieceState(kind(last_move.subject()), hand_[pieceToColor(last_move.subject())].num(kind(last_move.subject())), pieceToColor(last_move.subject()));
-            updatePieceStateList(dropped, in_hand);
-        } else if (last_move.capture() == EMPTY) {
-            Piece subject = (last_move.isPromote() ? promote(last_move.subject()) : last_move.subject());
-            PieceState before = pieceState(subject, last_move.to(), ~color_);
-            PieceState after = pieceState(last_move.subject(), last_move.from(), ~color_);
-            updatePieceStateList(before, after);
-        } else {
-            Piece subject = (last_move.isPromote() ? promote(last_move.subject()) : last_move.subject());
-            PieceState moved = pieceState(subject, last_move.to(), color_);
-            PieceState moved_before = pieceState(last_move.subject(), last_move.from(), color_);
-            updatePieceStateList(moved, moved_before);
-            PieceState captured_in_hand = pieceState(kind(last_move.capture()), hand_[color_].num(kind(last_move.capture())) + 1, color_);
-            PieceState captured_on_board = pieceState(last_move.capture(), last_move.to(), color_);
-            updatePieceStateList(captured_in_hand, captured_on_board);
-        }
-    }
-#endif // !USE_NN
 
     //ハッシュの更新
     hash_value_ = board_hash_ ^ hand_hash_;
@@ -798,11 +760,6 @@ void Position::loadSFEN(std::string sfen) {
 
     //ハッシュ値の初期化
     initHashValue();
-
-#ifndef USE_NN
-    //特徴量の初期化
-    initFeature();
-#endif
 
     stack_.reserve(256);
 

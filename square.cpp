@@ -2,7 +2,6 @@
 #include<array>
 
 std::vector<Dir> CanMove[WHITE_ROOK_PROMOTE + 1];
-Dir ConDirToOppositeDir[129];
 
 void initCanMove() {
     CanMove[BLACK_PAWN] = { U };
@@ -33,36 +32,6 @@ void initCanMove() {
     CanMove[WHITE_SILVER_PROMOTE] = { U, R, RD, D, LD, L };
     CanMove[WHITE_BISHOP_PROMOTE] = { U, R, D, L };
     CanMove[WHITE_ROOK_PROMOTE] = { RU, RD, LD, LU };
-}
-
-std::vector<Dir> CanJump[WHITE_ROOK_PROMOTE + 1];
-void initCanJump() {
-    CanJump[BLACK_PAWN] = {};
-    CanJump[BLACK_LANCE] = { U };
-    CanJump[BLACK_KNIGHT] = {};
-    CanJump[BLACK_SILVER] = {};
-    CanJump[BLACK_GOLD] = {};
-    CanJump[BLACK_BISHOP] = { RU, RD, LD, LU };
-    CanJump[BLACK_ROOK] = { U, R, D, L };
-    CanJump[BLACK_PAWN_PROMOTE] = {};
-    CanJump[BLACK_LANCE_PROMOTE] = {};
-    CanJump[BLACK_KNIGHT_PROMOTE] = {};
-    CanJump[BLACK_SILVER_PROMOTE] = {};
-    CanJump[BLACK_BISHOP_PROMOTE] = { RU, RD, LD, LU };
-    CanJump[BLACK_ROOK_PROMOTE] = { U, R, D, L };
-    CanJump[WHITE_PAWN] = {};
-    CanJump[WHITE_LANCE] = { D };
-    CanJump[WHITE_KNIGHT] = {};
-    CanJump[WHITE_SILVER] = {};
-    CanJump[WHITE_GOLD] = {};
-    CanJump[WHITE_BISHOP] = { RU, RD, LD, LU };
-    CanJump[WHITE_ROOK] = { U, R, D, L };
-    CanJump[WHITE_PAWN_PROMOTE] = {};
-    CanJump[WHITE_LANCE_PROMOTE] = {};
-    CanJump[WHITE_KNIGHT_PROMOTE] = {};
-    CanJump[WHITE_SILVER_PROMOTE] = {};
-    CanJump[WHITE_BISHOP_PROMOTE] = { RU, RD, LD, LU };
-    CanJump[WHITE_ROOK_PROMOTE] = { U, R, D, L };
 }
 
 const std::array<Square, 81> SquareList = {
@@ -108,13 +77,6 @@ const Square InvSquare[] = {
 std::ostream& operator<<(std::ostream& os, Square sq) {
     os << SquareToFile[sq] << SquareToRank[sq];
     return os;
-}
-
-int32_t mirrorSqNum(int32_t sq_num) {
-    const int32_t f = sq_num / 9 + 1;
-    const int32_t r = sq_num % 9 + 1;
-    const Square mirror = FRToSquare[File9 - f + 1][r];
-    return SquareToNum[mirror];
 }
 
 const ArrayMap<std::string, FileNum> fileToString({
