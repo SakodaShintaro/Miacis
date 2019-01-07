@@ -8,7 +8,6 @@
 #include"eval_elements.hpp"
 #include"types.hpp"
 #include"bitboard.hpp"
-#include"eval_params.hpp"
 #include<random>
 #include<cstdint>
 #include<unordered_map>
@@ -18,7 +17,7 @@ constexpr int MAX_MOVE_LIST_SIZE = 593;
 class Position {
 public:
     //コンストラクタ
-    Position(const EvalParams<DefaultEvalType>& eval_params);
+    Position();
 
     //初期化
     void init();
@@ -29,21 +28,18 @@ public:
     void printForDebug() const;
 
     //一手進める・戻す関数
-    void doMove(const Move move);
+    void doMove(Move move);
     void undo();
     void doNullMove();
     void undoNullMove();
-    void doMoveWithoutCalcDiff(const Move move);
 
     //合法性に関する関数
-    bool isLegalMove(const Move move) const;
-    bool canDropPawn(const Square to) const;
-    bool isPsuedoLegalMove(const Move move) const;
+    bool isLegalMove(Move move) const;
+    bool canDropPawn(Square to) const;
 
     //王手,利き関連
-    inline bool isKingChecked() const { return isChecked_; }
-    Bitboard attackersTo(const Color c, const Square sq) const;
-    Bitboard attackersTo(const Color c, const Square sq, const Bitboard& occupied) const;
+    Bitboard attackersTo(Color c, Square sq) const;
+    Bitboard attackersTo(Color c, Square sq, const Bitboard& occupied) const;
     inline bool isThereControl(const Color c, const Square sq) const { return attackersTo(c, sq); }
     inline bool isLastMoveCheck();
     void computePinners();
@@ -51,42 +47,18 @@ public:
     //千日手の判定
     bool isRepeating(Score& score) const;
 
-    //評価値計算
-    void calcScoreDiff();
-#ifdef USE_NN
-    Vec makeOutput() const;
-    std::vector<CalcType> policy();
-    std::vector<CalcType> maskedPolicy();
-    Score score();
-    Score scoreForTurn();
-    double valueForTurn();
-
-    void resetCalc();
-#ifdef USE_CATEGORICAL
-    std::array<CalcType, BIN_SIZE> valueDist();
-#endif
-#else
-    Score SEE();
-    Score SEEwithoutDoMove();
-    Score score() const;
-    Score scoreForTurn() const;
-#endif
-
     //特徴量作成
-#ifdef USE_NN
     Features makeFeature() const;
-#endif
 
     //toとfromしか与えられない状態から完全なMoveに変換する関数
-    Move transformValidMove(const Move move);
+    Move transformValidMove(Move move);
 
     //合法手生成
     std::vector<Move> generateAllMoves() const;
-    void generateCheckMoves(Move*& move_ptr) const;
     void generateEvasionMoves(Move*& move_ptr) const;
     void generateCaptureMoves(Move*& move_ptr) const;
     void generateNonCaptureMoves(Move*& move_ptr) const;
-    void generateRecaptureMovesTo(const Square to, Move*& move_ptr) const;
+    void generateRecaptureMovesTo(Square to, Move*& move_ptr) const;
 
     //sfenの入出力
     void loadSFEN(std::string sfen);
@@ -102,41 +74,18 @@ public:
     int64_t hash_value() const { return hash_value_; }
     Piece on(const Square sq) const { return board_[sq]; }
     Features features() { return ee_; }
-    const EvalParams<DefaultEvalType>& evalParams() { return eval_params_; }
     bool isChecked() { return isChecked_; }
 private:
     //--------------------
 	//    内部メソッド
     //--------------------
     //合法手生成で用いる関数
-    bool canPromote(const Move move) const;
-    void pushMove(const Move move, Move*& move_ptr) const;
+    bool canPromote(Move move) const;
+    void pushMove(Move move, Move*& move_ptr) const;
     void generateDropMoves(const Bitboard& to_bb, Move*& move_ptr) const;
-
-    //評価値計算
-    void initScore();
-    void initPieceScore();
-    void initKKP_KPPScore();
-    void initKKP_KPPScoreBySIMD();
-    void changeOnePS(PieceState ps, int c);
-    void changeOnePSBySIMD(PieceState ps, int c);
 
     //ハッシュ値の初期化
     void initHashValue();
-
-#ifndef USE_NN
-    //初期化
-    void initFeature();
-
-    void updatePieceStateList(PieceState before, PieceState after);
-#endif
-
-    inline void checkScoreState(std::array<int32_t, ColorNum> copy[3]);
-
-    enum {
-        KKP, KPP_BLACK, KPP_WHITE, KKP_KPP_END,
-        RAW = 0, TURN_BONUS, RAW_TURN_END
-    };
 
     //------------------
     //    クラス変数
@@ -160,12 +109,6 @@ private:
     //手数
     uint32_t turn_number_;
 
-    //駒割による評価値
-    Score piece_score_;
-
-    //KKP,KPPによる評価値
-    std::array<int32_t, ColorNum> score_state_[3];
-
     //玉の位置
     Square king_sq_[ColorNum];
 
@@ -176,30 +119,18 @@ private:
     int64_t hash_value_, board_hash_, hand_hash_;
     bool isChecked_;
 
-    //あるpiece_stateがlistの中の何番目にあるか
-    //-1(存在しない)または0~37となる
-    int16_t piece_state_to_index_[PieceStateNum];
-
     struct StateInfo {
         //千日手判定用に必要な情報
         int64_t board_hash, hand_hash;
         Hand hand[ColorNum];
         bool isChecked;
 
-        //undoでコピーするための情報
-        Score piece_score;
-        std::array<int32_t, ColorNum> score_state[3];
         Features features;
 
         Bitboard pinners;
 
         StateInfo(Position& pos) :
-            board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), isChecked(pos.isChecked_), piece_score(pos.piece_score_), features(pos.ee_), pinners(pos.pinners_) {
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 2; j++) {
-                    score_state[i][j] = pos.score_state_[i][j];
-                }
-            }
+            board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), isChecked(pos.isChecked_), features(pos.ee_), pinners(pos.pinners_) {
             hand[BLACK] = pos.hand_[BLACK];
             hand[WHITE] = pos.hand_[WHITE];
         }
@@ -214,14 +145,6 @@ private:
 
     //特徴量
     Features ee_;
-
-#ifdef USE_NN
-    Vec output_;
-    bool already_calc_;
-#endif
-
-    //評価パラメータへの参照
-    const EvalParams<DefaultEvalType>& eval_params_;
 };
 
 #endif

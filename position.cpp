@@ -18,7 +18,7 @@ extern int piece_value[];
 int64_t Position::HashSeed[PieceNum][SquareNum];
 int64_t Position::HandHashSeed[ColorNum][PieceNum][19];
 
-Position::Position(const EvalParams<DefaultEvalType>& eval_params) : eval_params_(eval_params) {
+Position::Position(){
     init();
 }
 
@@ -92,9 +92,6 @@ void Position::init() {
     initFeature();
 #endif
 
-    //局面の評価値
-    initScore();
-
     stack_.clear();
     stack_.reserve(512);
     kifu_.clear();
@@ -153,8 +150,6 @@ void Position::print() const {
     }
 
     //評価値
-#ifdef USE_NN
-    auto output = makeOutput();
 #ifdef USE_CATEGORICAL
     std::vector<CalcType> categorical_distribution(BIN_SIZE);
     for (int32_t i = 0; i < BIN_SIZE; i++) {
@@ -169,26 +164,7 @@ void Position::print() const {
     }
     printf("value = %f\n", value);
 #else
-    printf("value = %f\n", standardSigmoid(output(POLICY_DIM)));
-#endif
-    //方策
-    //std::vector<Move> moves = generateAllMoves();
-    //std::cout << std::fixed;
-
-    //std::vector<double> policy;
-    //for (Move move : moves) {
-    //    policy.push_back(output(move.toLabel()));
-    //}
-    //policy = softmax(policy);
-
-    //for (int32_t i = 0; i < moves.size(); i++) {
-    //    std::cout << moves[i] << " " << policy[i] << std::endl;
-    //}
-#else
-    printf("駒割評価値:%d\n", piece_score_);
-    printf("位置評価値:%d\n", score_state_[KKP][RAW] + score_state_[KPP_BLACK][RAW] - score_state_[KPP_WHITE][RAW]);
-    printf("手番評価値:%d\n", score_state_[KKP][TURN_BONUS] + score_state_[KPP_BLACK][TURN_BONUS] + score_state_[KPP_WHITE][TURN_BONUS]);
-    printf("合計評価値:%d\n", score());
+//    printf("value = %f\n", standardSigmoid(output(POLICY_DIM)));
 #endif
 
     printf("ハッシュ値:%llx\n", (unsigned long long)hash_value_);
@@ -236,10 +212,6 @@ void Position::doMove(const Move move) {
         //打った後の分をXOR
         board_hash_ ^= HashSeed[move.subject()][move.to()];
 
-        //評価値の更新
-        piece_score_ -= (color_ == BLACK ? piece_value[kind(move.subject())] : -piece_value[kind(move.subject())]);
-        piece_score_ += piece_value[move.subject()];
-
         //Bitboard更新
         pieces_bb_[move.subject()] |= SQUARE_BB[move.to()];
         occupied_bb_[color_] |= SQUARE_BB[move.to()];
@@ -268,19 +240,11 @@ void Position::doMove(const Move move) {
             hand_hash_ ^= HandHashSeed[color_][kind(move.capture())][hand_[color_].num(kind(move.capture())) - 1];
             //増えた後の持ち駒の分XOR
             hand_hash_ ^= HandHashSeed[color_][kind(move.capture())][hand_[color_].num(kind(move.capture()))];
-
-            //評価値の更新
-            piece_score_ += (color_ == BLACK ? piece_value[kind(move.capture())] : -piece_value[kind(move.capture())]);
-            piece_score_ -= piece_value[move.capture()];
         }
 
         //成る手ならsubjectに成りのフラグを立てて,そうでないならsubjectをそのまま移動先に設置
         if (move.isPromote()) {
             board_[move.to()] = promote(move.subject());
-
-            //評価値の更新
-            piece_score_ += piece_value[promote(move.subject())];
-            piece_score_ -= piece_value[move.subject()];
 
             //Bitboard更新
             pieces_bb_[promote(move.subject())] |= SQUARE_BB[move.to()];
@@ -309,10 +273,6 @@ void Position::doMove(const Move move) {
     if (kind(move.subject()) == KING) {
         king_sq_[color_] = move.to();
     }
-#else
-    if (kind(move.subject()) == KING) {
-        ee_.king_sq[color_] = king_sq_[color_] = move.to();
-    }
 #endif
 
     //occupied_all_を更新
@@ -320,9 +280,6 @@ void Position::doMove(const Move move) {
 
     //手番の更新
     color_ = ~color_;
-#ifndef USE_NN
-    ee_.color = color_;
-#endif
 
     //pinners
     computePinners();
@@ -336,17 +293,6 @@ void Position::doMove(const Move move) {
     //王手
     //isChecked_ = isThereControl(~color_, king_sq_[color_]);
     isChecked_ = isLastMoveCheck();
-#if DEBUG
-    bool true_is_checked = isThereControl(~color_, king_sq_[color_]);
-    if (isChecked_ != true_is_checked) {
-        print();
-        move.print();
-        std::cout << "isChecked = " << (isChecked_ ? "true" : "false") << std::endl;
-        std::cout << "isControl = " << (true_is_checked ? "true" : "false") << std::endl;
-        isLastMoveCheck();
-        assert(false);
-    }
-#endif
 
     //hashの手番要素を更新
     hash_value_ = board_hash_ ^ hand_hash_;
@@ -354,18 +300,9 @@ void Position::doMove(const Move move) {
     hash_value_ &= ~1;
     //手番が先手だったら1bitは0のまま,後手だったら1bit目は1になる
     hash_value_ |= color_;
-
-#ifdef USE_NN
-    already_calc_ = false;
-#else
-    calcScoreDiff();
-#endif
 }
 
 void Position::undo() {
-    //駒割のテーブル読み込み
-    extern int piece_value[];
-
     const Move last_move = kifu_.back();
     kifu_.pop_back();
 
@@ -390,10 +327,6 @@ void Position::undo() {
         //戻した後のHandHashとXOR
         hand_hash_ ^= HandHashSeed[color_][kind(last_move.subject())][hand_[color_].num(kind(last_move.subject()))];
 
-        //評価値の更新
-        piece_score_ += (color_ == BLACK ? piece_value[kind(last_move.subject())] : -piece_value[kind(last_move.subject())]);
-        piece_score_ -= piece_value[last_move.subject()];
-
         //Bitboard更新
         pieces_bb_[last_move.subject()] &= ~SQUARE_BB[last_move.to()];
     } else { //盤上の駒を動かす手
@@ -413,10 +346,6 @@ void Position::undo() {
             hand_hash_ ^= HandHashSeed[color_][last_move.capture() & PIECE_KIND_MASK][hand_[color_].num(kind(last_move.capture()))];
             //増えた後の持ち駒の分XORして消す
             hand_hash_ ^= HandHashSeed[color_][last_move.capture() & PIECE_KIND_MASK][hand_[color_].num(kind(last_move.capture())) + 1];
-
-            //評価値の更新
-            piece_score_ -= (color_ == BLACK ? piece_value[kind(last_move.capture())] : -piece_value[kind(last_move.capture())]);
-            piece_score_ += piece_value[last_move.capture()];
         }
 
         //動いた駒をfromに戻す
@@ -436,10 +365,6 @@ void Position::undo() {
 
         //評価値とBitboardの更新
         if (last_move.isPromote()) {
-            //評価値の更新
-            piece_score_ -= piece_value[promote(last_move.subject())];
-            piece_score_ += piece_value[last_move.subject()];
-
             pieces_bb_[promote(last_move.subject())] &= ~SQUARE_BB[last_move.to()];
         } else {
             pieces_bb_[last_move.subject()] &= ~SQUARE_BB[last_move.to()];
@@ -498,19 +423,9 @@ void Position::undo() {
     turn_number_--;
 
     //計算が面倒なものはコピーで戻してみる
-    piece_score_ = stack_.back().piece_score;
-    for (int i = 0; i < KKP_KPP_END; i++) {
-        for (int j = 0; j < RAW_TURN_END; j++) {
-            score_state_[i][j] = stack_.back().score_state[i][j];
-        }
-    }
     ee_ = stack_.back().features;
     pinners_ = stack_.back().pinners;
     isChecked_ = stack_.back().isChecked;
-
-#ifdef USE_NN
-    already_calc_ = false;
-#endif
 
     //Stack更新
     stack_.pop_back();
@@ -559,198 +474,6 @@ void Position::undoNullMove() {
     isChecked_ = stack_.back().isChecked;
     //Stack更新
     stack_.pop_back();
-}
-
-void Position::doMoveWithoutCalcDiff(const Move move) {
-#if DEBUG
-    if (!isLegalMove(move)) {
-        printForDebug();
-        std::cout << "違法だった手:";
-        move.print();
-        isLegalMove(move);
-        undo();
-        assert(false);
-    }
-#endif
-
-    //動かす前の状態を残しておく
-    stack_.emplace_back(*this);
-
-    //実際に動かす
-    if (move.isDrop()) { //持ち駒を打つ手
-
-                         //持ち駒を減らす
-        hand_[color_].sub(kind(move.subject()));
-
-        //移動先にsubjectを設置
-        board_[move.to()] = move.subject();
-
-        //ハッシュ値の更新
-        //打つ前のHandHashとXORして消す
-        hand_hash_ ^= HandHashSeed[color_][kind(move.subject())][hand_[color_].num(kind(move.subject())) + 1];
-        //打った後のHandHashとXOR
-        hand_hash_ ^= HandHashSeed[color_][kind(move.subject())][hand_[color_].num(kind(move.subject()))];
-        //打った後の分をXOR
-        board_hash_ ^= HashSeed[move.subject()][move.to()];
-
-        //評価値の更新
-        piece_score_ -= (color_ == BLACK ? piece_value[kind(move.subject())] : -piece_value[kind(move.subject())]);
-        piece_score_ += piece_value[move.subject()];
-
-        //Bitboard更新
-        pieces_bb_[move.subject()] |= SQUARE_BB[move.to()];
-        occupied_bb_[color_] |= SQUARE_BB[move.to()];
-    } else { //盤上の駒を動かす手
-
-             //移動する駒を消す
-        board_[move.from()] = EMPTY;
-        pieces_bb_[move.subject()] &= ~SQUARE_BB[move.from()];
-        occupied_bb_[color_] &= ~SQUARE_BB[move.from()];
-
-        //取った駒があるならその駒を消し、持ち駒を増やす
-        if (move.capture() != EMPTY) {
-            //取った駒を消す
-            board_[move.to()] = EMPTY;
-            pieces_bb_[move.capture()] &= ~SQUARE_BB[move.to()];
-            occupied_bb_[~color_] &= ~SQUARE_BB[move.to()];
-
-            //持ち駒を増やす
-            hand_[color_].add(kind(move.capture()));
-
-            //ハッシュ値の更新
-            //取った駒分のハッシュをXOR
-            board_hash_ ^= HashSeed[move.capture()][move.to()];
-            //増える前の持ち駒の分をXORして消す
-            hand_hash_ ^= HandHashSeed[color_][kind(move.capture())][hand_[color_].num(kind(move.capture())) - 1];
-            //増えた後の持ち駒の分XOR
-            hand_hash_ ^= HandHashSeed[color_][kind(move.capture())][hand_[color_].num(kind(move.capture()))];
-
-            //評価値の更新
-            piece_score_ += (color_ == BLACK ? piece_value[kind(move.capture())] : -piece_value[kind(move.capture())]);
-            piece_score_ -= piece_value[move.capture()];
-        }
-
-        //成る手ならsubjectに成りのフラグを立てて,そうでないならsubjectをそのまま移動先に設置
-        if (move.isPromote()) {
-            board_[move.to()] = promote(move.subject());
-
-            //評価値の更新
-            piece_score_ += piece_value[promote(move.subject())];
-            piece_score_ -= piece_value[move.subject()];
-
-            //Bitboard更新
-            pieces_bb_[promote(move.subject())] |= SQUARE_BB[move.to()];
-        } else {
-            board_[move.to()] = move.subject();
-
-            //Bitboard更新
-            pieces_bb_[move.subject()] |= SQUARE_BB[move.to()];
-        }
-        //occupiedは成か不成かによらない
-        occupied_bb_[color_] |= SQUARE_BB[move.to()];
-
-        //ハッシュ値の更新
-        //移動前の分をXORして消す
-        board_hash_ ^= HashSeed[move.subject()][move.from()];
-        //移動後の分をXOR
-        if (move.isPromote()) {
-            board_hash_ ^= HashSeed[promote(move.subject())][move.to()];
-        } else {
-            board_hash_ ^= HashSeed[move.subject()][move.to()];
-        }
-    }
-
-    //玉を動かす手ならblack_king_pos,white_king_posに反映
-#ifdef USE_NN
-    if (kind(move.subject()) == KING) {
-        king_sq_[color_] = move.to();
-    }
-#else
-    if (kind(move.subject()) == KING) {
-        ee_.king_sq[color_] = king_sq_[color_] = move.to();
-    }
-#endif
-
-    //occupied_all_を更新
-    occupied_all_ = occupied_bb_[BLACK] | occupied_bb_[WHITE];
-
-    //手番の更新
-    color_ = ~color_;
-#ifndef USE_NN
-    ee_.color = color_;
-#endif
-
-    //pinners
-    computePinners();
-
-    //手数の更新
-    turn_number_++;
-
-    //棋譜に指し手を追加
-    kifu_.push_back(move);
-
-    //王手
-    //isChecked_ = isThereControl(~color_, king_sq_[color_]);
-    isChecked_ = isLastMoveCheck();
-#if DEBUG
-    bool true_is_checked = isThereControl(~color_, king_sq_[color_]);
-    if (isChecked_ != true_is_checked) {
-        print();
-        move.print();
-        std::cout << "isChecked = " << (isChecked_ ? "true" : "false") << std::endl;
-        std::cout << "isControl = " << (true_is_checked ? "true" : "false") << std::endl;
-        lastMove().print();
-        printHistory();
-        isLastMoveCheck();
-        assert(false);
-    }
-#endif
-
-    //hashの手番要素を更新
-    hash_value_ = board_hash_ ^ hand_hash_;
-    //1bit目を0にする
-    hash_value_ &= ~1;
-    //手番が先手だったら1bitは0のまま,後手だったら1bit目は1になる
-    hash_value_ |= color_;
-
-#ifndef USE_NN
-    //移動する駒が玉かどうか、captureかどうかの4通りで場合わけ
-    if (kind(move.subject()) == KING) {
-        if (move.capture() == EMPTY) { //玉を動かし、駒は取らない手
-        } else { //玉を動かし、駒を取る手
-                 //頭が悪いので全計算で勘弁
-            Color move_color = pieceToColor(move.subject());
-            PieceState captured = pieceState(move.capture(), move.to(), ~move_color);
-            PieceState add = pieceState(kind(move.capture()), hand_[move_color].num(kind(move.capture())), move_color);
-            //リストを更新
-            updatePieceStateList(captured, add);
-        }
-    } else if (move.isDrop()) { //駒を打つ手
-        PieceState dropped_from = pieceState(kind(move.subject()), hand_[pieceToColor(move.subject())].num(move.subject()) + 1, pieceToColor(move.subject()));
-        PieceState dropped_to = pieceState(move.subject(), move.to(), pieceToColor(move.subject()));
-
-        //listを更新
-        updatePieceStateList(dropped_from, dropped_to);
-    } else {
-        if (move.capture() == EMPTY) {
-            PieceState removed_from = pieceState(move.subject(), move.from(), pieceToColor(move.subject()));
-            PieceState added_to = pieceState(move.isPromote() ? promote(move.subject()) : move.subject(), move.to(), pieceToColor(move.subject()));
-
-            //listを更新
-            updatePieceStateList(removed_from, added_to);
-        } else {
-            //2つPが消えて2つPが増える.厄介
-            PieceState removed1 = pieceState(move.subject(), move.from(), pieceToColor(move.subject()));
-            PieceState removed2 = pieceState(move.capture(), move.to(), pieceToColor(move.capture()));
-            PieceState added1 = pieceState(move.isPromote() ? promote(move.subject()) : move.subject(), move.to(), pieceToColor(move.subject()));
-            PieceState added2 = pieceState(kind(move.capture()), hand_[pieceToColor(move.subject())].num(move.capture()), pieceToColor(move.subject()));
-
-            //listを更新
-            updatePieceStateList(removed1, added1);
-            updatePieceStateList(removed2, added2);
-        }
-    }
-#endif
 }
 
 bool Position::isLegalMove(const Move move) const {
@@ -1085,9 +808,6 @@ void Position::loadSFEN(std::string sfen) {
     //特徴量の初期化
     initFeature();
 #endif
-
-    //局面の評価値
-    initScore();
 
     stack_.reserve(256);
 
@@ -1695,4 +1415,25 @@ void Position::initHashValue() {
     }
     hash_value_ = board_hash_ ^ hand_hash_;
     hash_value_ &= ~1; //これで1bit目が0になる(先手番を表す)
+}
+
+std::vector<float> Position::makeFeature() const {
+    std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
+    int32_t index = 81;
+    if (color_ == BLACK) {
+        for (int32_t i = 0; i < PieceList.size(); i++) {
+            Piece p = PieceList[i];
+            for (Square sq : SquareList) {
+                features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[sq] == p ? 1 : 0);
+            }
+        }
+        for (int c : {BLACK, WHITE}) {
+            for (Piece p : {PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK}) {
+                features[index++] = (float)hand_[c].num(p);
+            }
+        }
+    } else {
+    }
+
+    return features;
 }

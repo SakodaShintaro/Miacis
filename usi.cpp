@@ -1,20 +1,17 @@
 ﻿#include"usi.hpp"
 #include"move.hpp"
 #include"position.hpp"
-#include"searcher.hpp"
+#include"MCTSearcher.hpp"
 #include"usi_options.hpp"
-#include"eval_params.hpp"
 #include"game.hpp"
 #include"bonanza_method_trainer.hpp"
-#include"rootstrap_trainer.hpp"
 #include"alphazero_trainer.hpp"
-#include"treestrap_trainer.hpp"
 #include"test.hpp"
-#include"network.hpp"
-#include"MCTSearcher.hpp"
+#include"neural_network.hpp"
 #include"operate_params.hpp"
 #include<iostream>
 #include<string>
+#include<climits>
 #include<thread>
 
 USIOption usi_option;
@@ -43,16 +40,10 @@ void USI::loop() {
         } else if (input == "gameover") {
             gameover();
         } else if (input == "prepareForLearn") {
-#ifdef USE_NN
-            eval_params->initRandom();
-#else
-            eval_params->clear();
-            //eval_params->initRandom();
-#endif
-            eval_params->printHistgram();
-            eval_params->writeFile();
-            eval_params->writeFile("tmp.bin");
-            std::cout << "0初期化したパラメータを出力" << std::endl;
+            nn->init();
+            nn->save(MODEL_PATH);
+            nn->save("tmp.model");
+            std::cout << "初期化したパラメータを出力" << std::endl;
         } else if (input == "cleanGame") {
             std::cout << "棋譜のあるフォルダへのパス : ";
             std::string file_path;
@@ -61,47 +52,18 @@ void USI::loop() {
         } else if (input == "BonanzaMethod") {
             BonanzaMethodTrainer trainer("bonanza_method_settings.txt");
             trainer.train();
-        } else if (input == "learnAsync") {
-            RootstrapTrainer trainer("rootstrap_settings.txt");
-            trainer.learnAsync();
-        } else if (input == "learnSync") {
-            RootstrapTrainer trainer("rootstrap_settings.txt");
-            trainer.learnSync();
-        } else if (input == "alphaZero") {
-            AlphaZeroTrainer trainer("alphazero_settings.txt");
-            trainer.learn();
-#ifndef USE_MCTS
-        } else if (input == "treeStrap") {
-            TreestrapTrainer trainer("treestrap_settings.txt");
-            trainer.startLearn();
-#endif
-        } else if (input == "printEvalParams") {
-            eval_params->readFile();
-            eval_params->printHistgram();
+//        } else if (input == "alphaZero") {
+//            AlphaZeroTrainer trainer("alphazero_settings.txt");
+//            trainer.learn();
         } else if (input == "testMakeRandomPosition") {
             testMakeRandomPosition();
         } else if (input == "testKifuOutput") {
             testKifuOutput();
-#ifndef USE_NN
-        } else if (input == "convertAnotherEvalParams") {
-            std::string path;
-            std::cin >> path;
-            std::string kkp_file_name;
-            std::cin >> kkp_file_name;
-            std::string kpp_file_name;
-            std::cin >> kpp_file_name;
-            readAnotherFormatFile(path, kkp_file_name, kpp_file_name);
-            eval_params->writeFile();
-#else
-        } else if (input == "printBias") {
-            eval_params->readFile("tmp.bin");
-            eval_params->printBias();
-#endif
         } else if (input == "testNN") {
             testNN();
-        } else if (input == "testLearn") {
-            AlphaZeroTrainer trainer("alphazero_settings.txt");
-            trainer.testLearn();
+//        } else if (input == "testLearn") {
+//            AlphaZeroTrainer trainer("alphazero_settings.txt");
+//            trainer.testLearn();
         } else if (input == "testMirror") {
             testMirror();
         } else if (input == "testSFEN") {
@@ -134,21 +96,16 @@ void USI::usi() {
     printf("option name draw_turn type spin default 256 min 0 max 4096\n");
     usi_option.draw_turn = 256;
 
-#ifdef USE_MCTS
-    uint64_t d = (uint64_t)1e9;
+    auto d = (unsigned long long)1e9;
     printf("option name playout_limit type spin default %llu min 1 max %llu\n", d, d);
-    usi_option.playout_limit = d;
-#else
-    printf("option name depth_limit type spin default 64 min 1 max 64\n");
-    usi_option.depth_limit = 64 * PLY;
-#endif
+    usi_option.playout_limit = (int64_t)d;
 
     usi_option.USI_Hash = 256;
 	printf("usiok\n");
 }
 
 void USI::isready() {
-    eval_params->readFile();
+    nn->load(MODEL_PATH);
     printf("readyok\n");
 }
 
@@ -187,18 +144,10 @@ void USI::setoption() {
                 std::cin >> input; //input == "value"となるはず
                 std::cin >> usi_option.draw_turn;
                 return;
-#ifdef USE_MCTS
             } else if (input == "playout_limit") {
                 std::cin >> input;
                 std::cin >> usi_option.playout_limit;
                 return;
-#else
-            } else if (input == "depth_limit") {
-                std::cin >> input;
-                std::cin >> usi_option.depth_limit;
-                usi_option.depth_limit *= PLY;
-                return;
-#endif
             }
         }
     }
@@ -245,8 +194,8 @@ void USI::position() {
 }
 
 void USI::go() {
-    Searcher::stop_signal = false;
-    Searcher::print_usi_info = true;
+    usi_option.stop_signal = false;
+    usi_option.print_usi_info = true;
     std::string input;
     std::cin >> input;
     if (input == "ponder") {
@@ -260,7 +209,7 @@ void USI::go() {
         std::cin >> input; //input == "byoyomi" or "binc"となるはず
         if (input == "byoyomi") {
             std::cin >> input;
-            Searcher::limit_msec = stoll(input);
+            usi_option.limit_msec = stoll(input);
         } else {
             int64_t binc, winc;
             std::cin >> input;
@@ -268,12 +217,12 @@ void USI::go() {
             std::cin >> input; //input == "winc" となるはず
             std::cin >> input;
             winc = stoll(input);
-            Searcher::limit_msec = binc;
+            usi_option.limit_msec = binc;
         }
     } else if (input == "infinite") {
         //stop来るまで思考し続ける
         //思考時間をほぼ無限に
-        Searcher::limit_msec = LLONG_MAX;
+        usi_option.limit_msec = LLONG_MAX;
         
         //random_turnをなくす
         usi_option.random_turn = 0;
@@ -282,7 +231,7 @@ void USI::go() {
         std::cin >> input;
         if (input == "infinite") {
             //stop来るまで
-            Searcher ::limit_msec = LLONG_MAX;
+            usi_option.limit_msec = LLONG_MAX;
         } else {
             //思考時間が指定された場合
             //どう実装すればいいんだろう
@@ -293,7 +242,7 @@ void USI::go() {
     //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので
     //別スレッドに投げる
     thread_ = std::thread([&]() {
-        Searcher searcher(usi_option.USI_Hash, usi_option.thread_num);
+        MCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
         auto result = searcher.think(root_);
         if (result.first == NULL_MOVE) {
             std::cout << "bestmove resign" << std::endl;
@@ -304,7 +253,7 @@ void USI::go() {
 }
 
 void USI::stop() {
-    Searcher::stop_signal = true;
+    usi_option.stop_signal = true;
     while (!thread_.joinable());
     thread_.join();
 }

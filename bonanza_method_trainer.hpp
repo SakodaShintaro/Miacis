@@ -8,8 +8,6 @@
 #include"common.hpp"
 #include"piece_state.hpp"
 #include"game.hpp"
-#include"eval_params.hpp"
-#include"network.hpp"
 #include<mutex>
 #include<atomic>
 
@@ -73,15 +71,6 @@ private:
     //次に学習する棋譜のid
     std::atomic<int32_t> game_index_;
 
-    //勾配
-    std::unique_ptr<EvalParams<LearnEvalType>> grad_;
-
-    //勾配の平均(Root Mean Square):AdaGrad,RMSProp,AdaDeltaの時に使う.AdaGradの時は二乗の和だけど、まぁ別に用意するのも変な気がするので
-    std::unique_ptr<EvalParams<LearnEvalType>> RMSgrad_;
-
-    //パラメータの移動量の平均(Root Mean Square):AdaDeltaの時に使う
-    std::unique_ptr<EvalParams<LearnEvalType>> RMSdelta_;
-
     //今回のミニバッチ中で学習した局面の数
     std::atomic<uint64_t> learned_position_num;
 
@@ -98,17 +87,11 @@ private:
     //指し手が一致した局面の数
     std::atomic<int32_t> succeeded_position_num;
 
-#ifdef USE_NN
     //指し手の一致具合計算
     std::vector<int32_t> ordering_num_;
-#endif
 
     //損失
-#ifdef USE_NN
-    std::array<double, 2> loss_;
-#else
-    double loss_;
-#endif
+    LossType loss_;
 };
 
 #endif // !BONANZA_METHOD_TRAINER_HPP

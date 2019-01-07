@@ -1,6 +1,5 @@
 ﻿#include"game.hpp"
 #include"position.hpp"
-#include"network.hpp"
 #include<iostream>
 #include<algorithm>
 #include<string>
@@ -28,7 +27,7 @@ static std::unordered_map<std::string, Piece> CSAstringToPiece = {
 };
 
 Game loadGameFromCSA(sys::path p) {
-    Position pos(*eval_params);
+    Position pos;
 	Game game;
 	std::ifstream ifs(p);
 	std::string buf;
@@ -254,7 +253,7 @@ void Game::writeKifuFile(std::string dir_path) const {
     }
     ofs << std::fixed;
 
-    Position pos(*eval_params);
+    Position pos;
 
     for (int32_t i = 0; i < moves.size(); i++) {
         Move m = moves[i];
@@ -276,18 +275,7 @@ void Game::writeKifuFile(std::string dir_path) const {
         }
         ofs << "**対局 評価値 " << (pieceToColor(m.subject()) == BLACK ? m.score : -m.score) << std::endl;
 
-#ifdef USE_NN
-        if (i == 0) {
-            auto p = pos.maskedPolicy();
-            for (auto& move : pos.generateAllMoves()) {
-                ofs << "*" << move << " " << teachers[i][move.toLabel()] << " " << p[move.toLabel()] << std::endl;
-            }
-        }
-
-        ofs << "*valueForTurn = " << pos.valueForTurn() << std::endl;
-
         pos.doMove(m);
-#endif
     }
     
     ofs << moves.size() + 1 << " ";

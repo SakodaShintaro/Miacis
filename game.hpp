@@ -4,7 +4,7 @@
 #define LOAD_GAME_HPP
 
 #include"move.hpp"
-#include"eval_params.hpp"
+#include"neural_network.hpp"
 #include<string>
 #include<vector>
 #include<experimental/filesystem>

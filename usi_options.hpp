@@ -2,8 +2,6 @@
 #ifndef USI_OPTIONS_HPP
 #define USI_OPTIONS_HPP
 
-#include"MCTSearcher.hpp"
-
 class USIOption{
 public:
 	int64_t byoyomi_margin;
@@ -13,11 +11,13 @@ public:
     int64_t draw_turn;
     int64_t draw_score;
 
-#ifdef USE_MCTS
+    //探索中に参照するものら
+	int64_t limit_msec;
+	bool stop_signal;
+	bool print_usi_info;
+	bool train_mode;
+
     int64_t playout_limit;
-#else
-    Depth depth_limit;
-#endif
 };
 
 extern USIOption usi_option;

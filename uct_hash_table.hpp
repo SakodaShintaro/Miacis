@@ -5,7 +5,7 @@
 
 #include"piece.hpp"
 #include"position.hpp"
-#include"eval_params.hpp"
+#include"neural_network.hpp"
 
 using Index = int32_t;
 
@@ -21,7 +21,7 @@ struct UctHashEntry {
     std::array<CalcType, BIN_SIZE> win_sum;
     std::vector<std::array<CalcType, BIN_SIZE>> child_wins;
 #else
-    CalcType value_win;
+    ValueType value;
     CalcType win_sum;
     std::vector<CalcType> child_wins;
 #endif
@@ -40,7 +40,7 @@ struct UctHashEntry {
         evaled(false), hash(0), turn_number(0), age(0) {}
 #else
     UctHashEntry() :
-        move_count(0), win_sum(0.0), child_num(0), value_win(0.0),
+        move_count(0), win_sum(0.0), child_num(0), value(0.0),
         evaled(false), hash(0), turn_number(0), age(0) {}
 #endif
 };

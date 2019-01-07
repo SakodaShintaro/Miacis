@@ -81,7 +81,11 @@ static Piece ColorToFlag[ColorNum] = { BLACK_FLAG, WHITE_FLAG };
 
 inline static Color operator~(Color c) { return (c == BLACK) ? WHITE : BLACK; }
 
-extern const std::array<Piece, 28> PieceList;
+constexpr uint32_t PIECE_KIND_NUM = 14;
+constexpr uint32_t HAND_PIECE_KIND_NUM = 7;
+constexpr uint32_t INPUT_CHANNEL_NUM = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2;
+
+extern const std::array<Piece, PIECE_KIND_NUM * 2> PieceList;
 extern const std::array<std::array<Piece, 14>, 2> ColoredPieceList;
 extern const std::array<std::array<Piece, 3>, 2> ColoredJumpPieceList;
 extern const ArrayMap<int32_t, PieceNum> pieceToIndex;
@@ -93,9 +97,6 @@ inline Piece toBlack(Piece p) { return static_cast<Piece>(p | BLACK_FLAG); }
 inline Piece toWhite(Piece p) { return static_cast<Piece>(p | WHITE_FLAG); }
 inline Piece coloredPiece(Color c, Piece p) {
     return (c == BLACK ? toBlack(p) : toWhite(p));
-}
-inline bool isJumper(Piece p) {
-    return (kind(p) == LANCE && !(p & PROMOTE_BIT)) || kind(p) == BISHOP || kind(p) == ROOK;
 }
 
 inline Piece oppositeColor(Piece p) {
