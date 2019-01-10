@@ -32,9 +32,9 @@ Game loadGameFromCSA(sys::path p) {
 	std::ifstream ifs(p);
 	std::string buf;
 	while (getline(ifs, buf)) {
-		if (buf[0] == '\'') continue;
-		if (buf[0] != '+' && buf[0] != '-') continue;
-		if (buf.size() == 1) continue;
+		if (buf[0] == '\'' || (buf[0] != '+' && buf[0] != '-') || buf.size() == 1) {
+            continue;
+        }
 
 		//上の分岐によりMoveだけ残る
 		Square from = FRToSquare[buf[1] - '0'][buf[2] - '0'];
@@ -62,9 +62,8 @@ Game loadGameFromCSA(sys::path p) {
         }
 		game.moves.push_back(move);
         pos.doMove(move);
-
 	}
-    game.result = ~pos.color();
+    game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
 	return game;
 }
 

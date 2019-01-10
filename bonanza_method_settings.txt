@@ -1,9 +1,7 @@
-﻿kifu_path C:\Users\Sakoda\Downloads\floodgate
-game_num 100000
-batch_size 100
+﻿kifu_path ~/Downloads/2016
+game_num 1000
+batch_size 4096
 L1_grad_coefficient 0.0
-search_depth 1
-optimizer SGD
 learn_rate 0.00025
 loss_function_mode 1
 thread_num 1

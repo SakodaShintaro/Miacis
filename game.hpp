@@ -18,9 +18,9 @@ struct Game {
 	
     //対局結果
     static constexpr double RESULT_BLACK_WIN = 1.0;
-    static constexpr double RESULT_WHITE_WIN = 0.0;
-    static constexpr double RESULT_DRAW_REPEAT = -1.0;
-    static constexpr double RESULT_DRAW_OVER_LIMIT = -2.0;
+    static constexpr double RESULT_WHITE_WIN = -1.0;
+    static constexpr double RESULT_DRAW_REPEAT = -2.0;
+    static constexpr double RESULT_DRAW_OVER_LIMIT = -3.0;
 	double result;
 
     void writeKifuFile(std::string dir_path) const;

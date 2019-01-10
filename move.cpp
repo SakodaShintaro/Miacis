@@ -42,5 +42,5 @@ int32_t Move::toLabel() const {
         direction += 10;
     }
 
-    return to_num * 27 + direction;
+    return to_num + SQUARE_NUM * direction;
 }

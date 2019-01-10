@@ -598,18 +598,18 @@ bool Position::isLegalMove(const Move move) const {
         }
     } else { //盤上の駒を動かす手の判定
         //各駒に合わせた動きになっているか
-        bool flag = false;
-        for (auto delta : CanMove[board_[move.from()]]) {
-            if (move.to() == move.from() + delta) {
-                flag = true;
-            }
-        }
-        if (!flag) {
-#ifdef DEBUG
-            std::cout << "違法な動きです" << std::endl;
-#endif
-            return false;
-        }
+//        bool flag = false;
+//        for (auto delta : CanMove[board_[move.from()]]) {
+//            if (move.to() == move.from() + delta) {
+//                flag = true;
+//            }
+//        }
+//        if (!flag) {
+//#ifdef DEBUG
+//            std::cout << "違法な動きです" << std::endl;
+//#endif
+//            return false;
+//        }
 
         if (BETWEEN_BB[move.from()][move.to()] & occupied_all_) {
 #if DEBUG

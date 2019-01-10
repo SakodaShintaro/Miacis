@@ -96,13 +96,31 @@ public:
 
     std::pair<Var, Var> loss(std::vector<float>& input, std::vector<float>& policy_teachers, std::vector<float>& value_teachers, uint32_t batch_size) {
         auto y = feedForward(input, batch_size);
-        const Var policy_t = F::input<Var>(Shape({9, 9, POLICY_CHANNEL_NUM}, batch_size), policy_teachers);
+        const Var policy_t = F::input<Var>(Shape({9 * 9 * POLICY_CHANNEL_NUM}, batch_size), policy_teachers);
         const Var value_t = F::input<Var>(Shape({1}, batch_size), value_teachers);
 
-        Var policy_loss = F::softmax_cross_entropy(y.first, policy_t, 0);
+        auto logits = F::flatten(y.first);
+        std::cout << logits.shape().to_string() << std::endl;
+        std::cout << policy_t.shape().to_string() << std::endl;
+
+        Var policy_loss = F::softmax_cross_entropy(logits, policy_t, 0);
+        //std::vector<uint32_t> labels(value_teachers.size(), 0);
+        //Var policy_loss = F::softmax_cross_entropy(F::flatten(y.first), labels, 0);
         Var value_loss = F::pow(F::tanh(y.second) - value_t, 2.0);
 
-        return { policy_loss, value_loss };
+        return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
+    }
+
+    std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& labels, std::vector<float>& value_teachers, uint32_t batch_size) {
+        auto y = feedForward(input, batch_size);
+        const Var value_t  = F::input<Var>(Shape({1}, batch_size), value_teachers);
+
+        auto logits = F::flatten(y.first);
+
+        Var policy_loss = F::softmax_cross_entropy(logits, labels, 0);
+        Var value_loss = F::pow(F::tanh(y.second) - value_t, 2.0);
+
+        return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
     }
 private:
     static constexpr int32_t LAYER_NUM = 3;

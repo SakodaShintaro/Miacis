@@ -22,19 +22,6 @@ public:
     void train();
 
 private:
-    //--------------------
-    //    内部メソッド
-    //--------------------
-    //各スレッドで動かす学習を行う関数
-    void trainSlave(uint32_t thread_id);
-
-    //更新作業をまとめた関数
-    void update();
-
-    //損失関数とその導関数
-    double loss_function(int score_diff);
-    double d_loss_function(int score_diff);
-
     //-----------------------------------------------------
     //    定数や、ファイルから読み込むためconst化はして
     //    いないがほぼ定数であるもの
@@ -44,16 +31,6 @@ private:
 
     //L1正則化の強さ
     double L1_GRAD_COEFFICIENT;
-
-    //損失関数にsigmoidを使うか線形関数を使うか
-    int32_t LOSS_FUNCTION_MODE;
-
-    //シグモイド関数のゲイン
-    //どのくらいの値にすればいいのかはよくわからないけどとりあえずは http://woodyring.blog.so-net.ne.jp/2015-02-06-1 を参考に
-    static constexpr double gain = 0.02740;
-
-    //線形関数の傾き
-    static constexpr double linear_coefficient = 1.0;
 
     //------------
     //    変数
