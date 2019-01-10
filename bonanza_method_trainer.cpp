@@ -53,6 +53,7 @@ void BonanzaMethodTrainer::train() {
 
     //評価関数ロード
     learning_model_.load("cnn.model");
+    learning_model_.init();
 
     //棋譜を読み込む
     std::cout << "start loadGames ...";

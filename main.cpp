@@ -16,7 +16,6 @@ int main()
 //    Graph::set_default(g);
 
     nn->init();
-    nn->save(MODEL_PATH);
 
     initCanMove();
 
