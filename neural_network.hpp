@@ -21,6 +21,12 @@ using CalcType = float;
 //using PolicyType = std::array<float, SQUARE_NUM * POLICY_CHANNEL_NUM>;
 using PolicyType = std::vector<float>;
 using ValueType = float;
+
+inline ValueType reverse(ValueType value) {
+    return -value;
+    //カテゴリカルなら反転を返す
+}
+
 using TeacherType = std::pair<PolicyType, ValueType>;
 
 template <typename Var>
@@ -90,7 +96,7 @@ public:
         std::vector<float> input = pos.makeFeature();
         auto y = feedForward(input, 1);
         auto policy = y.first;
-        auto value = F::tanh(y.second);
+        auto value = y.second;
         return { policy.to_vector(), value.to_float() };
     }
 
@@ -104,9 +110,7 @@ public:
         std::cout << policy_t.shape().to_string() << std::endl;
 
         Var policy_loss = F::softmax_cross_entropy(logits, policy_t, 0);
-        //std::vector<uint32_t> labels(value_teachers.size(), 0);
-        //Var policy_loss = F::softmax_cross_entropy(F::flatten(y.first), labels, 0);
-        Var value_loss = F::pow(F::tanh(y.second) - value_t, 2.0);
+        Var value_loss = F::pow(y.second - value_t, 2.0);
 
         return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
     }
@@ -118,7 +122,7 @@ public:
         auto logits = F::flatten(y.first);
 
         Var policy_loss = F::softmax_cross_entropy(logits, labels, 0);
-        Var value_loss = F::pow(F::tanh(y.second) - value_t, 2.0);
+        Var value_loss = F::pow(y.second - value_t, 2.0);
 
         return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
     }

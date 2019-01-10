@@ -1,5 +1,4 @@
-﻿#pragma once
-#ifndef MCTSEARCHER_HPP
+﻿#ifndef MCTSEARCHER_HPP
 #define MCTSEARCHER_HPP
 
 #include"types.hpp"
@@ -154,7 +153,6 @@ std::pair<Move, TeacherType> MCTSearcher<Var>::think(Position& root) {
     auto best_wp = (child_move_counts[best_index] == 0 ? 0.0
                                                        : current_node.child_wins[best_index] / child_move_counts[best_index]);
 #endif
-    assert(0.0 <= best_wp && best_wp <= 1.0);
 
     //投了しない場合教師データを作成
     TeacherType teacher;
@@ -236,7 +234,7 @@ ValueType MCTSearcher<Var>::uctSearch(Position & pos, Index current_index) {
 #ifdef USE_CATEGORICAL
         result = onehotDist(1.0 - sigmoid(score, CP_GAIN));
 #else
-        result = 1.0f - score;
+        result = -score;
 #endif
     } else if (child_indices[next_index] == UctHashTable::NOT_EXPANDED) {
         // ノードの展開
@@ -246,7 +244,7 @@ ValueType MCTSearcher<Var>::uctSearch(Position & pos, Index current_index) {
         result = hash_table_[index].value_dist;
         std::reverse(result.begin(), result.end());
 #else
-        result = 1.0f - hash_table_[index].value;
+        result = -hash_table_[index].value;
 #endif
     } else {
         // 手番を入れ替えて1手深く読む
@@ -254,7 +252,7 @@ ValueType MCTSearcher<Var>::uctSearch(Position & pos, Index current_index) {
         result = uctSearch(pos, child_indices[next_index]);
         std::reverse(result.begin(), result.end());
 #else
-        result = 1.0f - uctSearch(pos, child_indices[next_index]);
+        result = -uctSearch(pos, child_indices[next_index]);
 #endif
     }
 
@@ -328,7 +326,7 @@ Index MCTSearcher<Var>::expandNode(Position& pos) {
                 current_node.value_dist[i] = (i == 0 ? 1.0f : 0.0f);
             }
 #else
-            current_node.value = 0.0;
+            current_node.value = -1.0f;
 #endif
         }
         current_node.evaled = true;
@@ -501,7 +499,7 @@ int32_t MCTSearcher<Var>::selectMaxUcbChild(const UctHashEntry & current_node) {
             }
         }
 #else
-        double Q = (child_move_counts[i] == 0 ? 0.5 : current_node.child_wins[i] / child_move_counts[i]);
+        double Q = (child_move_counts[i] == 0 ? 0.0 : current_node.child_wins[i] / child_move_counts[i]);
 #endif
         double U = std::sqrt(current_node.move_count + 1) / (child_move_counts[i] + 1);
         double ucb = Q + C_PUCT * current_node.nn_rates[i] * U;

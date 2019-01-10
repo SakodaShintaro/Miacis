@@ -66,6 +66,9 @@ void USI::loop() {
 //            trainer.testLearn();
         } else if (input == "testSFEN") {
             testSFENoutput();
+        } else if (input == "testTrain") {
+            BonanzaMethodTrainer trainer("bonanza_method_settings.txt");
+            trainer.testTrain();
         } else {
             std::cout << "Illegal input" << std::endl;
         }

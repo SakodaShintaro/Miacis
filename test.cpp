@@ -127,8 +127,18 @@ void testNN() {
     auto searcher = std::make_unique<MCTSearcher<Tensor>>(16, 1, *nn);
     usi_option.playout_limit = 800;
 
+    testToLabel();
+
+    std::random_device rd;
+
     while (true) {
         pos.print();
+
+//        auto moves = pos.generateAllMoves();
+//        if (moves.empty()) {
+//            break;
+//        }
+//        Move best_move = moves[rd() % moves.size()];
 
         auto search_result = searcher->think(pos);
         Move best_move = search_result.first;

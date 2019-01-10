@@ -11,8 +11,6 @@
 #include<iomanip>
 #include<thread>
 
-static std::mutex MUTEX;
-
 BonanzaMethodTrainer::BonanzaMethodTrainer(std::string settings_file_path) {
     std::ifstream ifs(settings_file_path);
     if (!ifs) {
@@ -53,7 +51,6 @@ void BonanzaMethodTrainer::train() {
 
     //評価関数ロード
     learning_model_.load("cnn.model");
-    learning_model_.init();
 
     //棋譜を読み込む
     std::cout << "start loadGames ...";
@@ -92,6 +89,7 @@ void BonanzaMethodTrainer::train() {
             teacher.label = (uint32_t)move.toLabel();
             teacher.value = (float)(pos.color() == BLACK ? game.result : -game.result);
             data_buffer.emplace_back(pos.toSFEN(), teacher);
+            pos.doMove(move);
         }
     }
 
@@ -127,17 +125,99 @@ void BonanzaMethodTrainer::train() {
             print(step);
             print(loss.first.to_float());
             print(loss.second.to_float());
+            auto l = loss.first + loss.second;
             std::cout << std::endl;
             log_file_ << std::endl;
             optimizer.reset_gradients();
-            loss.first.backward();
-            loss.second.backward();
+//            loss.first.backward();
+//            loss.second.backward();
+            l.backward();
             optimizer.update();
         }
 
-        learning_model_.save(MODEL_PATH);
+        learning_model_.save("cnn" + std::to_string(epoch) + ".model");
     }
 
     log_file_.close();
     std::cout << "finish BonanzaMethod" << std::endl;
+}
+
+void BonanzaMethodTrainer::testTrain() {
+    std::cout << "start testTrain" << std::endl;
+
+    //学習開始時間の設定
+    start_time_ = std::chrono::steady_clock::now();
+
+    //評価関数ロード
+    learning_model_.load("cnn.model");
+
+    game_num_ = 1;
+
+    //棋譜を読み込む
+    games_ = loadGames(KIFU_PATH, game_num_);
+    std::cout << "games.size() = " << games_.size() << std::endl;
+
+    struct TT {
+        uint32_t label;
+        float value;
+    };
+    std::vector<std::pair<std::string, TT>> data_buffer;
+    for (const auto& game : games_) {
+        Position pos;
+        for (const auto& move : game.moves) {
+            TT teacher;
+            teacher.label = (uint32_t)move.toLabel();
+            teacher.value = (float)(pos.color() == BLACK ? game.result : -game.result);
+            data_buffer.emplace_back(pos.toSFEN(), teacher);
+            pos.doMove(move);
+        }
+    }
+
+    BATCH_SIZE = data_buffer.size();
+
+    Position pos;
+
+    O::MomentumSGD optimizer(0.01);
+    optimizer.add(learning_model_);
+
+    Graph g;
+    Graph::set_default(g);
+
+    //学習開始
+    for (int32_t step = 1; step <= 500; step++) {
+        std::vector<float> input, value_teachers;
+        std::vector<uint32_t> labels;
+        for (int32_t b = 0; b < BATCH_SIZE; b++) {
+            const auto &datum = data_buffer[b];
+            pos.loadSFEN(datum.first);
+            const auto &feature = pos.makeFeature();
+            for (const auto &e : feature) {
+                input.push_back(e);
+            }
+            labels.push_back(datum.second.label);
+            value_teachers.push_back(datum.second.value);
+        }
+        g.clear();
+        auto loss = learning_model_.loss(input, labels, value_teachers, (uint32_t)BATCH_SIZE);
+        print(step);
+        print(loss.first.to_float());
+        print(loss.second.to_float());
+        auto l = loss.first + loss.second;
+        std::cout << std::endl;
+        optimizer.reset_gradients();
+//            loss.first.backward();
+//            loss.second.backward();
+        l.backward();
+        optimizer.update();
+    }
+
+    learning_model_.save(MODEL_PATH);
+    nn->load(MODEL_PATH);
+    pos.init();
+    for (const auto& move : games_.front().moves) {
+        pos.print();
+        pos.doMove(move);
+    }
+
+    std::cout << "finish testTrain" << std::endl;
 }

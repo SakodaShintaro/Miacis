@@ -3,6 +3,7 @@
 #include"move.hpp"
 #include"common.hpp"
 #include"usi_options.hpp"
+#include"neural_network.hpp"
 #include<iostream>
 #include<cstdio>
 #include<ctime>
@@ -158,6 +159,8 @@ void Position::print() const {
     printf("value = %f\n", value);
 #else
 //    printf("value = %f\n", standardSigmoid(output(POLICY_DIM)));
+    auto y = nn->policyAndValue(*this);
+    std::cout << "value = " << y.second << std::endl;
 #endif
 
     printf("ハッシュ値:%llx\n", (unsigned long long)hash_value_);
@@ -1404,6 +1407,17 @@ std::vector<float> Position::makeFeature() const {
             }
         }
     }
+
+//    for (int32_t i = 0; i < INPUT_CHANNEL_NUM; i++) {
+//        std::cout << i << std::endl;
+//        for (int32_t r = Rank1; r <= Rank9; r++) {
+//            for (int32_t f = File9; f >= File1; f--) {
+//                Square sq = FRToSquare[f][r];
+//                std::cout << features[i * SQUARE_NUM + SquareToNum[sq]] << " ";
+//            }
+//            std::cout << std::endl;
+//        }
+//    }
 
     return features;
 }
