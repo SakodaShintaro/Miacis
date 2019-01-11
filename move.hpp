@@ -74,13 +74,9 @@ public:
 	bool operator<(const Move &rhs) const { return (score < rhs.score); }
 	bool operator>(const Move &rhs) const { return (score > rhs.score); }
 
-    inline bool isQuiet() const {
-        return (capture() == EMPTY);
-    }
-
     int32_t toLabel() const;
 
-	//探索時にSeacherクラスから気軽にアクセスできるようpublicにおいてるけど
+	//探索時にSearcherクラスから気軽にアクセスできるようpublicにおいてるけど
 	int move;
 	Score score;
 };
