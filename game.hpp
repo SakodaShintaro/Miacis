@@ -17,8 +17,8 @@ struct Game {
     std::vector<TeacherType> teachers;
 	
     //対局結果
-    static constexpr double RESULT_BLACK_WIN = 1.0;
-    static constexpr double RESULT_WHITE_WIN = -1.0;
+    static constexpr double RESULT_BLACK_WIN = MAX_SCORE;
+    static constexpr double RESULT_WHITE_WIN = MIN_SCORE;
     static constexpr double RESULT_DRAW_REPEAT = -2.0;
     static constexpr double RESULT_DRAW_OVER_LIMIT = -3.0;
 	double result;

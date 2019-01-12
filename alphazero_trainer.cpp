@@ -85,7 +85,7 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
     update_num_ = 0;
 
     //評価関数読み込み
-    learning_model_.load(MODEL_PATH);
+    //learning_model_.load(MODEL_PATH);
 
 //    //棋譜を保存するディレクトリの削除
 //    std::experimental::filesystem::remove_all("./learn_games");
@@ -260,45 +260,47 @@ void AlphaZeroTrainer::testLearn() {
     //局面もインスタンスは一つ用意して都度局面を構成
     Position pos;
 
+    //1局分だけデータを構築
+    std::vector<float> inputs, value_teachers;
+    std::vector<uint32_t> policy_teachers;
+    for (const auto& datum : replay_buffer_) {
+        auto sfen = datum.first;
+        auto teacher = datum.second;
+        pos.loadSFEN(sfen);
+
+        for (const auto& e : pos.makeFeature()) {
+            inputs.push_back(e);
+        }
+        policy_teachers.push_back(teacher.first);
+        value_teachers.push_back(teacher.second);
+    }
+
     //学習
-    O::SGD optimizer(0.01);
+    O::MomentumSGD optimizer(LEARN_RATE);
     optimizer.add(learning_model_);
 
     Graph g;
     Graph::set_default(g);
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
-        //ミニバッチ分勾配を貯める
-        std::vector<float> inputs, value_teachers;
-        std::vector<uint32_t> policy_teachers;
-        for (const auto& datum : replay_buffer_) {
-            auto sfen = datum.first;
-            auto teacher = datum.second;
-            pos.loadSFEN(sfen);
-
-            for (const auto& e : pos.makeFeature()) {
-                inputs.push_back(e);
-            }
-            policy_teachers.push_back(teacher.first);
-            value_teachers.push_back(teacher.second);
-        }
-
         g.clear();
         auto losses = learning_model_.loss(inputs, policy_teachers, value_teachers, BATCH_SIZE);
-        std::cout << losses.first.to_float() << " " << losses.second.to_float() << std::endl;
+        std::cout << std::setw(4) << step_num << " " << losses.first.to_float() << " " << losses.second.to_float() << std::endl;
         optimizer.reset_gradients();
         losses.first.backward();
         losses.second.backward();
         optimizer.update();
     }
 
+    learning_model_.print();
     learning_model_.save(MODEL_PATH);
     nn->load(MODEL_PATH);
 
     for (const auto &game : games) {
         Position position;
         for (int32_t i = 0; i < game.moves.size(); i++) {
-            position.print();
+            auto policy_and_value = nn->policyAndValue(position);
+            std::cout << policy_and_value.first[game.moves[i].toLabel()] << " " << policy_and_value.second << std::endl;
             position.doMove(game.moves[i]);
         }
     }
@@ -437,7 +439,7 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
         pos.undo();
 
         //探索結果を先手から見た値に変換
-        double curr_win_rate = (pos.color() == BLACK ? game.moves[i].score : 1.0 - game.moves[i].score);
+        double curr_win_rate = (pos.color() == BLACK ? game.moves[i].score : reverse(game.moves[i].score));
 
         //混合
         win_rate_for_black = LAMBDA * win_rate_for_black + (1.0 - LAMBDA) * curr_win_rate;
@@ -452,7 +454,7 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
         }
 #else
         //teacherにコピーする
-        game.teachers[i].second = (CalcType) (pos.color() == BLACK ? win_rate_for_black : 1.0 - win_rate_for_black);
+        game.teachers[i].second = (CalcType) (pos.color() == BLACK ? win_rate_for_black : reverse(win_rate_for_black));
 #endif
 
         //スタックに詰める

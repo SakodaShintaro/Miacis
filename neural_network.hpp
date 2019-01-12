@@ -22,8 +22,14 @@ using CalcType = float;
 using PolicyType = std::vector<float>;
 using ValueType = float;
 
+#define USE_SIGMOID
+
 inline ValueType reverse(ValueType value) {
+#ifdef USE_SIGMOID
+    return 1.0f - value;
+#else
     return -value;
+#endif
     //カテゴリカルなら反転を返す
 }
 
@@ -37,15 +43,10 @@ public:
             add("filter" + std::to_string(i), filter[i]);
         }
         add("value_filter", value_filter);
-
         add("value_pw_fc1", value_pw_fc1);
-
         add("value_pb_fc1", value_pb_fc1);
-
         add("value_pw_fc2", value_pw_fc2);
-
         add("value_pb_fc2", value_pb_fc2);
-
         add("policy_filter", policy_filter);
     }
 
@@ -55,15 +56,10 @@ public:
                     , I::XavierUniformConv2D());
         }
         value_filter.init({1, 1, CHANNEL_NUM, CHANNEL_NUM}, I::XavierUniformConv2D());
-
         value_pw_fc1.init({VALUE_HIDDEN_NUM, SQUARE_NUM * CHANNEL_NUM}, I::XavierUniform());
-
         value_pb_fc1.init({VALUE_HIDDEN_NUM}, I::Constant(0));
-
         value_pw_fc2.init({1, VALUE_HIDDEN_NUM}, I::XavierUniform());
-
         value_pb_fc2.init({1}, I::Constant(0));
-
         policy_filter.init({1, 1, CHANNEL_NUM, POLICY_CHANNEL_NUM}, I::XavierUniformConv2D());
     }
 
@@ -84,7 +80,12 @@ public:
 
         Var value_w_fc2 = F::parameter<Var>(value_pw_fc2);
         Var value_b_fc2 = F::parameter<Var>(value_pb_fc2);
+
+#ifdef USE_SIGMOID
+        value_fc2 = F::sigmoid(F::matmul(value_w_fc2, value_fc1) + value_b_fc2);
+#else
         value_fc2 = F::tanh(F::matmul(value_w_fc2, value_fc1) + value_b_fc2);
+#endif
 
         Var conv_policy_filter = F::parameter<Var>(policy_filter);
         policy_conv = F::conv2d(conv[LAYER_NUM - 1], conv_policy_filter, 0, 0, 1, 1, 1, 1);
@@ -97,7 +98,7 @@ public:
         Graph g;
         Graph::set_default(g);
         auto y = feedForward(input, 1);
-        auto policy = y.first;
+        auto policy = F::softmax(F::flatten(y.first), 0);
         auto value = y.second;
         return { policy.to_vector(), value.to_float() };
     }
@@ -124,12 +125,54 @@ public:
         auto logits = F::flatten(y.first);
 
         Var policy_loss = F::softmax_cross_entropy(logits, labels, 0);
-        Var value_loss = F::pow(y.second - value_t, 2.0);
+#ifdef USE_SIGMOID
+        Var value_loss = -value_t * F::log(y.second) -(1 - value_t) * F::log(1 - y.second);
+#else
+        Var value_loss = F::pow(F::subtract(y.second, value_t), 2.0);
+#endif
 
         return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
     }
+
+    void print() {
+        Var conv_filter[LAYER_NUM];
+        for (int32_t i = 0; i < LAYER_NUM; i++) {
+            conv_filter[i] = F::parameter<Var>(filter[i]);
+            auto f = F::flatten(conv_filter[i]);
+            std::cout << i << "層目" << std::endl;
+            std::cout << f.to_vector().front() << std::endl;
+        }
+
+        std::cout << "value_conv層" << std::endl;
+        Var conv_value_filter = F::parameter<Var>(value_filter);
+        auto f = F::flatten(conv_value_filter);
+        std::cout << f.to_vector().front() << std::endl;
+
+        Var value_w_fc1 = F::parameter<Var>(value_pw_fc1);
+        Var value_b_fc1 = F::parameter<Var>(value_pb_fc1);
+
+        std::cout << "fc1" << std::endl;
+        auto w_fc1 = F::flatten(value_w_fc1);
+        std::cout << w_fc1.to_vector().front() << std::endl;
+
+        for (const auto& e : value_b_fc1.to_vector()) {
+            std::cout << e << " ";
+        }
+        std::cout << std::endl;
+
+        std::cout << "fc2" << std::endl;
+        Var value_w_fc2 = F::parameter<Var>(value_pw_fc2);
+        Var value_b_fc2 = F::parameter<Var>(value_pb_fc2);
+        auto w_fc2 = F::flatten(value_w_fc2);
+        std::cout << w_fc2.to_vector().front() << std::endl;
+
+        for (const auto& e : value_b_fc2.to_vector()) {
+            std::cout << e << " ";
+        }
+        std::cout << std::endl;
+    }
 private:
-    static constexpr int32_t LAYER_NUM = 3;
+    static constexpr int32_t LAYER_NUM = 2;
     static constexpr int32_t KERNEL_SIZE = 3;
     static constexpr int32_t CHANNEL_NUM = 16;
     static constexpr int32_t VALUE_HIDDEN_NUM = 256;

@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#ifndef TYPES_HPP
+﻿#ifndef TYPES_HPP
 #define TYPES_HPP
 
 #include<iostream>
@@ -10,9 +8,16 @@ enum Color {
     BLACK, WHITE, ColorNum,
 };
 
+#define USE_SIGMOID
+
 using Score = float;
 constexpr Score MAX_SCORE = 1.0;
+
+#ifdef USE_SIGMOID
+constexpr Score MIN_SCORE = 0.0;
+#else
 constexpr Score MIN_SCORE = -MAX_SCORE;
+#endif
 
 constexpr double CP_GAIN = 1.0 / 600.0;
 
