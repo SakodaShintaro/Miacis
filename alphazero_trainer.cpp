@@ -3,6 +3,8 @@
 #include"MCTSearcher.hpp"
 #include"operate_params.hpp"
 #include"neural_network.hpp"
+#include "alphazero_trainer.hpp"
+
 #include<iomanip>
 #include<algorithm>
 #include<thread>
@@ -13,9 +15,7 @@
 #ifdef _MSC_VER
 #include<direct.h>
 #elif __GNUC__
-
 #include<sys/stat.h>
-
 #endif
 
 static std::mutex MUTEX;
@@ -87,18 +87,18 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
     //評価関数読み込み
     learning_model_.load(MODEL_PATH);
 
-    //棋譜を保存するディレクトリの削除
-    std::experimental::filesystem::remove_all("./learn_games");
-    std::experimental::filesystem::remove_all("./test_games");
-
-    //棋譜を保存するディレクトリの作成
-#ifdef _MSC_VER
-    _mkdir("./learn_games");
-    _mkdir("./test_games");
-#elif __GNUC__
-    mkdir("./learn_games", ACCESSPERMS);
-    mkdir("./test_games", ACCESSPERMS);
-#endif
+//    //棋譜を保存するディレクトリの削除
+//    std::experimental::filesystem::remove_all("./learn_games");
+//    std::experimental::filesystem::remove_all("./test_games");
+//
+//    //棋譜を保存するディレクトリの作成
+//#ifdef _MSC_VER
+//    _mkdir("./learn_games");
+//    _mkdir("./test_games");
+//#elif __GNUC__
+//    mkdir("./learn_games", ACCESSPERMS);
+//    mkdir("./test_games", ACCESSPERMS);
+//#endif
 }
 
 void AlphaZeroTrainer::startLearn() {
@@ -239,7 +239,7 @@ void AlphaZeroTrainer::testLearn() {
     learning_model_.init();
 
     //自己対局
-    auto games = RootstrapTrainer::parallelPlay(1);
+    auto games = parallelPlay(1);
 
     std::cout << std::fixed;
 
@@ -247,28 +247,53 @@ void AlphaZeroTrainer::testLearn() {
         if (game.result == Game::RESULT_DRAW_REPEAT || game.result == Game::RESULT_DRAW_OVER_LIMIT) {
             if (!USE_DRAW_GAME) { //使わないと指定されていたらスキップ
                 continue;
-            } else { //そうでなかったら結果を0.5にして使用
-                game.result = 0.0;
+            } else { //そうでなかったら結果を後手勝ちにして
+                game.result = Game::RESULT_WHITE_WIN;
             }
         }
 
-        game.moves.resize((unsigned long) (usi_option.random_turn + 1));
+        BATCH_SIZE = game.moves.size();
 
         pushOneGame(game);
-
-        Position pos;
-        for (int32_t i = 0; i < game.moves.size(); i++) {
-            pos.doMove(game.moves[i]);
-        }
     }
 
     //局面もインスタンスは一つ用意して都度局面を構成
     Position pos;
 
     //学習
+    O::SGD optimizer(0.01);
+    optimizer.add(learning_model_);
+
+    Graph g;
+    Graph::set_default(g);
+
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         //ミニバッチ分勾配を貯める
+        std::vector<float> inputs, value_teachers;
+        std::vector<uint32_t> policy_teachers;
+        for (const auto& datum : replay_buffer_) {
+            auto sfen = datum.first;
+            auto teacher = datum.second;
+            pos.loadSFEN(sfen);
+
+            for (const auto& e : pos.makeFeature()) {
+                inputs.push_back(e);
+            }
+            policy_teachers.push_back(teacher.first);
+            value_teachers.push_back(teacher.second);
+        }
+
+        g.clear();
+        auto losses = learning_model_.loss(inputs, policy_teachers, value_teachers, BATCH_SIZE);
+        std::cout << losses.first.to_float() << " " << losses.second.to_float() << std::endl;
+        optimizer.reset_gradients();
+        losses.first.backward();
+        losses.second.backward();
+        optimizer.update();
     }
+
+    learning_model_.save(MODEL_PATH);
+    nn->load(MODEL_PATH);
 
     for (const auto &game : games) {
         Position position;
@@ -286,7 +311,7 @@ void AlphaZeroTrainer::act() {
     NeuralNetwork<Tensor> model;
     model.init();
     model.load(MODEL_PATH);
-    auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, 1, model);
+    auto searcher = std::make_unique<MCTSearcher<Tensor>>(usi_option.USI_Hash, 1, model);
 
     //停止信号が来るまでループ
     while (!usi_option.stop_signal) {
@@ -337,7 +362,7 @@ void AlphaZeroTrainer::evaluate() {
     auto before_random_turn = usi_option.random_turn;
     usi_option.random_turn = EVALUATION_RANDOM_TURN;
     usi_option.train_mode = false;
-    auto test_games = RootstrapTrainer::parallelPlay(*eval_params, *opponent_parameters_, EVALUATION_GAME_NUM);
+    auto test_games = parallelPlay(EVALUATION_GAME_NUM);
 
     //設定を戻す
     usi_option.random_turn = before_random_turn;
@@ -435,4 +460,61 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
         replay_buffer_.emplace_back(pos.toSFEN(), game.teachers[i]);
         MUTEX.unlock();
     }
+}
+
+std::vector<Game> AlphaZeroTrainer::parallelPlay(int32_t game_num) {
+    std::vector<Game> games((unsigned long)game_num);
+    std::atomic<int32_t> index;
+    index = 0;
+
+    std::vector<std::thread> threads;
+    for (int32_t i = 0; i < (int32_t)usi_option.thread_num; i++) {
+        threads.emplace_back([&]() {
+            auto searcher1 = std::make_unique<MCTSearcher<Node>>(usi_option.USI_Hash, 1, learning_model_);
+            auto searcher2 = std::make_unique<MCTSearcher<Tensor>>(usi_option.USI_Hash, 1, *nn);
+            while (true) {
+                int32_t curr_index = index++;
+                if (curr_index >= game_num) {
+                    return;
+                }
+                Game& game = games[curr_index];
+                game.moves.reserve((unsigned long)usi_option.draw_turn);
+                game.teachers.reserve((unsigned long)usi_option.draw_turn);
+                Position pos;
+
+                while (true) {
+                    //iが偶数のときpos_cが先手
+                    auto move_and_teacher = ((pos.turn_number() % 2) == (curr_index % 2) ?
+                                             searcher1->think(pos) :
+                                             searcher2->think(pos));
+                    Move best_move = move_and_teacher.first;
+                    TeacherType teacher = move_and_teacher.second;
+
+                    if (best_move == NULL_MOVE) { //NULL_MOVEは投了を示す
+                        game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
+                        break;
+                    }
+
+                    if (!pos.isLegalMove(best_move)) {
+                        pos.printForDebug();
+                        best_move.printWithScore();
+                        assert(false);
+                    }
+                    pos.doMove(best_move);
+                    pos.print();
+                    game.moves.push_back(best_move);
+                    game.teachers.push_back(teacher);
+
+                    if (pos.turn_number() >= usi_option.draw_turn) { //長手数
+                        game.result = Game::RESULT_DRAW_OVER_LIMIT;
+                        break;
+                    }
+                }
+            }
+        });
+    }
+    for (int32_t i = 0; i < (int32_t)usi_option.thread_num; i++) {
+        threads[i].join();
+    }
+    return games;
 }

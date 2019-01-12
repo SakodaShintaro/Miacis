@@ -37,7 +37,7 @@ private:
     //replay_buffer_へ1局分詰め込む関数
     void pushOneGame(Game& game);
 
-    void parallelPlay(int32_t game_num);
+    std::vector<Game> parallelPlay(int32_t game_num);
 
     //---------------------------------------------
     //    ファイルから読み込むためconst化はして

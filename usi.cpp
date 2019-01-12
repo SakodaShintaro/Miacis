@@ -52,18 +52,18 @@ void USI::loop() {
         } else if (input == "BonanzaMethod") {
             BonanzaMethodTrainer trainer("bonanza_method_settings.txt");
             trainer.train();
-//        } else if (input == "alphaZero") {
-//            AlphaZeroTrainer trainer("alphazero_settings.txt");
-//            trainer.learn();
+        } else if (input == "alphaZero") {
+            AlphaZeroTrainer trainer("alphazero_settings.txt");
+            trainer.startLearn();
         } else if (input == "testMakeRandomPosition") {
             testMakeRandomPosition();
         } else if (input == "testKifuOutput") {
             testKifuOutput();
         } else if (input == "testNN") {
             testNN();
-//        } else if (input == "testLearn") {
-//            AlphaZeroTrainer trainer("alphazero_settings.txt");
-//            trainer.testLearn();
+        } else if (input == "testLearn") {
+            AlphaZeroTrainer trainer("alphazero_settings.txt");
+            trainer.testLearn();
         } else if (input == "testSFEN") {
             testSFENoutput();
         } else if (input == "testTrain") {
@@ -77,9 +77,9 @@ void USI::loop() {
 
 void USI::usi() {
 #ifdef USE_CATEGORICAL
-    printf("id name kaitei_cat\n");
-#else
     printf("id name Miacis\n");
+#else
+    printf("id name Miacis_sv\n");
 #endif
     printf("id author Sakoda Shintaro\n");
 	printf("option name byoyomi_margin type spin default 0 min 0 max 1000\n");

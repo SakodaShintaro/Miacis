@@ -156,7 +156,7 @@ std::pair<Move, TeacherType> MCTSearcher<Var>::think(Position& root) {
 
     //投了しない場合教師データを作成
     TeacherType teacher;
-    teacher.first.resize(SQUARE_NUM * 27);
+    teacher.first;
 
     //valueのセット
 #ifdef USE_CATEGORICAL
@@ -172,9 +172,6 @@ std::pair<Move, TeacherType> MCTSearcher<Var>::think(Position& root) {
     for (int32_t i = 0; i < current_node.child_num; i++) {
         distribution[i] = (CalcType)child_move_counts[i] / current_node.move_count;
         assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
-
-        //分布を教師データにセット
-        teacher.first[current_node.legal_moves[i].toLabel()] = distribution[i];
     }
 
     //最善手
@@ -183,6 +180,7 @@ std::pair<Move, TeacherType> MCTSearcher<Var>::think(Position& root) {
                       current_node.legal_moves[best_index]);
 
     best_move.score = (Score)(best_wp);
+    teacher.first = best_move.toLabel();
 
     return { best_move, teacher };
 }

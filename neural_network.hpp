@@ -27,7 +27,7 @@ inline ValueType reverse(ValueType value) {
     //カテゴリカルなら反転を返す
 }
 
-using TeacherType = std::pair<PolicyType, ValueType>;
+using TeacherType = std::pair<uint32_t, ValueType>;
 
 template <typename Var>
 class NeuralNetwork : public primitiv::Model {
@@ -94,6 +94,8 @@ public:
 
     std::pair<PolicyType, ValueType> policyAndValue(const Position& pos) {
         std::vector<float> input = pos.makeFeature();
+        Graph g;
+        Graph::set_default(g);
         auto y = feedForward(input, 1);
         auto policy = y.first;
         auto value = y.second;
