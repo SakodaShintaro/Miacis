@@ -68,40 +68,14 @@ public:
         Var conv_filter[LAYER_NUM];
         for (int32_t i = 0; i < LAYER_NUM; i++) {
             conv_filter[i] = F::parameter<Var>(filter[i]);
-            conv[i] = F::relu(F::batch::normalize(F::conv2d((i == 0 ? x : conv[i - 1]), conv_filter[i],
-                    1, 1, 1, 1, 1, 1)));
-#ifdef PRINT
-            std::cout << i << "層目" << std::endl;
-            auto w = F::flatten(conv_filter[i]).to_vector();
-            for (const auto& e: w) {
-                std::cout << e << " ";
-            }
-            std::cout << std::endl;
-
-            auto vec = F::flatten(conv[i]).to_vector();
-            for (const auto& e: vec) {
-                std::cout << e << " ";
-            }
-            std::cout << std::endl;
-#endif
+//            conv[i] = F::relu(F::batch::normalize(F::conv2d((i == 0 ? x : conv[i - 1]), conv_filter[i],
+//                    1, 1, 1, 1, 1, 1)));
+            conv[i] = F::relu(F::conv2d((i == 0 ? x : conv[i - 1]), conv_filter[i],
+                    1, 1, 1, 1, 1, 1));
         }
 
         Var conv_value_filter = F::parameter<Var>(value_filter);
         value_conv = F::relu(F::conv2d(conv[LAYER_NUM - 1], conv_value_filter, 0, 0, 1, 1, 1, 1));
-#ifdef PRINT
-        std::cout << "value_filter" << std::endl;
-        auto w1 = F::flatten(conv_value_filter).to_vector();
-        for (const auto& e : w1) {
-            std::cout << e << " ";
-        }
-        std::cout << std::endl;
-
-        auto vec1 = F::flatten(value_conv).to_vector();
-        for (const auto& e : vec1) {
-            std::cout << e << " ";
-        }
-        std::cout << std::endl;
-#endif
 
         Var value_w_fc1 = F::parameter<Var>(value_pw_fc1);
         Var value_b_fc1 = F::parameter<Var>(value_pb_fc1);
@@ -142,20 +116,15 @@ public:
 #ifdef USE_SIGMOID
         Var value_loss = -value_t * F::log(y.second) -(1 - value_t) * F::log(1 - y.second);
 #else
-        Var value_loss = F::pow(y.second - value_t, 2.0);
-#endif
-
-#ifdef PRINT
-        std::cout << y.second.to_vector()[0] << " " << value_t.to_vector()[0] << value_loss.to_vector()[0] << std::endl;
-        std::cout << y.second.to_vector()[1] << " " << value_t.to_vector()[1] << value_loss.to_vector()[1] << std::endl;
+        Var value_loss = (y.second - value_t) * (y.second - value_t);
 #endif
 
         return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
     }
 private:
-    static constexpr int32_t LAYER_NUM = 4;
+    static constexpr int32_t LAYER_NUM = 2;
     static constexpr int32_t KERNEL_SIZE = 3;
-    static constexpr int32_t CHANNEL_NUM = 8;
+    static constexpr int32_t CHANNEL_NUM = 64;
     static constexpr int32_t VALUE_HIDDEN_NUM = 256;
     Var conv[LAYER_NUM];
     Var value_conv;
