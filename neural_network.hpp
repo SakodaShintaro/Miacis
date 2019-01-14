@@ -39,8 +39,11 @@ template <typename Var>
 class NeuralNetwork : public primitiv::Model {
 public:
     NeuralNetwork() {
-        for (int32_t i = 0; i < LAYER_NUM; i++) {
-            add("filter" + std::to_string(i), filter[i]);
+        add("first_filter", first_filter);
+        for (int32_t i = 0; i < BLOCK_NUM; i++) {
+            for (int32_t j = 0; j < 2; j++) {
+                add("filter" + std::to_string(i) + std::to_string(j), filter[i][j]);
+            }
         }
         add("value_filter", value_filter);
         add("value_pw_fc1", value_pw_fc1);
@@ -51,9 +54,11 @@ public:
     }
 
     void init() {
-        for (int32_t i = 0; i < LAYER_NUM; i++) {
-            filter[i].init({KERNEL_SIZE, KERNEL_SIZE, (i == 0 ? INPUT_CHANNEL_NUM : CHANNEL_NUM), CHANNEL_NUM}
-                    , I::XavierUniformConv2D());
+        first_filter.init({KERNEL_SIZE, KERNEL_SIZE, INPUT_CHANNEL_NUM, CHANNEL_NUM}, I::XavierUniformConv2D());
+        for (int32_t i = 0; i < BLOCK_NUM; i++) {
+            for (int32_t j = 0; j < 2; j++) {
+                filter[i][j].init({KERNEL_SIZE, KERNEL_SIZE, CHANNEL_NUM, CHANNEL_NUM}, I::XavierUniformConv2D());
+            }
         }
         value_filter.init({1, 1, CHANNEL_NUM, CHANNEL_NUM}, I::XavierUniformConv2D());
         value_pw_fc1.init({VALUE_HIDDEN_NUM, SQUARE_NUM * CHANNEL_NUM}, I::XavierUniform());
@@ -64,36 +69,69 @@ public:
     }
 
     std::pair<Var, Var> feedForward(std::vector<float>& input, uint32_t batch_size) {
-        const Var x = F::input<Var>(Shape({9, 9, INPUT_CHANNEL_NUM}, batch_size), input);
-        Var conv_filter[LAYER_NUM];
-        for (int32_t i = 0; i < LAYER_NUM; i++) {
-            conv_filter[i] = F::parameter<Var>(filter[i]);
-//            conv[i] = F::relu(F::batch::normalize(F::conv2d((i == 0 ? x : conv[i - 1]), conv_filter[i],
-//                    1, 1, 1, 1, 1, 1)));
-            conv[i] = F::relu(F::conv2d((i == 0 ? x : conv[i - 1]), conv_filter[i],
-                    1, 1, 1, 1, 1, 1));
+        Var x = F::input<Var>(Shape({9, 9, INPUT_CHANNEL_NUM}, batch_size), input);
+
+        //conv
+        Var first_filter_var = F::parameter<Var>(first_filter);
+        x = F::conv2d(x, first_filter_var, 1, 1, 1, 1, 1, 1);
+
+        //Batch Norm
+        //x = F::batch::normalize(x);
+
+        //ReLU
+        x = F::relu(x);
+
+        for (int32_t i = 0; i < BLOCK_NUM; i++) {
+            Var t = x;
+
+            //conv0
+            Var filter0 = F::parameter<Var>(filter[i][0]);
+            x = F::conv2d(x, filter0, 1, 1, 1, 1, 1, 1);
+
+            //Batch Norm
+
+            //ReLU
+            x = F::relu(x);
+
+            //conv1
+            Var filter1 = F::parameter<Var>(filter[i][1]);
+            x = F::conv2d(x, filter1, 1, 1, 1, 1, 1, 1);
+
+            //Batch Norm
+
+            //Residual
+            x = F::relu(x + t);
         }
 
+        //ここから分岐.まずvalueに1×1convを適用
         Var conv_value_filter = F::parameter<Var>(value_filter);
-        value_conv = F::relu(F::conv2d(conv[LAYER_NUM - 1], conv_value_filter, 0, 0, 1, 1, 1, 1));
+        Var value = F::conv2d(x, conv_value_filter, 0, 0, 1, 1, 1, 1);
 
+        //Batch Norm
+        //value = F::batch::normalize(value);
+
+        //ReLU
+        value = F::relu(value);
+
+        //全結合1
         Var value_w_fc1 = F::parameter<Var>(value_pw_fc1);
         Var value_b_fc1 = F::parameter<Var>(value_pb_fc1);
-        value_fc1 = F::relu(F::matmul(value_w_fc1, F::flatten(value_conv)) + value_b_fc1);
+        value = F::relu(F::matmul(value_w_fc1, F::flatten(value)) + value_b_fc1);
 
+        //全結合2
         Var value_w_fc2 = F::parameter<Var>(value_pw_fc2);
         Var value_b_fc2 = F::parameter<Var>(value_pb_fc2);
-
 #ifdef USE_SIGMOID
         value_fc2 = F::sigmoid(F::matmul(value_w_fc2, value_fc1) + value_b_fc2);
 #else
-        value_fc2 = F::tanh(F::matmul(value_w_fc2, value_fc1) + value_b_fc2);
+        value = F::tanh(F::matmul(value_w_fc2, value) + value_b_fc2);
 #endif
 
+        //policyの1×1conv
         Var conv_policy_filter = F::parameter<Var>(policy_filter);
-        policy_conv = F::conv2d(conv[LAYER_NUM - 1], conv_policy_filter, 0, 0, 1, 1, 1, 1);
+        Var policy = F::conv2d(x, conv_policy_filter, 0, 0, 1, 1, 1, 1);
 
-        return { policy_conv, value_fc2 };
+        return { policy, value };
     }
 
     std::pair<PolicyType, ValueType> policyAndValue(const Position& pos) {
@@ -122,17 +160,12 @@ public:
         return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
     }
 private:
-    static constexpr int32_t LAYER_NUM = 2;
+    static constexpr int32_t BLOCK_NUM = 10;
     static constexpr int32_t KERNEL_SIZE = 3;
     static constexpr int32_t CHANNEL_NUM = 64;
     static constexpr int32_t VALUE_HIDDEN_NUM = 256;
-    Var conv[LAYER_NUM];
-    Var value_conv;
-    Var value_fc1;
-    Var value_fc2;
-    Var policy_conv;
-
-    Parameter filter[LAYER_NUM];
+    Parameter first_filter;
+    Parameter filter[BLOCK_NUM][2];
     Parameter value_filter;
     Parameter value_pw_fc1;
     Parameter value_pb_fc1;
