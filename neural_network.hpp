@@ -76,7 +76,7 @@ public:
         x = F::conv2d(x, first_filter_var, 1, 1, 1, 1, 1, 1);
 
         //Batch Norm
-        //x = F::batch::normalize(x);
+        x = F::batch::normalize(x);
 
         //ReLU
         x = F::relu(x);
@@ -89,6 +89,7 @@ public:
             x = F::conv2d(x, filter0, 1, 1, 1, 1, 1, 1);
 
             //Batch Norm
+            x = F::batch::normalize(x);
 
             //ReLU
             x = F::relu(x);
@@ -98,6 +99,7 @@ public:
             x = F::conv2d(x, filter1, 1, 1, 1, 1, 1, 1);
 
             //Batch Norm
+            x = F::batch::normalize(x);
 
             //Residual
             x = F::relu(x + t);
@@ -108,7 +110,7 @@ public:
         Var value = F::conv2d(x, conv_value_filter, 0, 0, 1, 1, 1, 1);
 
         //Batch Norm
-        //value = F::batch::normalize(value);
+        value = F::batch::normalize(value);
 
         //ReLU
         value = F::relu(value);
@@ -124,6 +126,10 @@ public:
 #ifdef USE_SIGMOID
         value_fc2 = F::sigmoid(F::matmul(value_w_fc2, value_fc1) + value_b_fc2);
 #else
+//        for (auto& e : F::matmul(value_w_fc2, value).to_vector()) {
+//            std::cout << e << " ";
+//        }
+//        std::cout << "b =  " << value_b_fc2.to_float() << std::endl;
         value = F::tanh(F::matmul(value_w_fc2, value) + value_b_fc2);
 #endif
 
@@ -155,14 +161,58 @@ public:
         Var value_loss = -value_t * F::log(y.second) -(1 - value_t) * F::log(1 - y.second);
 #else
         Var value_loss = (y.second - value_t) * (y.second - value_t);
+//        for (const auto& e : y.second.to_vector()) {
+//            std::cout << e << " ";
+//        }
+//        std::cout << std::endl;
+//        for (const auto& e : value_t.to_vector()) {
+//            std::cout << e << " ";
+//        }
+//        std::cout << std::endl;
 #endif
 
         return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
     }
+    
+    void print() {
+        auto p1 = F::parameter<Var>(policy_filter);
+        auto vp = F::flatten(p1).to_vector();
+        for (int32_t i = 0; i < 100; i++) {
+            std::cout << vp[i] << " \n"[i == 99];
+        }
+
+        auto w1 = F::parameter<Var>(value_pw_fc1);
+        auto vw1 = F::flatten(w1).to_vector();
+//        for (const auto& e : vw1) {
+//            std::cout << e << " ";
+//        }
+//        std::cout << std::endl;
+
+        auto b1 = F::parameter<Var>(value_pb_fc1);
+        auto vb1 = F::flatten(b1).to_vector();
+        for (const auto& e : vb1) {
+            std::cout << e << " ";
+        }
+        std::cout << std::endl;
+
+        auto w2 = F::parameter<Var>(value_pw_fc2);
+        auto vw2 = F::flatten(w2).to_vector();
+        for (const auto& e : vw2) {
+            std::cout << e << " ";
+        }
+        std::cout << std::endl;
+
+        auto b2 = F::parameter<Var>(value_pb_fc2);
+        auto vb2 = F::flatten(b2).to_vector();
+        for (const auto& e : vb2) {
+            std::cout << e << " ";
+        }
+        std::cout << std::endl;
+    }
 private:
-    static constexpr int32_t BLOCK_NUM = 10;
+    static constexpr int32_t BLOCK_NUM = 5;
     static constexpr int32_t KERNEL_SIZE = 3;
-    static constexpr int32_t CHANNEL_NUM = 64;
+    static constexpr int32_t CHANNEL_NUM = 128;
     static constexpr int32_t VALUE_HIDDEN_NUM = 256;
     Parameter first_filter;
     Parameter filter[BLOCK_NUM][2];

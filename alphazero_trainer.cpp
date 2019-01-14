@@ -271,13 +271,13 @@ void AlphaZeroTrainer::testLearn() {
         for (const auto& e : pos.makeFeature()) {
             inputs.push_back(e);
         }
-        std::cout << std::endl;
         policy_teachers.push_back(teacher.first);
         value_teachers.push_back(teacher.second);
     }
 
     //学習
     O::MomentumSGD optimizer(LEARN_RATE);
+    optimizer.set_weight_decay(1e-4);
     optimizer.add(learning_model_);
 
     Graph g;
@@ -288,8 +288,8 @@ void AlphaZeroTrainer::testLearn() {
         auto losses = learning_model_.loss(inputs, policy_teachers, value_teachers, BATCH_SIZE);
         std::cout << std::setw(4) << step_num << " " << losses.first.to_float() << " " << losses.second.to_float() << std::endl;
         optimizer.reset_gradients();
-        losses.first.backward();
-        losses.second.backward();
+            losses.first.backward();
+            losses.second.backward();
         optimizer.update();
     }
 
@@ -304,6 +304,8 @@ void AlphaZeroTrainer::testLearn() {
             position.doMove(game.moves[i]);
         }
     }
+
+    nn->print();
 
     std::cout << "finish testLearn()" << std::endl;
 }

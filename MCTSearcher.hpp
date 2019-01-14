@@ -221,38 +221,26 @@ ValueType MCTSearcher<Var>::uctSearch(Position & pos, Index current_index) {
     // 選んだ手を着手
     pos.doMove(current_node.legal_moves[next_index]);
 
-#ifdef USE_CATEGORICAL
-    std::array<CalcType, BIN_SIZE> result;
-#else
-    CalcType result;
-#endif
+    ValueType result;
     Score score;
     // ノードの展開の確認
     if (pos.isRepeating(score)) {
 #ifdef USE_CATEGORICAL
-        result = onehotDist(1.0 - sigmoid(score, CP_GAIN));
+        result = onehotDist(score);
 #else
-        result = -score;
+        result = score;
 #endif
     } else if (child_indices[next_index] == UctHashTable::NOT_EXPANDED) {
         // ノードの展開
         auto index = expandNode(pos);
         child_indices[next_index] = index;
-#ifdef USE_CATEGORICAL
-        result = hash_table_[index].value_dist;
-        std::reverse(result.begin(), result.end());
-#else
-        result = -hash_table_[index].value;
-#endif
+        result = hash_table_[index].value;
     } else {
         // 手番を入れ替えて1手深く読む
-#ifdef USE_CATEGORICAL
         result = uctSearch(pos, child_indices[next_index]);
-        std::reverse(result.begin(), result.end());
-#else
-        result = -uctSearch(pos, child_indices[next_index]);
-#endif
     }
+    //手番が変わっているので反転
+    result = reverse(result);
 
     // 探索結果の反映
     current_node.win_sum += result;
