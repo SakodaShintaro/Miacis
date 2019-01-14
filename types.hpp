@@ -8,7 +8,7 @@ enum Color {
     BLACK, WHITE, ColorNum,
 };
 
-#define USE_SIGMOID
+//#define USE_SIGMOID
 
 using Score = float;
 constexpr Score MAX_SCORE = 1.0;

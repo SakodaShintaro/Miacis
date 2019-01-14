@@ -11,6 +11,7 @@
 #include<mutex>
 #include<climits>
 #include<experimental/filesystem>
+#include<cmath>
 
 #ifdef _MSC_VER
 #include<direct.h>
@@ -271,6 +272,7 @@ void AlphaZeroTrainer::testLearn() {
         for (const auto& e : pos.makeFeature()) {
             inputs.push_back(e);
         }
+        std::cout << std::endl;
         policy_teachers.push_back(teacher.first);
         value_teachers.push_back(teacher.second);
     }
@@ -285,14 +287,16 @@ void AlphaZeroTrainer::testLearn() {
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         g.clear();
         auto losses = learning_model_.loss(inputs, policy_teachers, value_teachers, BATCH_SIZE);
-        std::cout << std::setw(4) << step_num << " " << losses.first.to_float() << " " << losses.second.to_float() << std::endl;
+        std::cout << std::setw(5) << step_num << " " << losses.first.to_float() << " " << losses.second.to_float() << std::endl;
+        if (std::isnan(losses.second.to_float())) {
+            exit(0);
+        }
         optimizer.reset_gradients();
         losses.first.backward();
         losses.second.backward();
         optimizer.update();
     }
 
-    learning_model_.print();
     learning_model_.save(MODEL_PATH);
     nn->load(MODEL_PATH);
 
