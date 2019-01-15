@@ -75,8 +75,8 @@ public:
         Var first_filter_var = F::parameter<Var>(first_filter);
         x = F::conv2d(x, first_filter_var, 1, 1, 1, 1, 1, 1);
 
-        //Batch Norm
-        x = F::batch::normalize(x);
+        //Normalize
+        x = normalize(x);
 
         //ReLU
         x = F::relu(x);
@@ -89,7 +89,7 @@ public:
             x = F::conv2d(x, filter0, 1, 1, 1, 1, 1, 1);
 
             //Batch Norm
-            x = F::batch::normalize(x);
+            x = normalize(x);
 
             //ReLU
             x = F::relu(x);
@@ -99,7 +99,7 @@ public:
             x = F::conv2d(x, filter1, 1, 1, 1, 1, 1, 1);
 
             //Batch Norm
-            x = F::batch::normalize(x);
+            x = normalize(x);
 
             //Residual
             x = F::relu(x + t);
@@ -110,7 +110,7 @@ public:
         Var value = F::conv2d(x, conv_value_filter, 0, 0, 1, 1, 1, 1);
 
         //Batch Norm
-        value = F::batch::normalize(value);
+        value = normalize(value);
 
         //ReLU
         value = F::relu(value);
@@ -173,6 +173,26 @@ public:
 
         return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
     }
+
+    Var normalize(Var& x) {
+        //パラメータを変換
+//        Var gamma_var = F::parameter<Var>(gamma);
+//        Var beta_var  = F::parameter<Var>(beta);
+
+        static constexpr int32_t G = 32;
+        assert(CHANNEL_NUM % G == 0);
+        auto batch_size = x.shape().batch();
+        x = F::reshape(x, Shape({SQUARE_NUM * CHANNEL_NUM / G, G}, batch_size));
+        Var m = F::mean(x, 0);
+        m = F::broadcast(m, 0, SQUARE_NUM * CHANNEL_NUM / G);
+        Var s = F::mean((x - m) * (x - m), 0);
+        s = F::broadcast(s, 0, SQUARE_NUM * CHANNEL_NUM / G);
+        x = (x - m) / F::sqrt(s + 1e-5);
+//        x = gamma * m + beta;
+        x = F::reshape(x, Shape({9, 9, CHANNEL_NUM}, batch_size));
+
+        return x;
+    }
     
     void print() {
         auto p1 = F::parameter<Var>(policy_filter);
@@ -210,13 +230,17 @@ public:
         std::cout << std::endl;
     }
 private:
-    static constexpr int32_t BLOCK_NUM = 5;
+    static constexpr int32_t BLOCK_NUM = 3;
     static constexpr int32_t KERNEL_SIZE = 3;
     static constexpr int32_t CHANNEL_NUM = 128;
     static constexpr int32_t VALUE_HIDDEN_NUM = 256;
+
     Parameter first_filter;
+    Parameter first_gamma, first_beta;
     Parameter filter[BLOCK_NUM][2];
+    Parameter gamma[BLOCK_NUM][2], beta[BLOCK_NUM][2];
     Parameter value_filter;
+    Parameter value_gamma, value_beta;
     Parameter value_pw_fc1;
     Parameter value_pb_fc1;
     Parameter value_pw_fc2;
