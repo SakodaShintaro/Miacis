@@ -95,7 +95,7 @@ void BonanzaMethodTrainer::train() {
 
     Position pos;
 
-    O::MomentumSGD optimizer(0.01);
+    O::MomentumSGD optimizer(LEARN_RATE);
     optimizer.add(learning_model_);
 
     Graph g;
@@ -125,13 +125,11 @@ void BonanzaMethodTrainer::train() {
             print(step);
             print(loss.first.to_float());
             print(loss.second.to_float());
-            auto l = loss.first + loss.second;
             std::cout << std::endl;
             log_file_ << std::endl;
             optimizer.reset_gradients();
-//            loss.first.backward();
-//            loss.second.backward();
-            l.backward();
+            loss.first.backward();
+            loss.second.backward();
             optimizer.update();
         }
 
