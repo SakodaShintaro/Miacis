@@ -121,6 +121,7 @@ void BonanzaMethodTrainer::train() {
             }
             g.clear();
             auto loss = learning_model_.loss(input, labels, value_teachers, (uint32_t)BATCH_SIZE);
+            timestamp();
             print(epoch);
             print(step);
             print(loss.first.to_float());

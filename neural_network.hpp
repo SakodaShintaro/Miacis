@@ -145,7 +145,7 @@ public:
         Graph g;
         Graph::set_default(g);
         auto y = feedForward(input, 1);
-        auto policy = F::softmax(F::flatten(y.first), 0);
+        auto policy = F::flatten(y.first);
         auto value = y.second;
         return { policy.to_vector(), value.to_float() };
     }
