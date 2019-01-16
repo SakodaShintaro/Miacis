@@ -61,13 +61,6 @@ void BonanzaMethodTrainer::train() {
     //棋譜シャッフル
     std::default_random_engine engine(0);
 
-    //学習情報の初期化
-    learned_games_num = 0;
-    learned_position_num = 0;
-    succeeded_position_num = 0;
-    game_index_ = 0;
-    ordering_num_.assign(MAX_MOVE_LIST_SIZE, 0);
-
     //log_file_の設定
     log_file_.open("bonanza_method_log.txt", std::ios::out);
     log_file_ << "elapsed\tgame_num\tposition_num\tloss_average\ttop1\ttop3\ttop5\ttop10\ttop20\ttop50" << std::endl;
@@ -77,21 +70,66 @@ void BonanzaMethodTrainer::train() {
     std::cout << "使用するスレッド数 : " << THREAD_NUM << std::endl;
     std::cout << std::fixed;
 
-    struct TT {
-        uint32_t label;
-        float value;
-    };
-    std::vector<std::pair<std::string, TT>> data_buffer;
+    std::vector<std::pair<std::string, TeacherType>> data_buffer;
     for (const auto& game : games_) {
         Position pos;
         for (const auto& move : game.moves) {
-            TT teacher;
-            teacher.label = (uint32_t)move.toLabel();
+            TeacherType teacher;
+            teacher.policy = (uint32_t)move.toLabel();
             teacher.value = (float)(pos.color() == BLACK ? game.result : -game.result);
             data_buffer.emplace_back(pos.toSFEN(), teacher);
             pos.doMove(move);
         }
     }
+
+    //データをシャッフル
+    std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
+
+    //validationデータを確保
+    std::vector<std::pair<std::string, TeacherType>> validation_data;
+    int32_t validation_size = (int32_t)(game_num_ * 0.1) / BATCH_SIZE * BATCH_SIZE;
+    for (int32_t i = 0; i < validation_size; i++) {
+        validation_data.push_back(data_buffer.back());
+        data_buffer.pop_back();
+    }
+    auto validation = [&](Graph& g) {
+        static float min_loss = 1e10;
+        static int32_t patience = 0;
+        Position pos;
+
+        int32_t num = 0;
+        float curr_loss = 0.0;
+        for (int32_t i = 0; (i + 1) * BATCH_SIZE < validation_size; i++, num++) {
+            std::vector<float> input, value_teachers;
+            std::vector<uint32_t> labels;
+            for (int32_t b = 0; b < BATCH_SIZE; b++) {
+                const auto& datum = data_buffer[i * BATCH_SIZE + b];
+                pos.loadSFEN(datum.first);
+                const auto& feature = pos.makeFeature();
+                for (const auto& e : feature) {
+                    input.push_back(e);
+                }
+                labels.push_back(datum.second.policy);
+                value_teachers.push_back(datum.second.value);
+            }
+            g.clear();
+            auto loss = learning_model_.loss(input, labels, value_teachers, (uint32_t)BATCH_SIZE);
+            curr_loss += (loss.first.to_float() + loss.second.to_float());
+        }
+        curr_loss /= num;
+
+        timestamp();
+        print(curr_loss);
+        std::cout << std::endl;
+        log_file_ << std::endl;
+
+        if (curr_loss < min_loss) {
+            min_loss = curr_loss;
+            return false;
+        } else {
+            return ++patience >= 5;
+        }
+    };
 
     Position pos;
 
@@ -116,25 +154,32 @@ void BonanzaMethodTrainer::train() {
                 for (const auto& e : feature) {
                     input.push_back(e);
                 }
-                labels.push_back(datum.second.label);
+                labels.push_back(datum.second.policy);
                 value_teachers.push_back(datum.second.value);
             }
             g.clear();
             auto loss = learning_model_.loss(input, labels, value_teachers, (uint32_t)BATCH_SIZE);
-            timestamp();
-            print(epoch);
-            print(step);
-            print(loss.first.to_float());
-            print(loss.second.to_float());
-            std::cout << std::endl;
-            log_file_ << std::endl;
+            if (step % 100 == 0) {
+                timestamp();
+                print(epoch);
+                print(step);
+                print(loss.first.to_float());
+                print(loss.second.to_float());
+                std::cout << std::endl;
+                log_file_ << std::endl;
+            }
             optimizer.reset_gradients();
             loss.first.backward();
             loss.second.backward();
             optimizer.update();
         }
 
-        learning_model_.save("cnn" + std::to_string(epoch) + ".model");
+        if (validation(g)) {
+            //終わり
+            break;
+        } else {
+            learning_model_.save("cnn" + std::to_string(epoch) + ".model");
+        }
     }
 
     log_file_.close();
@@ -201,12 +246,10 @@ void BonanzaMethodTrainer::testTrain() {
         print(step);
         print(loss.first.to_float());
         print(loss.second.to_float());
-        auto l = loss.first + loss.second;
         std::cout << std::endl;
         optimizer.reset_gradients();
-//            loss.first.backward();
-//            loss.second.backward();
-        l.backward();
+        loss.first.backward();
+        loss.second.backward();
         optimizer.update();
     }
 

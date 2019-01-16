@@ -271,8 +271,8 @@ void AlphaZeroTrainer::testLearn() {
         for (const auto& e : pos.makeFeature()) {
             inputs.push_back(e);
         }
-        policy_teachers.push_back(teacher.first);
-        value_teachers.push_back(teacher.second);
+        policy_teachers.push_back(teacher.policy);
+        value_teachers.push_back(teacher.value);
     }
 
     //学習
@@ -456,7 +456,7 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
         }
 #else
         //teacherにコピーする
-        game.teachers[i].second = (CalcType) (pos.color() == BLACK ? win_rate_for_black : reverse(win_rate_for_black));
+        game.teachers[i].value = (CalcType) (pos.color() == BLACK ? win_rate_for_black : reverse(win_rate_for_black));
 #endif
 
         //スタックに詰める

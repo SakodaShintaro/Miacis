@@ -31,7 +31,10 @@ inline ValueType reverse(ValueType value) {
     //カテゴリカルなら反転を返す
 }
 
-using TeacherType = std::pair<uint32_t, ValueType>;
+struct TeacherType {
+    uint32_t policy;
+    ValueType value;
+};
 
 //#define PRINT
 
