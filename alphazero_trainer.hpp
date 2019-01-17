@@ -5,7 +5,7 @@
 
 #include"base_trainer.hpp"
 #include"game.hpp"
-#include "replay_buffer.hpp"
+#include"replay_buffer.hpp"
 
 class AlphaZeroTrainer : BaseTrainer {
 public:
