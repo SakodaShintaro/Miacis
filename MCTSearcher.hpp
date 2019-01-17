@@ -9,6 +9,7 @@
 #include<vector>
 #include<chrono>
 #include<atomic>
+#include<stack>
 
 template <class Var>
 class MCTSearcher {
@@ -21,11 +22,10 @@ public:
 
 private:
     //再帰する探索関数
-#ifdef USE_CATEGORICAL
     ValueType uctSearch(Position& pos, Index current_index);
-#else
-    CalcType uctSearch(Position& pos, Index current_index);
-#endif
+
+    //プレイアウト1回
+    void onePlay(Position& pos);
 
     //ノードを展開する関数
     Index expandNode(Position& pos);
@@ -105,6 +105,8 @@ std::pair<Move, TeacherType> MCTSearcher<Var>::think(Position& root) {
 
         //1回プレイアウト
         uctSearch(root, current_root_index_);
+
+        //onePlay(root);
 
         //探索を打ち切るか確認
         if (shouldStop() || !hash_table_.hasEnoughSize()) {
@@ -226,7 +228,6 @@ ValueType MCTSearcher<Var>::uctSearch(Position & pos, Index current_index) {
     result = reverse(result);
 
     // 探索結果の反映
-    current_node.win_sum += result;
     current_node.move_count++;
     current_node.child_wins[next_index] += result;
     current_node.child_move_counts[next_index]++;
@@ -264,14 +265,12 @@ Index MCTSearcher<Var>::expandNode(Position& pos) {
     current_node.child_wins = std::vector<std::array<CalcType, BIN_SIZE>>(current_node.child_num);
     for (int32_t i = 0; i < BIN_SIZE; i++) {
         current_node.value[i] = 0.0;
-        current_node.win_sum[i] = 0.0;
         for (int32_t j = 0; j < current_node.child_num; j++) {
             current_node.child_wins[j][i] = 0.0;
         }
     }
 #else
     current_node.value = 0.0;
-    current_node.win_sum = 0.0;
     current_node.child_wins = std::vector<float>(current_node.child_num, 0.0);
 #endif
 
@@ -475,6 +474,55 @@ int32_t MCTSearcher<Var>::selectMaxUcbChild(const UctHashEntry & current_node) {
     }
     assert(0 <= max_index && max_index < (int32_t)current_node.child_num);
     return max_index;
+}
+
+template<class Var>
+void MCTSearcher<Var>::onePlay(Position &pos) {
+    std::stack<Index> indices;
+    std::stack<int32_t> actions;
+
+    auto index = current_root_index_;
+
+    //未展開の局面に至るまで遷移を繰り返す
+    while(index != UctHashTable::NOT_EXPANDED) {
+        //状態を記録
+        indices.push(index);
+
+        //選択
+        auto action = selectMaxUcbChild(hash_table_[index]);
+
+        //取った行動を記録
+        actions.push(action);
+
+        //遷移
+        pos.doMove(hash_table_[index].legal_moves[action]);
+
+        //index更新
+        index = hash_table_[index].child_indices[action];
+    }
+
+    //今の局面を展開・評価
+    index = expandNode(pos);
+    auto result = hash_table_[index].value;
+    hash_table_[indices.top()].child_indices[actions.top()] = index;
+
+    //バックアップ
+    while (!actions.empty()) {
+        pos.undo();
+        index = indices.top();
+        indices.pop();
+
+        auto action = actions.top();
+        actions.pop();
+
+        //手番が変わっているので反転
+        result = reverse(result);
+
+        // 探索結果の反映
+        hash_table_[index].child_wins[action] += result;
+        hash_table_[index].move_count++;
+        hash_table_[index].child_move_counts[action]++;
+    }
 }
 
 #endif // !MCTSEARCHER_HPP

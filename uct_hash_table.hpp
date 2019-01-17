@@ -17,13 +17,7 @@ struct UctHashEntry {
     std::vector<int32_t> child_move_counts;
     std::vector<CalcType> nn_rates;
     ValueType value;
-#ifdef USE_CATEGORICAL
-    std::array<CalcType, BIN_SIZE> win_sum;
-    std::vector<std::array<CalcType, BIN_SIZE>> child_wins;
-#else
-    CalcType win_sum;
-    std::vector<CalcType> child_wins;
-#endif
+    std::vector<ValueType> child_wins;
     bool evaled;
 
     //識別用データ
@@ -39,7 +33,7 @@ struct UctHashEntry {
         evaled(false), hash(0), turn_number(0), age(0) {}
 #else
     UctHashEntry() :
-        move_count(0), win_sum(0.0), child_num(0), value(0.0),
+        move_count(0), child_num(0), value(0.0),
         evaled(false), hash(0), turn_number(0), age(0) {}
 #endif
 };
