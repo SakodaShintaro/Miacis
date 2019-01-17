@@ -2,7 +2,7 @@
 project(Miacis)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-march=native")
+set(CMAKE_CXX_FLAGS "-march=native -DUSE_CATEGORICAL")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 add_executable(Miacis

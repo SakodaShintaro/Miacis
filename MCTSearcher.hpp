@@ -5,6 +5,7 @@
 #include"uct_hash_table.hpp"
 #include"neural_network.hpp"
 #include"usi_options.hpp"
+#include"operate_params.hpp"
 #include<vector>
 #include<chrono>
 #include<atomic>
@@ -21,7 +22,7 @@ public:
 private:
     //再帰する探索関数
 #ifdef USE_CATEGORICAL
-    std::array<CalcType, BIN_SIZE> uctSearch(Position& pos, Index current_index);
+    ValueType uctSearch(Position& pos, Index current_index);
 #else
     CalcType uctSearch(Position& pos, Index current_index);
 #endif
@@ -45,11 +46,7 @@ private:
     void printUSIInfo() const;
 
     //Ucbを計算して最大値を持つインデックスを返す
-#ifdef USE_CATEGORICAL
-    static int32_t selectMaxUcbChild(const UctHashEntry& current_node, double curr_best_winrate);
-#else
     static int32_t selectMaxUcbChild(const UctHashEntry& current_node);
-#endif
 
     //ディリクレ分布に従ったものを返す関数
     static std::vector<double> dirichletDistribution(int32_t k, double alpha);
@@ -60,6 +57,7 @@ private:
     //Playout回数
     uint32_t playout_num;
 
+    //ルート局面のインデックス
     Index current_root_index_;
 
     //時間
@@ -159,9 +157,7 @@ std::pair<Move, TeacherType> MCTSearcher<Var>::think(Position& root) {
 
     //valueのセット
 #ifdef USE_CATEGORICAL
-    for (int32_t i = 0; i < BIN_SIZE; i++) {
-        teacher[POLICY_DIM + i] = current_node.child_wins[best_index][i] / child_move_counts[best_index];
-    }
+    teacher.value = valueToIndex(best_wp);
 #else
     teacher.value = (CalcType)best_wp;
 #endif
@@ -203,19 +199,7 @@ ValueType MCTSearcher<Var>::uctSearch(Position & pos, Index current_index) {
     auto& child_indices = current_node.child_indices;
 
     // UCB値が最大の手を求める
-#ifdef USE_CATEGORICAL
-    const auto& child_move_counts = current_node.child_move_counts;
-    int32_t selected_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
-    double best_wp = 0.0;
-    for (int32_t i = 0; i < BIN_SIZE; i++) {
-        double v = (child_move_counts[selected_index] == 0 ? 0.0 :
-            current_node.child_wins[selected_index][i] / child_move_counts[selected_index]);
-        best_wp += VALUE_WIDTH * (0.5 + i) * v;
-    }
-    auto next_index = selectMaxUcbChild(current_node, best_wp);
-#else
     auto next_index = selectMaxUcbChild(current_node);
-#endif
 
     // 選んだ手を着手
     pos.doMove(current_node.legal_moves[next_index]);
@@ -279,7 +263,7 @@ Index MCTSearcher<Var>::expandNode(Position& pos) {
 #ifdef USE_CATEGORICAL
     current_node.child_wins = std::vector<std::array<CalcType, BIN_SIZE>>(current_node.child_num);
     for (int32_t i = 0; i < BIN_SIZE; i++) {
-        current_node.value_dist[i] = 0.0;
+        current_node.value[i] = 0.0;
         current_node.win_sum[i] = 0.0;
         for (int32_t j = 0; j < current_node.child_num; j++) {
             current_node.child_wins[j][i] = 0.0;
@@ -299,7 +283,7 @@ Index MCTSearcher<Var>::expandNode(Position& pos) {
             //打ち歩詰め
 #ifdef USE_CATEGORICAL
             for (int32_t i = 0; i < BIN_SIZE; i++) {
-                current_node.value_dist[i] = (i == BIN_SIZE - 1 ? 1.0f : 0.0f);
+                current_node.value[i] = (i == BIN_SIZE - 1 ? 1.0f : 0.0f);
             }
 #else
             current_node.value = 1.0;
@@ -308,7 +292,7 @@ Index MCTSearcher<Var>::expandNode(Position& pos) {
             //詰み
 #ifdef USE_CATEGORICAL
             for (int32_t i = 0; i < BIN_SIZE; i++) {
-                current_node.value_dist[i] = (i == 0 ? 1.0f : 0.0f);
+                current_node.value[i] = (i == 0 ? 1.0f : 0.0f);
             }
 #else
             current_node.value = -1.0f;
@@ -340,7 +324,7 @@ void MCTSearcher<Var>::evalNode(Position& pos, Index index) {
     Score repeat_score;
     if (pos.isRepeating(repeat_score)) {
 #ifdef USE_CATEGORICAL
-        current_node.value_dist = onehotDist(sigmoid(repeat_score, CP_GAIN));
+        current_node.value = onehotDist(sigmoid(repeat_score, CP_GAIN));
 #else
         current_node.value = repeat_score;
 #endif
@@ -417,7 +401,7 @@ void MCTSearcher<Var>::printUSIInfo() const {
 
     //勝率を評価値に変換
     //int32_t cp = inv_sigmoid(best_wp, CP_GAIN);
-    int32_t cp = best_wp * 1000;
+    int32_t cp = (int32_t)(best_wp * 1000);
 
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
            (int)(current_node.move_count * 1000 / std::max((long long)elapsed.count(), 1LL)),
@@ -452,18 +436,12 @@ std::vector<double> MCTSearcher<Var>::dirichletDistribution(int32_t k, double al
 
 template <class Var>
 int32_t MCTSearcher<Var>::selectMaxUcbChild(const UctHashEntry & current_node) {
-#ifdef USE_CATEGORICAL
     const auto& child_move_counts = current_node.child_move_counts;
-    int32_t selected_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
-    double best_wp = 0.0;
-    for (int32_t i = 0; i < BIN_SIZE; i++) {
-        double v = (child_move_counts[selected_index] == 0 ? 0.0 :
-                    current_node.child_wins[selected_index][i] / child_move_counts[selected_index]);
-        best_wp += VALUE_WIDTH * (0.5 + i) * v;
-    }
-#endif
 
-    const auto& child_move_counts = current_node.child_move_counts;
+#ifdef USE_CATEGORICAL
+    int32_t selected_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
+    double best_wp = expOfValueDist(current_node.child_wins[selected_index]) / child_move_counts[selected_index];
+#endif
 
     // ucb = Q(s, a) + U(s, a)
     // Q(s, a) = W(s, a) / N(s, a)
@@ -471,20 +449,21 @@ int32_t MCTSearcher<Var>::selectMaxUcbChild(const UctHashEntry & current_node) {
     constexpr double C_PUCT = 1.0;
 
     int32_t max_index = -1;
-    double max_value = -1;
+    double max_value = MIN_SCORE - 1;
     for (int32_t i = 0; i < current_node.child_num; i++) {
 #ifdef USE_CATEGORICAL
         double Q;
         if (child_move_counts[i] == 0) {
-            Q = 0.5;
+            //中間を初期値とする
+            Q = (MAX_SCORE + MIN_SCORE) / 2;
         } else {
             Q = 0.0;
-            for (int32_t j = std::min((int32_t)(curr_best_winrate * BIN_SIZE) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
+            for (int32_t j = std::min((int32_t)(best_wp * BIN_SIZE) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
                 Q += current_node.child_wins[i][j] / child_move_counts[i];
             }
         }
 #else
-        double Q = (child_move_counts[i] == 0 ? 0.0 : current_node.child_wins[i] / child_move_counts[i]);
+        double Q = (child_move_counts[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.child_wins[i] / child_move_counts[i]);
 #endif
         double U = std::sqrt(current_node.move_count + 1) / (child_move_counts[i] + 1);
         double ucb = Q + C_PUCT * current_node.nn_rates[i] * U;

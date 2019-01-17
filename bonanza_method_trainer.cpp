@@ -100,7 +100,8 @@ void BonanzaMethodTrainer::train() {
         int32_t num = 0;
         float curr_loss = 0.0;
         for (int32_t i = 0; (i + 1) * BATCH_SIZE < validation_size; i++, num++) {
-            std::vector<float> input, value_teachers;
+            std::vector<float> input;
+            std::vector<ValueTeacher> value_teachers;
             std::vector<uint32_t> labels;
             for (int32_t b = 0; b < BATCH_SIZE; b++) {
                 const auto& datum = data_buffer[i * BATCH_SIZE + b];
@@ -146,7 +147,8 @@ void BonanzaMethodTrainer::train() {
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
         for (int32_t step = 0; (step + 1) * BATCH_SIZE < data_buffer.size(); step++) {
-            std::vector<float> input, value_teachers;
+            std::vector<float> input;
+            std::vector<ValueTeacher> value_teachers;
             std::vector<uint32_t> labels;
             for (int32_t b = 0; b < BATCH_SIZE; b++) {
                 const auto& datum = data_buffer[step * BATCH_SIZE + b];
@@ -230,7 +232,8 @@ void BonanzaMethodTrainer::testTrain() {
 
     //学習開始
     for (int32_t step = 1; step <= 500; step++) {
-        std::vector<float> input, value_teachers;
+        std::vector<float> input;
+        std::vector<ValueTeacher> value_teachers;
         std::vector<uint32_t> labels;
         for (int32_t b = 0; b < BATCH_SIZE; b++) {
             const auto &datum = data_buffer[b];

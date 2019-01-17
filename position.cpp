@@ -145,20 +145,16 @@ void Position::print() const {
 
     //評価値
 #ifdef USE_CATEGORICAL
-    std::vector<CalcType> categorical_distribution(BIN_SIZE);
-    for (int32_t i = 0; i < BIN_SIZE; i++) {
-        categorical_distribution[i] = output(POLICY_DIM + i);
-    }
-    categorical_distribution = softmax(categorical_distribution);
+    auto y = nn->policyAndValue(*this);
+    auto value1 = y.second;
 
     CalcType value = 0.0;
     for (int32_t i = 0; i < BIN_SIZE; i++) {
-        printf("p[%f] = %f\n", VALUE_WIDTH * (0.5 + i), categorical_distribution[i]);
-        value += (CalcType)(VALUE_WIDTH * (0.5 + i) * categorical_distribution[i]);
+        printf("p[%f] = %f\n", MIN_SCORE + VALUE_WIDTH * (0.5 + i), value1[i]);
+        value += (CalcType)((MIN_SCORE + VALUE_WIDTH * (0.5 + i)) * value1[i]);
     }
     printf("value = %f\n", value);
 #else
-//    printf("value = %f\n", standardSigmoid(output(POLICY_DIM)));
     auto y = nn->policyAndValue(*this);
     std::cout << "value = " << y.second << std::endl;
 #endif

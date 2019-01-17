@@ -261,7 +261,8 @@ void AlphaZeroTrainer::testLearn() {
     Position pos;
 
     //1局分だけデータを構築
-    std::vector<float> inputs, value_teachers;
+    std::vector<float> inputs;
+    std::vector<ValueTeacher> value_teachers;
     std::vector<uint32_t> policy_teachers;
     for (const auto& datum : replay_buffer_) {
         auto sfen = datum.first;
@@ -300,7 +301,11 @@ void AlphaZeroTrainer::testLearn() {
         Position position;
         for (int32_t i = 0; i < game.moves.size(); i++) {
             auto policy_and_value = nn->policyAndValue(position);
+#ifdef USE_CATEGORICAL
+            std::cout << policy_and_value.first[game.moves[i].toLabel()] << " " << expOfValueDist(policy_and_value.second) << std::endl;
+#else
             std::cout << policy_and_value.first[game.moves[i].toLabel()] << " " << policy_and_value.second << std::endl;
+#endif
             position.doMove(game.moves[i]);
         }
     }
@@ -441,19 +446,15 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
         pos.undo();
 
         //探索結果を先手から見た値に変換
-        double curr_win_rate = (pos.color() == BLACK ? game.moves[i].score : reverse(game.moves[i].score));
-
+        double curr_win_rate = (pos.color() == BLACK ? game.moves[i].score : MAX_SCORE + MIN_SCORE - game.moves[i].score);
         //混合
         win_rate_for_black = LAMBDA * win_rate_for_black + (1.0 - LAMBDA) * curr_win_rate;
 
-#ifdef USE_CATEGORICAL
-        //手番から見た分布を得る
-        auto teacher_dist = onehotDist(pos.color() == BLACK ? win_rate_for_black : 1.0 - win_rate_for_black);
+        double teacher_signal = (pos.color() == BLACK ? win_rate_for_black : MAX_SCORE + MIN_SCORE - win_rate_for_black);
 
+#ifdef USE_CATEGORICAL
         //teacherにコピーする
-        for (int32_t j = 0; j < BIN_SIZE; j++) {
-            game.teachers[i][POLICY_DIM + j] = teacher_dist[j];
-        }
+        game.teachers[i].value = valueToIndex(teacher_signal);
 #else
         //teacherにコピーする
         game.teachers[i].value = (CalcType) (pos.color() == BLACK ? win_rate_for_black : reverse(win_rate_for_black));

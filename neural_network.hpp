@@ -20,20 +20,34 @@ const std::string MODEL_PATH = "cnn.model";
 using CalcType = float;
 //using PolicyType = std::array<float, SQUARE_NUM * POLICY_CHANNEL_NUM>;
 using PolicyType = std::vector<float>;
+#ifdef USE_CATEGORICAL
+constexpr int32_t BIN_SIZE = 51;
+constexpr double VALUE_WIDTH = (MAX_SCORE - MIN_SCORE) / BIN_SIZE;
+using ValueType = std::array<float, BIN_SIZE>;
+using ValueTeacher = uint32_t;
+#else
+constexpr int32_t BIN_SIZE = 1;
 using ValueType = float;
+using ValueTeacher = float;
+#endif
 
 inline ValueType reverse(ValueType value) {
+#ifdef USE_CATEGORICAL
+    std::reverse(value.begin(), value.end());
+    return value;
+#else
 #ifdef USE_SIGMOID
     return 1.0f - value;
 #else
     return -value;
+#endif
 #endif
     //カテゴリカルなら反転を返す
 }
 
 struct TeacherType {
     uint32_t policy;
-    ValueType value;
+    ValueTeacher value;
 };
 
 //#define PRINT
@@ -66,8 +80,8 @@ public:
         value_filter.init({1, 1, CHANNEL_NUM, CHANNEL_NUM}, I::XavierUniformConv2D());
         value_pw_fc1.init({VALUE_HIDDEN_NUM, SQUARE_NUM * CHANNEL_NUM}, I::XavierUniform());
         value_pb_fc1.init({VALUE_HIDDEN_NUM}, I::Constant(0));
-        value_pw_fc2.init({1, VALUE_HIDDEN_NUM}, I::XavierUniform());
-        value_pb_fc2.init({1}, I::Constant(0));
+        value_pw_fc2.init({BIN_SIZE, VALUE_HIDDEN_NUM}, I::XavierUniform());
+        value_pb_fc2.init({BIN_SIZE}, I::Constant(0));
         policy_filter.init({1, 1, CHANNEL_NUM, POLICY_CHANNEL_NUM}, I::XavierUniformConv2D());
     }
 
@@ -126,14 +140,15 @@ public:
         //全結合2
         Var value_w_fc2 = F::parameter<Var>(value_pw_fc2);
         Var value_b_fc2 = F::parameter<Var>(value_pb_fc2);
-#ifdef USE_SIGMOID
-        value_fc2 = F::sigmoid(F::matmul(value_w_fc2, value_fc1) + value_b_fc2);
+
+#ifdef USE_CATEGORICAL
+        value = F::matmul(value_w_fc2, value) + value_b_fc2;
 #else
-//        for (auto& e : F::matmul(value_w_fc2, value).to_vector()) {
-//            std::cout << e << " ";
-//        }
-//        std::cout << "b =  " << value_b_fc2.to_float() << std::endl;
+#ifdef USE_SIGMOID
+        value = F::sigmoid(F::matmul(value_w_fc2, value_fc1) + value_b_fc2);
+#else
         value = F::tanh(F::matmul(value_w_fc2, value) + value_b_fc2);
+#endif
 #endif
 
         //policyの1×1conv
@@ -149,29 +164,37 @@ public:
         Graph::set_default(g);
         auto y = feedForward(input, 1);
         auto policy = F::flatten(y.first);
-        auto value = y.second;
-        return { policy.to_vector(), value.to_float() };
+
+#ifdef USE_CATEGORICAL
+        auto value = y.second.to_vector();
+        ValueType retval;
+        std::copy(value.begin(), value.end(), retval.begin());
+        return { policy.to_vector(), retval };
+#else
+        return { policy.to_vector(), y.second.to_float() };
+#endif
     }
 
-    std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& labels, std::vector<float>& value_teachers, uint32_t batch_size) {
+#ifdef USE_CATEGORICAL
+    std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<uint32_t >& value_labels, uint32_t batch_size) {
+#else
+    std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<float>& value_teachers, uint32_t batch_size) {
+#endif
         auto y = feedForward(input, batch_size);
-        const Var value_t  = F::input<Var>(Shape({1}, batch_size), value_teachers);
 
         auto logits = F::flatten(y.first);
 
-        Var policy_loss = F::softmax_cross_entropy(logits, labels, 0);
+        Var policy_loss = F::softmax_cross_entropy(logits, policy_labels, 0);
+
+#ifdef USE_CATEGORICAL
+        Var value_loss = F::softmax_cross_entropy(y.second, value_labels, 0);
+#else
+        const Var value_t = F::input<Var>(Shape({1}, batch_size), value_labels);
 #ifdef USE_SIGMOID
         Var value_loss = -value_t * F::log(y.second) -(1 - value_t) * F::log(1 - y.second);
 #else
         Var value_loss = (y.second - value_t) * (y.second - value_t);
-//        for (const auto& e : y.second.to_vector()) {
-//            std::cout << e << " ";
-//        }
-//        std::cout << std::endl;
-//        for (const auto& e : value_t.to_vector()) {
-//            std::cout << e << " ";
-//        }
-//        std::cout << std::endl;
+#endif
 #endif
 
         return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
@@ -239,11 +262,8 @@ private:
     static constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
     Parameter first_filter;
-    Parameter first_gamma, first_beta;
     Parameter filter[BLOCK_NUM][2];
-    Parameter gamma[BLOCK_NUM][2], beta[BLOCK_NUM][2];
     Parameter value_filter;
-    Parameter value_gamma, value_beta;
     Parameter value_pw_fc1;
     Parameter value_pb_fc1;
     Parameter value_pw_fc2;

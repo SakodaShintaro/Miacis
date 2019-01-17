@@ -16,12 +16,11 @@ struct UctHashEntry {
     std::vector<Index> child_indices;
     std::vector<int32_t> child_move_counts;
     std::vector<CalcType> nn_rates;
+    ValueType value;
 #ifdef USE_CATEGORICAL
-    std::array<CalcType, BIN_SIZE> value_dist;
     std::array<CalcType, BIN_SIZE> win_sum;
     std::vector<std::array<CalcType, BIN_SIZE>> child_wins;
 #else
-    ValueType value;
     CalcType win_sum;
     std::vector<CalcType> child_wins;
 #endif
