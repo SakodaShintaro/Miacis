@@ -310,8 +310,6 @@ void AlphaZeroTrainer::testLearn() {
         }
     }
 
-    nn->print();
-
     std::cout << "finish testLearn()" << std::endl;
 }
 

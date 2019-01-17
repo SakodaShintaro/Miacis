@@ -166,7 +166,7 @@ public:
         auto policy = F::flatten(y.first);
 
 #ifdef USE_CATEGORICAL
-        auto value = y.second.to_vector();
+        auto value = F::softmax(y.second, 0).to_vector();
         ValueType retval;
         std::copy(value.begin(), value.end(), retval.begin());
         return { policy.to_vector(), retval };
@@ -189,7 +189,7 @@ public:
 #ifdef USE_CATEGORICAL
         Var value_loss = F::softmax_cross_entropy(y.second, value_labels, 0);
 #else
-        const Var value_t = F::input<Var>(Shape({1}, batch_size), value_labels);
+        const Var value_t = F::input<Var>(Shape({1}, batch_size), value_teachers);
 #ifdef USE_SIGMOID
         Var value_loss = -value_t * F::log(y.second) -(1 - value_t) * F::log(1 - y.second);
 #else
@@ -201,10 +201,6 @@ public:
     }
 
     Var normalize(Var& x) {
-        //パラメータを変換
-//        Var gamma_var = F::parameter<Var>(gamma);
-//        Var beta_var  = F::parameter<Var>(beta);
-
         static constexpr int32_t G = 32;
         assert(CHANNEL_NUM % G == 0);
         auto batch_size = x.shape().batch();
@@ -214,47 +210,11 @@ public:
         Var s = F::mean((x - m) * (x - m), 0);
         s = F::broadcast(s, 0, SQUARE_NUM * CHANNEL_NUM / G);
         x = (x - m) / F::sqrt(s + 1e-5);
-//        x = gamma * m + beta;
         x = F::reshape(x, Shape({9, 9, CHANNEL_NUM}, batch_size));
 
         return x;
     }
     
-    void print() {
-        auto p1 = F::parameter<Var>(policy_filter);
-        auto vp = F::flatten(p1).to_vector();
-        for (int32_t i = 0; i < 100; i++) {
-            std::cout << vp[i] << " \n"[i == 99];
-        }
-
-        auto w1 = F::parameter<Var>(value_pw_fc1);
-        auto vw1 = F::flatten(w1).to_vector();
-//        for (const auto& e : vw1) {
-//            std::cout << e << " ";
-//        }
-//        std::cout << std::endl;
-
-        auto b1 = F::parameter<Var>(value_pb_fc1);
-        auto vb1 = F::flatten(b1).to_vector();
-        for (const auto& e : vb1) {
-            std::cout << e << " ";
-        }
-        std::cout << std::endl;
-
-        auto w2 = F::parameter<Var>(value_pw_fc2);
-        auto vw2 = F::flatten(w2).to_vector();
-        for (const auto& e : vw2) {
-            std::cout << e << " ";
-        }
-        std::cout << std::endl;
-
-        auto b2 = F::parameter<Var>(value_pb_fc2);
-        auto vb2 = F::flatten(b2).to_vector();
-        for (const auto& e : vb2) {
-            std::cout << e << " ";
-        }
-        std::cout << std::endl;
-    }
 private:
     static constexpr int32_t BLOCK_NUM = 2;
     static constexpr int32_t KERNEL_SIZE = 3;
