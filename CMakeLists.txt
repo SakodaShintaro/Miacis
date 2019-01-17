@@ -2,7 +2,7 @@
 project(Miacis)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-march=native -DUSE_NN")
+set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 add_executable(Miacis
@@ -12,7 +12,6 @@ add_executable(Miacis
         bonanza_method_trainer.cpp
         game.cpp
         main.cpp
-        MCTSearcher.cpp
         move.cpp
         piece.cpp
         position.cpp
