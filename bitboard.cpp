@@ -276,3 +276,13 @@ void Bitboard::init() {
         //竜・馬は飛車角と王を合成すればいい
     }
 }
+
+Bitboard::Bitboard(Square sq) {
+    if (sq <= SQ79) {
+        board_[0] = 1ULL << SquareToNum[sq];
+        board_[1] = 0;
+    } else {
+        board_[0] = 0;
+        board_[1] = 1ULL << (SquareToNum[sq] - SquareToNum[SQ81]);
+    }
+}

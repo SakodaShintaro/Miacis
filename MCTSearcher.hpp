@@ -18,7 +18,7 @@ public:
     MCTSearcher(int64_t hash_size, int64_t thread_num, NeuralNetwork<Var>& nn) : hash_table_(hash_size), evaluator_(nn) {}
     
     //一番良い指し手と学習データを返す関数
-    std::pair<Move, TeacherType> think(Position& pos);
+    std::pair<Move, TeacherType> think(Position& root);
 
 private:
     //再帰する探索関数
@@ -342,11 +342,12 @@ bool MCTSearcher<Var>::isTimeOver() {
 
 template <class Var>
 bool MCTSearcher<Var>::shouldStop() {
-    if (isTimeOver()) {
-        return true;
-    }
-    return false;
-
+    return isTimeOver();
+//    if (isTimeOver()) {
+//        return true;
+//    }
+//    return false;
+//
 //    // 探索回数が最も多い手と次に多い手を求める
 //    int32_t max1 = 0, max2 = 0;
 //    for (auto e : hash_table_[current_root_index_].child_move_counts) {

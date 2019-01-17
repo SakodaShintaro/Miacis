@@ -87,7 +87,7 @@ void BonanzaMethodTrainer::train() {
 
     //validationデータを確保
     std::vector<std::pair<std::string, TeacherType>> validation_data;
-    int32_t validation_size = (int32_t)(game_num_ * 0.1) / BATCH_SIZE * BATCH_SIZE;
+    auto validation_size = (int32_t)(game_num_ * 0.1) / BATCH_SIZE * BATCH_SIZE;
     for (int32_t i = 0; i < validation_size; i++) {
         validation_data.push_back(data_buffer.back());
         data_buffer.pop_back();

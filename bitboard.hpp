@@ -15,17 +15,9 @@ public:
     Bitboard(uint64_t b0, uint64_t b1) : board_{ b0, b1 } {}
 
 	//Squareを指定してそこだけを立てるコンストラクタ
-    explicit Bitboard(Square sq) {
-		if (sq <= SQ79) {
-			board_[0] = 1ULL << SquareToNum[sq];
-			board_[1] = 0;
-		} else {
-			board_[0] = 0;
-			board_[1] = 1ULL << (SquareToNum[sq] - SquareToNum[SQ81]);
-		}
-	}
+    explicit Bitboard(Square sq);
 
-    operator bool() const {
+    explicit operator bool() const {
         return !(board_[0] == 0 && board_[1] == 0);
     }
 
@@ -230,10 +222,10 @@ inline Bitboard dragonControl(const Square sq, const Bitboard& occupied) {
 }
 
 static Bitboard(*controlFunc[])(const Square sq, const Bitboard& occupied) = {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //0~9
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //10~19
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //20~29
-    0, 0, 0, //30~32
+    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //0~9
+    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //10~19
+    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //20~29
+    nullptr, nullptr, nullptr, //30~32
     blackPawnControl,  //33
     blackLanceControl, //34
     blackNightControl, //35
@@ -242,15 +234,15 @@ static Bitboard(*controlFunc[])(const Square sq, const Bitboard& occupied) = {
     bishopControl,     //38
     rookControl,       //39
     kingControl,       //40
-    0, 0, 0, 0, 0, 0, 0, 0, //40~48
+    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //40~48
     blackGoldControl,  //49 と
     blackGoldControl,  //50 成香
     blackGoldControl,  //51 成桂
     blackGoldControl,  //52 成銀
-    0,                 //53 成金などない
+    nullptr,           //53 成金などない
     horseControl,      //54 馬
     dragonControl,     //55 竜
-    0, 0, 0, 0, 0, 0, 0, 0, 0, //56~64
+    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //56~64
     whitePawnControl,  //65
     whiteLanceControl, //66
     whiteNightControl, //67
@@ -259,12 +251,12 @@ static Bitboard(*controlFunc[])(const Square sq, const Bitboard& occupied) = {
     bishopControl,     //70
     rookControl,       //71
     kingControl,       //72
-    0, 0, 0, 0, 0, 0, 0, 0, //73~80
+    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //73~80
     whiteGoldControl,  //81 と
     whiteGoldControl,  //82 成香
     whiteGoldControl,  //83 成桂
     whiteGoldControl,  //84 成銀
-    0,                 //85 成金などない
+    nullptr,           //85 成金などない
     horseControl,      //86 馬
     dragonControl,     //87 竜
 };

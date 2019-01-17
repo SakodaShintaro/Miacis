@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#ifndef HAND_HPP
+﻿#ifndef HAND_HPP
 #define HAND_HPP
 
 #include"piece.hpp"

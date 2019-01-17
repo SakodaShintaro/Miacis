@@ -74,7 +74,7 @@ public:
 	bool operator<(const Move &rhs) const { return (score < rhs.score); }
 	bool operator>(const Move &rhs) const { return (score > rhs.score); }
 
-    int32_t toLabel() const;
+    uint32_t toLabel() const;
 
 	//探索時にSearcherクラスから気軽にアクセスできるようpublicにおいてるけど
 	int move;

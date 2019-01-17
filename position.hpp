@@ -39,7 +39,7 @@ public:
     //王手,利き関連
     Bitboard attackersTo(Color c, Square sq) const;
     Bitboard attackersTo(Color c, Square sq, const Bitboard& occupied) const;
-    inline bool isThereControl(const Color c, const Square sq) const { return attackersTo(c, sq); }
+    inline bool isThereControl(const Color c, const Square sq) const { return (bool)attackersTo(c, sq); }
     inline bool isLastMoveCheck();
     void computePinners();
 

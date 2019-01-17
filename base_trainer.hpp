@@ -34,7 +34,7 @@ protected:
     //    ほぼ定数であるもの
     //-----------------------------------------------------
     //学習率
-    double LEARN_RATE;
+    float LEARN_RATE;
 
     //学習率を減衰させるときの係数
     double LEARN_RATE_DECAY;
@@ -43,7 +43,7 @@ protected:
     double MOMENTUM_DECAY;
 
     //バッチサイズ
-    int32_t BATCH_SIZE;
+    unsigned long BATCH_SIZE;
 
     //optimizerの設定
     std::string OPTIMIZER_NAME;

@@ -192,7 +192,7 @@ void Game::writeKifuFile(std::string dir_path) const {
         File to_file = SquareToFile[m.to()];
         Rank to_rank = SquareToRank[m.to()];
         ofs << fileToString[to_file] << rankToString[to_rank];
-        auto subject = (Piece)(m.subject() & (PROMOTE | PIECE_KIND_MASK));
+        Piece subject = (Piece)(m.subject() & (PROMOTE | PIECE_KIND_MASK));
         ofs << PieceToStr[subject];
         if (m.isDrop()) {
             ofs << "打" << std::endl;

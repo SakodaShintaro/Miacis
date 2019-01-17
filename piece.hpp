@@ -73,7 +73,7 @@ extern const ArrayMap<std::string, PieceNum> PieceToStr;
 extern const ArrayMap<std::string, PieceNum> PieceToSfenStr2;
 extern std::unordered_map<int, std::string> PieceToSfenStr;
 
-inline Piece operator++(Piece &p, int) { return p = (Piece)(p + 1); }
+inline const Piece operator++(Piece &p, int) { return p = Piece(p + 1); }
 inline Piece operator|(Piece lhs, Piece rhs) { return Piece(int(lhs) | int(rhs)); }
 inline int operator<<(Piece p, int shift) { return static_cast<int>(p) << shift; }
 

@@ -1,6 +1,6 @@
 ﻿#include"move.hpp"
 
-int32_t Move::toLabel() const {
+uint32_t Move::toLabel() const {
     Color c = pieceToColor(subject());
     Square to_sq = (c == BLACK ? to() : InvSquare[to()]);
     Square from_sq = (c == BLACK ? from() : InvSquare[from()]);

@@ -76,26 +76,6 @@ inline int pop_lsb(uint64_t& b) {
 }
 
 template<class Type>
-inline double sigmoid(Type x, double gain) {
-	return 1.0 / (1.0 + exp(-gain * x));
-}
-
-template<class Type>
-inline double standardSigmoid(Type x) {
-	return sigmoid(x, 1.0);
-}
-
-template<class Type>
-inline double d_sigmoid(Type x, double gain) {
-	return gain * sigmoid(x, gain) * (1.0 - sigmoid(x, gain));
-}
-
-template<class Type>
-inline double d_standardSigmoid(Type x) {
-	return d_sigmoid(x, 1.0);
-}
-
-template<class Type>
 inline std::vector<Type> softmax(std::vector<Type> x, Type temperature = 1.0) {
     if (x.size() == 0) {
         return x;
@@ -124,20 +104,6 @@ inline int32_t randomChoise(std::vector<Type> x) {
         }
     }
     return (int32_t)(x.size() - 1);
-}
-
-template<class Type>
-inline int inv_sigmoid(Type x, double gain) {
-    return (x == 1.0 ? 30000 : x == 0.0 ? -30000 : (int)(-std::log(1.0 / x - 1.0) / gain));
-}
-
-inline double crossEntropy(double y, double t) {
-    constexpr double epsilon = 0.000001;
-    return -t * std::log(y + epsilon);
-}
-
-inline double binaryCrossEntropy(double y, double t) {
-    return crossEntropy(y, t) + crossEntropy(1.0 - y, 1.0 - t);
 }
 
 #endif
