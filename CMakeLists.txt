@@ -18,5 +18,6 @@ add_executable(Miacis
         square.cpp
         test.cpp
         uct_hash_table.cpp
-        usi.cpp)
+        usi.cpp
+        replay_buffer.cpp)
 target_link_libraries(Miacis pthread stdc++fs primitiv)

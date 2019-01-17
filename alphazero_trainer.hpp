@@ -5,6 +5,7 @@
 
 #include"base_trainer.hpp"
 #include"game.hpp"
+#include "replay_buffer.hpp"
 
 class AlphaZeroTrainer : BaseTrainer {
 public:
@@ -71,7 +72,7 @@ private:
     //    変数
     //------------
     //学習用に加工済の局面スタック
-    std::vector<std::pair<std::string, TeacherType>> replay_buffer_;
+    ReplayBuffer replay_buffer_;
 
     //強くなって世代が進んだ回数
     uint64_t update_num_;

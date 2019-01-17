@@ -61,7 +61,7 @@ public:
 
     //sfenの入出力
     void loadSFEN(std::string sfen);
-    std::string toSFEN();
+    std::string toSFEN() const;
 
     //ハッシュ
     static void initHashSeed();

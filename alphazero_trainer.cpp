@@ -18,8 +18,6 @@
 #include<sys/stat.h>
 #endif
 
-static std::mutex MUTEX;
-
 AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
     //オプションをファイルから読み込む
     std::ifstream ifs(settings_file_path);
@@ -68,7 +66,7 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
             ifs >> VALUE_LOSS_COEFF;
         } else if (name == "max_stack_size") {
             ifs >> MAX_REPLAY_BUFFER_SIZE;
-            replay_buffer_.reserve((unsigned long) MAX_REPLAY_BUFFER_SIZE);
+            replay_buffer_.setSize(MAX_REPLAY_BUFFER_SIZE);
         } else if (name == "max_step_num") {
             ifs >> MAX_STEP_NUM;
         } else if (name == "playout_limit") {
@@ -116,23 +114,15 @@ void AlphaZeroTrainer::startLearn() {
     //局面もインスタンスは一つ用意して都度局面を構成
     Position pos;
 
-    auto start_learning_rate = LEARN_RATE;
-
-    //初期化
+    //モデル読み込み
     learning_model_.load(MODEL_PATH);
     nn->load(MODEL_PATH);
 
-    //学習
     //時間を初期化
     start_time_ = std::chrono::steady_clock::now();
 
-    MUTEX.lock();
-
     //変数の初期化
     update_num_ = 0;
-
-    //学習率の初期化
-    LEARN_RATE = start_learning_rate / BATCH_SIZE;
 
     //ログファイルの設定
     log_file_.open("alphazero_log.txt");
@@ -156,46 +146,16 @@ void AlphaZeroTrainer::startLearn() {
     print(0.0);
     print(0.0);
     print(0.0);
-    evaluate();
+    //evaluate();
     std::cout << std::endl;
     log_file_ << std::endl;
 
-    replay_buffer_.clear();
-    replay_buffer_.reserve((unsigned long) MAX_REPLAY_BUFFER_SIZE);
-
-    MUTEX.unlock();
-
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
-        //ミニバッチ分勾配を貯める
-
-        //損失初期化
-
         //バッチサイズだけデータを選択
-        for (int32_t j = 0; j < BATCH_SIZE; j++) {
-            if (replay_buffer_.size() <= BATCH_SIZE * 10) {
-                j--;
-                continue;
-            }
-
-            //ランダムに選ぶ
-            MUTEX.lock();
-            //サイズがオーバーしていたら減らす
-            if ((int64_t) replay_buffer_.size() >= MAX_REPLAY_BUFFER_SIZE) {
-                auto diff = replay_buffer_.size() - MAX_REPLAY_BUFFER_SIZE;
-                replay_buffer_.erase(replay_buffer_.begin(),
-                                     replay_buffer_.begin() + diff + MAX_REPLAY_BUFFER_SIZE / 10);
-                replay_buffer_.shrink_to_fit();
-            }
-
-            auto random = engine() % replay_buffer_.size();
-            auto datum = replay_buffer_[random];
-            MUTEX.unlock();
-
-            //局面を復元
-            pos.loadSFEN(datum.first);
-        }
-
-        MUTEX.lock();
+        std::vector<float> inputs;
+        std::vector<uint32_t> policy_labels;
+        std::vector<ValueTeacher> value_teachers;
+        std::tie(inputs, policy_labels, value_teachers) = replay_buffer_.makeBatch(BATCH_SIZE);
         //学習
         LossType loss{};
 
@@ -214,11 +174,6 @@ void AlphaZeroTrainer::startLearn() {
 
         std::cout << std::endl;
         log_file_ << std::endl;
-
-        //学習率の減衰
-        LEARN_RATE *= LEARN_RATE_DECAY;
-
-        MUTEX.unlock();
     }
 
     log_file_.close();
@@ -264,17 +219,7 @@ void AlphaZeroTrainer::testLearn() {
     std::vector<float> inputs;
     std::vector<ValueTeacher> value_teachers;
     std::vector<uint32_t> policy_teachers;
-    for (const auto& datum : replay_buffer_) {
-        auto sfen = datum.first;
-        auto teacher = datum.second;
-        pos.loadSFEN(sfen);
-
-        for (const auto& e : pos.makeFeature()) {
-            inputs.push_back(e);
-        }
-        policy_teachers.push_back(teacher.policy);
-        value_teachers.push_back(teacher.value);
-    }
+    std::tie(inputs, policy_teachers, value_teachers) = replay_buffer_.makeBatch(BATCH_SIZE);
 
     //学習
     O::MomentumSGD optimizer(LEARN_RATE);
@@ -459,9 +404,7 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
 #endif
 
         //スタックに詰める
-        MUTEX.lock();
-        replay_buffer_.emplace_back(pos.toSFEN(), game.teachers[i]);
-        MUTEX.unlock();
+        replay_buffer_.push(pos.toSFEN(), game.teachers[i]);
     }
 }
 

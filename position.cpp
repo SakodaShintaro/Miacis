@@ -788,7 +788,7 @@ void Position::loadSFEN(std::string sfen) {
     kifu_.reserve(512);
 }
 
-std::string Position::toSFEN() {
+std::string Position::toSFEN() const {
     std::string result;
     for (int64_t r = Rank1; r <= Rank9; r++) {
         int64_t empty_num = 0;
