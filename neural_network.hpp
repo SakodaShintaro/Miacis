@@ -85,7 +85,8 @@ public:
         policy_filter.init({1, 1, CHANNEL_NUM, POLICY_CHANNEL_NUM}, I::XavierUniformConv2D());
     }
 
-    std::pair<Var, Var> feedForward(std::vector<float>& input, uint32_t batch_size) {
+    std::pair<Var, Var> feedForward(std::vector<float>& input) {
+        uint32_t batch_size = (uint32_t)(input.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM));
         Var x = F::input<Var>(Shape({9, 9, INPUT_CHANNEL_NUM}, batch_size), input);
 
         //conv
@@ -105,7 +106,7 @@ public:
             Var filter0 = F::parameter<Var>(filter[i][0]);
             x = F::conv2d(x, filter0, 1, 1, 1, 1, 1, 1);
 
-            //Batch Norm
+            //Normalize
             x = normalize(x);
 
             //ReLU
@@ -115,7 +116,7 @@ public:
             Var filter1 = F::parameter<Var>(filter[i][1]);
             x = F::conv2d(x, filter1, 1, 1, 1, 1, 1, 1);
 
-            //Batch Norm
+            //Normalize
             x = normalize(x);
 
             //Residual
@@ -150,7 +151,6 @@ public:
         value = F::tanh(F::matmul(value_w_fc2, value) + value_b_fc2);
 #endif
 #endif
-
         //policyの1×1conv
         Var conv_policy_filter = F::parameter<Var>(policy_filter);
         Var policy = F::conv2d(x, conv_policy_filter, 0, 0, 1, 1, 1, 1);
@@ -162,7 +162,7 @@ public:
         std::vector<float> input = pos.makeFeature();
         Graph g;
         Graph::set_default(g);
-        auto y = feedForward(input, 1);
+        auto y = feedForward(input);
         auto policy = F::flatten(y.first);
 
 #ifdef USE_CATEGORICAL
@@ -178,9 +178,9 @@ public:
 #ifdef USE_CATEGORICAL
     std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<uint32_t >& value_labels, uint32_t batch_size) {
 #else
-    std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<float>& value_teachers, uint32_t batch_size) {
+    std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<float>& value_teachers) {
 #endif
-        auto y = feedForward(input, batch_size);
+        auto y = feedForward(input);
 
         auto logits = F::flatten(y.first);
 
@@ -189,14 +189,13 @@ public:
 #ifdef USE_CATEGORICAL
         Var value_loss = F::softmax_cross_entropy(y.second, value_labels, 0);
 #else
-        const Var value_t = F::input<Var>(Shape({1}, batch_size), value_teachers);
+        const Var value_t = F::input<Var>(Shape({1}, (uint32_t)value_teachers.size()), value_teachers);
 #ifdef USE_SIGMOID
         Var value_loss = -value_t * F::log(y.second) -(1 - value_t) * F::log(1 - y.second);
 #else
         Var value_loss = (y.second - value_t) * (y.second - value_t);
 #endif
 #endif
-
         return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
     }
 

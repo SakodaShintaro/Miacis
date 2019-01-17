@@ -286,7 +286,7 @@ void AlphaZeroTrainer::testLearn() {
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         g.clear();
-        auto losses = learning_model_.loss(inputs, policy_teachers, value_teachers, BATCH_SIZE);
+        auto losses = learning_model_.loss(inputs, policy_teachers, value_teachers);
         std::cout << std::setw(4) << step_num << " " << losses.first.to_float() << " " << losses.second.to_float() << std::endl;
         optimizer.reset_gradients();
             losses.first.backward();
@@ -455,7 +455,7 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
         game.teachers[i].value = valueToIndex(teacher_signal);
 #else
         //teacherにコピーする
-        game.teachers[i].value = (CalcType) (pos.color() == BLACK ? win_rate_for_black : reverse(win_rate_for_black));
+        game.teachers[i].value = (CalcType)(teacher_signal);
 #endif
 
         //スタックに詰める

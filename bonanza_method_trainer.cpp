@@ -114,7 +114,7 @@ void BonanzaMethodTrainer::train() {
                 value_teachers.push_back(datum.second.value);
             }
             g.clear();
-            auto loss = learning_model_.loss(input, labels, value_teachers, (uint32_t)BATCH_SIZE);
+            auto loss = learning_model_.loss(input, labels, value_teachers);
             curr_loss += (loss.first.to_float() + loss.second.to_float());
         }
         curr_loss /= num;
@@ -161,7 +161,7 @@ void BonanzaMethodTrainer::train() {
                 value_teachers.push_back(datum.second.value);
             }
             g.clear();
-            auto loss = learning_model_.loss(input, labels, value_teachers, (uint32_t)BATCH_SIZE);
+            auto loss = learning_model_.loss(input, labels, value_teachers);
             if (step % 100 == 0) {
                 timestamp();
                 print(epoch);
@@ -246,7 +246,7 @@ void BonanzaMethodTrainer::testTrain() {
             value_teachers.push_back(datum.second.value);
         }
         g.clear();
-        auto loss = learning_model_.loss(input, labels, value_teachers, (uint32_t)BATCH_SIZE);
+        auto loss = learning_model_.loss(input, labels, value_teachers);
         print(step);
         print(loss.first.to_float());
         print(loss.second.to_float());
