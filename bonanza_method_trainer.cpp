@@ -125,6 +125,7 @@ void BonanzaMethodTrainer::train() {
 
         if (curr_loss < min_loss) {
             min_loss = curr_loss;
+            patience = 0;
             return false;
         } else {
             return ++patience >= 5;

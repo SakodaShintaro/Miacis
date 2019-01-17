@@ -414,10 +414,10 @@ void MCTSearcher<Var>::printUSIInfo() const {
     auto best_wp = (child_move_counts[selected_index] == 0 ? 0.0
                                                            : current_node.child_wins[selected_index] / child_move_counts[selected_index]);
 #endif
-    assert(0.0 <= best_wp && best_wp <= 1.0);
 
     //勝率を評価値に変換
-    int32_t cp = inv_sigmoid(best_wp, CP_GAIN);
+    //int32_t cp = inv_sigmoid(best_wp, CP_GAIN);
+    int32_t cp = best_wp * 1000;
 
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
            (int)(current_node.move_count * 1000 / std::max((long long)elapsed.count(), 1LL)),
