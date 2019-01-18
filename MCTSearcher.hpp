@@ -132,7 +132,7 @@ std::pair<Move, TeacherType> MCTSearcher<Var>::think(Position& root) {
                 current_node.nn_rates[i], v);
             root_moves[i].print();
 #else
-            printf("%3d: move_count = %6d, nn_rate = %.5f, win_rate = %7.5f, ", i, child_move_counts[i],
+            printf("%3d: move_count = %6d, nn_rate = %.5f, win_rate = %+7.5f, ", i, child_move_counts[i],
                    current_node.nn_rates[i], (child_move_counts[i] > 0 ? current_node.child_wins[i] / child_move_counts[i] : 0));
             root_moves[i].print();
 #endif
