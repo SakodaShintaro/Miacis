@@ -217,7 +217,7 @@ public:
 private:
     static constexpr int32_t BLOCK_NUM = 2;
     static constexpr int32_t KERNEL_SIZE = 3;
-    static constexpr int32_t CHANNEL_NUM = 32;
+    static constexpr int32_t CHANNEL_NUM = 64;
     static constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
     Parameter first_filter;

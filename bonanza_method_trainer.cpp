@@ -127,9 +127,9 @@ void BonanzaMethodTrainer::train() {
         if (curr_loss < min_loss) {
             min_loss = curr_loss;
             patience = 0;
-            return false;
+            return std::make_pair(true, false);
         } else {
-            return ++patience >= 5;
+            return std::make_pair(false, ++patience >= 5);
         }
     };
 
@@ -162,7 +162,7 @@ void BonanzaMethodTrainer::train() {
             }
             g.clear();
             auto loss = learning_model_.loss(input, labels, value_teachers);
-            if (step % 100 == 0) {
+            if (step % 200 == 0) {
                 timestamp();
                 print(epoch);
                 print(step);
@@ -177,11 +177,14 @@ void BonanzaMethodTrainer::train() {
             optimizer.update();
         }
 
-        if (validation(g)) {
+        auto result = validation(g);
+        if (result.second) {
             //終わり
             break;
         } else {
-            learning_model_.save("cnn" + std::to_string(epoch) + ".model");
+            if (result.first) {
+                learning_model_.save("cnn" + std::to_string(epoch) + ".model");
+            }
         }
     }
 
