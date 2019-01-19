@@ -194,7 +194,7 @@ ValueType MCTSearcher<Var>::uctSearch(Position & pos, Index current_index) {
         }
         return lose_value_dist;
 #else
-        return 0.0;
+        return MIN_SCORE;
 #endif
     }
 
@@ -285,7 +285,7 @@ Index MCTSearcher<Var>::expandNode(Position& pos) {
                 current_node.value[i] = (i == BIN_SIZE - 1 ? 1.0f : 0.0f);
             }
 #else
-            current_node.value = 1.0;
+            current_node.value = MAX_SCORE;
 #endif
         } else {
             //詰み
@@ -294,7 +294,7 @@ Index MCTSearcher<Var>::expandNode(Position& pos) {
                 current_node.value[i] = (i == 0 ? 1.0f : 0.0f);
             }
 #else
-            current_node.value = -1.0f;
+            current_node.value = MIN_SCORE;
 #endif
         }
         current_node.evaled = true;
