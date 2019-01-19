@@ -1,7 +1,13 @@
 #include"replay_buffer.hpp"
 #include"operate_params.hpp"
+#include<thread>
 
 std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>> ReplayBuffer::makeBatch(int32_t batch_size) {
+    while(data_.size() < batch_size) {
+        std::cout << "data_size() = " << data_.size() << " < " << batch_size << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+    }
+
     //ロックの確保する必要あるかな？
     std::unique_lock<std::mutex> lock(mutex_);
 

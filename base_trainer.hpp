@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #ifndef TRAINER_HPP
 #define TRAINER_HPP
@@ -72,8 +72,8 @@ protected:
 
 template<class T>
 inline void BaseTrainer::print(T t) {
-    std::cout << t << "\t";
-    log_file_ << t << "\t";
+    std::cout << "\t" << t;
+    log_file_ << "\t" << t;
 }
 
 #endif // !TRAINER_HPP

@@ -9,10 +9,10 @@ void BaseTrainer::timestamp() {
     minutes %= 60;
     std::cout << std::setfill('0') << std::setw(3) << hours << ":"
         << std::setfill('0') << std::setw(2) << minutes << ":"
-        << std::setfill('0') << std::setw(2) << seconds << "\t";
+        << std::setfill('0') << std::setw(2) << seconds;
     log_file_ << std::setfill('0') << std::setw(3) << hours << ":"
         << std::setfill('0') << std::setw(2) << minutes << ":"
-        << std::setfill('0') << std::setw(2) << seconds << "\t";
+        << std::setfill('0') << std::setw(2) << seconds;
 }
 
 bool BaseTrainer::isLegalOptimizer() {

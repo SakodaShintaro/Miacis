@@ -108,9 +108,6 @@ void AlphaZeroTrainer::startLearn() {
         slave_threads[i] = std::thread(&AlphaZeroTrainer::act, this);
     }
 
-    //乱数の準備
-    std::default_random_engine engine(0);
-
     //局面もインスタンスは一つ用意して都度局面を構成
     Position pos;
 
@@ -136,19 +133,15 @@ void AlphaZeroTrainer::startLearn() {
     print("512手");
     print("勝ち越し数");
     print("重複数");
-    print("次のrandom_turn");
-    log_file_ << std::endl << std::fixed;
-    std::cout << std::endl << std::fixed;
+    print("次のrandom_turn\n");
 
-    //0回目を入れてみる
-    timestamp();
-    print(0);
-    print(0.0);
-    print(0.0);
-    print(0.0);
-    //evaluate();
-    std::cout << std::endl;
-    log_file_ << std::endl;
+    //Optimizerの準備
+    O::MomentumSGD optimizer(LEARN_RATE);
+    optimizer.set_weight_decay(1e-4);
+    optimizer.add(learning_model_);
+
+    Graph g;
+    Graph::set_default(g);
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         //バッチサイズだけデータを選択
@@ -156,24 +149,26 @@ void AlphaZeroTrainer::startLearn() {
         std::vector<uint32_t> policy_labels;
         std::vector<ValueTeacher> value_teachers;
         std::tie(inputs, policy_labels, value_teachers) = replay_buffer_.makeBatch(BATCH_SIZE);
-        //学習
-        LossType loss{};
+
+        g.clear();
+        optimizer.reset_gradients();
+        auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
+        loss.first.backward();
+        loss.second.backward();
+        optimizer.update();
 
         //学習情報の表示
         timestamp();
         print(step_num);
-        print(POLICY_LOSS_COEFF * loss[0] + VALUE_LOSS_COEFF * loss[1]);
-        print(loss[0]);
-        print(loss[1]);
+        print(POLICY_LOSS_COEFF * loss.first.to_float() + VALUE_LOSS_COEFF * loss.second.to_float());
+        print(loss.first.to_float());
+        print(loss.second.to_float());
+        print("\n");
 
         //評価と書き出し
         if (step_num % EVALUATION_INTERVAL == 0 || step_num == MAX_STEP_NUM) {
-            evaluate();
-            learning_model_.save("tmp" + std::to_string(step_num) + ".bin");
+            learning_model_.save("tmp" + std::to_string(step_num) + ".model");
         }
-
-        std::cout << std::endl;
-        log_file_ << std::endl;
     }
 
     log_file_.close();
