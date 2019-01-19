@@ -150,9 +150,17 @@ void AlphaZeroTrainer::startLearn() {
         std::vector<ValueTeacher> value_teachers;
         std::tie(inputs, policy_labels, value_teachers) = replay_buffer_.makeBatch(BATCH_SIZE);
 
+//        usi_option.stop_signal = true;
+//        for (uint32_t i = 0; i < THREAD_NUM - 1; i++) {
+//            while (!slave_threads[i].joinable()) {
+//                std::this_thread::sleep_for(std::chrono::seconds(1));
+//            }
+//            slave_threads[i].join();
+//        }
+
         g.clear();
-        optimizer.reset_gradients();
         auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
+        optimizer.reset_gradients();
         loss.first.backward();
         loss.second.backward();
         optimizer.update();
@@ -229,8 +237,8 @@ void AlphaZeroTrainer::testLearn() {
         auto losses = learning_model_.loss(inputs, policy_teachers, value_teachers);
         std::cout << std::setw(4) << step_num << " " << losses.first.to_float() << " " << losses.second.to_float() << std::endl;
         optimizer.reset_gradients();
-            losses.first.backward();
-            losses.second.backward();
+        losses.first.backward();
+        losses.second.backward();
         optimizer.update();
     }
 

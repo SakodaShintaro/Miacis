@@ -164,8 +164,6 @@ public:
 
     std::pair<PolicyType, ValueType> policyAndValue(const Position& pos) {
         std::vector<float> input = pos.makeFeature();
-        Graph g;
-        Graph::set_default(g);
         auto y = feedForward(input);
         auto policy = F::flatten(y.first);
 
