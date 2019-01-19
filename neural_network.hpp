@@ -13,8 +13,12 @@ namespace O = primitiv::optimizers;
 //出力のチャンネル数:各マスに対する移動元方向(10) * 2 + 持ち駒7
 constexpr uint32_t POLICY_CHANNEL_NUM = 27;
 
-//基本的に読み書きするパス
-const std::string MODEL_PATH = "cnn.model";
+//評価パラメータを読み書きするデフォルトのファイル名
+#ifdef USE_CATEGORICAL
+const std::string MODEL_PATH = "cv.model";
+#else
+const std::string MODEL_PATH = "sv.model";
+#endif
 
 //型のエイリアス
 using CalcType = float;

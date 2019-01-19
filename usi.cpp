@@ -42,7 +42,6 @@ void USI::loop() {
         } else if (input == "prepareForLearn") {
             nn->init();
             nn->save(MODEL_PATH);
-            nn->save("tmp.model");
             std::cout << "初期化したパラメータを出力" << std::endl;
         } else if (input == "cleanGame") {
             std::cout << "棋譜のあるフォルダへのパス : ";
