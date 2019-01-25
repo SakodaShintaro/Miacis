@@ -76,6 +76,11 @@ inline int pop_lsb(uint64_t& b) {
 }
 
 template<class Type>
+inline double sigmoid(Type x, double gain) {
+    return 1.0 / (1.0 + exp(-gain * x));
+}
+
+template<class Type>
 inline std::vector<Type> softmax(std::vector<Type> x, Type temperature = 1.0) {
     if (x.size() == 0) {
         return x;

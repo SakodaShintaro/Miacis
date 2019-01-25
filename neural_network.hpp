@@ -2,6 +2,7 @@
 #define MIACIS_NEURAL_NETWORK_HPP
 
 #include"position.hpp"
+#include<vector>
 #include<primitiv/primitiv.h>
 #include<torch/torch.h>
 
@@ -61,11 +62,15 @@ constexpr int32_t KERNEL_SIZE = 3;
 constexpr int32_t CHANNEL_NUM = 64;
 constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
-using namespace torch::nn;
+using torch::nn::Conv2d;
+using torch::nn::Conv2dOptions;
+using torch::nn::BatchNorm;
+using torch::nn::Linear;
 
-class NetImpl : Module {
+class NetImpl : torch::nn::Module {
 public:
-    NetImpl() {
+    NetImpl() : conv(BLOCK_NUM, std::vector<Conv2d>(2, nullptr)),
+                bn(BLOCK_NUM, std::vector<BatchNorm>(2, nullptr)) {
         first_conv = register_module("first_conv", Conv2d(Conv2dOptions(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE)));
         first_bn = register_module("first_bn", BatchNorm(CHANNEL_NUM));
         for (int32_t i = 0; i < BLOCK_NUM; i++) {
@@ -119,23 +124,16 @@ public:
 private:
     Conv2d first_conv{nullptr};
     BatchNorm first_bn{nullptr};
-    Conv2d conv[BLOCK_NUM][2] = { nullptr };
-    BatchNorm bn[BLOCK_NUM][2] = { nullptr };
+    //Conv2d conv[BLOCK_NUM][2] = { nullptr };
+    std::vector<std::vector<Conv2d>> conv;
+    //BatchNorm bn[BLOCK_NUM][2] = { nullptr };
+    std::vector<std::vector<BatchNorm>> bn;
     Conv2d value_conv{nullptr};
     BatchNorm value_bn{nullptr};
     Linear value_fc1{nullptr}, value_fc2{nullptr};
     Conv2d policy_conv{nullptr};
 };
 TORCH_MODULE(Net);
-//
-//Parameter first_filter;
-//Parameter filter[BLOCK_NUM][2];
-//Parameter value_filter;
-//Parameter value_pw_fc1;
-//Parameter value_pb_fc1;
-//Parameter value_pw_fc2;
-//Parameter value_pb_fc2;
-//Parameter policy_filter;
 
 template <typename Var>
 class NeuralNetwork : public primitiv::Model {
@@ -174,56 +172,33 @@ public:
         uint32_t batch_size = (uint32_t)(input.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM));
         Var x = F::input<Var>(Shape({9, 9, INPUT_CHANNEL_NUM}, batch_size), input);
 
-        //conv
         Var first_filter_var = F::parameter<Var>(first_filter);
         x = F::conv2d(x, first_filter_var, 1, 1, 1, 1, 1, 1);
-
-        //Normalize
         x = normalize(x);
-
-        //ReLU
         x = F::relu(x);
 
         for (int32_t i = 0; i < BLOCK_NUM; i++) {
             Var t = x;
 
-            //conv0
             Var filter0 = F::parameter<Var>(filter[i][0]);
             x = F::conv2d(x, filter0, 1, 1, 1, 1, 1, 1);
-
-            //Normalize
             x = normalize(x);
-
-            //ReLU
             x = F::relu(x);
 
-            //conv1
             Var filter1 = F::parameter<Var>(filter[i][1]);
             x = F::conv2d(x, filter1, 1, 1, 1, 1, 1, 1);
-
-            //Normalize
             x = normalize(x);
-
-            //Residual
             x = F::relu(x + t);
         }
 
         //ここから分岐.まずvalueに1×1convを適用
         Var conv_value_filter = F::parameter<Var>(value_filter);
         Var value = F::conv2d(x, conv_value_filter, 0, 0, 1, 1, 1, 1);
-
-        //Batch Norm
         value = normalize(value);
-
-        //ReLU
         value = F::relu(value);
-
-        //全結合1
         Var value_w_fc1 = F::parameter<Var>(value_pw_fc1);
         Var value_b_fc1 = F::parameter<Var>(value_pb_fc1);
         value = F::relu(F::matmul(value_w_fc1, F::flatten(value)) + value_b_fc1);
-
-        //全結合2
         Var value_w_fc2 = F::parameter<Var>(value_pw_fc2);
         Var value_b_fc2 = F::parameter<Var>(value_pb_fc2);
 
