@@ -50,7 +50,7 @@ void BonanzaMethodTrainer::train() {
     start_time_ = std::chrono::steady_clock::now();
 
     //評価関数ロード
-    learning_model_.load("cnn.model");
+    learning_model_.load(MODEL_PATH);
 
     //棋譜を読み込む
     std::cout << "start loadGames ...";
