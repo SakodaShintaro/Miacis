@@ -3,7 +3,7 @@
 
 #include"position.hpp"
 #include<primitiv/primitiv.h>
-
+#include<torch/torch.h>
 
 //primitiv
 using namespace primitiv;
@@ -55,7 +55,87 @@ struct TeacherType {
     ValueTeacher value;
 };
 
-//#define PRINT
+
+constexpr int32_t BLOCK_NUM = 20;
+constexpr int32_t KERNEL_SIZE = 3;
+constexpr int32_t CHANNEL_NUM = 64;
+constexpr int32_t VALUE_HIDDEN_NUM = 256;
+
+using namespace torch::nn;
+
+class NetImpl : Module {
+public:
+    NetImpl() {
+        first_conv = register_module("first_conv", Conv2d(Conv2dOptions(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE)));
+        first_bn = register_module("first_bn", BatchNorm(CHANNEL_NUM));
+        for (int32_t i = 0; i < BLOCK_NUM; i++) {
+            for (int32_t j = 0; j < 2; j++) {
+                conv[i][j] = register_module("conv" + std::to_string(i) + std::to_string(j),
+                        Conv2d(Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE)));
+                bn[i][j] = register_module("bn" + std::to_string(i) + std::to_string(j), BatchNorm(CHANNEL_NUM));
+            }
+        }
+        policy_conv = register_module("policy_conv", Conv2d(Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1)));
+        value_conv = register_module("value_conv", Conv2d(Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, 1)));
+        value_bn = register_module("value_bn", BatchNorm(CHANNEL_NUM));
+        value_fc1 = register_module("value_fc1", Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
+        value_fc2 = register_module("value_fc2", Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
+    }
+
+    std::pair<torch::Tensor, torch::Tensor> forward(torch::Tensor x) {
+        x = first_conv->forward(x);
+        x = first_bn->forward(x);
+        x = torch::relu(x);
+        for (int32_t i = 0; i < BLOCK_NUM; i++) {
+            auto t = x;
+            x = conv[i][0]->forward(x);
+            x = bn[i][0]->forward(x);
+            x = torch::relu(x);
+            x = conv[i][1]->forward(x);
+            x = bn[i][1]->forward(x);
+            x = torch::relu(x + t);
+        }
+        //ここから分岐
+        //policy
+        auto policy = policy_conv->forward(x);
+
+        //value
+        auto value = value_conv->forward(x);
+        value = value_bn->forward(value);
+        value = torch::relu(value);
+        value = value_fc1->forward(value);
+        value = value_fc2->forward(value);
+
+#ifdef USE_CATEGORICAL
+#else
+#ifdef USE_SIGMOID
+        value = torch::sigmoid(value);
+#else
+        value = torch::tanh(value);
+#endif
+#endif
+        return { policy, value };
+    }
+private:
+    Conv2d first_conv{nullptr};
+    BatchNorm first_bn{nullptr};
+    Conv2d conv[BLOCK_NUM][2] = { nullptr };
+    BatchNorm bn[BLOCK_NUM][2] = { nullptr };
+    Conv2d value_conv{nullptr};
+    BatchNorm value_bn{nullptr};
+    Linear value_fc1{nullptr}, value_fc2{nullptr};
+    Conv2d policy_conv{nullptr};
+};
+TORCH_MODULE(Net);
+//
+//Parameter first_filter;
+//Parameter filter[BLOCK_NUM][2];
+//Parameter value_filter;
+//Parameter value_pw_fc1;
+//Parameter value_pb_fc1;
+//Parameter value_pw_fc2;
+//Parameter value_pb_fc2;
+//Parameter policy_filter;
 
 template <typename Var>
 class NeuralNetwork : public primitiv::Model {
@@ -219,10 +299,6 @@ public:
     }
     
 private:
-    static constexpr int32_t BLOCK_NUM = 20;
-    static constexpr int32_t KERNEL_SIZE = 3;
-    static constexpr int32_t CHANNEL_NUM = 64;
-    static constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
     Parameter first_filter;
     Parameter filter[BLOCK_NUM][2];

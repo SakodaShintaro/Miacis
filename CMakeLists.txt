@@ -4,6 +4,9 @@ project(Miacis)
 list(APPEND CMAKE_PREFIX_PATH /home/sakoda/libtorch)
 find_package(Torch REQUIRED)
 
+include_directories(/home/sakoda/libtorch/include)
+include_directories(/home/sakoda/libtorch/include/torch/csrc/api/include)
+
 #共通する設定
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-march=native")
@@ -29,5 +32,5 @@ add_executable(Miacis_sv ${SRCS})
 add_executable(Miacis_cv ${SRCS})
 target_compile_definitions(Miacis_cv PUBLIC USE_CATEGORICAL)
 
-target_link_libraries(Miacis_sv pthread stdc++fs primitiv)
-target_link_libraries(Miacis_cv pthread stdc++fs primitiv)
+target_link_libraries(Miacis_sv pthread stdc++fs primitiv "{$TORCH_LIBRARIES}")
+target_link_libraries(Miacis_cv pthread stdc++fs primitiv "{$TORCH_LIBRARIES}")
