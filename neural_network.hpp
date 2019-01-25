@@ -4,6 +4,7 @@
 #include"position.hpp"
 #include<primitiv/primitiv.h>
 
+
 //primitiv
 using namespace primitiv;
 namespace F = primitiv::functions;
@@ -202,6 +203,7 @@ public:
     }
 
     Var normalize(Var& x) {
+        return F::batch::normalize(x);
         static constexpr int32_t G = 32;
         assert(CHANNEL_NUM % G == 0);
         auto batch_size = x.shape().batch();
@@ -217,7 +219,7 @@ public:
     }
     
 private:
-    static constexpr int32_t BLOCK_NUM = 2;
+    static constexpr int32_t BLOCK_NUM = 20;
     static constexpr int32_t KERNEL_SIZE = 3;
     static constexpr int32_t CHANNEL_NUM = 64;
     static constexpr int32_t VALUE_HIDDEN_NUM = 256;

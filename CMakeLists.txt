@@ -1,6 +1,9 @@
 ﻿cmake_minimum_required(VERSION 3.10)
 project(Miacis)
 
+list(APPEND CMAKE_PREFIX_PATH /home/sakoda/libtorch)
+find_package(Torch REQUIRED)
+
 #共通する設定
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-march=native")
