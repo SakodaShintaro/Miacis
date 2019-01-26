@@ -16,8 +16,9 @@ template <class Var>
 class ParallelMCTSearcher {
 public:
     //コンストラクタ
-    ParallelMCTSearcher(int64_t hash_size, int64_t thread_num, NeuralNetwork<Var>& nn) : hash_table_(hash_size), evaluator_(nn) {
-        lock_node_ = std::vector<std::mutex>(hash_table_.size());
+    ParallelMCTSearcher(int64_t hash_size, int64_t thread_num, NeuralNetwork<Var>& nn) : hash_table_(hash_size),
+    evaluator_(nn), thread_num_(static_cast<int32_t>(thread_num)) {
+        lock_node_ = std::vector<std::mutex>(static_cast<unsigned long>(hash_table_.size()));
         clearEvalQueue();
     }
     
@@ -25,6 +26,8 @@ public:
     std::pair<Move, TeacherType> think(Position& root);
 
 private:
+    static constexpr int32_t VIRTUAL_LOSS = 1;
+
     //再帰する探索関数
     ValueType uctSearch(Position& pos, Index current_index);
 
@@ -103,6 +106,8 @@ std::pair<Move, TeacherType> ParallelMCTSearcher<Var>::think(Position& root) {
     //古いハッシュを削除
     hash_table_.deleteOldHash(root, false);
 
+    clearEvalQueue();
+
     //ルートノードの展開
     current_root_index_ = expandNode(root);
     auto& current_node = hash_table_[current_root_index_];
@@ -129,7 +134,11 @@ std::pair<Move, TeacherType> ParallelMCTSearcher<Var>::think(Position& root) {
 
     std::thread calc_nn(&ParallelMCTSearcher<Var>::evalNode, this);
 
-    std::vector<std::thread> threads(thread_num_);
+    while (!hash_table_[current_root_index_].evaled) {
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
+
+    std::vector<std::thread> threads(static_cast<unsigned long>(thread_num_));
     for (auto& t : threads) {
         t = std::thread(&ParallelMCTSearcher<Var>::parallelUctSearch, this, root);
     }
@@ -193,7 +202,7 @@ std::pair<Move, TeacherType> ParallelMCTSearcher<Var>::think(Position& root) {
 #endif
 
     //訪問回数に基づいた分布を得る
-    std::vector<CalcType> distribution(current_node.child_num);
+    std::vector<CalcType> distribution(static_cast<unsigned long>(current_node.child_num));
     for (int32_t i = 0; i < current_node.child_num; i++) {
         distribution[i] = (CalcType)child_move_counts[i] / current_node.move_count;
         assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
@@ -228,8 +237,13 @@ ValueType ParallelMCTSearcher<Var>::uctSearch(Position & pos, Index current_inde
 
     auto& child_indices = current_node.child_indices;
 
+    lock_node_[current_index].lock();
+
     // UCB値が最大の手を求める
     auto next_index = selectMaxUcbChild(current_node);
+
+    current_node.move_count += VIRTUAL_LOSS;
+    current_node.child_move_counts[next_index] += VIRTUAL_LOSS;
 
     // 選んだ手を着手
     pos.doMove(current_node.legal_moves[next_index]);
@@ -238,16 +252,21 @@ ValueType ParallelMCTSearcher<Var>::uctSearch(Position & pos, Index current_inde
     Score score;
     // ノードの展開の確認
     if (pos.isRepeating(score)) {
+        lock_node_[current_index].unlock();
+
 #ifdef USE_CATEGORICAL
         result = onehotDist(score);
 #else
         result = score;
 #endif
     } else if (child_indices[next_index] == UctHashTable::NOT_EXPANDED) {
-        // ノードの展開
+        // ノードの展開:ロック
         lock_expand_.lock();
         auto index = expandNode(pos);
         lock_expand_.unlock();
+
+        lock_node_[current_index].unlock();
+
         child_indices[next_index] = index;
         while (!hash_table_[index].evaled) {
             std::this_thread::sleep_for(std::chrono::microseconds(1));
@@ -255,6 +274,9 @@ ValueType ParallelMCTSearcher<Var>::uctSearch(Position & pos, Index current_inde
 
         result = hash_table_[index].value;
     } else {
+        //ロック解除
+        lock_node_[current_index].unlock();
+
         // 手番を入れ替えて1手深く読む
         result = uctSearch(pos, child_indices[next_index]);
     }
@@ -262,9 +284,11 @@ ValueType ParallelMCTSearcher<Var>::uctSearch(Position & pos, Index current_inde
     result = reverse(result);
 
     // 探索結果の反映
-    current_node.move_count++;
+    lock_node_[current_index].lock();
+    current_node.move_count += 1 - VIRTUAL_LOSS;
     current_node.child_wins[next_index] += result;
-    current_node.child_move_counts[next_index]++;
+    current_node.child_move_counts[next_index] += 1 - VIRTUAL_LOSS;
+    lock_node_[current_index].unlock();
 
     // 手を戻す
     pos.undo();
@@ -294,7 +318,7 @@ void ParallelMCTSearcher<Var>::parallelUctSearch(Position root) {
 
 template <class Var>
 Index ParallelMCTSearcher<Var>::expandNode(Position& pos) {
-    auto index = hash_table_.findSameHashIndex(pos.hash_value(), pos.turn_number());
+    auto index = hash_table_.findSameHashIndex(pos.hash_value(), static_cast<int16_t>(pos.turn_number()));
 
     // 合流先が検知できればそれを返す
     if (index != hash_table_.size()) {
@@ -302,7 +326,7 @@ Index ParallelMCTSearcher<Var>::expandNode(Position& pos) {
     }
 
     // 空のインデックスを探す
-    index = hash_table_.searchEmptyIndex(pos.hash_value(), pos.turn_number());
+    index = hash_table_.searchEmptyIndex(pos.hash_value(), static_cast<int16_t>(pos.turn_number()));
 
     auto& current_node = hash_table_[index];
 
@@ -325,7 +349,7 @@ Index ParallelMCTSearcher<Var>::expandNode(Position& pos) {
     }
 #else
     current_node.value = 0.0;
-    current_node.child_wins = std::vector<float>(current_node.child_num, 0.0);
+    current_node.child_wins = std::vector<float>(static_cast<unsigned long>(current_node.child_num), 0.0);
 #endif
 
     // ノードを評価
@@ -362,18 +386,18 @@ Index ParallelMCTSearcher<Var>::expandNode(Position& pos) {
 
 template <class Var>
 void ParallelMCTSearcher<Var>::evalNode() {
-    bool enough_batch_size = false;
+    bool enough_batch_size = true;
 
     while (running_) {
-        std::unique_lock<std::mutex> lock(lock_expand_);
+        lock_expand_.lock();
         if (current_features_.empty()) {
-            lock.release();
+            lock_expand_.unlock();
             std::this_thread::sleep_for(std::chrono::microseconds(1));
             continue;
         }
 
         if (!enough_batch_size && current_features_.size() < thread_num_ / 2) {
-            lock.release();
+            lock_expand_.unlock();
             std::this_thread::sleep_for(std::chrono::microseconds(1));
             enough_batch_size = true;
             continue;
@@ -391,7 +415,7 @@ void ParallelMCTSearcher<Var>::evalNode() {
         current_features_.clear();
         current_hash_index_queue_ = hash_index_queues_[current_queue_index_];
         current_hash_index_queue_.clear();
-        lock.release();
+        lock_expand_.unlock();
 
         auto result = evaluator_.policyAndValueBatch(eval_features);
         auto policies = result.first;
@@ -402,7 +426,7 @@ void ParallelMCTSearcher<Var>::evalNode() {
 
             //policyを設定
             auto& current_node = hash_table_[eval_hash_index_queue[i]];
-            std::vector<float> legal_moves_policy(current_node.child_num);
+            std::vector<float> legal_moves_policy(static_cast<unsigned long>(current_node.child_num));
             for (int32_t j = 0; j < current_node.child_num; j++) {
                 legal_moves_policy[j] = policies[i][current_node.legal_moves[j].toLabel()];
             }
@@ -506,7 +530,7 @@ std::vector<double> ParallelMCTSearcher<Var>::dirichletDistribution(int32_t k, d
     static std::default_random_engine engine(seed());
     static constexpr double eps = 0.000000001;
     std::gamma_distribution<double> gamma(alpha, 1.0);
-    std::vector<double> dirichlet(k);
+    std::vector<double> dirichlet(static_cast<unsigned long>(k));
     double sum = 0.0;
     for (int32_t i = 0; i < k; i++) {
         sum += (dirichlet[i] = std::max(gamma(engine), eps));
