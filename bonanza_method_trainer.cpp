@@ -88,6 +88,7 @@ void BonanzaMethodTrainer::train() {
     //validationデータを確保
     std::vector<std::pair<std::string, TeacherType>> validation_data;
     auto validation_size = (int32_t)(game_num_ * 0.1) / BATCH_SIZE * BATCH_SIZE;
+    assert(validation_size != 0);
     for (int32_t i = 0; i < validation_size; i++) {
         validation_data.push_back(data_buffer.back());
         data_buffer.pop_back();
@@ -96,10 +97,11 @@ void BonanzaMethodTrainer::train() {
         static float min_loss = 1e10;
         static int32_t patience = 0;
         Position pos;
+        nn->load(MODEL_PATH);
 
         int32_t num = 0;
         float curr_loss = 0.0;
-        for (int32_t i = 0; (i + 1) * BATCH_SIZE < validation_size; i++, num++) {
+        for (int32_t i = 0; (i + 1) * BATCH_SIZE <= validation_size; i++, num++) {
             std::vector<float> input;
             std::vector<ValueTeacher> value_teachers;
             std::vector<uint32_t> labels;
@@ -114,7 +116,7 @@ void BonanzaMethodTrainer::train() {
                 value_teachers.push_back(datum.second.value);
             }
             g.clear();
-            auto loss = learning_model_.loss(input, labels, value_teachers);
+            auto loss = nn->loss(input, labels, value_teachers);
             curr_loss += (loss.first.to_float() + loss.second.to_float());
         }
         curr_loss /= num;
@@ -146,7 +148,7 @@ void BonanzaMethodTrainer::train() {
         //データをシャッフル
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
-        for (int32_t step = 0; (step + 1) * BATCH_SIZE < data_buffer.size(); step++) {
+        for (int32_t step = 0; (step + 1) * BATCH_SIZE <= data_buffer.size(); step++) {
             std::vector<float> input;
             std::vector<ValueTeacher> value_teachers;
             std::vector<uint32_t> labels;

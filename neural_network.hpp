@@ -56,22 +56,75 @@ struct TeacherType {
 };
 
 
-constexpr int32_t BLOCK_NUM = 20;
+constexpr int32_t BLOCK_NUM = 5;
 constexpr int32_t KERNEL_SIZE = 3;
 constexpr int32_t CHANNEL_NUM = 64;
 constexpr int32_t VALUE_HIDDEN_NUM = 256;
+
+template <typename Var>
+class BatchNormLayer : public primitiv::Model {
+public:
+    BatchNormLayer() {
+        add("beta", beta_);
+        add("gamma", gamma_);
+        add("mean", mean_);
+        add("var", var_);
+    }
+
+    void init(Shape s) {
+        beta_.init(s, I::Constant(0.0));
+        gamma_.init(s, I::Constant(1.0));
+        mean_.init(s, I::Constant(0.0));
+        var_.init(s, I::Constant(0.0));
+    }
+
+    Node operator()(Node x) {
+        Node m = F::batch::mean(x);
+        Node v = F::batch::mean((x - m) * (x - m));
+
+        for (int32_t i = 0; i < 9 * 9 * 64; i++) {
+            std::cout << m.to_vector()[i] << " " << mean_.value().to_vector()[i] << std::endl;
+        }
+
+        constexpr float a = 0.9;
+        Tensor me = F::input_tensor(m.shape(), m.to_vector(), nullptr);
+        Tensor va = F::input_tensor(v.shape(), v.to_vector(), nullptr);
+
+        mean_.value() = a * mean_.value() + (1.0 - a) * me;
+        var_.value()  = a * var_.value()  + (1.0 - a) * va;
+
+        mean_.init(mean_.shape(), mean_.value().to_vector());
+        var_.init(var_.shape(),  var_.value().to_vector());
+
+        for (int32_t i = 0; i < 9 * 9 * 64; i++) {
+            std::cout << m.to_vector()[i] << " " << mean_.value().to_vector()[i] << std::endl;
+        }
+
+        return F::parameter<Node>(gamma_) * (x - m) / F::sqrt(v + 1e-8) + F::parameter<Node>(beta_);
+    }
+
+    Tensor operator()(Tensor x) {
+        return F::parameter<Tensor>(gamma_) * (x - F::parameter<Tensor>(mean_)) /
+                F::sqrt(F::parameter<Tensor>(var_) + 1e-8) + F::parameter<Tensor>(beta_);
+    }
+private:
+    Parameter beta_, gamma_, mean_, var_;
+};
 
 template <typename Var>
 class NeuralNetwork : public primitiv::Model {
 public:
     NeuralNetwork() {
         add("first_filter", first_filter);
+        add("first_bn", first_bn);
         for (int32_t i = 0; i < BLOCK_NUM; i++) {
             for (int32_t j = 0; j < 2; j++) {
                 add("filter" + std::to_string(i) + std::to_string(j), filter[i][j]);
+                add("bn" + std::to_string(i) + std::to_string(j), bn[i][j]);
             }
         }
         add("value_filter", value_filter);
+        add("value_bn", value_bn);
         add("value_pw_fc1", value_pw_fc1);
         add("value_pb_fc1", value_pb_fc1);
         add("value_pw_fc2", value_pw_fc2);
@@ -81,12 +134,15 @@ public:
 
     void init() {
         first_filter.init({KERNEL_SIZE, KERNEL_SIZE, INPUT_CHANNEL_NUM, CHANNEL_NUM}, I::XavierUniformConv2D());
+        first_bn.init({9, 9, CHANNEL_NUM});
         for (int32_t i = 0; i < BLOCK_NUM; i++) {
             for (int32_t j = 0; j < 2; j++) {
                 filter[i][j].init({KERNEL_SIZE, KERNEL_SIZE, CHANNEL_NUM, CHANNEL_NUM}, I::XavierUniformConv2D());
+                bn[i][j].init({9, 9, CHANNEL_NUM});
             }
         }
         value_filter.init({1, 1, CHANNEL_NUM, CHANNEL_NUM}, I::XavierUniformConv2D());
+        value_bn.init({9, 9, CHANNEL_NUM});
         value_pw_fc1.init({VALUE_HIDDEN_NUM, SQUARE_NUM * CHANNEL_NUM}, I::XavierUniform());
         value_pb_fc1.init({VALUE_HIDDEN_NUM}, I::Constant(0));
         value_pw_fc2.init({BIN_SIZE, VALUE_HIDDEN_NUM}, I::XavierUniform());
@@ -99,18 +155,18 @@ public:
         Var x = F::input<Var>(Shape({9, 9, INPUT_CHANNEL_NUM}, batch_size), input);
 
         x = F::conv2d(x, F::parameter<Var>(first_filter), 1, 1, 1, 1, 1, 1);
-        x = normalize(x);
+        x = first_bn(x);
         x = F::relu(x);
 
         for (int32_t i = 0; i < BLOCK_NUM; i++) {
             Var t = x;
 
             x = F::conv2d(x, F::parameter<Var>(filter[i][0]), 1, 1, 1, 1, 1, 1);
-            x = normalize(x);
+            bn[i][0](x);
             x = F::relu(x);
 
             x = F::conv2d(x, F::parameter<Var>(filter[i][1]), 1, 1, 1, 1, 1, 1);
-            x = normalize(x);
+            bn[i][1](x);
             x = F::relu(x + t);
         }
 
@@ -120,7 +176,7 @@ public:
 
         //value
         Var value = F::conv2d(x, F::parameter<Var>(value_filter), 0, 0, 1, 1, 1, 1);
-        value = normalize(value);
+        value = value_bn(value);
         value = F::relu(value);
         Var value_w_fc1 = F::parameter<Var>(value_pw_fc1);
         Var value_b_fc1 = F::parameter<Var>(value_pb_fc1);
@@ -137,7 +193,6 @@ public:
         value = F::tanh(value);
 #endif
 #endif
-
         return { policy, value };
     }
 
@@ -212,32 +267,19 @@ public:
         return { F::batch::mean(policy_loss), F::batch::mean(value_loss) };
     }
 
-    Var normalize(Var& x) {
-        return F::batch::normalize(x);
-        static constexpr int32_t G = 32;
-        assert(CHANNEL_NUM % G == 0);
-        auto batch_size = x.shape().batch();
-        x = F::reshape(x, Shape({SQUARE_NUM * CHANNEL_NUM / G, G}, batch_size));
-        Var m = F::mean(x, 0);
-        m = F::broadcast(m, 0, SQUARE_NUM * CHANNEL_NUM / G);
-        Var s = F::mean((x - m) * (x - m), 0);
-        s = F::broadcast(s, 0, SQUARE_NUM * CHANNEL_NUM / G);
-        x = (x - m) / F::sqrt(s + 1e-5);
-        x = F::reshape(x, Shape({9, 9, CHANNEL_NUM}, batch_size));
-
-        return x;
-    }
-    
 private:
-
     Parameter first_filter;
     Parameter filter[BLOCK_NUM][2];
+    Parameter policy_filter;
     Parameter value_filter;
     Parameter value_pw_fc1;
     Parameter value_pb_fc1;
     Parameter value_pw_fc2;
     Parameter value_pb_fc2;
-    Parameter policy_filter;
+
+    BatchNormLayer<Var> first_bn;
+    BatchNormLayer<Var> bn[BLOCK_NUM][2];
+    BatchNormLayer<Var> value_bn;
 };
 
 extern std::unique_ptr<NeuralNetwork<Tensor>> nn;
