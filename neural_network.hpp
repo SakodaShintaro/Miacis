@@ -98,28 +98,28 @@ public:
         uint32_t batch_size = (uint32_t)(input.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM));
         Var x = F::input<Var>(Shape({9, 9, INPUT_CHANNEL_NUM}, batch_size), input);
 
-        Var first_filter_var = F::parameter<Var>(first_filter);
-        x = F::conv2d(x, first_filter_var, 1, 1, 1, 1, 1, 1);
+        x = F::conv2d(x, F::parameter<Var>(first_filter), 1, 1, 1, 1, 1, 1);
         x = normalize(x);
         x = F::relu(x);
 
         for (int32_t i = 0; i < BLOCK_NUM; i++) {
             Var t = x;
 
-            Var filter0 = F::parameter<Var>(filter[i][0]);
-            x = F::conv2d(x, filter0, 1, 1, 1, 1, 1, 1);
+            x = F::conv2d(x, F::parameter<Var>(filter[i][0]), 1, 1, 1, 1, 1, 1);
             x = normalize(x);
             x = F::relu(x);
 
-            Var filter1 = F::parameter<Var>(filter[i][1]);
-            x = F::conv2d(x, filter1, 1, 1, 1, 1, 1, 1);
+            x = F::conv2d(x, F::parameter<Var>(filter[i][1]), 1, 1, 1, 1, 1, 1);
             x = normalize(x);
             x = F::relu(x + t);
         }
 
-        //ここから分岐.まずvalueに1×1convを適用
-        Var conv_value_filter = F::parameter<Var>(value_filter);
-        Var value = F::conv2d(x, conv_value_filter, 0, 0, 1, 1, 1, 1);
+        //ここから分岐
+        //policy
+        Var policy = F::conv2d(x, F::parameter<Var>(policy_filter), 0, 0, 1, 1, 1, 1);
+
+        //value
+        Var value = F::conv2d(x, F::parameter<Var>(value_filter), 0, 0, 1, 1, 1, 1);
         value = normalize(value);
         value = F::relu(value);
         Var value_w_fc1 = F::parameter<Var>(value_pw_fc1);
@@ -127,19 +127,16 @@ public:
         value = F::relu(F::matmul(value_w_fc1, F::flatten(value)) + value_b_fc1);
         Var value_w_fc2 = F::parameter<Var>(value_pw_fc2);
         Var value_b_fc2 = F::parameter<Var>(value_pb_fc2);
+        value = F::matmul(value_w_fc2, value) + value_b_fc2;
 
 #ifdef USE_CATEGORICAL
-        value = F::matmul(value_w_fc2, value) + value_b_fc2;
 #else
 #ifdef USE_SIGMOID
-        value = F::sigmoid(F::matmul(value_w_fc2, value_fc1) + value_b_fc2);
+        value = F::sigmoid(value);
 #else
-        value = F::tanh(F::matmul(value_w_fc2, value) + value_b_fc2);
+        value = F::tanh(value);
 #endif
 #endif
-        //policyの1×1conv
-        Var conv_policy_filter = F::parameter<Var>(policy_filter);
-        Var policy = F::conv2d(x, conv_policy_filter, 0, 0, 1, 1, 1, 1);
 
         return { policy, value };
     }
