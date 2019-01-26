@@ -156,6 +156,38 @@ public:
 #endif
     }
 
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(std::vector<float> inputs) {
+        auto y = feedForward(inputs);
+
+        auto batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);
+
+        std::vector<PolicyType> policies(batch_size);
+        std::vector<ValueType> values(batch_size);
+
+        auto policy = F::flatten(y.first).to_vector();
+        for (int32_t i = 0; i < batch_size; i++) {
+            policies[i].resize(POLICY_CHANNEL_NUM * SQUARE_NUM);
+            for (int32_t j = 0; j < POLICY_CHANNEL_NUM * SQUARE_NUM; j++) {
+                policies[i][j] = policy[i * POLICY_CHANNEL_NUM * SQUARE_NUM + j];
+            }
+        }
+
+#ifdef USE_CATEGORICAL
+        auto value = F::softmax(y.second, 0).to_vector();
+        for (int32_t i = 0; i < batch_size; i++) {
+            for (int32_t j = 0; j < BIN_SIZE; j++) {
+                values[i][j] = value[i * BIN_SIZE + j];
+            }
+        }
+#else
+        auto value = y.second.to_vector();
+        for (int32_t i = 0; i < batch_size; i++) {
+            values[i] = value[i];
+        }
+#endif
+        return { policies, values };
+    }
+
 #ifdef USE_CATEGORICAL
     std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<uint32_t >& value_labels) {
 #else

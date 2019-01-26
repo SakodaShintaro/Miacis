@@ -2,6 +2,7 @@
 #include"move.hpp"
 #include"position.hpp"
 #include"MCTSearcher.hpp"
+#include"parallel_MCTSearcher.hpp"
 #include"usi_options.hpp"
 #include"game.hpp"
 #include"bonanza_method_trainer.hpp"
@@ -238,7 +239,8 @@ void USI::go() {
     //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので
     //別スレッドに投げる
     thread_ = std::thread([&]() {
-        MCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
+        //MCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
+        ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
         auto result = searcher.think(root_);
         if (result.first == NULL_MOVE) {
             std::cout << "bestmove resign" << std::endl;
