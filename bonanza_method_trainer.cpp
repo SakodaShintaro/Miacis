@@ -53,7 +53,7 @@ void BonanzaMethodTrainer::train() {
     learning_model_.load(MODEL_PATH);
 
     //棋譜を読み込む
-    std::cout << "start loadGames ...";
+    std::cout << "start loadGames ..." << std::flush;
     games_ = loadGames(KIFU_PATH, game_num_);
     std::cout << " done" << std::endl;
     std::cout << "games.size() = " << games_.size() << std::endl;
@@ -118,6 +118,8 @@ void BonanzaMethodTrainer::train() {
             g.clear();
             auto loss = nn->loss(input, labels, value_teachers);
             curr_loss += (loss.first.to_float() + loss.second.to_float());
+            print(loss.first.to_float());
+            print(loss.second.to_float());
         }
         curr_loss /= num;
 
@@ -165,6 +167,7 @@ void BonanzaMethodTrainer::train() {
             g.clear();
             auto loss = learning_model_.loss(input, labels, value_teachers);
             if (step % 200 == 0) {
+                learning_model_.save(MODEL_PATH);
                 timestamp();
                 print(epoch);
                 print(step);

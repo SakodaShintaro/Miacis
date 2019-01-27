@@ -82,23 +82,12 @@ public:
         Node m = F::batch::mean(x);
         Node v = F::batch::mean((x - m) * (x - m));
 
-        for (int32_t i = 0; i < 9 * 9 * 64; i++) {
-            std::cout << m.to_vector()[i] << " " << mean_.value().to_vector()[i] << std::endl;
-        }
-
-        constexpr float a = 0.9;
+        constexpr float a = 0.99;
         Tensor me = F::input_tensor(m.shape(), m.to_vector(), nullptr);
         Tensor va = F::input_tensor(v.shape(), v.to_vector(), nullptr);
 
         mean_.value() = a * mean_.value() + (1.0 - a) * me;
         var_.value()  = a * var_.value()  + (1.0 - a) * va;
-
-        mean_.init(mean_.shape(), mean_.value().to_vector());
-        var_.init(var_.shape(),  var_.value().to_vector());
-
-        for (int32_t i = 0; i < 9 * 9 * 64; i++) {
-            std::cout << m.to_vector()[i] << " " << mean_.value().to_vector()[i] << std::endl;
-        }
 
         return F::parameter<Node>(gamma_) * (x - m) / F::sqrt(v + 1e-8) + F::parameter<Node>(beta_);
     }
@@ -106,6 +95,12 @@ public:
     Tensor operator()(Tensor x) {
         return F::parameter<Tensor>(gamma_) * (x - F::parameter<Tensor>(mean_)) /
                 F::sqrt(F::parameter<Tensor>(var_) + 1e-8) + F::parameter<Tensor>(beta_);
+    }
+
+    void print(){
+        for (int32_t i = 0; i < 5; i++) {
+            std::cout << F::parameter<Tensor>(mean_).to_vector()[i] << " \n"[i == 4];
+        }
     }
 private:
     Parameter beta_, gamma_, mean_, var_;
@@ -162,11 +157,11 @@ public:
             Var t = x;
 
             x = F::conv2d(x, F::parameter<Var>(filter[i][0]), 1, 1, 1, 1, 1, 1);
-            bn[i][0](x);
+            x = bn[i][0](x);
             x = F::relu(x);
 
             x = F::conv2d(x, F::parameter<Var>(filter[i][1]), 1, 1, 1, 1, 1, 1);
-            bn[i][1](x);
+            x = bn[i][1](x);
             x = F::relu(x + t);
         }
 
