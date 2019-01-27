@@ -210,7 +210,7 @@ std::pair<Move, TeacherType> ParallelMCTSearcher<Var>::think(Position& root) {
 
     //最善手
     Move best_move = (root.turn_number() < usi_option.random_turn ?
-                      current_node.legal_moves[randomChoise(distribution)] :
+                      current_node.legal_moves[randomChoose(distribution)] :
                       current_node.legal_moves[best_index]);
 
     best_move.score = (Score)(best_wp);
