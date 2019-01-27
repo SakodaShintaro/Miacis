@@ -39,6 +39,7 @@ BonanzaMethodTrainer::BonanzaMethodTrainer(std::string settings_file_path) {
             ifs >> LEARN_RATE;
         } else if (name == "thread_num") {
             ifs >> THREAD_NUM;
+            THREAD_NUM = std::min(std::max(1u, THREAD_NUM), std::thread::hardware_concurrency());
         }
     }
 }
@@ -63,11 +64,8 @@ void BonanzaMethodTrainer::train() {
 
     //log_file_の設定
     log_file_.open("bonanza_method_log.txt", std::ios::out);
-    log_file_ << "elapsed\tgame_num\tposition_num\tloss_average\ttop1\ttop3\ttop5\ttop10\ttop20\ttop50" << std::endl;
+    log_file_ << "elapsed\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::endl;
     log_file_ << std::fixed;
-
-    THREAD_NUM = std::min(std::max(1u, THREAD_NUM), std::thread::hardware_concurrency());
-    std::cout << "使用するスレッド数 : " << THREAD_NUM << std::endl;
     std::cout << std::fixed;
 
     std::vector<std::pair<std::string, TeacherType>> data_buffer;
@@ -118,8 +116,6 @@ void BonanzaMethodTrainer::train() {
             g.clear();
             auto loss = nn->loss(input, labels, value_teachers);
             curr_loss += (loss.first.to_float() + loss.second.to_float());
-            print(loss.first.to_float());
-            print(loss.second.to_float());
         }
         curr_loss /= num;
 
@@ -212,16 +208,12 @@ void BonanzaMethodTrainer::testTrain() {
     games_ = loadGames(KIFU_PATH, game_num_);
     std::cout << "games.size() = " << games_.size() << std::endl;
 
-    struct TT {
-        uint32_t label;
-        float value;
-    };
-    std::vector<std::pair<std::string, TT>> data_buffer;
+    std::vector<std::pair<std::string, TeacherType>> data_buffer;
     for (const auto& game : games_) {
         Position pos;
         for (const auto& move : game.moves) {
-            TT teacher;
-            teacher.label = (uint32_t)move.toLabel();
+            TeacherType teacher;
+            teacher.policy = (uint32_t)move.toLabel();
             teacher.value = (float)(pos.color() == BLACK ? game.result : -game.result);
             data_buffer.emplace_back(pos.toSFEN(), teacher);
             pos.doMove(move);
@@ -250,7 +242,7 @@ void BonanzaMethodTrainer::testTrain() {
             for (const auto &e : feature) {
                 input.push_back(e);
             }
-            labels.push_back(datum.second.label);
+            labels.push_back(datum.second.policy);
             value_teachers.push_back(datum.second.value);
         }
         g.clear();

@@ -148,7 +148,7 @@ void AlphaZeroTrainer::startLearn() {
         std::vector<float> inputs;
         std::vector<uint32_t> policy_labels;
         std::vector<ValueTeacher> value_teachers;
-        std::tie(inputs, policy_labels, value_teachers) = replay_buffer_.makeBatch(BATCH_SIZE);
+        std::tie(inputs, policy_labels, value_teachers) = replay_buffer_.makeBatch(static_cast<int32_t>(BATCH_SIZE));
 
 //        usi_option.stop_signal = true;
 //        for (uint32_t i = 0; i < THREAD_NUM - 1; i++) {
@@ -197,7 +197,7 @@ void AlphaZeroTrainer::testLearn() {
     learning_model_.init();
 
     //自己対局
-    auto games = parallelPlay(1);
+    auto games = play(1);
 
     std::cout << std::fixed;
 
@@ -222,7 +222,7 @@ void AlphaZeroTrainer::testLearn() {
     std::vector<float> inputs;
     std::vector<ValueTeacher> value_teachers;
     std::vector<uint32_t> policy_teachers;
-    std::tie(inputs, policy_teachers, value_teachers) = replay_buffer_.makeBatch(BATCH_SIZE);
+    std::tie(inputs, policy_teachers, value_teachers) = replay_buffer_.makeBatch(static_cast<int32_t>(BATCH_SIZE));
 
     //学習
     O::MomentumSGD optimizer(LEARN_RATE);
@@ -247,14 +247,14 @@ void AlphaZeroTrainer::testLearn() {
 
     for (const auto &game : games) {
         Position position;
-        for (int32_t i = 0; i < game.moves.size(); i++) {
+        for (const auto& move : game.moves) {
             auto policy_and_value = nn->policyAndValue(position);
 #ifdef USE_CATEGORICAL
-            std::cout << policy_and_value.first[game.moves[i].toLabel()] << " " << expOfValueDist(policy_and_value.second) << std::endl;
+            std::cout << policy_and_value.first[move.toLabel()] << " " << expOfValueDist(policy_and_value.second) << std::endl;
 #else
-            std::cout << policy_and_value.first[game.moves[i].toLabel()] << " " << policy_and_value.second << std::endl;
+            std::cout << policy_and_value.first[move.toLabel()] << " " << policy_and_value.second << std::endl;
 #endif
-            position.doMove(game.moves[i]);
+            position.doMove(move);
         }
     }
 
@@ -317,7 +317,7 @@ void AlphaZeroTrainer::evaluate() {
     auto before_random_turn = usi_option.random_turn;
     usi_option.random_turn = EVALUATION_RANDOM_TURN;
     usi_option.train_mode = false;
-    auto test_games = parallelPlay(EVALUATION_GAME_NUM);
+    auto test_games = play(EVALUATION_GAME_NUM);
 
     //設定を戻す
     usi_option.random_turn = before_random_turn;
@@ -333,10 +333,10 @@ void AlphaZeroTrainer::evaluate() {
     for (int32_t i = 0; i < test_games.size(); i++) {
         if (test_games[i].result == Game::RESULT_DRAW_REPEAT) {
             draw_repeat_num++;
-            test_games[i].result = 0.5;
+            test_games[i].result = (MAX_SCORE + MIN_SCORE) / 2;
         } else if (test_games[i].result == Game::RESULT_DRAW_OVER_LIMIT) {
             draw_over_limit_num++;
-            test_games[i].result = 0.5;
+            test_games[i].result = (MAX_SCORE + MIN_SCORE) / 2;
         }
         win_rate += (i % 2 == 0 ? test_games[i].result : 1.0 - test_games[i].result);
     }
@@ -384,10 +384,10 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
 
     assert(Game::RESULT_WHITE_WIN <= game.result && game.result <= Game::RESULT_BLACK_WIN);
 
-    //先手から見た勝率,分布.指数移動平均で動かしていく.最初は結果によって初期化(0 or 0.5 or 1)
+    //先手から見た勝率,分布.指数移動平均で動かしていく.最初は結果によって初期化
     double win_rate_for_black = game.result;
 
-    for (int32_t i = (int32_t) game.moves.size() - 1; i >= 0; i--) {
+    for (int32_t i = (int32_t)game.moves.size() - 1; i >= 0; i--) {
         //i番目の指し手を教師とするのは1手戻した局面
         pos.undo();
 
@@ -411,59 +411,47 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
     }
 }
 
-std::vector<Game> AlphaZeroTrainer::parallelPlay(int32_t game_num) {
+std::vector<Game> AlphaZeroTrainer::play(int32_t game_num) {
     std::vector<Game> games((unsigned long)game_num);
-    std::atomic<int32_t> index;
-    index = 0;
 
-    std::vector<std::thread> threads;
-    for (int32_t i = 0; i < (int32_t)usi_option.thread_num; i++) {
-        threads.emplace_back([&]() {
-            auto searcher1 = std::make_unique<MCTSearcher<Node>>(usi_option.USI_Hash, 1, learning_model_);
-            auto searcher2 = std::make_unique<MCTSearcher<Tensor>>(usi_option.USI_Hash, 1, *nn);
-            while (true) {
-                int32_t curr_index = index++;
-                if (curr_index >= game_num) {
-                    return;
-                }
-                Game& game = games[curr_index];
-                game.moves.reserve((unsigned long)usi_option.draw_turn);
-                game.teachers.reserve((unsigned long)usi_option.draw_turn);
-                Position pos;
+    auto searcher1 = std::make_unique<MCTSearcher<Node>>(usi_option.USI_Hash, 1, learning_model_);
+    auto searcher2 = std::make_unique<MCTSearcher<Tensor>>(usi_option.USI_Hash, 1, *nn);
 
-                while (true) {
-                    //iが偶数のときpos_cが先手
-                    auto move_and_teacher = ((pos.turn_number() % 2) == (curr_index % 2) ?
-                                             searcher1->think(pos) :
-                                             searcher2->think(pos));
-                    Move best_move = move_and_teacher.first;
-                    TeacherType teacher = move_and_teacher.second;
+    for (int32_t i = 0; i < game_num; i++) {
+        Game& game = games[i];
+        game.moves.reserve((unsigned long)usi_option.draw_turn);
+        game.teachers.reserve((unsigned long)usi_option.draw_turn);
+        Position pos;
 
-                    if (best_move == NULL_MOVE) { //NULL_MOVEは投了を示す
-                        game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
-                        break;
-                    }
+        while (true) {
+            //iが偶数のときpos_cが先手
+            auto move_and_teacher = ((pos.turn_number() % 2) == (i % 2) ?
+                                     searcher1->think(pos) :
+                                     searcher2->think(pos));
+            Move best_move = move_and_teacher.first;
+            TeacherType teacher = move_and_teacher.second;
 
-                    if (!pos.isLegalMove(best_move)) {
-                        pos.printForDebug();
-                        best_move.printWithScore();
-                        assert(false);
-                    }
-                    pos.doMove(best_move);
-                    pos.print();
-                    game.moves.push_back(best_move);
-                    game.teachers.push_back(teacher);
-
-                    if (pos.turn_number() >= usi_option.draw_turn) { //長手数
-                        game.result = Game::RESULT_DRAW_OVER_LIMIT;
-                        break;
-                    }
-                }
+            if (best_move == NULL_MOVE) { //NULL_MOVEは投了を示す
+                game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
+                break;
             }
-        });
+
+            if (!pos.isLegalMove(best_move)) {
+                pos.printForDebug();
+                best_move.printWithScore();
+                assert(false);
+            }
+            pos.doMove(best_move);
+            pos.print();
+            game.moves.push_back(best_move);
+            game.teachers.push_back(teacher);
+
+            if (pos.turn_number() >= usi_option.draw_turn) { //長手数
+                game.result = Game::RESULT_DRAW_OVER_LIMIT;
+                break;
+            }
+        }
     }
-    for (int32_t i = 0; i < (int32_t)usi_option.thread_num; i++) {
-        threads[i].join();
-    }
+
     return games;
 }

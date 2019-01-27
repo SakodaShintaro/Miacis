@@ -11,9 +11,6 @@ namespace F = primitiv::functions;
 namespace I = primitiv::initializers;
 namespace O = primitiv::optimizers;
 
-//出力のチャンネル数:各マスに対する移動元方向(10) * 2 + 持ち駒7
-constexpr uint32_t POLICY_CHANNEL_NUM = 27;
-
 //評価パラメータを読み書きするデフォルトのファイル名
 #ifdef USE_CATEGORICAL
 const std::string MODEL_PATH = "cv.model";
@@ -38,16 +35,12 @@ using ValueTeacher = float;
 
 inline ValueType reverse(ValueType value) {
 #ifdef USE_CATEGORICAL
+    //カテゴリカルなら反転を返す
     std::reverse(value.begin(), value.end());
     return value;
 #else
-#ifdef USE_SIGMOID
-    return 1.0f - value;
-#else
-    return -value;
+    return MAX_SCORE + MIN_SCORE - value;
 #endif
-#endif
-    //カテゴリカルなら反転を返す
 }
 
 struct TeacherType {
@@ -56,9 +49,11 @@ struct TeacherType {
 };
 
 
-constexpr int32_t BLOCK_NUM = 5;
+//出力のチャンネル数:各マスに対する移動元方向(10) * 2 + 持ち駒7
+constexpr uint32_t POLICY_CHANNEL_NUM = 27;
+constexpr int32_t BLOCK_NUM = 3;
 constexpr int32_t KERNEL_SIZE = 3;
-constexpr int32_t CHANNEL_NUM = 64;
+constexpr int32_t CHANNEL_NUM = 32;
 constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
 template <typename Var>
@@ -82,7 +77,7 @@ public:
         Node m = F::batch::mean(x);
         Node v = F::batch::mean((x - m) * (x - m));
 
-        constexpr float a = 0.99;
+        constexpr float a = 0.999;
         Tensor me = F::input_tensor(m.shape(), m.to_vector(), nullptr);
         Tensor va = F::input_tensor(v.shape(), v.to_vector(), nullptr);
 

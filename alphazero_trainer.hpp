@@ -26,9 +26,6 @@ private:
     //--------------------
     //    内部メソッド
     //--------------------
-    //replay_buffer_からデータを引き出し学習する関数
-    void learn();
-
     //自己対局を行ってreplay_buffer_へデータを詰め込む関数
     void act();
 
@@ -38,7 +35,7 @@ private:
     //replay_buffer_へ1局分詰め込む関数
     void pushOneGame(Game& game);
 
-    std::vector<Game> parallelPlay(int32_t game_num);
+    std::vector<Game> play(int32_t game_num);
 
     //---------------------------------------------
     //    ファイルから読み込むためconst化はして
