@@ -26,9 +26,6 @@ protected:
     //標準出力とlog_file_の両方に出力する関数
     template<class T> void print(T t);
 
-    //optimizerとして入力されたものが正当か判定する関数
-    bool isLegalOptimizer();
-
     //-----------------------------------------------------
     //    ファイルから読み込むためconst化はしていないが
     //    ほぼ定数であるもの

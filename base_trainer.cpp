@@ -14,8 +14,3 @@ void BaseTrainer::timestamp() {
               << std::setfill('0') << std::setw(2) << minutes << ":"
               << std::setfill('0') << std::setw(2) << seconds;
 }
-
-bool BaseTrainer::isLegalOptimizer() {
-    return (OPTIMIZER_NAME == "SGD"
-        || OPTIMIZER_NAME == "MOMENTUM");
-}

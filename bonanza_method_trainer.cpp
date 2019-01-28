@@ -27,19 +27,10 @@ BonanzaMethodTrainer::BonanzaMethodTrainer(std::string settings_file_path) {
             ifs >> game_num_;
         } else if (name == "batch_size") {
             ifs >> BATCH_SIZE;
-        } else if (name == "L1_grad_coefficient") {
-            ifs >> L1_GRAD_COEFFICIENT;
-        } else if (name == "optimizer") {
-            ifs >> OPTIMIZER_NAME;
-            if (!isLegalOptimizer()) {
-                std::cerr << "Optimizerは[SGD, AdaGrad, RMSProp, AdaDelta]から選択" << std::endl;
-                assert(false);
-            }
         } else if (name == "learn_rate") {
             ifs >> LEARN_RATE;
-        } else if (name == "thread_num") {
-            ifs >> THREAD_NUM;
-            THREAD_NUM = std::min(std::max(1u, THREAD_NUM), std::thread::hardware_concurrency());
+        } else if (name == "L2_regularization_coeff") {
+            ifs >> L2_REGULARIZATION_COEFF;
         }
     }
 }
