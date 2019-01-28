@@ -52,6 +52,7 @@ void BonanzaMethodTrainer::train() {
 
     //評価関数ロード
     learning_model_.load(MODEL_PATH);
+    learning_model_.save("before_bonanza_method.model");
 
     //棋譜を読み込む
     std::cout << "start loadGames ..." << std::flush;
@@ -85,7 +86,7 @@ void BonanzaMethodTrainer::train() {
 
     //validationデータを確保
     std::vector<std::pair<std::string, TeacherType>> validation_data;
-    auto validation_size = (int32_t)(game_num_ * 0.1) / BATCH_SIZE * BATCH_SIZE;
+    auto validation_size = (int32_t)(data_buffer.size() * 0.1) / BATCH_SIZE * BATCH_SIZE;
     assert(validation_size != 0);
     for (int32_t i = 0; i < validation_size; i++) {
         validation_data.push_back(data_buffer.back());
@@ -162,11 +163,12 @@ void BonanzaMethodTrainer::train() {
             }
             g.clear();
             auto loss = learning_model_.loss(input, labels, value_teachers);
-            if (step % 200 == 0) {
+            if (step % 100 == 0) {
                 learning_model_.save(MODEL_PATH);
                 timestamp();
                 print(epoch);
                 print(step);
+                print(step * BATCH_SIZE);
                 print(loss.first.to_float());
                 print(loss.second.to_float());
                 std::cout << std::endl;
@@ -184,7 +186,7 @@ void BonanzaMethodTrainer::train() {
             break;
         } else {
             if (result.first) {
-                learning_model_.save("cnn" + std::to_string(epoch) + ".model");
+                learning_model_.save("tmp.model");
             }
         }
     }
