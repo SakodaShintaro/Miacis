@@ -56,11 +56,32 @@ void BonanzaMethodTrainer::train() {
 
     //log_file_の設定
     log_file_.open("bonanza_method_log.txt", std::ios::out);
-    log_file_ << "elapsed\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::endl;
-    log_file_ << std::fixed;
+    log_file_ << "elapsed\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
     std::cout << std::fixed;
 
+    //validation結果のログファイル
+    std::ofstream validation_log("validation_log.txt");
+    validation_log << "time\tepoch\tloss" << std::fixed << std::endl;
+
     std::vector<std::pair<std::string, TeacherType>> data_buffer;
+    auto getBatch = [this](const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64_t index) {
+        Position pos;
+        std::vector<float> inputs;
+        std::vector<uint32_t> policy_labels;
+        std::vector<ValueTeacher> value_teachers;
+        for (int32_t b = 0; b < BATCH_SIZE; b++) {
+            const auto& datum = data_buf[index + b];
+            pos.loadSFEN(datum.first);
+            const auto& feature = pos.makeFeature();
+            for (const auto& e : feature) {
+                inputs.push_back(e);
+            }
+            policy_labels.push_back(datum.second.policy);
+            value_teachers.push_back(datum.second.value);
+        }
+        return std::make_tuple(inputs, policy_labels, value_teachers);
+    };
+
     for (const auto& game : games_) {
         Position pos;
         for (const auto& move : game.moves) {
@@ -83,47 +104,7 @@ void BonanzaMethodTrainer::train() {
         validation_data.push_back(data_buffer.back());
         data_buffer.pop_back();
     }
-    auto validation = [&](Graph& g) {
-        static float min_loss = 1e10;
-        static int32_t patience = 0;
-        Position pos;
-        nn->load(MODEL_PATH);
-
-        int32_t num = 0;
-        float curr_loss = 0.0;
-        for (int32_t i = 0; (i + 1) * BATCH_SIZE <= validation_size; i++, num++) {
-            std::vector<float> input;
-            std::vector<ValueTeacher> value_teachers;
-            std::vector<uint32_t> labels;
-            for (int32_t b = 0; b < BATCH_SIZE; b++) {
-                const auto& datum = data_buffer[i * BATCH_SIZE + b];
-                pos.loadSFEN(datum.first);
-                const auto& feature = pos.makeFeature();
-                for (const auto& e : feature) {
-                    input.push_back(e);
-                }
-                labels.push_back(datum.second.policy);
-                value_teachers.push_back(datum.second.value);
-            }
-            g.clear();
-            auto loss = nn->loss(input, labels, value_teachers);
-            curr_loss += (loss.first.to_float() + loss.second.to_float());
-        }
-        curr_loss /= num;
-
-        timestamp();
-        print(curr_loss);
-        std::cout << std::endl;
-        log_file_ << std::endl;
-
-        if (curr_loss < min_loss) {
-            min_loss = curr_loss;
-            patience = 0;
-            return std::make_pair(true, false);
-        } else {
-            return std::make_pair(false, ++patience >= 5);
-        }
-    };
+    std::cout << data_buffer.size() << std::endl;
 
     Position pos;
 
@@ -133,27 +114,22 @@ void BonanzaMethodTrainer::train() {
     Graph g;
     Graph::set_default(g);
 
+    //validation用
+    float min_loss = 1e10;
+    int32_t patience = 0;
+
     //学習開始
     for (int32_t epoch = 1; epoch <= 100; epoch++) {
         //データをシャッフル
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
         for (int32_t step = 0; (step + 1) * BATCH_SIZE <= data_buffer.size(); step++) {
-            std::vector<float> input;
+            std::vector<float> inputs;
+            std::vector<uint32_t> policy_labels;
             std::vector<ValueTeacher> value_teachers;
-            std::vector<uint32_t> labels;
-            for (int32_t b = 0; b < BATCH_SIZE; b++) {
-                const auto& datum = data_buffer[step * BATCH_SIZE + b];
-                pos.loadSFEN(datum.first);
-                const auto& feature = pos.makeFeature();
-                for (const auto& e : feature) {
-                    input.push_back(e);
-                }
-                labels.push_back(datum.second.policy);
-                value_teachers.push_back(datum.second.value);
-            }
+            std::tie(inputs, policy_labels, value_teachers) = getBatch(data_buffer, step * BATCH_SIZE);
             g.clear();
-            auto loss = learning_model_.loss(input, labels, value_teachers);
+            auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
             if (step % 100 == 0) {
                 learning_model_.save(MODEL_PATH);
                 timestamp();
@@ -171,14 +147,31 @@ void BonanzaMethodTrainer::train() {
             optimizer.update();
         }
 
-        auto result = validation(g);
-        if (result.second) {
-            //終わり
+        learning_model_.save(MODEL_PATH);
+
+        //ここからvalidation
+        nn->load(MODEL_PATH);
+
+        int32_t num = 0;
+        float curr_loss = 0.0;
+        for (int32_t i = 0; (i + 1) * BATCH_SIZE <= validation_size; i++, num++) {
+            std::vector<float> inputs;
+            std::vector<uint32_t> policy_labels;
+            std::vector<ValueTeacher> value_teachers;
+            std::tie(inputs, policy_labels, value_teachers) = getBatch(validation_data, i * BATCH_SIZE);
+            auto loss = nn->loss(inputs, policy_labels, value_teachers);
+            curr_loss += (loss.first.to_float() + loss.second.to_float());
+        }
+        curr_loss /= num;
+
+        validation_log << epoch << "\t" << elapsedHours() << "\t" << curr_loss << std::endl;
+
+        if (curr_loss < min_loss) {
+            min_loss = curr_loss;
+            patience = 0;
+            learning_model_.save("best.model");
+        } else if (++patience >= 5) {
             break;
-        } else {
-            if (result.first) {
-                learning_model_.save("tmp.model");
-            }
         }
     }
 

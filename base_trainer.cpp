@@ -14,3 +14,9 @@ void BaseTrainer::timestamp() {
               << std::setfill('0') << std::setw(2) << minutes << ":"
               << std::setfill('0') << std::setw(2) << seconds;
 }
+
+double BaseTrainer::elapsedHours() {
+    auto elapsed = std::chrono::steady_clock::now() - start_time_;
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+    return seconds / 3600.0;
+}

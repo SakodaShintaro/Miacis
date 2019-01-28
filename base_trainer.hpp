@@ -23,6 +23,9 @@ protected:
     //log_file_に経過時間を出力する関数
     void timestamp();
 
+    //経過時間を小数点単位で表示
+    double elapsedHours();
+
     //標準出力とlog_file_の両方に出力する関数
     template<class T> void print(T t);
 
@@ -41,9 +44,6 @@ protected:
 
     //バッチサイズ
     unsigned long BATCH_SIZE;
-
-    //optimizerの設定
-    std::string OPTIMIZER_NAME;
 
     //並列化するスレッド数
     uint32_t THREAD_NUM;
