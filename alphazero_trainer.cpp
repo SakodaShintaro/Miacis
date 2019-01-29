@@ -128,13 +128,28 @@ void AlphaZeroTrainer::startLearn() {
     optimizer.set_weight_decay(1e-4);
     optimizer.add(learning_model_);
 
-    Graph g;
-    Graph::set_default(g);
+    //自己対局をしてreplay_buffer_にデータを追加
+    for (Game& game : play(20, false)) {
+        if (game.result == Game::RESULT_DRAW_OVER_LIMIT || game.result == Game::RESULT_DRAW_REPEAT) {
+            if (USE_DRAW_GAME) {
+                game.result = (MAX_SCORE + MIN_SCORE) / 2;
+            } else {
+                continue;
+            }
+        }
+        pushOneGame(game);
+    }
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         //自己対局をしてreplay_buffer_にデータを追加
-        auto games = play(1, false);
-        for (Game& game : games) {
+        for (Game& game : play(1, false)) {
+            if (game.result == Game::RESULT_DRAW_OVER_LIMIT || game.result == Game::RESULT_DRAW_REPEAT) {
+                if (USE_DRAW_GAME) {
+                    game.result = (MAX_SCORE + MIN_SCORE) / 2;
+                } else {
+                    continue;
+                }
+            }
             pushOneGame(game);
         }
 
@@ -144,7 +159,8 @@ void AlphaZeroTrainer::startLearn() {
         std::vector<ValueTeacher> value_teachers;
         std::tie(inputs, policy_labels, value_teachers) = replay_buffer_.makeBatch(static_cast<int32_t>(BATCH_SIZE));
 
-        g.clear();
+        Graph g;
+        Graph::set_default(g);
         auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
         optimizer.reset_gradients();
         loss.first.backward();
@@ -310,7 +326,6 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
                 assert(false);
             }
             pos.doMove(best_move);
-            pos.print();
             game.moves.push_back(best_move);
             game.teachers.push_back(teacher);
 
