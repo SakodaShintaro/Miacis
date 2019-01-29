@@ -19,7 +19,6 @@ SupervisedLearner::SupervisedLearner(std::string settings_file_path) {
     }
 
     std::string name;
-    KIFU_PATH = "/home/sakoda/Downloads/2016";
     while (ifs >> name) {
         if (name == "kifu_path") {
             ifs >> KIFU_PATH;
@@ -31,6 +30,8 @@ SupervisedLearner::SupervisedLearner(std::string settings_file_path) {
             ifs >> LEARN_RATE;
         } else if (name == "weight_decay") {
             ifs >> WEIGHT_DECAY;
+        } else if (name == "patience") {
+            ifs >> PATIENCE;
         }
     }
 }
@@ -47,15 +48,6 @@ void SupervisedLearner::train() {
     std::cout << "start loadGames ..." << std::flush;
     std::vector<Game> games = loadGames(KIFU_PATH, GAME_NUM);
     std::cout << " done.  " << "games.size() = " << games.size() << std::endl;
-
-    //学習推移のログファイル
-    std::ofstream log_file("bonanza_method_log.txt", std::ios::out);
-    log_file  << "time\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
-    std::cout << "time\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
-
-    //validation結果のログファイル
-    std::ofstream validation_log("validation_log.txt");
-    validation_log << "epoch\ttime\tloss" << std::fixed << std::endl;
 
     //dataのvectorからミニバッチを構築する関数
     auto getBatch = [this](const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64_t index) {
@@ -109,6 +101,15 @@ void SupervisedLearner::train() {
     //データ数を表示
     std::cout << "learn_data_size = " << data_buffer.size() << ", validation_data_size" << validation_size << std::endl;
 
+    //学習推移のログファイル
+    std::ofstream learn_log("supervised_learn_log.txt", std::ios::out);
+    learn_log << "time\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
+    std::cout << "time\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
+
+    //validation結果のログファイル
+    std::ofstream validation_log("validation_log.txt");
+    validation_log << "epoch\ttime\tloss" << std::fixed << std::endl;
+
     //optimizerの設定
     O::MomentumSGD optimizer(LEARN_RATE);
     optimizer.add(learning_model_);
@@ -133,8 +134,8 @@ void SupervisedLearner::train() {
             if (step % 100 == 0) {
                 float p_loss = loss.first.to_float();
                 float v_loss = loss.second.to_float();
-                std::cout << elapsedTime() << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
-                log_file << elapsedHours() << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
+                std::cout << elapsedTime()  << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
+                learn_log << elapsedHours() << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
             }
             optimizer.reset_gradients();
             loss.first.backward();
@@ -165,10 +166,10 @@ void SupervisedLearner::train() {
             min_loss = curr_loss;
             patience = 0;
             learning_model_.save("best.model");
-        } else if (++patience >= 5) {
+        } else if (++patience >= PATIENCE) {
             break;
         }
     }
 
-    std::cout << "finish BonanzaMethod" << std::endl;
+    std::cout << "finish SupervisedLearn" << std::endl;
 }

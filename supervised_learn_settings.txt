@@ -1,7 +1,6 @@
-﻿kifu_path ~/Downloads/2016
-game_num 1000
+﻿kifu_path /home/sakoda/Downloads/2016
+game_num 1000000
 batch_size 4096
-L1_grad_coefficient 0.0
-learn_rate 0.00025
-loss_function_mode 1
-thread_num 1
+learn_rate 0.2
+weight_decay 0.0001
+patience 6

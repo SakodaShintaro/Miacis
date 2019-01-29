@@ -32,6 +32,9 @@ private:
 
     //学習する棋譜の数
     uint64_t GAME_NUM;
+
+    //Early Stoppingする長さ
+    int64_t PATIENCE;
 };
 
 #endif // !SUPERVISED_LEARNER_HPP
