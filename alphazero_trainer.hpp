@@ -19,16 +19,10 @@ public:
     //これらは並列に行われる
     void startLearn();
 
-    //学習のテスト
-    void testLearn();
-
 private:
     //--------------------
     //    内部メソッド
     //--------------------
-    //自己対局を行ってreplay_buffer_へデータを詰め込む関数
-    void act();
-
     //今ファイルに保存されているパラメータと対局して強さを測定する関数
     void evaluate(int64_t step);
 

@@ -61,9 +61,6 @@ void USI::loop() {
             testKifuOutput();
         } else if (input == "testNN") {
             testNN();
-        } else if (input == "testLearn") {
-            AlphaZeroTrainer trainer("alphazero_settings.txt");
-            trainer.testLearn();
         } else if (input == "testSFEN") {
             testSFENoutput();
         } else if (input == "testSpeed") {
