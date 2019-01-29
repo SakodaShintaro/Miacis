@@ -30,12 +30,12 @@ private:
     void act();
 
     //今ファイルに保存されているパラメータと対局して強さを測定する関数
-    void evaluate();
+    void evaluate(int64_t step);
 
     //replay_buffer_へ1局分詰め込む関数
     void pushOneGame(Game& game);
 
-    std::vector<Game> play(int32_t game_num);
+    std::vector<Game> play(int32_t game_num, bool eval);
 
     //---------------------------------------------
     //    ファイルから読み込むためconst化はして

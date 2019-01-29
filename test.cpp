@@ -254,11 +254,11 @@ void testSpeed() {
 
     Position pos;
 
-    for (usi_option.thread_num = 10; usi_option.thread_num <= 300; usi_option.thread_num += 10) {
+    for (usi_option.thread_num = 1; usi_option.thread_num <= 128; usi_option.thread_num++) {
         ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
 
         auto start = std::chrono::steady_clock::now();
-        for (int32_t i = 0; i < 100; i++) {
+        for (int32_t i = 0; i < 10; i++) {
             searcher.think(pos);
         }
         auto end = std::chrono::steady_clock::now();

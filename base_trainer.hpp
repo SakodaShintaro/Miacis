@@ -21,13 +21,10 @@ protected:
     //    その他関数類
     //--------------------
     //log_file_に経過時間を出力する関数
-    void timestamp();
+    std::string elapsedTime();
 
     //経過時間を小数点単位で表示
     double elapsedHours();
-
-    //標準出力とlog_file_の両方に出力する関数
-    template<class T> void print(T t);
 
     //-----------------------------------------------------
     //    ファイルから読み込むためconst化はしていないが
@@ -49,28 +46,19 @@ protected:
     uint32_t THREAD_NUM;
 
     //policy_lossにかける係数
-    double POLICY_LOSS_COEFF;
+    float POLICY_LOSS_COEFF;
 
     //value_lossにかける係数
-    double VALUE_LOSS_COEFF;
+    float VALUE_LOSS_COEFF;
 
     //--------------------------------
     //    学習中に用いるメンバ変数
     //--------------------------------
-    //ログファイル
-    std::ofstream log_file_;
-
     //学習開始時間
     std::chrono::time_point<std::chrono::steady_clock> start_time_;
 
     //学習中のモデル
     NeuralNetwork<Node> learning_model_;
 };
-
-template<class T>
-inline void BaseTrainer::print(T t) {
-    std::cout << "\t" << t;
-    log_file_ << "\t" << t;
-}
 
 #endif // !TRAINER_HPP

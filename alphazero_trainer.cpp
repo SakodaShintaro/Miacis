@@ -3,7 +3,7 @@
 #include"MCTSearcher.hpp"
 #include"operate_params.hpp"
 #include"neural_network.hpp"
-#include "alphazero_trainer.hpp"
+#include"parallel_MCTSearcher.hpp"
 
 #include<iomanip>
 #include<algorithm>
@@ -17,6 +17,9 @@
 #elif __GNUC__
 #include<sys/stat.h>
 #endif
+
+const std::string LEARN_DIR = "learn_games";
+const std::string TEST_DIR  = "test_games";
 
 AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
     //オプションをファイルから読み込む
@@ -85,30 +88,24 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
     //評価関数読み込み
     //learning_model_.load(MODEL_PATH);
 
-//    //棋譜を保存するディレクトリの削除
-//    std::experimental::filesystem::remove_all("./learn_games");
-//    std::experimental::filesystem::remove_all("./test_games");
-//
-//    //棋譜を保存するディレクトリの作成
-//#ifdef _MSC_VER
-//    _mkdir("./learn_games");
-//    _mkdir("./test_games");
-//#elif __GNUC__
-//    mkdir("./learn_games", ACCESSPERMS);
-//    mkdir("./test_games", ACCESSPERMS);
-//#endif
+    //棋譜を保存するディレクトリの削除
+    std::experimental::filesystem::remove_all("./learn_games");
+    std::experimental::filesystem::remove_all("./test_games");
+
+    //棋譜を保存するディレクトリの作成
+#ifdef _MSC_VER
+    _mkdir(LEARN_DIR);
+    _mkdir(TEST_DIR);
+#elif __GNUC__
+    mkdir(LEARN_DIR.c_str(), ACCESSPERMS);
+    mkdir(TEST_DIR.c_str(),  ACCESSPERMS);
+#endif
 }
 
 void AlphaZeroTrainer::startLearn() {
     std::cout << "start alphaZero()" << std::endl;
 
-    //自己対局スレッドの作成
-    std::vector<std::thread> slave_threads(THREAD_NUM - 1);
-    for (uint32_t i = 0; i < THREAD_NUM - 1; i++) {
-        slave_threads[i] = std::thread(&AlphaZeroTrainer::act, this);
-    }
-
-    //局面もインスタンスは一つ用意して都度局面を構成
+    //局面インスタンスは一つ用意して都度局面を構成
     Position pos;
 
     //モデル読み込み
@@ -122,18 +119,9 @@ void AlphaZeroTrainer::startLearn() {
     update_num_ = 0;
 
     //ログファイルの設定
-    log_file_.open("alphazero_log.txt");
-    print("経過時間");
-    print("ステップ数");
-    print("損失");
-    print("Policy損失");
-    print("Value損失");
-    print("勝率");
-    print("千日手");
-    print("512手");
-    print("勝ち越し数");
-    print("重複数");
-    print("次のrandom_turn\n");
+    std::ofstream log_file("alphazero_log.txt");
+    log_file  << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
+    std::cout << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
     //Optimizerの準備
     O::MomentumSGD optimizer(LEARN_RATE);
@@ -144,19 +132,17 @@ void AlphaZeroTrainer::startLearn() {
     Graph::set_default(g);
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
+        //自己対局をしてreplay_buffer_にデータを追加
+        auto games = play(1, false);
+        for (Game& game : games) {
+            pushOneGame(game);
+        }
+
         //バッチサイズだけデータを選択
         std::vector<float> inputs;
         std::vector<uint32_t> policy_labels;
         std::vector<ValueTeacher> value_teachers;
         std::tie(inputs, policy_labels, value_teachers) = replay_buffer_.makeBatch(static_cast<int32_t>(BATCH_SIZE));
-
-//        usi_option.stop_signal = true;
-//        for (uint32_t i = 0; i < THREAD_NUM - 1; i++) {
-//            while (!slave_threads[i].joinable()) {
-//                std::this_thread::sleep_for(std::chrono::seconds(1));
-//            }
-//            slave_threads[i].join();
-//        }
 
         g.clear();
         auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
@@ -166,26 +152,20 @@ void AlphaZeroTrainer::startLearn() {
         optimizer.update();
 
         //学習情報の表示
-        timestamp();
-        print(step_num);
-        print(POLICY_LOSS_COEFF * loss.first.to_float() + VALUE_LOSS_COEFF * loss.second.to_float());
-        print(loss.first.to_float());
-        print(loss.second.to_float());
-        print("\n");
+        float p_loss = loss.first.to_float();
+        float v_loss = loss.second.to_float();
+        float sum_loss = POLICY_LOSS_COEFF * p_loss + VALUE_LOSS_COEFF * v_loss;
+        std::cout << elapsedTime() << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
+        log_file << elapsedHours() << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
 
         //評価と書き出し
         if (step_num % EVALUATION_INTERVAL == 0 || step_num == MAX_STEP_NUM) {
+            evaluate(step_num);
             learning_model_.save("tmp" + std::to_string(step_num) + ".model");
         }
     }
 
-    log_file_.close();
-
     usi_option.stop_signal = true;
-    for (uint32_t i = 0; i < THREAD_NUM - 1; i++) {
-        slave_threads[i].join();
-        printf("%2dスレッドをjoin\n", i);
-    }
 
     std::cout << "finish alphaZero()" << std::endl;
 }
@@ -197,7 +177,7 @@ void AlphaZeroTrainer::testLearn() {
     learning_model_.init();
 
     //自己対局
-    auto games = play(1);
+    auto games = play(1, false);
 
     std::cout << std::fixed;
 
@@ -309,7 +289,13 @@ void AlphaZeroTrainer::act() {
     }
 }
 
-void AlphaZeroTrainer::evaluate() {
+void AlphaZeroTrainer::evaluate(int64_t step) {
+    static std::ofstream eval_log;
+    if (!eval_log) {
+        eval_log.open("eval_log.txt");
+        eval_log << "step\ttime\t勝率\t千日手\t超手数\t更新回数\t重複数\t次回のランダム数" << std::endl;
+    }
+
     //対局するパラメータを準備
     nn->load(MODEL_PATH);
 
@@ -317,7 +303,7 @@ void AlphaZeroTrainer::evaluate() {
     auto before_random_turn = usi_option.random_turn;
     usi_option.random_turn = EVALUATION_RANDOM_TURN;
     usi_option.train_mode = false;
-    auto test_games = play(EVALUATION_GAME_NUM);
+    auto test_games = play(EVALUATION_GAME_NUM, false);
 
     //設定を戻す
     usi_option.random_turn = before_random_turn;
@@ -325,7 +311,7 @@ void AlphaZeroTrainer::evaluate() {
 
     //いくつか出力
     for (int32_t i = 0; i < std::min(4, (int32_t) test_games.size()); i++) {
-        test_games[i].writeKifuFile("./test_games/");
+        test_games[i].writeKifuFile(TEST_DIR);
     }
 
     double win_rate = 0.0;
@@ -366,12 +352,9 @@ void AlphaZeroTrainer::evaluate() {
         learning_model_.save(MODEL_PATH);
         update_num_++;
     }
-    print(win_rate * 100.0);
-    print(draw_repeat_num);
-    print(draw_over_limit_num);
-    print(update_num_);
-    print(same_num);
-    print(same_num == 0 ? --EVALUATION_RANDOM_TURN : ++EVALUATION_RANDOM_TURN);
+    eval_log << step << "\t" << elapsedHours() << "\t" << win_rate * 100.0 << "\t" << draw_repeat_num << "\t"
+    << draw_over_limit_num << "\t" << update_num_ << "\t"
+    << same_num << "\t" << (same_num == 0 ? --EVALUATION_RANDOM_TURN : ++EVALUATION_RANDOM_TURN);
 }
 
 void AlphaZeroTrainer::pushOneGame(Game &game) {
@@ -411,7 +394,7 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
     }
 }
 
-std::vector<Game> AlphaZeroTrainer::play(int32_t game_num) {
+std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
     std::vector<Game> games((unsigned long)game_num);
 
     auto searcher1 = std::make_unique<MCTSearcher<Node>>(usi_option.USI_Hash, 1, learning_model_);
@@ -419,15 +402,19 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num) {
 
     for (int32_t i = 0; i < game_num; i++) {
         Game& game = games[i];
-        game.moves.reserve((unsigned long)usi_option.draw_turn);
-        game.teachers.reserve((unsigned long)usi_option.draw_turn);
         Position pos;
 
         while (true) {
-            //iが偶数のときpos_cが先手
-            auto move_and_teacher = ((pos.turn_number() % 2) == (i % 2) ?
-                                     searcher1->think(pos) :
-                                     searcher2->think(pos));
+            std::pair<Move, TeacherType> move_and_teacher;
+            if (eval) {
+                //評価時:iが偶数のときsearcher1が先手
+                move_and_teacher = ((pos.turn_number() % 2) == (i % 2) ?
+                                         searcher1->think(pos) :
+                                         searcher2->think(pos));
+            } else {
+                //データ生成時:searcher1のみを使って自己対局
+                move_and_teacher = searcher1->think(pos);
+            }
             Move best_move = move_and_teacher.first;
             TeacherType teacher = move_and_teacher.second;
 
