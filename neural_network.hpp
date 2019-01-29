@@ -195,6 +195,9 @@ public:
     }
 
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(std::vector<float> inputs) {
+        Graph g;
+        Graph::set_default(g);
+
         auto y = feedForward(inputs);
 
         auto batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);

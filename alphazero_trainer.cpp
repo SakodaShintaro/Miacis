@@ -278,8 +278,8 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
 std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
     std::vector<Game> games((unsigned long)game_num);
 
-    auto searcher1 = std::make_unique<MCTSearcher<Node>>(usi_option.USI_Hash, 1, learning_model_);
-    auto searcher2 = std::make_unique<MCTSearcher<Tensor>>(usi_option.USI_Hash, 1, *nn);
+    auto searcher1 = std::make_unique<ParallelMCTSearcher<Node>>(usi_option.USI_Hash, usi_option.thread_num, learning_model_);
+    auto searcher2 = std::make_unique<ParallelMCTSearcher<Tensor>>(usi_option.USI_Hash, usi_option.thread_num, *nn);
 
     for (int32_t i = 0; i < game_num; i++) {
         Game& game = games[i];
