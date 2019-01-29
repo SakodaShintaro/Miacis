@@ -8,6 +8,8 @@
 #include"neural_network.hpp"
 #include"MCTSearcher.hpp"
 #include"usi_options.hpp"
+#include "test.hpp"
+
 #include<cassert>
 #include<numeric>
 
@@ -237,5 +239,12 @@ void testSFENoutput() {
             pos1.doMove(move);
             pos2.loadSFEN(pos1.toSFEN());
         }
+    }
+}
+
+void testSpeed() {
+    nn->load(MODEL_PATH);
+    for (usi_option.thread_num = 1; usi_option.thread_num <= 1024; usi_option.thread_num++) {
+
     }
 }

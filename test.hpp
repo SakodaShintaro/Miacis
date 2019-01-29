@@ -8,5 +8,6 @@ void testNN();
 void testToLabel();
 void testKifuOutput();
 void testSFENoutput();
+void testSpeed();
 
 #endif // !TEST_HPP

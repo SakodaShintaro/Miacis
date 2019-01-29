@@ -69,7 +69,7 @@ public:
         beta_.init(s, I::Constant(0.0));
         gamma_.init(s, I::Constant(1.0));
         mean_.init(s, I::Constant(0.0));
-        var_.init(s, I::Constant(0.0));
+        var_.init(s, I::Constant(1.0));
     }
 
     Node operator()(Node x) {

@@ -237,6 +237,10 @@ ValueType ParallelMCTSearcher<Var>::uctSearch(Position & pos, Index current_inde
 
     auto& child_indices = current_node.child_indices;
 
+    while (!current_node.evaled) {
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
+
     lock_node_[current_index].lock();
 
     // UCB値が最大の手を求める
