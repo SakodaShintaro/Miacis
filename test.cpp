@@ -7,11 +7,13 @@
 #include"game.hpp"
 #include"neural_network.hpp"
 #include"MCTSearcher.hpp"
+#include"parallel_MCTSearcher.hpp"
 #include"usi_options.hpp"
-#include "test.hpp"
 
 #include<cassert>
 #include<numeric>
+#include<climits>
+#include<iomanip>
 
 void testHand() {
 	Hand h;
@@ -244,7 +246,23 @@ void testSFENoutput() {
 
 void testSpeed() {
     nn->load(MODEL_PATH);
-    for (usi_option.thread_num = 1; usi_option.thread_num <= 1024; usi_option.thread_num++) {
 
+    usi_option.limit_msec = LLONG_MAX;
+    usi_option.random_turn = 0;
+    usi_option.playout_limit = 800;
+    usi_option.USI_Hash = 1024;
+
+    Position pos;
+
+    for (usi_option.thread_num = 10; usi_option.thread_num <= 300; usi_option.thread_num += 10) {
+        ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
+
+        auto start = std::chrono::steady_clock::now();
+        for (int32_t i = 0; i < 100; i++) {
+            searcher.think(pos);
+        }
+        auto end = std::chrono::steady_clock::now();
+        auto elapsed = end - start;
+        std::cout << std::setw(4) << usi_option.thread_num << " " << elapsed.count() << std::endl;
     }
 }
