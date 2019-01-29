@@ -8,6 +8,7 @@
 #include"operate_params.hpp"
 #include<vector>
 #include<chrono>
+#include<thread>
 #include<atomic>
 #include<stack>
 #include<mutex>
