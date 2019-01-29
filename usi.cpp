@@ -5,7 +5,7 @@
 #include"parallel_MCTSearcher.hpp"
 #include"usi_options.hpp"
 #include"game.hpp"
-#include"bonanza_method_trainer.hpp"
+#include"supervised_learner.hpp"
 #include"alphazero_trainer.hpp"
 #include"test.hpp"
 #include"neural_network.hpp"
@@ -49,8 +49,8 @@ void USI::loop() {
             std::string file_path;
             std::cin >> file_path;
             cleanGames(file_path);
-        } else if (input == "BonanzaMethod") {
-            BonanzaMethodTrainer trainer("bonanza_method_settings.txt");
+        } else if (input == "SupervisedLearn") {
+            SupervisedLearner trainer("supervised_learn_settings.txt");
             trainer.train();
         } else if (input == "alphaZero") {
             AlphaZeroTrainer trainer("alphazero_settings.txt");
@@ -224,14 +224,7 @@ void USI::go() {
         usi_option.random_turn = 0;
     } else if (input == "mate") {
         //詰み探索(未実装)
-        std::cin >> input;
-        if (input == "infinite") {
-            //stop来るまで
-            usi_option.limit_msec = LLONG_MAX;
-        } else {
-            //思考時間が指定された場合
-            //どう実装すればいいんだろう
-        }
+        assert(false);
     }
 
     //思考開始

@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(SRCS alphazero_trainer.cpp
          base_trainer.cpp
          bitboard.cpp
-         bonanza_method_trainer.cpp
+         supervised_learner.cpp
          game.cpp
          main.cpp
          move.cpp

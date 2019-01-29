@@ -1,7 +1,5 @@
-﻿#pragma once
-
-#ifndef BONANZA_METHOD_TRAINER_HPP
-#define BONANZA_METHOD_TRAINER_HPP
+﻿#ifndef SUPERVISED_LEARNER_HPP
+#define SUPERVISED_LEARNER_HPP
 
 #include"base_trainer.hpp"
 #include"piece.hpp"
@@ -10,13 +8,13 @@
 #include<mutex>
 #include<atomic>
 
-class BonanzaMethodTrainer : BaseTrainer {
+class SupervisedLearner : BaseTrainer {
 public:
     //--------------------
     //    公開メソッド
     //--------------------
     //コンストラクタ
-    explicit BonanzaMethodTrainer(std::string settings_file_path);
+    explicit SupervisedLearner(std::string settings_file_path);
 
     //学習を開始する関数
     void train();
@@ -29,17 +27,11 @@ private:
     //学習する棋譜があるディレクトリへのパス
     std::string KIFU_PATH;
 
-    //L1正則化の強さ
+    //L2正則化の強さ
     float WEIGHT_DECAY;
 
-    //------------
-    //    変数
-    //------------
-    //学習する棋譜
-    std::vector<Game> games_;
-
     //学習する棋譜の数
-    uint64_t game_num_;
+    uint64_t GAME_NUM;
 };
 
-#endif // !BONANZA_METHOD_TRAINER_HPP
+#endif // !SUPERVISED_LEARNER_HPP

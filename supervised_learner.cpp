@@ -1,4 +1,4 @@
-﻿#include"bonanza_method_trainer.hpp"
+﻿#include"supervised_learner.hpp"
 #include"position.hpp"
 #include"MCTSearcher.hpp"
 #include"usi_options.hpp"
@@ -11,7 +11,7 @@
 #include<iomanip>
 #include<thread>
 
-BonanzaMethodTrainer::BonanzaMethodTrainer(std::string settings_file_path) {
+SupervisedLearner::SupervisedLearner(std::string settings_file_path) {
     std::ifstream ifs(settings_file_path);
     if (!ifs) {
         std::cerr << "fail to open setting_file(" << settings_file_path << ")" << std::endl;
@@ -24,7 +24,7 @@ BonanzaMethodTrainer::BonanzaMethodTrainer(std::string settings_file_path) {
         if (name == "kifu_path") {
             ifs >> KIFU_PATH;
         } else if (name == "game_num") {
-            ifs >> game_num_;
+            ifs >> GAME_NUM;
         } else if (name == "batch_size") {
             ifs >> BATCH_SIZE;
         } else if (name == "learn_rate") {
@@ -35,34 +35,29 @@ BonanzaMethodTrainer::BonanzaMethodTrainer(std::string settings_file_path) {
     }
 }
 
-void BonanzaMethodTrainer::train() {
-    std::cout << "start BonanzaMethod" << std::endl;
-
+void SupervisedLearner::train() {
     //学習開始時間の設定
     start_time_ = std::chrono::steady_clock::now();
 
     //評価関数ロード
     learning_model_.load(MODEL_PATH);
-    learning_model_.save("before_bonanza_method.model");
+    learning_model_.save("before_supervised_learn.model");
 
     //棋譜を読み込む
     std::cout << "start loadGames ..." << std::flush;
-    games_ = loadGames(KIFU_PATH, game_num_);
-    std::cout << " done.  " << "games.size() = " << games_.size() << std::endl;
-
-    //棋譜シャッフル
-    std::default_random_engine engine(0);
+    std::vector<Game> games = loadGames(KIFU_PATH, GAME_NUM);
+    std::cout << " done.  " << "games.size() = " << games.size() << std::endl;
 
     //学習推移のログファイル
     std::ofstream log_file("bonanza_method_log.txt", std::ios::out);
-    log_file  << "elapsed\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
-    std::cout << "elapsed\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
+    log_file  << "time\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
+    std::cout << "time\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
     //validation結果のログファイル
     std::ofstream validation_log("validation_log.txt");
     validation_log << "epoch\ttime\tloss" << std::fixed << std::endl;
 
-    std::vector<std::pair<std::string, TeacherType>> data_buffer;
+    //dataのvectorからミニバッチを構築する関数
     auto getBatch = [this](const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64_t index) {
         Position pos;
         std::vector<float> inputs;
@@ -81,7 +76,9 @@ void BonanzaMethodTrainer::train() {
         return std::make_tuple(inputs, policy_labels, value_teachers);
     };
 
-    for (const auto& game : games_) {
+    //学習データを局面単位にバラして保持
+    std::vector<std::pair<std::string, TeacherType>> data_buffer;
+    for (const auto& game : games) {
         Position pos;
         for (const auto& move : game.moves) {
             TeacherType teacher;
@@ -93,6 +90,7 @@ void BonanzaMethodTrainer::train() {
     }
 
     //データをシャッフル
+    std::default_random_engine engine(0);
     std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
     //validationデータを確保
@@ -104,21 +102,21 @@ void BonanzaMethodTrainer::train() {
         data_buffer.pop_back();
     }
 
+    //validation用の変数宣言
+    float min_loss = 1e10;
+    int32_t patience = 0;
+
     //データ数を表示
     std::cout << "learn_data_size = " << data_buffer.size() << ", validation_data_size" << validation_size << std::endl;
 
-    Position pos;
-
+    //optimizerの設定
     O::MomentumSGD optimizer(LEARN_RATE);
     optimizer.add(learning_model_);
     optimizer.set_weight_decay(WEIGHT_DECAY);
 
+    //グラフの設定
     Graph g;
     Graph::set_default(g);
-
-    //validation用
-    float min_loss = 1e10;
-    int32_t patience = 0;
 
     //学習開始
     for (int32_t epoch = 1; epoch <= 100; epoch++) {
