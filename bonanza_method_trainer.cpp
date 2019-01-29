@@ -29,8 +29,8 @@ BonanzaMethodTrainer::BonanzaMethodTrainer(std::string settings_file_path) {
             ifs >> BATCH_SIZE;
         } else if (name == "learn_rate") {
             ifs >> LEARN_RATE;
-        } else if (name == "L2_regularization_coeff") {
-            ifs >> L2_REGULARIZATION_COEFF;
+        } else if (name == "weight_decay") {
+            ifs >> WEIGHT_DECAY;
         }
     }
 }
@@ -61,7 +61,7 @@ void BonanzaMethodTrainer::train() {
 
     //validation結果のログファイル
     std::ofstream validation_log("validation_log.txt");
-    validation_log << "time\tepoch\tloss" << std::fixed << std::endl;
+    validation_log << "epoch\ttime\tloss" << std::fixed << std::endl;
 
     std::vector<std::pair<std::string, TeacherType>> data_buffer;
     auto getBatch = [this](const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64_t index) {
@@ -110,6 +110,7 @@ void BonanzaMethodTrainer::train() {
 
     O::MomentumSGD optimizer(LEARN_RATE);
     optimizer.add(learning_model_);
+    optimizer.set_weight_decay(WEIGHT_DECAY);
 
     Graph g;
     Graph::set_default(g);

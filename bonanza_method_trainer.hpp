@@ -32,7 +32,7 @@ private:
     std::string KIFU_PATH;
 
     //L1正則化の強さ
-    double L2_REGULARIZATION_COEFF;
+    float WEIGHT_DECAY;
 
     //------------
     //    変数
