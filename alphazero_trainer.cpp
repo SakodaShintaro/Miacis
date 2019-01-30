@@ -20,6 +20,7 @@
 
 const std::string LEARN_DIR = "learn_games";
 const std::string TEST_DIR  = "test_games";
+const std::string BEST_MODEL = "best.model";
 
 AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
     //オプションをファイルから読み込む
@@ -110,7 +111,7 @@ void AlphaZeroTrainer::startLearn() {
 
     //モデル読み込み
     learning_model_.load(MODEL_PATH);
-    nn->load(MODEL_PATH);
+    learning_model_.save(BEST_MODEL);
 
     //時間を初期化
     start_time_ = std::chrono::steady_clock::now();
@@ -174,10 +175,12 @@ void AlphaZeroTrainer::startLearn() {
         std::cout << elapsedTime() << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
         log_file << elapsedHours() << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
 
-        //評価と書き出し
+        //書き出し
+        learning_model_.save(MODEL_PATH);
+
+        //評価
         if (step_num % EVALUATION_INTERVAL == 0 || step_num == MAX_STEP_NUM) {
             evaluate(step_num);
-            learning_model_.save("tmp" + std::to_string(step_num) + ".model");
         }
     }
 
@@ -192,9 +195,6 @@ void AlphaZeroTrainer::evaluate(int64_t step) {
         eval_log.open("eval_log.txt");
         eval_log << "step\ttime\t勝率\t千日手\t超手数\t更新回数\t重複数\t次回のランダム数" << std::endl;
     }
-
-    //対局するパラメータを準備
-    nn->load(MODEL_PATH);
 
     //設定を評価用に変える
     auto before_random_turn = usi_option.random_turn;
@@ -246,7 +246,7 @@ void AlphaZeroTrainer::evaluate(int64_t step) {
     win_rate /= test_games.size();
 
     if (win_rate >= THRESHOLD) {
-        learning_model_.save(MODEL_PATH);
+        learning_model_.save(BEST_MODEL);
         update_num_++;
     }
     eval_log << step << "\t" << elapsedHours() << "\t" << win_rate * 100.0 << "\t" << draw_repeat_num << "\t"
@@ -294,8 +294,18 @@ void AlphaZeroTrainer::pushOneGame(Game &game) {
 std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
     std::vector<Game> games((unsigned long)game_num);
 
-    auto searcher1 = std::make_unique<ParallelMCTSearcher<Node>>(usi_option.USI_Hash, usi_option.thread_num, learning_model_);
-    auto searcher2 = std::make_unique<ParallelMCTSearcher<Tensor>>(usi_option.USI_Hash, usi_option.thread_num, *nn);
+    //現在のパラメータ
+    NeuralNetwork<Tensor> curr;
+    curr.load(MODEL_PATH);
+
+    if (eval) {
+        nn->load(BEST_MODEL);
+    }
+
+    auto searcher1 = std::make_unique<ParallelMCTSearcher<Tensor>>(usi_option.USI_Hash, usi_option.thread_num, curr);
+    auto searcher2 = (eval ? //searcher2は評価時にしか使わない
+            std::make_unique<ParallelMCTSearcher<Tensor>>(usi_option.USI_Hash, usi_option.thread_num, *nn) :
+            nullptr);
 
     for (int32_t i = 0; i < game_num; i++) {
         Game& game = games[i];
@@ -326,6 +336,7 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
                 assert(false);
             }
             pos.doMove(best_move);
+            pos.print();
             game.moves.push_back(best_move);
             game.teachers.push_back(teacher);
 
