@@ -1,5 +1,7 @@
 #include"replay_buffer.hpp"
 #include"operate_params.hpp"
+#include "replay_buffer.hpp"
+
 #include<thread>
 
 std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>> ReplayBuffer::makeBatch(int32_t batch_size) {
@@ -56,4 +58,16 @@ void ReplayBuffer::push(const Position &pos, TeacherType teacher) {
 void ReplayBuffer::push(const std::string &sfen, TeacherType teacher) {
     std::unique_lock<std::mutex> lock(mutex_);
     data_.emplace_back(sfen, teacher.policy, teacher.value);
+}
+
+void ReplayBuffer::show() {
+    for (const auto& data : data_) {
+        std::string sfen;
+        uint32_t policy_label;
+        ValueTeacher value_teacher;
+        std::tie(sfen, policy_label, value_teacher) = data;
+        Position pos;
+        pos.loadSFEN(sfen);
+        pos.print();
+    }
 }

@@ -4,6 +4,7 @@
 #include"operate_params.hpp"
 #include"neural_network.hpp"
 #include"parallel_MCTSearcher.hpp"
+#include"game_generator.hpp"
 
 #include<iomanip>
 #include<algorithm>
@@ -112,6 +113,7 @@ void AlphaZeroTrainer::startLearn() {
     //モデル読み込み
     learning_model_.load(MODEL_PATH);
     learning_model_.save(BEST_MODEL);
+    nn->load(MODEL_PATH);
 
     //時間を初期化
     start_time_ = std::chrono::steady_clock::now();
@@ -130,29 +132,22 @@ void AlphaZeroTrainer::startLearn() {
     optimizer.add(learning_model_);
 
     //自己対局をしてreplay_buffer_にデータを追加
-    for (Game& game : play(20, false)) {
-        if (game.result == Game::RESULT_DRAW_OVER_LIMIT || game.result == Game::RESULT_DRAW_REPEAT) {
-            if (USE_DRAW_GAME) {
-                game.result = (MAX_SCORE + MIN_SCORE) / 2;
-            } else {
-                continue;
-            }
-        }
-        pushOneGame(game);
-    }
+    GameGenerator gg(0, 3, 3, replay_buffer_, *nn);
+    gg.genGames();
+    replay_buffer_.show();
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         //自己対局をしてreplay_buffer_にデータを追加
-        for (Game& game : play(1, false)) {
-            if (game.result == Game::RESULT_DRAW_OVER_LIMIT || game.result == Game::RESULT_DRAW_REPEAT) {
-                if (USE_DRAW_GAME) {
-                    game.result = (MAX_SCORE + MIN_SCORE) / 2;
-                } else {
-                    continue;
-                }
-            }
-            pushOneGame(game);
-        }
+//        for (Game& game : play(1, false)) {
+//            if (game.result == Game::RESULT_DRAW_OVER_LIMIT || game.result == Game::RESULT_DRAW_REPEAT) {
+//                if (USE_DRAW_GAME) {
+//                    game.result = (MAX_SCORE + MIN_SCORE) / 2;
+//                } else {
+//                    continue;
+//                }
+//            }
+//            pushOneGame(game);
+//        }
 
         //バッチサイズだけデータを選択
         std::vector<float> inputs;

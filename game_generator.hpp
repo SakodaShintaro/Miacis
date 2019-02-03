@@ -10,7 +10,7 @@
 class GameGenerator{
 public:
     GameGenerator(int64_t gpu_id, int64_t game_num, int64_t thread_num, ReplayBuffer& rb, NeuralNetwork<Tensor>& nn) :
-    gpu_id_(gpu_id), thread_num_(thread_num), game_num_(game_num), rb_(rb) {
+    gpu_id_(gpu_id), thread_num_(thread_num), game_num_(game_num), rb_(rb), evaluator_(nn) {
         clearEvalQueue();
     };
 
@@ -48,10 +48,9 @@ private:
     ReplayBuffer& rb_;
 
     //局面評価に用いるネットワーク
-    NeuralNetwork<Tensor> evaluator_;
+    NeuralNetwork<Tensor>& evaluator_;
 
     //mutex
-    std::vector<std::mutex> lock_node_;
     std::mutex lock_expand_;
 
     //キュー

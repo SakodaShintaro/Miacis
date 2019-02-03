@@ -11,11 +11,15 @@ void GameGenerator::genGames() {
     //GPUスレッドを生成
     std::thread gpu_thread(&GameGenerator::gpuFunc, this);
 
+    running_ = true;
+
+    for (int64_t i = 0; i < thread_num_; i++) {
+        searchers_.emplace_back(usi_option.USI_Hash, i, *this);
+    }
+
     //生成スレッドを生成
     std::vector<std::thread> threads;
     for (int64_t i = 0; i < thread_num_; i++) {
-        SearcherForGen s(usi_option.USI_Hash, i, *this);
-        searchers_.push_back(s);
         threads.emplace_back(&GameGenerator::genSlave, this, i);
     }
 
@@ -35,6 +39,7 @@ void GameGenerator::genSlave(int64_t id) {
     //生成
     while (true) {
         int64_t num = game_num_--;
+        std::cout << "num = " << num << std::endl;
         if (num <= 0) {
             break;
         }
@@ -44,10 +49,14 @@ void GameGenerator::genSlave(int64_t id) {
 
         while (true) {
             //id番目のsearcherを使って探索
+            std::cout << id << " : " << pos.turn_number() << std::endl;
             auto result = searchers_[id].think(pos);
             if (result.first == NULL_MOVE) {
                 break;
             }
+            pos.doMove(result.first);
+            game.moves.push_back(result.first);
+            game.teachers.push_back(result.second);
         }
     }
 }
@@ -92,8 +101,6 @@ void GameGenerator::gpuFunc() {
         auto values = result.second;
 
         for (int32_t i = 0; i < eval_hash_index_queue.size(); i++) {
-            std::unique_lock<std::mutex> lock2(lock_node_[eval_hash_index_queue[i]]);
-
             //何番目のスレッドのどの位置に書き込むかを取得
             auto& current_node = searchers_[eval_thread_ids[i]].hash_table_[eval_hash_index_queue[i]];
 

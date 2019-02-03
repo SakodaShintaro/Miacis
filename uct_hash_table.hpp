@@ -71,6 +71,7 @@ public:
     }
 
     int64_t size() {
+        return table_.size();
         return size_;
     }
 

@@ -131,7 +131,7 @@ ValueType GameGenerator::SearcherForGen::uctSearch(Position & pos, Index current
         result = score;
 #endif
     } else if (child_indices[next_index] == UctHashTable::NOT_EXPANDED) {
-        // ノードの展開:ロック
+        // ノードの展開
         auto index = expandNode(pos);
 
         child_indices[next_index] = index;
@@ -196,10 +196,12 @@ Index GameGenerator::SearcherForGen::expandNode(Position& pos) {
     // ノードを評価
     if (current_node.child_num > 0) {
         auto this_feature = pos.makeFeature();
+        gg_.lock_expand_.lock();
         gg_.current_features_.resize(gg_.current_features_.size() + this_feature.size());
         std::copy(this_feature.begin(), this_feature.end(), gg_.current_features_.end() - this_feature.size());
         gg_.current_hash_index_queue_.push_back(index);
         gg_.current_thread_ids_.push_back(id_);
+        gg_.lock_expand_.unlock();
     } else {
         if (pos.lastMove().isDrop() && (kind(pos.lastMove().subject()) == PAWN)) {
             //打ち歩詰め
