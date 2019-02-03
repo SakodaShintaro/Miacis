@@ -2,8 +2,10 @@
 #define MIACIS_GAME_GENERATOR_HPP
 
 #include "replay_buffer.hpp"
-#include "searcher_for_gen.hpp"
 #include "game.hpp"
+#include "uct_hash_table.hpp"
+#include <atomic>
+#include <mutex>
 
 class GameGenerator{
 public:
@@ -22,7 +24,7 @@ public:
 
 private:
     //生成してはreplay_bufferへ送る関数
-    void genSlave();
+    void genSlave(int64_t id);
 
     //GPUを回し続ける関数
     void gpuFunc();
@@ -57,6 +59,51 @@ private:
     std::vector<float> features_[2];
     std::vector<int32_t> hash_index_queues_[2];
     std::vector<int32_t> thread_ids_[2];
+
+    //探索クラス
+    class SearcherForGen {
+    public:
+        //コンストラクタ
+        SearcherForGen(int64_t hash_size, int32_t id, GameGenerator& gg) : hash_table_(hash_size), id_(id), gg_(gg) {}
+
+        //一番良い指し手と学習データを返す関数
+        std::pair<Move, TeacherType> think(Position& root);
+
+        //置換表:GameGeneratorが書き込める必要があるのでpublicに置く.friend指定とかでなんとかできるかも？
+        UctHashTable hash_table_;
+
+    private:
+        //再帰する探索関数
+        ValueType uctSearch(Position& pos, Index current_index);
+
+        //プレイアウト1回
+        void onePlay(Position& pos);
+
+        //ノードを展開する関数
+        Index expandNode(Position& pos);
+
+        //時間経過含め、playoutの回数なども考慮しplayoutを続けるかどうかを判定する関数
+        bool shouldStop();
+
+        //Ucbを計算して最大値を持つインデックスを返す
+        static int32_t selectMaxUcbChild(const UctHashEntry& current_node);
+
+        //ディリクレ分布に従ったものを返す関数
+        static std::vector<double> dirichletDistribution(int32_t k, double alpha);
+
+        //評価要求を送る先
+        GameGenerator& gg_;
+
+        //このスレッドのid
+        int32_t id_;
+
+        //Playout回数
+        uint32_t playout_num_;
+
+        //ルート局面のインデックス
+        Index current_root_index_;
+    };
+    std::vector<SearcherForGen> searchers_;
 };
 
 #endif //MIACIS_GAME_GENERATOR_HPP

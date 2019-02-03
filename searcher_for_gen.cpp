@@ -1,6 +1,9 @@
-#include "searcher_for_gen.hpp"
+#include "game_generator.hpp"
+#include "usi_options.hpp"
+#include <thread>
+#include <stack>
 
-std::pair<Move, TeacherType> SearcherForGen::think(Position& root) {
+std::pair<Move, TeacherType> GameGenerator::SearcherForGen::think(Position& root) {
     //古いハッシュを削除
     hash_table_.deleteOldHash(root, false);
 
@@ -91,7 +94,7 @@ std::pair<Move, TeacherType> SearcherForGen::think(Position& root) {
     return { best_move, teacher };
 }
 
-ValueType SearcherForGen::uctSearch(Position & pos, Index current_index) {
+ValueType GameGenerator::SearcherForGen::uctSearch(Position & pos, Index current_index) {
     auto& current_node = hash_table_[current_index];
 
     if (current_node.child_num == 0) {
@@ -114,9 +117,6 @@ ValueType SearcherForGen::uctSearch(Position & pos, Index current_index) {
 
     // UCB値が最大の手を求める
     auto next_index = selectMaxUcbChild(current_node);
-
-    current_node.move_count += VIRTUAL_LOSS;
-    current_node.child_move_counts[next_index] += VIRTUAL_LOSS;
 
     // 選んだ手を着手
     pos.doMove(current_node.legal_moves[next_index]);
@@ -148,9 +148,9 @@ ValueType SearcherForGen::uctSearch(Position & pos, Index current_index) {
     result = reverse(result);
 
     // 探索結果の反映
-    current_node.move_count += 1 - VIRTUAL_LOSS;
+    current_node.move_count++;
     current_node.child_wins[next_index] += result;
-    current_node.child_move_counts[next_index] += 1 - VIRTUAL_LOSS;
+    current_node.child_move_counts[next_index]++;
 
     // 手を戻す
     pos.undo();
@@ -158,7 +158,7 @@ ValueType SearcherForGen::uctSearch(Position & pos, Index current_index) {
     return result;
 }
 
-Index SearcherForGen::expandNode(Position& pos) {
+Index GameGenerator::SearcherForGen::expandNode(Position& pos) {
     auto index = hash_table_.findSameHashIndex(pos.hash_value(), static_cast<int16_t>(pos.turn_number()));
 
     // 合流先が検知できればそれを返す
@@ -226,7 +226,7 @@ Index SearcherForGen::expandNode(Position& pos) {
     return index;
 }
 
-bool SearcherForGen::shouldStop() {
+bool GameGenerator::SearcherForGen::shouldStop() {
     // 探索回数が最も多い手と次に多い手を求める
     int32_t max1 = 0, max2 = 0;
     for (auto e : hash_table_[current_root_index_].child_move_counts) {
@@ -242,7 +242,7 @@ bool SearcherForGen::shouldStop() {
     return (max1 - max2) > (usi_option.playout_limit - playout_num_);
 }
 
-std::vector<double> SearcherForGen::dirichletDistribution(int32_t k, double alpha) {
+std::vector<double> GameGenerator::SearcherForGen::dirichletDistribution(int32_t k, double alpha) {
     static std::random_device seed;
     static std::default_random_engine engine(seed());
     static constexpr double eps = 0.000000001;
@@ -258,7 +258,7 @@ std::vector<double> SearcherForGen::dirichletDistribution(int32_t k, double alph
     return dirichlet;
 }
 
-int32_t SearcherForGen::selectMaxUcbChild(const UctHashEntry & current_node) {
+int32_t GameGenerator::SearcherForGen::selectMaxUcbChild(const UctHashEntry & current_node) {
     const auto& child_move_counts = current_node.child_move_counts;
 
 #ifdef USE_CATEGORICAL
@@ -300,7 +300,7 @@ int32_t SearcherForGen::selectMaxUcbChild(const UctHashEntry & current_node) {
     return max_index;
 }
 
-void SearcherForGen::onePlay(Position &pos) {
+void GameGenerator::SearcherForGen::onePlay(Position &pos) {
     std::stack<Index> indices;
     std::stack<int32_t> actions;
 

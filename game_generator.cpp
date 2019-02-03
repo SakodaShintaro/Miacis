@@ -5,6 +5,7 @@
 #include <atomic>
 #include <thread>
 #include "game_generator.hpp"
+#include "usi_options.hpp"
 
 void GameGenerator::genGames() {
     //GPUスレッドを生成
@@ -12,8 +13,10 @@ void GameGenerator::genGames() {
 
     //生成スレッドを生成
     std::vector<std::thread> threads;
-    for (auto& th : threads) {
-        th = std::thread(&GameGenerator::genSlave, this);
+    for (int64_t i = 0; i < thread_num_; i++) {
+        SearcherForGen s(usi_option.USI_Hash, i, *this);
+        searchers_.push_back(s);
+        threads.emplace_back(&GameGenerator::genSlave, this, i);
     }
 
     //生成スレッドが終わるのを待つ
@@ -28,10 +31,7 @@ void GameGenerator::genGames() {
     gpu_thread.join();
 }
 
-void GameGenerator::genSlave() {
-    //探索クラスを用意
-    SearcherForGen searcher;
-
+void GameGenerator::genSlave(int64_t id) {
     //生成
     while (true) {
         int64_t num = game_num_--;
@@ -43,7 +43,8 @@ void GameGenerator::genSlave() {
         Position pos;
 
         while (true) {
-            auto result = searcher.think(pos);
+            //id番目のsearcherを使って探索
+            auto result = searchers_[id].think(pos);
             if (result.first == NULL_MOVE) {
                 break;
             }
@@ -74,6 +75,7 @@ void GameGenerator::gpuFunc() {
         //現在のキューを保存
         auto eval_features = current_features_;
         auto eval_hash_index_queue = current_hash_index_queue_;
+        auto eval_thread_ids = current_thread_ids_;
 
         //カレントキューを入れ替える
         current_queue_index_ ^= 1;
@@ -81,6 +83,8 @@ void GameGenerator::gpuFunc() {
         current_features_.clear();
         current_hash_index_queue_ = hash_index_queues_[current_queue_index_];
         current_hash_index_queue_.clear();
+        current_thread_ids_ = thread_ids_[current_queue_index_];
+        current_thread_ids_.clear();
         lock_expand_.unlock();
 
         auto result = evaluator_.policyAndValueBatch(eval_features);
@@ -90,8 +94,10 @@ void GameGenerator::gpuFunc() {
         for (int32_t i = 0; i < eval_hash_index_queue.size(); i++) {
             std::unique_lock<std::mutex> lock2(lock_node_[eval_hash_index_queue[i]]);
 
+            //何番目のスレッドのどの位置に書き込むかを取得
+            auto& current_node = searchers_[eval_thread_ids[i]].hash_table_[eval_hash_index_queue[i]];
+
             //policyを設定
-            auto& current_node = hash_table_[eval_hash_index_queue[i]];
             std::vector<float> legal_moves_policy(static_cast<unsigned long>(current_node.child_num));
             for (int32_t j = 0; j < current_node.child_num; j++) {
                 legal_moves_policy[j] = policies[i][current_node.legal_moves[j].toLabel()];
