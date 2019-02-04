@@ -1,6 +1,5 @@
 #include"replay_buffer.hpp"
 #include"operate_params.hpp"
-#include "replay_buffer.hpp"
 
 #include<thread>
 
@@ -9,7 +8,7 @@ std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>>
     std::unique_lock<std::mutex> lock(mutex_);
 
     //とりあえずランダムに取得
-    std::mt19937 engine(0);
+    static std::mt19937 engine(0);
     std::uniform_int_distribution<unsigned long> dist(0, data_.size() - 1);
 
     Position pos;
@@ -20,14 +19,15 @@ std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>>
     for (int32_t i = 0; i < batch_size; i++) {
         std::string sfen;
         uint32_t policy_label;
-        float value;
+        ValueTeacher value;
         const auto& datum = data_[dist(engine)];
         std::tie(sfen, policy_label, value) = datum;
 
         pos.loadSFEN(sfen);
-        for (const auto& e : pos.makeFeature()) {
-            inputs.push_back(e);
-        }
+        auto feature = pos.makeFeature();
+        inputs.resize(inputs.size() + feature.size());
+        std::copy(feature.begin(), feature.end(), inputs.end() - feature.size());
+
         policy_labels.push_back(policy_label);
 
 #ifdef USE_CATEGORICAL
@@ -40,34 +40,42 @@ std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>>
     return std::make_tuple(inputs, policy_labels, value_teachers);
 }
 
-void ReplayBuffer::push(const Position &pos, Move move, float value) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    data_.emplace_back(pos.toSFEN(), move.toLabel(), value);
-}
+void ReplayBuffer::push(Game &game) {
+    mutex_.lock();
 
-void ReplayBuffer::setSize(int64_t max_size) {
-    max_size_ = max_size;
-    data_.reserve(max_size);
-}
+    Position pos;
 
-void ReplayBuffer::push(const Position &pos, TeacherType teacher) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    data_.emplace_back(pos.toSFEN(), teacher.policy, teacher.value);
-}
-
-void ReplayBuffer::push(const std::string &sfen, TeacherType teacher) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    data_.emplace_back(sfen, teacher.policy, teacher.value);
-}
-
-void ReplayBuffer::show() {
-    for (const auto& data : data_) {
-        std::string sfen;
-        uint32_t policy_label;
-        ValueTeacher value_teacher;
-        std::tie(sfen, policy_label, value_teacher) = data;
-        Position pos;
-        pos.loadSFEN(sfen);
-        pos.print();
+    //まずは最終局面まで動かす
+    for (auto move : game.moves) {
+        pos.doMove(move);
     }
+
+    assert(Game::RESULT_WHITE_WIN <= game.result && game.result <= Game::RESULT_BLACK_WIN);
+
+    //先手から見た勝率,分布.指数移動平均で動かしていく.最初は結果によって初期化
+    double win_rate_for_black = game.result;
+
+    for (int32_t i = (int32_t) game.moves.size() - 1; i >= 0; i--) {
+        //i番目の指し手を教師とするのは1手戻した局面
+        pos.undo();
+
+        //探索結果を先手から見た値に変換
+        double curr_win_rate = (pos.color() == BLACK ? game.moves[i].score : MAX_SCORE + MIN_SCORE - game.moves[i].score);
+        //混合
+        win_rate_for_black = lambda_ * win_rate_for_black + (1.0 - lambda_) * curr_win_rate;
+
+        double teacher_signal = (pos.color() == BLACK ? win_rate_for_black : MAX_SCORE + MIN_SCORE - win_rate_for_black);
+
+#ifdef USE_CATEGORICAL
+        //teacherにコピーする
+        game.teachers[i].value = valueToIndex(teacher_signal);
+#else
+        //teacherにコピーする
+        game.teachers[i].value = (CalcType) (teacher_signal);
+#endif
+        //スタックに詰める
+        game.moves[i].print();
+        data_.emplace_back(pos.toSFEN(), game.teachers[i].policy, game.teachers[i].value);
+    }
+    mutex_.unlock();
 }

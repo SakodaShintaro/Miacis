@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#ifndef ALPHAZERO_TRAINER_HPP
+﻿#ifndef ALPHAZERO_TRAINER_HPP
 #define ALPHAZERO_TRAINER_HPP
 
 #include"base_trainer.hpp"
@@ -26,18 +24,12 @@ private:
     //今ファイルに保存されているパラメータと対局して強さを測定する関数
     void evaluate(int64_t step);
 
-    //replay_buffer_へ1局分詰め込む関数
-    void pushOneGame(Game& game);
-
     std::vector<Game> play(int32_t game_num, bool eval);
 
     //---------------------------------------------
     //    ファイルから読み込むためconst化はして
     //    いないがほぼ定数であるもの
     //---------------------------------------------
-    //TDLeaf(λ)のλ
-    double LAMBDA;
-
     //引き分けの対局も学習するか
     bool USE_DRAW_GAME;
 
@@ -52,9 +44,6 @@ private:
 
     //評価するときのランダム手数
     int32_t EVALUATION_RANDOM_TURN;
-
-    //replay_buffer_のサイズ上限
-    int64_t MAX_REPLAY_BUFFER_SIZE;
 
     //ステップ数
     int64_t MAX_STEP_NUM;

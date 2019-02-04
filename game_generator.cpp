@@ -52,12 +52,27 @@ void GameGenerator::genSlave(int64_t id) {
             std::cout << id << " : " << pos.turn_number() << std::endl;
             auto result = searchers_[id].think(pos);
             if (result.first == NULL_MOVE) {
+                game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
                 break;
             }
             pos.doMove(result.first);
             game.moves.push_back(result.first);
             game.teachers.push_back(result.second);
+
+            if (pos.turn_number() >= usi_option.draw_turn) {
+                game.result = Game::RESULT_DRAW_OVER_LIMIT;
+                break;
+            }
         }
+
+        if (game.result == Game::RESULT_DRAW_OVER_LIMIT || game.result == Game::RESULT_DRAW_REPEAT) {
+            if (1) {
+                game.result = (MAX_SCORE + MIN_SCORE) / 2;
+            } else {
+                continue;
+            }
+        }
+        rb_.push(game);
     }
 }
 

@@ -16,5 +16,6 @@ evaluation_random_turn 10
 policy_loss_coeff 1
 value_loss_coeff 1
 max_stack_size 100000
+first_wait 10000
 max_step_num 700000
 playout_limit 800

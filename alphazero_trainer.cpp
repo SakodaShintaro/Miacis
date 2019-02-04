@@ -54,7 +54,7 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
         } else if (name == "draw_score") {
             ifs >> usi_option.draw_score;
         } else if (name == "lambda") {
-            ifs >> LAMBDA;
+            ifs >> replay_buffer_.lambda_;
         } else if (name == "use_draw_game") {
             ifs >> USE_DRAW_GAME;
         } else if (name == "USI_Hash") {
@@ -70,8 +70,9 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
         } else if (name == "value_loss_coeff") {
             ifs >> VALUE_LOSS_COEFF;
         } else if (name == "max_stack_size") {
-            ifs >> MAX_REPLAY_BUFFER_SIZE;
-            replay_buffer_.setSize(MAX_REPLAY_BUFFER_SIZE);
+            ifs >> replay_buffer_.max_size_;
+        } else if (name == "first_wait") {
+            ifs >> replay_buffer_.first_wait;
         } else if (name == "max_step_num") {
             ifs >> MAX_STEP_NUM;
         } else if (name == "playout_limit") {
@@ -132,9 +133,8 @@ void AlphaZeroTrainer::startLearn() {
     optimizer.add(learning_model_);
 
     //自己対局をしてreplay_buffer_にデータを追加
-    GameGenerator gg(0, 3, 3, replay_buffer_, *nn);
+    GameGenerator gg(0, 30, 30, replay_buffer_, *nn);
     gg.genGames();
-    replay_buffer_.show();
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         //自己対局をしてreplay_buffer_にデータを追加
@@ -247,43 +247,6 @@ void AlphaZeroTrainer::evaluate(int64_t step) {
     eval_log << step << "\t" << elapsedHours() << "\t" << win_rate * 100.0 << "\t" << draw_repeat_num << "\t"
     << draw_over_limit_num << "\t" << update_num_ << "\t"
     << same_num << "\t" << (same_num == 0 ? --EVALUATION_RANDOM_TURN : ++EVALUATION_RANDOM_TURN);
-}
-
-void AlphaZeroTrainer::pushOneGame(Game &game) {
-    Position pos;
-
-    //まずは最終局面まで動かす
-    for (auto move : game.moves) {
-        pos.doMove(move);
-    }
-
-    assert(Game::RESULT_WHITE_WIN <= game.result && game.result <= Game::RESULT_BLACK_WIN);
-
-    //先手から見た勝率,分布.指数移動平均で動かしていく.最初は結果によって初期化
-    double win_rate_for_black = game.result;
-
-    for (int32_t i = (int32_t)game.moves.size() - 1; i >= 0; i--) {
-        //i番目の指し手を教師とするのは1手戻した局面
-        pos.undo();
-
-        //探索結果を先手から見た値に変換
-        double curr_win_rate = (pos.color() == BLACK ? game.moves[i].score : MAX_SCORE + MIN_SCORE - game.moves[i].score);
-        //混合
-        win_rate_for_black = LAMBDA * win_rate_for_black + (1.0 - LAMBDA) * curr_win_rate;
-
-        double teacher_signal = (pos.color() == BLACK ? win_rate_for_black : MAX_SCORE + MIN_SCORE - win_rate_for_black);
-
-#ifdef USE_CATEGORICAL
-        //teacherにコピーする
-        game.teachers[i].value = valueToIndex(teacher_signal);
-#else
-        //teacherにコピーする
-        game.teachers[i].value = (CalcType)(teacher_signal);
-#endif
-
-        //スタックに詰める
-        replay_buffer_.push(pos.toSFEN(), game.teachers[i]);
-    }
 }
 
 std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {

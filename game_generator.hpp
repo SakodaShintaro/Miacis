@@ -17,11 +17,6 @@ public:
     //決まったゲーム数生成する関数
     void genGames();
 
-    //SearchForGenに見せるqueue
-    std::vector<float>& current_features_ = features_[0];
-    std::vector<int32_t>& current_hash_index_queue_ = hash_index_queues_[0];
-    std::vector<int32_t>& current_thread_ids_ = thread_ids_[0];
-
 private:
     //生成してはreplay_bufferへ送る関数
     void genSlave(int64_t id);
@@ -58,6 +53,10 @@ private:
     std::vector<float> features_[2];
     std::vector<int32_t> hash_index_queues_[2];
     std::vector<int32_t> thread_ids_[2];
+    //SearchForGenに見せるqueue
+    std::vector<float>& current_features_ = features_[0];
+    std::vector<int32_t>& current_hash_index_queue_ = hash_index_queues_[0];
+    std::vector<int32_t>& current_thread_ids_ = thread_ids_[0];
 
     //探索クラス
     class SearcherForGen {
