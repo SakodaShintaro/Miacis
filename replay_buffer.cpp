@@ -87,7 +87,6 @@ void ReplayBuffer::push(Game &game) {
         game.teachers[i].value = (CalcType) (teacher_signal);
 #endif
         //スタックに詰める
-        game.moves[i].print();
         data_.emplace_back(pos.toSFEN(), game.teachers[i].policy, game.teachers[i].value);
     }
     mutex_.unlock();

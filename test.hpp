@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#ifndef TEST_HPP
+﻿#ifndef TEST_HPP
 #define TEST_HPP
 
 void testMakeRandomPosition();
@@ -9,5 +7,6 @@ void testToLabel();
 void testKifuOutput();
 void testSFENoutput();
 void testSpeed();
+void checkGenSpeed();
 
 #endif // !TEST_HPP

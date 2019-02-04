@@ -65,6 +65,8 @@ void USI::loop() {
             testSFENoutput();
         } else if (input == "testSpeed") {
             testSpeed();
+        } else if (input == "checkGenSpeed") {
+            checkGenSpeed();
         } else {
             std::cout << "Illegal input" << std::endl;
         }

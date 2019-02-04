@@ -1,7 +1,3 @@
-//
-// Created by sakoda on 19/01/30.
-//
-
 #include <atomic>
 #include <thread>
 #include "game_generator.hpp"
@@ -9,10 +5,10 @@
 
 void GameGenerator::genGames() {
     //GPUスレッドを生成
+    running_ = true;
     std::thread gpu_thread(&GameGenerator::gpuFunc, this);
 
-    running_ = true;
-
+    //先に探索クラスを生成しておくと上手く動く
     for (int64_t i = 0; i < thread_num_; i++) {
         searchers_.emplace_back(usi_option.USI_Hash, i, *this);
     }
@@ -28,10 +24,8 @@ void GameGenerator::genGames() {
         th.join();
     }
 
-    //GPUスレッドへ停止信号を送る
-    running_ = false;
-
     //GPUスレッドが終わるのを待つ
+    running_ = false;
     gpu_thread.join();
 }
 
@@ -39,7 +33,9 @@ void GameGenerator::genSlave(int64_t id) {
     //生成
     while (true) {
         int64_t num = game_num_--;
-        std::cout << "num = " << num << std::endl;
+        if (num % 10 == 0) {
+            std::cout << "num = " << num << std::endl;
+        }
         if (num <= 0) {
             break;
         }
@@ -49,7 +45,6 @@ void GameGenerator::genSlave(int64_t id) {
 
         while (true) {
             //id番目のsearcherを使って探索
-            std::cout << id << " : " << pos.turn_number() << std::endl;
             auto result = searchers_[id].think(pos);
             if (result.first == NULL_MOVE) {
                 game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);

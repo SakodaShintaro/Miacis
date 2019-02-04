@@ -9,6 +9,9 @@
 #include"MCTSearcher.hpp"
 #include"parallel_MCTSearcher.hpp"
 #include"usi_options.hpp"
+#include "replay_buffer.hpp"
+#include "game_generator.hpp"
+
 
 #include<cassert>
 #include<numeric>
@@ -264,5 +267,23 @@ void testSpeed() {
         auto end = std::chrono::steady_clock::now();
         auto elapsed = end - start;
         std::cout << std::setw(4) << usi_option.thread_num << " " << elapsed.count() << std::endl;
+    }
+}
+
+void checkGenSpeed() {
+    usi_option.USI_Hash = 32;
+    usi_option.playout_limit = 800;
+    usi_option.draw_turn = 128;
+
+    ReplayBuffer buffer;
+    buffer.max_size = 10000;
+
+    for (int64_t thread_num = 10; thread_num <= 100; thread_num += 10) {
+        auto start = std::chrono::steady_clock::now();
+        GameGenerator generator(0, 100, thread_num, buffer, *nn);
+        generator.genGames();
+        auto end = std::chrono::steady_clock::now();
+        auto ela = end - start;
+        std::cout << std::setw(4) << thread_num << " " << ela.count() << std::endl;
     }
 }
