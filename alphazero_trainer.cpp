@@ -54,7 +54,7 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
         } else if (name == "draw_score") {
             ifs >> usi_option.draw_score;
         } else if (name == "lambda") {
-            ifs >> replay_buffer_.lambda_;
+            ifs >> replay_buffer_.lambda;
         } else if (name == "use_draw_game") {
             ifs >> USE_DRAW_GAME;
         } else if (name == "USI_Hash") {
@@ -70,7 +70,7 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
         } else if (name == "value_loss_coeff") {
             ifs >> VALUE_LOSS_COEFF;
         } else if (name == "max_stack_size") {
-            ifs >> replay_buffer_.max_size_;
+            ifs >> replay_buffer_.max_size;
         } else if (name == "first_wait") {
             ifs >> replay_buffer_.first_wait;
         } else if (name == "max_step_num") {

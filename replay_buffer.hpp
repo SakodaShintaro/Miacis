@@ -16,10 +16,10 @@ public:
     uint64_t first_wait;
 
     //最大サイズ
-    uint64_t max_size_;
+    uint64_t max_size;
 
     //TD(λ)のパラメータ
-    double lambda_;
+    double lambda;
 
 private:
     //実際のデータ

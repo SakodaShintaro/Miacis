@@ -4,8 +4,15 @@
 #include<thread>
 
 std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>> ReplayBuffer::makeBatch(int32_t batch_size) {
-    //ロックの確保する必要あるかな？
-    std::unique_lock<std::mutex> lock(mutex_);
+    //ロックの確保
+    mutex_.lock();
+
+    //一番最初だけ十分量に達するまで待つ
+    while (data_.size() < first_wait) {
+        mutex_.unlock();
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        mutex_.lock();
+    }
 
     //とりあえずランダムに取得
     static std::mt19937 engine(0);
@@ -17,25 +24,31 @@ std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>>
     std::vector<uint32_t> policy_labels;
     std::vector<ValueTeacher> value_teachers;
     for (int32_t i = 0; i < batch_size; i++) {
+        //データの取り出し
         std::string sfen;
         uint32_t policy_label;
         ValueTeacher value;
-        const auto& datum = data_[dist(engine)];
-        std::tie(sfen, policy_label, value) = datum;
+        std::tie(sfen, policy_label, value) = data_[dist(engine)];
 
+        //入力特徴量の確保
         pos.loadSFEN(sfen);
         auto feature = pos.makeFeature();
         inputs.resize(inputs.size() + feature.size());
         std::copy(feature.begin(), feature.end(), inputs.end() - feature.size());
 
+        //policyの教師
         policy_labels.push_back(policy_label);
 
+        //valueの教師
 #ifdef USE_CATEGORICAL
         value_teachers.push_back(valueToIndex(value));
 #else
         value_teachers.push_back(value);
 #endif
     }
+
+    //ロックの解放
+    mutex_.unlock();
 
     return std::make_tuple(inputs, policy_labels, value_teachers);
 }
@@ -62,7 +75,7 @@ void ReplayBuffer::push(Game &game) {
         //探索結果を先手から見た値に変換
         double curr_win_rate = (pos.color() == BLACK ? game.moves[i].score : MAX_SCORE + MIN_SCORE - game.moves[i].score);
         //混合
-        win_rate_for_black = lambda_ * win_rate_for_black + (1.0 - lambda_) * curr_win_rate;
+        win_rate_for_black = lambda * win_rate_for_black + (1.0 - lambda) * curr_win_rate;
 
         double teacher_signal = (pos.color() == BLACK ? win_rate_for_black : MAX_SCORE + MIN_SCORE - win_rate_for_black);
 
