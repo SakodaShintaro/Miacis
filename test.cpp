@@ -9,8 +9,9 @@
 #include"MCTSearcher.hpp"
 #include"parallel_MCTSearcher.hpp"
 #include"usi_options.hpp"
-#include "replay_buffer.hpp"
-#include "game_generator.hpp"
+#include"replay_buffer.hpp"
+#include"game_generator.hpp"
+#include"game_generator2.hpp"
 
 
 #include<cassert>
@@ -280,7 +281,7 @@ void checkGenSpeed() {
 
     for (int64_t thread_num = 10; thread_num <= 100; thread_num += 10) {
         auto start = std::chrono::steady_clock::now();
-        GameGenerator generator(0, 100, thread_num, buffer, *nn);
+        GameGenerator2 generator(0, 100, thread_num, buffer, *nn);
         generator.genGames();
         auto end = std::chrono::steady_clock::now();
         auto ela = end - start;

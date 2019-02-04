@@ -4,6 +4,9 @@
 #include "usi_options.hpp"
 
 void GameGenerator::genGames() {
+    //キューのクリア
+    clearEvalQueue();
+
     //GPUスレッドを生成
     running_ = true;
     std::thread gpu_thread(&GameGenerator::gpuFunc, this);

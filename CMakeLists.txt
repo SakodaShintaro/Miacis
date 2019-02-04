@@ -22,7 +22,9 @@ set(SRCS alphazero_trainer.cpp
          usi.cpp
          replay_buffer.cpp
          game_generator.cpp
-         searcher_for_gen.cpp)
+         game_generator2.cpp
+         searcher_for_gen.cpp
+         searcher_for_gen2.cpp)
 
 add_executable(Miacis_sv ${SRCS})
 add_executable(Miacis_cv ${SRCS})
