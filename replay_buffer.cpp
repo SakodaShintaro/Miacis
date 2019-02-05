@@ -1,5 +1,7 @@
 #include"replay_buffer.hpp"
 #include"operate_params.hpp"
+#include "replay_buffer.hpp"
+
 
 #include<thread>
 
@@ -89,5 +91,12 @@ void ReplayBuffer::push(Game &game) {
         //スタックに詰める
         data_.emplace_back(pos.toSFEN(), game.teachers[i].policy, game.teachers[i].value);
     }
+    mutex_.unlock();
+}
+
+void ReplayBuffer::clear() {
+    mutex_.lock();
+    data_.clear();
+    data_.shrink_to_fit();
     mutex_.unlock();
 }

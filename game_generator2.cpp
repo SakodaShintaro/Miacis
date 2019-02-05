@@ -7,7 +7,7 @@
 void GameGenerator2::genGames() {
     //生成スレッドを生成
     std::vector<std::thread> threads;
-    for (int64_t i = 0; i < 1; i++) {
+    for (int64_t i = 0; i < 2; i++) {
         threads.emplace_back(&GameGenerator2::genSlave, this, i);
     }
 

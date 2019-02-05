@@ -12,6 +12,8 @@ public:
     //データを入れる関数
     void push(Game& game);
 
+    void clear();
+
     //最初に待つ量
     uint64_t first_wait;
 
