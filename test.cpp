@@ -141,7 +141,7 @@ void testNN() {
     std::random_device rd;
 
     while (true) {
-        pos.print();
+        pos.print(false);
 
 //        auto moves = pos.generateAllMoves();
 //        if (moves.empty()) {
@@ -272,19 +272,20 @@ void testSpeed() {
 }
 
 void checkGenSpeed() {
-    usi_option.USI_Hash = 32;
+    usi_option.USI_Hash = 4;
     usi_option.playout_limit = 800;
-    usi_option.draw_turn = 128;
+    usi_option.draw_turn = 100;
 
     ReplayBuffer buffer;
     buffer.max_size = 10000;
 
-    for (int64_t thread_num = 10; thread_num <= 100; thread_num += 10) {
+    for (int64_t thread_num = 32; thread_num <= 128; thread_num *= 2) {
         auto start = std::chrono::steady_clock::now();
-        GameGenerator2 generator(0, 100, thread_num, buffer, *nn);
+        GameGenerator2 generator(0, thread_num, thread_num, buffer, *nn);
         generator.genGames();
         auto end = std::chrono::steady_clock::now();
-        auto ela = end - start;
-        std::cout << std::setw(4) << thread_num << " " << ela.count() << std::endl;
+        auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        std::cout << "thread_num = " << std::setw(4) << thread_num << ", elapsed = " << ela.count() << ", speed = "
+                  << (usi_option.draw_turn * thread_num * 1000.0) / ela.count() << " pos / sec" << std::endl;
     }
 }

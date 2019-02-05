@@ -40,6 +40,7 @@ GameGenerator2::SearcherForGen2::expandNode(Position &pos, std::stack<int32_t> &
 #endif
 
     // ノードを評価
+    // 千日手でも普通に展開して良いはず
     if (current_node.child_num > 0) {
         auto this_feature = pos.makeFeature();
         features_.resize(features_.size() + this_feature.size());
@@ -52,7 +53,7 @@ GameGenerator2::SearcherForGen2::expandNode(Position &pos, std::stack<int32_t> &
         ids_.push_back(id_);
     } else {
         if (pos.lastMove().isDrop() && (kind(pos.lastMove().subject()) == PAWN)) {
-            //打ち歩詰め
+            //打ち歩詰めなので勝ち
 #ifdef USE_CATEGORICAL
             for (int32_t i = 0; i < BIN_SIZE; i++) {
                 current_node.value[i] = (i == BIN_SIZE - 1 ? 1.0f : 0.0f);
@@ -71,6 +72,9 @@ GameGenerator2::SearcherForGen2::expandNode(Position &pos, std::stack<int32_t> &
 #endif
         }
         current_node.evaled = true;
+        //GPUに送らないのでこのタイミングでバックアップを行う
+        indices.push(index);
+        backup(indices, actions);
     }
 
     return index;
@@ -162,13 +166,25 @@ void GameGenerator2::SearcherForGen2::onePlay(Position &pos) {
         }
     }
 
+    if (pos.generateAllMoves().empty()) {
+        pos.print(false);
+        assert(false);
+    }
+
     std::stack<Index> curr_indices;
     std::stack<int32_t> curr_actions;
 
     auto index = current_root_index_;
+    //ルートでは合法手が一つはあるはず
+    assert(hash_table_[index].child_num != 0);
 
     //未展開の局面に至るまで遷移を繰り返す
     while(index != UctHashTable::NOT_EXPANDED) {
+        if (hash_table_[index].child_num == 0) {
+            //詰みの場合抜ける
+            break;
+        }
+
         //状態を記録
         curr_indices.push(index);
 
@@ -185,11 +201,19 @@ void GameGenerator2::SearcherForGen2::onePlay(Position &pos) {
         index = hash_table_[index].child_indices[action];
     }
 
+    //expandNode内でこれらの情報は壊れる可能性があるので保存しておく
+    index = curr_indices.top();
+    auto action = curr_actions.top();
+    auto move_num = curr_actions.size();
+
     //今の局面を展開・GPUに評価依頼を投げる
-    expandNode(pos, curr_indices, curr_actions);
+    auto leaf_index = expandNode(pos, curr_indices, curr_actions);
+
+    //葉の直前ノードを更新
+    hash_table_[index].child_indices[action] = leaf_index;
 
     //バックアップはGPU計算後にやるので局面だけ戻す
-    for (int32_t i = 0; i < curr_actions.size(); i++) {
+    for (int32_t i = 0; i < move_num; i++) {
         pos.undo();
     }
 }
@@ -212,6 +236,8 @@ bool GameGenerator2::SearcherForGen2::prepareForCurrPos(Position &root) {
 
 std::pair<Move, TeacherType> GameGenerator2::SearcherForGen2::resultForCurrPos(Position &root) {
     const auto& current_node = hash_table_[current_root_index_];
+    assert(current_node.child_num != 0);
+    assert(current_node.move_count != 0);
     const auto& child_move_counts = current_node.child_move_counts;
 
     // 訪問回数最大の手を選択する
@@ -225,7 +251,7 @@ std::pair<Move, TeacherType> GameGenerator2::SearcherForGen2::resultForCurrPos(P
         best_wp += VALUE_WIDTH * (0.5 + i) * v;
     }
 #else
-    auto best_wp = (child_move_counts[best_index] == 0 ? 0.0
+    auto best_wp = (child_move_counts[best_index] == 0 ? MIN_SCORE
                                                        : current_node.child_wins[best_index] / child_move_counts[best_index]);
 #endif
 
@@ -241,9 +267,14 @@ std::pair<Move, TeacherType> GameGenerator2::SearcherForGen2::resultForCurrPos(P
 
     //訪問回数に基づいた分布を得る
     std::vector<CalcType> distribution(static_cast<unsigned long>(current_node.child_num));
+    assert(current_node.move_count == std::accumulate(child_move_counts.begin(), child_move_counts.end(), 0));
     for (int32_t i = 0; i < current_node.child_num; i++) {
         distribution[i] = (CalcType)child_move_counts[i] / current_node.move_count;
-        assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
+        assert(0 <= child_move_counts[i] && child_move_counts[i] <= current_node.move_count);
+        if (!(0.0 <= distribution[i] && distribution[i] <= 1.0)) {
+            std::cout << distribution[i] << std::endl;
+            assert(false);
+        }
     }
 
     //最善手
@@ -278,5 +309,6 @@ void GameGenerator2::SearcherForGen2::backup(std::stack<int32_t> &indices, std::
         hash_table_[index].child_wins[action] += value;
         hash_table_[index].move_count++;
         hash_table_[index].child_move_counts[action]++;
+        assert(hash_table_[index].child_num != 0);
     }
 }

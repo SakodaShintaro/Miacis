@@ -294,7 +294,7 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
                 assert(false);
             }
             pos.doMove(best_move);
-            pos.print();
+            pos.print(false);
             game.moves.push_back(best_move);
             game.teachers.push_back(teacher);
 

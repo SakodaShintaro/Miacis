@@ -1,5 +1,6 @@
 #include <atomic>
 #include <thread>
+#include <iomanip>
 #include "game_generator2.hpp"
 #include "usi_options.hpp"
 
@@ -24,19 +25,19 @@ void GameGenerator2::genSlave(int64_t id) {
     std::vector<int32_t> ids;
 
     //このスレッドが管理するデータら
-    std::vector<Game> games(BATCH_SIZE);
-    std::vector<Position> positions(BATCH_SIZE);
+    std::vector<Game> games(thread_num_);
+    std::vector<Position> positions(thread_num_);
 
-    //探索クラスの生成
+    //探索クラスの生成,初期局面を探索する準備
     std::vector<SearcherForGen2> searchers;
-    for (int32_t i = 0; i < BATCH_SIZE; i++) {
+    for (int32_t i = 0; i < thread_num_; i++) {
         searchers.emplace_back(usi_option.USI_Hash, i, features, hash_indices, actions, ids);
         searchers[i].prepareForCurrPos(positions[i]);
     }
 
     //今からi番目のものが担当する番号を初期化
-    std::vector<int64_t> nums(BATCH_SIZE);
-    for (int32_t i = 0; i < BATCH_SIZE; i++) {
+    std::vector<int64_t> nums(thread_num_);
+    for (int32_t i = 0; i < thread_num_; i++) {
         nums[i] = game_num_--;
     }
 
@@ -78,7 +79,7 @@ void GameGenerator2::genSlave(int64_t id) {
         actions.clear();
         ids.clear();
 
-        for (int32_t i = 0; i < BATCH_SIZE; i++) {
+        for (int32_t i = 0; i < thread_num_; i++) {
             if (nums[i] <= 0) {
                 //担当するゲームのidが0以下だったらスキップ
                 continue;
@@ -91,16 +92,17 @@ void GameGenerator2::genSlave(int64_t id) {
                 games[i].moves.push_back(result.first);
                 games[i].teachers.push_back(result.second);
 
-                std::cout << "i = " << i << std::endl;
-                positions[i].print();
+                if (i == 0 && positions[i].turn_number() % 10 == 0) {
+                    std::cout << positions[i].turn_number() << " " << std::flush;
+                }
 
                 bool curr_game_finish = false;
                 if (positions[i].turn_number() >= usi_option.draw_turn) {
-                    //長手数による引き分けとしてリプレイバッファにデータを送る
+                    //長手数による引き分け
                     games[i].result = (MAX_SCORE + MIN_SCORE) / 2;
                     curr_game_finish = true;
                 } else if (!searchers[i].prepareForCurrPos(positions[i])) { //次局面を展開
-                    //投了なのでまずリプレイバッファにデータを送る
+                    //投了
                     games[i].result = (positions[i].color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
                     curr_game_finish = true;
                 }
@@ -128,9 +130,10 @@ void GameGenerator2::genSlave(int64_t id) {
 
         //numsが正であるものが一つでもあるかどうかを確認
         bool all_finish = true;
-        for (int32_t i = 0; i < BATCH_SIZE; i++) {
+        for (int32_t i = 0; i < thread_num_; i++) {
             if (nums[i] > 0) {
                 all_finish = false;
+                break;
             }
         }
         if (all_finish) {
@@ -138,6 +141,8 @@ void GameGenerator2::genSlave(int64_t id) {
         }
 
         //GPUで評価
-        evalWithGPU();
+        if (!ids.empty()) {
+            evalWithGPU();
+        }
     }
 }

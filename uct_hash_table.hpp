@@ -72,7 +72,6 @@ public:
 
     int64_t size() {
         return table_.size();
-        return size_;
     }
 
     // 未展開のノードのインデックス

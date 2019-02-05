@@ -156,7 +156,7 @@ std::pair<Move, TeacherType> ParallelMCTSearcher<Var>::think(Position& root) {
 
     if (usi_option.print_usi_info) {
         printUSIInfo();
-        root.print();
+        root.print(false);
         auto root_moves = current_node.legal_moves;
         for (int32_t i = 0; i < current_node.child_num; i++) {
 #ifdef USE_CATEGORICAL

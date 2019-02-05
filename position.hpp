@@ -22,7 +22,7 @@ public:
     void init();
 
     //内部の状態等を表示する関数
-    void print() const;
+    void print(bool with_score = true) const;
     void printHistory() const;
     void printForDebug() const;
 
