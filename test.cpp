@@ -279,7 +279,7 @@ void checkGenSpeed() {
     ReplayBuffer buffer;
     buffer.max_size = 10000;
 
-    for (int64_t thread_num = 128; thread_num <= 128; thread_num *= 2) {
+    for (int64_t thread_num = 8; thread_num <= 128; thread_num *= 2) {
         buffer.clear();
         auto start = std::chrono::steady_clock::now();
         GameGenerator2 generator(0, thread_num * 2, thread_num, buffer, *nn);
