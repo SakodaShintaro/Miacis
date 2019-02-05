@@ -50,9 +50,9 @@ struct TeacherType {
 
 //出力のチャンネル数:各マスに対する移動元方向(10) * 2 + 持ち駒7
 constexpr uint32_t POLICY_CHANNEL_NUM = 27;
-constexpr int32_t BLOCK_NUM = 2;
+constexpr int32_t BLOCK_NUM = 3;
 constexpr int32_t KERNEL_SIZE = 3;
-constexpr int32_t CHANNEL_NUM = 32;
+constexpr int32_t CHANNEL_NUM = 64;
 constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
 template <typename Var>

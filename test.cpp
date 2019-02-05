@@ -272,14 +272,14 @@ void testSpeed() {
 }
 
 void checkGenSpeed() {
-    usi_option.USI_Hash = 2;
+    usi_option.USI_Hash = 1;
     usi_option.playout_limit = 800;
     usi_option.draw_turn = 100;
 
     ReplayBuffer buffer;
     buffer.max_size = 10000;
 
-    for (int64_t thread_num = 64; thread_num <= 128; thread_num *= 2) {
+    for (int64_t thread_num = 128; thread_num <= 128; thread_num *= 2) {
         buffer.clear();
         auto start = std::chrono::steady_clock::now();
         GameGenerator2 generator(0, thread_num * 2, thread_num, buffer, *nn);
