@@ -194,12 +194,10 @@ void AlphaZeroTrainer::evaluate(int64_t step) {
     //設定を評価用に変える
     auto before_random_turn = usi_option.random_turn;
     usi_option.random_turn = EVALUATION_RANDOM_TURN;
-    usi_option.train_mode = false;
     auto test_games = play(EVALUATION_GAME_NUM, false);
 
     //設定を戻す
     usi_option.random_turn = before_random_turn;
-    usi_option.train_mode = true;
 
     //いくつか出力
     for (int32_t i = 0; i < std::min(4, (int32_t) test_games.size()); i++) {

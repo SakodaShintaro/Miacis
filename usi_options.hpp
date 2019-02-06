@@ -15,7 +15,6 @@ public:
 	int64_t limit_msec;
 	bool stop_signal;
 	bool print_usi_info;
-	bool train_mode;
 
     int64_t playout_limit;
 };

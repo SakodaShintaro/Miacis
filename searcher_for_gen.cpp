@@ -19,12 +19,10 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::think(Position& root
 
     //ノイズを加える
     //Alpha Zeroの論文と同じディリクレノイズ
-    if (usi_option.train_mode) {
-        constexpr double epsilon = 0.25;
-        auto dirichlet = dirichletDistribution(current_node.child_num, 0.15);
-        for (int32_t i = 0; i < current_node.child_num; i++) {
-            current_node.nn_rates[i] = (CalcType)((1.0 - epsilon) * current_node.nn_rates[i] + epsilon * dirichlet[i]);
-        }
+    constexpr double epsilon = 0.25;
+    auto dirichlet = dirichletDistribution(current_node.child_num, 0.15);
+    for (int32_t i = 0; i < current_node.child_num; i++) {
+        current_node.nn_rates[i] = (CalcType) ((1.0 - epsilon) * current_node.nn_rates[i] + epsilon * dirichlet[i]);
     }
 
     //初期化
