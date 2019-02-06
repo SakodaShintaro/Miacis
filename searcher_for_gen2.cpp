@@ -1,5 +1,6 @@
 #include "game_generator2.hpp"
 #include "usi_options.hpp"
+#include "operate_params.hpp"
 #include <thread>
 #include <stack>
 
