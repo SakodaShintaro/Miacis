@@ -231,7 +231,7 @@ void GameGenerator::genSlave(int64_t id) {
                 continue;
             }
 
-            if (searchers[i].shouldGoNextPosition()) {
+            if (searchers[i].shouldStop()) {
                 //探索結果を取得して次の局面へ遷移
                 auto result = searchers[i].resultForCurrPos(positions[i]);
                 positions[i].doMove(result.first);
@@ -287,6 +287,8 @@ void GameGenerator::genSlave(int64_t id) {
         }
 
         //GPUで評価
+        //探索結果が既存ノードへの合流,あるいは詰みのときには計算要求がないので一応空かどうかを確認
+        //複数のsearcherが同時にそうなる確率はかなり低そうだが
         if (!ids.empty()) {
             evalWithGPU();
         }

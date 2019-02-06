@@ -4,6 +4,82 @@
 #include <thread>
 #include <stack>
 
+//共通するものは分岐する前に置いておく
+std::vector<double> GameGenerator::SearcherForGen::dirichletDistribution(int32_t k, double alpha) {
+    static std::random_device seed;
+    static std::default_random_engine engine(seed());
+    static constexpr double eps = 0.000000001;
+    std::gamma_distribution<double> gamma(alpha, 1.0);
+    std::vector<double> dirichlet(static_cast<unsigned long>(k));
+    double sum = 0.0;
+    for (int32_t i = 0; i < k; i++) {
+        sum += (dirichlet[i] = std::max(gamma(engine), eps));
+    }
+    for (int32_t i = 0; i < k; i++) {
+        dirichlet[i] /= sum;
+    }
+    return dirichlet;
+}
+
+//これは通常の探索クラスとも共通するのでなんとかまとめたいが
+int32_t GameGenerator::SearcherForGen::selectMaxUcbChild(const UctHashEntry & current_node) {
+    const auto& child_move_counts = current_node.child_move_counts;
+
+#ifdef USE_CATEGORICAL
+    int32_t selected_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
+    double best_wp = expOfValueDist(current_node.child_wins[selected_index]) / child_move_counts[selected_index];
+#endif
+
+    // ucb = Q(s, a) + U(s, a)
+    // Q(s, a) = W(s, a) / N(s, a)
+    // U(s, a) = C_PUCT * P(s, a) * sqrt(sum_b(B(s, b)) / (1 + N(s, a))
+    constexpr double C_PUCT = 1.0;
+
+    int32_t max_index = -1;
+    double max_value = MIN_SCORE - 1;
+    for (int32_t i = 0; i < current_node.child_num; i++) {
+#ifdef USE_CATEGORICAL
+        double Q;
+        if (child_move_counts[i] == 0) {
+            //中間を初期値とする
+            Q = (MAX_SCORE + MIN_SCORE) / 2;
+        } else {
+            Q = 0.0;
+            for (int32_t j = std::min((int32_t)(best_wp * BIN_SIZE) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
+                Q += current_node.child_wins[i][j] / child_move_counts[i];
+            }
+        }
+#else
+        double Q = (child_move_counts[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.child_wins[i] / child_move_counts[i]);
+#endif
+        double U = std::sqrt(current_node.move_count + 1) / (child_move_counts[i] + 1);
+        double ucb = Q + C_PUCT * current_node.nn_rates[i] * U;
+
+        if (ucb > max_value) {
+            max_value = ucb;
+            max_index = i;
+        }
+    }
+    assert(0 <= max_index && max_index < (int32_t)current_node.child_num);
+    return max_index;
+}
+
+bool GameGenerator::SearcherForGen::shouldStop() {
+    // 探索回数が最も多い手と次に多い手を求める
+    int32_t max1 = 0, max2 = 0;
+    for (auto e : hash_table_[current_root_index_].child_move_counts) {
+        if (e > max1) {
+            max2 = max1;
+            max1 = e;
+        } else if (e > max2) {
+            max2 = e;
+        }
+    }
+
+    // 残りの探索を全て次善手に費やしても最善手を超えられない場合は探索を打ち切る
+    return (max1 - max2) > (usi_option.playout_limit - playout_num_);
+}
+
 #ifdef USE_PARALLEL_SEARCHER
 
 std::pair<Move, TeacherType> GameGenerator::SearcherForGen::think(Position& root) {
@@ -229,80 +305,6 @@ Index GameGenerator::SearcherForGen::expandNode(Position& pos) {
     return index;
 }
 
-bool GameGenerator::SearcherForGen::shouldStop() {
-    // 探索回数が最も多い手と次に多い手を求める
-    int32_t max1 = 0, max2 = 0;
-    for (auto e : hash_table_[current_root_index_].child_move_counts) {
-        if (e > max1) {
-            max2 = max1;
-            max1 = e;
-        } else if (e > max2) {
-            max2 = e;
-        }
-    }
-
-    // 残りの探索を全て次善手に費やしても最善手を超えられない場合は探索を打ち切る
-    return (max1 - max2) > (usi_option.playout_limit - playout_num_);
-}
-
-std::vector<double> GameGenerator::SearcherForGen::dirichletDistribution(int32_t k, double alpha) {
-    static std::random_device seed;
-    static std::default_random_engine engine(seed());
-    static constexpr double eps = 0.000000001;
-    std::gamma_distribution<double> gamma(alpha, 1.0);
-    std::vector<double> dirichlet(static_cast<unsigned long>(k));
-    double sum = 0.0;
-    for (int32_t i = 0; i < k; i++) {
-        sum += (dirichlet[i] = std::max(gamma(engine), eps));
-    }
-    for (int32_t i = 0; i < k; i++) {
-        dirichlet[i] /= sum;
-    }
-    return dirichlet;
-}
-
-int32_t GameGenerator::SearcherForGen::selectMaxUcbChild(const UctHashEntry & current_node) {
-    const auto& child_move_counts = current_node.child_move_counts;
-
-#ifdef USE_CATEGORICAL
-    int32_t selected_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
-    double best_wp = expOfValueDist(current_node.child_wins[selected_index]) / child_move_counts[selected_index];
-#endif
-
-    // ucb = Q(s, a) + U(s, a)
-    // Q(s, a) = W(s, a) / N(s, a)
-    // U(s, a) = C_PUCT * P(s, a) * sqrt(sum_b(B(s, b)) / (1 + N(s, a))
-    constexpr double C_PUCT = 1.0;
-
-    int32_t max_index = -1;
-    double max_value = MIN_SCORE - 1;
-    for (int32_t i = 0; i < current_node.child_num; i++) {
-#ifdef USE_CATEGORICAL
-        double Q;
-        if (child_move_counts[i] == 0) {
-            //中間を初期値とする
-            Q = (MAX_SCORE + MIN_SCORE) / 2;
-        } else {
-            Q = 0.0;
-            for (int32_t j = std::min((int32_t)(best_wp * BIN_SIZE) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-                Q += current_node.child_wins[i][j] / child_move_counts[i];
-            }
-        }
-#else
-        double Q = (child_move_counts[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.child_wins[i] / child_move_counts[i]);
-#endif
-        double U = std::sqrt(current_node.move_count + 1) / (child_move_counts[i] + 1);
-        double ucb = Q + C_PUCT * current_node.nn_rates[i] * U;
-
-        if (ucb > max_value) {
-            max_value = ucb;
-            max_index = i;
-        }
-    }
-    assert(0 <= max_index && max_index < (int32_t)current_node.child_num);
-    return max_index;
-}
-
 void GameGenerator::SearcherForGen::onePlay(Position &pos) {
     std::stack<Index> indices;
     std::stack<int32_t> actions;
@@ -429,80 +431,6 @@ Index GameGenerator::SearcherForGen::expandNode(Position &pos, std::stack<int32_
     return index;
 }
 
-bool GameGenerator::SearcherForGen::shouldGoNextPosition(){
-    // 探索回数が最も多い手と次に多い手を求める
-    int32_t max1 = 0, max2 = 0;
-    for (auto e : hash_table_[current_root_index_].child_move_counts) {
-        if (e > max1) {
-            max2 = max1;
-            max1 = e;
-        } else if (e > max2) {
-            max2 = e;
-        }
-    }
-
-    // 残りの探索を全て次善手に費やしても最善手を超えられない場合は探索を打ち切る
-    return (max1 - max2) > (usi_option.playout_limit - playout_num_);
-}
-
-std::vector<double> GameGenerator::SearcherForGen::dirichletDistribution(int32_t k, double alpha) {
-    static std::random_device seed;
-    static std::default_random_engine engine(seed());
-    static constexpr double eps = 0.000000001;
-    std::gamma_distribution<double> gamma(alpha, 1.0);
-    std::vector<double> dirichlet(static_cast<unsigned long>(k));
-    double sum = 0.0;
-    for (int32_t i = 0; i < k; i++) {
-        sum += (dirichlet[i] = std::max(gamma(engine), eps));
-    }
-    for (int32_t i = 0; i < k; i++) {
-        dirichlet[i] /= sum;
-    }
-    return dirichlet;
-}
-
-int32_t GameGenerator::SearcherForGen::selectMaxUcbChild(const UctHashEntry & current_node) {
-    const auto& child_move_counts = current_node.child_move_counts;
-
-#ifdef USE_CATEGORICAL
-    int32_t selected_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
-    double best_wp = expOfValueDist(current_node.child_wins[selected_index]) / child_move_counts[selected_index];
-#endif
-
-    // ucb = Q(s, a) + U(s, a)
-    // Q(s, a) = W(s, a) / N(s, a)
-    // U(s, a) = C_PUCT * P(s, a) * sqrt(sum_b(B(s, b)) / (1 + N(s, a))
-    constexpr double C_PUCT = 1.0;
-
-    int32_t max_index = -1;
-    double max_value = MIN_SCORE - 1;
-    for (int32_t i = 0; i < current_node.child_num; i++) {
-#ifdef USE_CATEGORICAL
-        double Q;
-        if (child_move_counts[i] == 0) {
-            //中間を初期値とする
-            Q = (MAX_SCORE + MIN_SCORE) / 2;
-        } else {
-            Q = 0.0;
-            for (int32_t j = std::min((int32_t)(best_wp * BIN_SIZE) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-                Q += current_node.child_wins[i][j] / child_move_counts[i];
-            }
-        }
-#else
-        double Q = (child_move_counts[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.child_wins[i] / child_move_counts[i]);
-#endif
-        double U = std::sqrt(current_node.move_count + 1) / (child_move_counts[i] + 1);
-        double ucb = Q + C_PUCT * current_node.nn_rates[i] * U;
-
-        if (ucb > max_value) {
-            max_value = ucb;
-            max_index = i;
-        }
-    }
-    assert(0 <= max_index && max_index < (int32_t)current_node.child_num);
-    return max_index;
-}
-
 void GameGenerator::SearcherForGen::onePlay(Position &pos) {
     if (playout_num_++ == 0) {
         //初回の探索をする前にノイズを加える
@@ -513,11 +441,6 @@ void GameGenerator::SearcherForGen::onePlay(Position &pos) {
         for (int32_t i = 0; i < current_node.child_num; i++) {
             current_node.nn_rates[i] = (CalcType) ((1.0 - epsilon) * current_node.nn_rates[i] + epsilon * dirichlet[i]);
         }
-    }
-
-    if (pos.generateAllMoves().empty()) {
-        pos.print(false);
-        assert(false);
     }
 
     std::stack<Index> curr_indices;

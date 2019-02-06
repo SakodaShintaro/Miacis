@@ -8,6 +8,8 @@
 #include <mutex>
 #include <stack>
 
+//#define USE_PARALLEL_SEARCHER
+
 class GameGenerator{
 public:
     GameGenerator(int64_t gpu_id, int64_t parallel_num, ReplayBuffer &rb, NeuralNetwork<Tensor> &nn) :
@@ -17,6 +19,18 @@ public:
     void genGames(int64_t game_num);
 
 private:
+    //使うGPUのid
+    int64_t gpu_id_;
+
+    //並列化する数
+    int64_t parallel_num_;
+
+    //データを送るReplayBufferへの参照
+    ReplayBuffer& rb_;
+
+    //局面評価に用いるネットワーク
+    NeuralNetwork<Tensor>& evaluator_;
+
 #ifdef USE_PARALLEL_SEARCHER
     //生成してはreplay_bufferへ送る関数
     void genSlave(int64_t id);
@@ -27,23 +41,11 @@ private:
     //キューをクリアする関数
     void clearEvalQueue();
 
-    //使うGPUのid
-    int64_t gpu_id_;
-
     //生成する局数
     std::atomic<int64_t> game_num_;
 
-    //並列化するスレッド数
-    int64_t parallel_num_;
-
     //実行を続けるフラグ
     bool running_;
-
-    //データを送るReplayBufferへの参照
-    ReplayBuffer& rb_;
-
-    //局面評価に用いるネットワーク
-    NeuralNetwork<Tensor>& evaluator_;
 
     //mutex
     std::mutex lock_expand_;
@@ -106,23 +108,11 @@ private:
     //生成してはreplay_bufferへ送る関数
     void genSlave(int64_t id);
 
-    //1スレッドが持つsearcherの数
-    int64_t parallel_num_;
-
-    //使うGPUのid
-    int64_t gpu_id_;
-
     //mutex
     std::mutex gpu_mutex_;
 
     //生成する局数
     std::atomic<int64_t> game_num_;
-
-    //データを送るReplayBufferへの参照
-    ReplayBuffer& rb_;
-
-    //局面評価に用いるネットワーク
-    NeuralNetwork<Tensor>& evaluator_;
 
     //探索クラス
     class SearcherForGen {
@@ -136,7 +126,7 @@ private:
         UctHashTable hash_table_;
 
         //現局面の探索を終了して次局面へ遷移するかを判定する関数
-        bool shouldGoNextPosition();
+        bool shouldStop();
 
         //現局面の探索結果を返す関数
         std::pair<Move, TeacherType> resultForCurrPos(Position &root);
@@ -147,6 +137,7 @@ private:
         //root局面を探索する準備を行う関数
         bool prepareForCurrPos(Position &root);
 
+        //GPUの計算結果をルートノードまでバックアップする関数
         void backup(std::stack<int32_t> &indices, std::stack<int32_t> &actions);
     private:
         //ノードを展開する関数
