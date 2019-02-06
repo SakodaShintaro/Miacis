@@ -4,7 +4,10 @@
 #include "game_generator2.hpp"
 #include "usi_options.hpp"
 
-void GameGenerator2::genGames() {
+void GameGenerator2::genGames(int64_t game_num) {
+    //生成対局数を設定
+    game_num_ = game_num;
+
     //生成スレッドを生成
     std::vector<std::thread> threads;
     for (int64_t i = 0; i < 2; i++) {

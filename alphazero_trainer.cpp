@@ -133,8 +133,8 @@ void AlphaZeroTrainer::startLearn() {
     optimizer.add(learning_model_);
 
     //自己対局をしてreplay_buffer_にデータを追加
-    GameGenerator gg(0, 30, 30, replay_buffer_, *nn);
-    gg.genGames();
+    GameGenerator gg(0, 30, replay_buffer_, *nn);
+    gg.genGames(0);
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         //自己対局をしてreplay_buffer_にデータを追加

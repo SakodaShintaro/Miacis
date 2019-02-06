@@ -3,9 +3,11 @@
 #include "game_generator.hpp"
 #include "usi_options.hpp"
 
-void GameGenerator::genGames() {
+void GameGenerator::genGames(int64_t game_num) {
     //キューのクリア
     clearEvalQueue();
+
+    game_num_ = game_num;
 
     //GPUスレッドを生成
     running_ = true;

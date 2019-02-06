@@ -9,13 +9,13 @@
 
 class GameGenerator{
 public:
-    GameGenerator(int64_t gpu_id, int64_t game_num, int64_t thread_num, ReplayBuffer& rb, NeuralNetwork<Tensor>& nn) :
-    gpu_id_(gpu_id), thread_num_(thread_num), game_num_(game_num), rb_(rb), evaluator_(nn) {
+    GameGenerator(int64_t gpu_id, int64_t thread_num, ReplayBuffer &rb, NeuralNetwork<Tensor> &nn) :
+    gpu_id_(gpu_id), thread_num_(thread_num), rb_(rb), evaluator_(nn) {
         clearEvalQueue();
     };
 
     //決まったゲーム数生成する関数
-    void genGames();
+    void genGames(int64_t game_num);
 
 private:
     //生成してはreplay_bufferへ送る関数

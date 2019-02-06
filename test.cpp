@@ -281,8 +281,8 @@ void checkGenSpeed() {
     for (int64_t thread_num = 8; thread_num <= 128; thread_num *= 2) {
         buffer.clear();
         auto start = std::chrono::steady_clock::now();
-        GameGenerator2 generator(0, thread_num * 2, thread_num, buffer, *nn);
-        generator.genGames();
+        GameGenerator2 generator(0, thread_num, buffer, *nn);
+        generator.genGames(thread_num * 2);
         auto end = std::chrono::steady_clock::now();
         auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         std::cout << "thread_num = " << std::setw(4) << thread_num << ", elapsed = " << ela.count() << ", speed = "
