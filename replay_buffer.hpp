@@ -12,7 +12,9 @@ public:
     //データを入れる関数
     void push(Game& game);
 
+    //checkGenSpeedで使うもの
     void clear();
+    int64_t size() { return data_.size(); }
 
     //最初に待つ量
     uint64_t first_wait;

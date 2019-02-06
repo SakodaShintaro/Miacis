@@ -235,7 +235,7 @@ void GameGenerator::genSlave(int64_t id) {
                 games[i].moves.push_back(result.first);
                 games[i].teachers.push_back(result.second);
 
-                if (i == 0 && positions[i].turn_number() % 10 == 0) {
+                if (i == 0 && positions[i].turn_number() % 50 == 0) {
                     std::cout << positions[i].turn_number() << " " << std::flush;
                 }
 

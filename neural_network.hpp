@@ -194,7 +194,7 @@ public:
 #endif
     }
 
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(std::vector<float> inputs) {
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(std::vector<float>& inputs) {
         auto y = feedForward(inputs);
 
         auto batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);
@@ -218,16 +218,13 @@ public:
             }
         }
 #else
-        auto value = y.second.to_vector();
-        for (int32_t i = 0; i < batch_size; i++) {
-            values[i] = value[i];
-        }
+        values = y.second.to_vector();
 #endif
         return { policies, values };
     }
 
 #ifdef USE_CATEGORICAL
-    std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<uint32_t >& value_labels) {
+    std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<uint32_t>& value_labels) {
 #else
     std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<float>& value_teachers) {
 #endif
