@@ -235,10 +235,6 @@ void GameGenerator::genSlave(int64_t id) {
                 games[i].moves.push_back(result.first);
                 games[i].teachers.push_back(result.second);
 
-                if (i == 0 && positions[i].turn_number() % 50 == 0) {
-                    std::cout << positions[i].turn_number() << " " << std::flush;
-                }
-
                 bool curr_game_finish = false;
                 if (positions[i].turn_number() >= usi_option.draw_turn) {
                     //長手数による引き分け
