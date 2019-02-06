@@ -10,8 +10,8 @@
 
 class GameGenerator2{
 public:
-    GameGenerator2(int64_t gpu_id, int64_t game_num, int64_t thread_num, ReplayBuffer& rb, NeuralNetwork<Tensor>& nn) :
-    gpu_id_(gpu_id), game_num_(game_num), thread_num_(thread_num), rb_(rb), evaluator_(nn) {};
+    GameGenerator2(int64_t gpu_id, int64_t game_num, int64_t searcher_num, ReplayBuffer& rb, NeuralNetwork<Tensor>& nn) :
+    gpu_id_(gpu_id), game_num_(game_num), searcher_num_(searcher_num), rb_(rb), evaluator_(nn) {};
 
     //決まったゲーム数生成する関数
     void genGames();
@@ -20,7 +20,8 @@ private:
     //生成してはreplay_bufferへ送る関数
     void genSlave(int64_t id);
 
-    int32_t thread_num_ = 32;
+    //1スレッドが持つsearcherの数
+    int64_t searcher_num_;
 
     //使うGPUのid
     int64_t gpu_id_;

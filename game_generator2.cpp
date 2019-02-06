@@ -25,19 +25,19 @@ void GameGenerator2::genSlave(int64_t id) {
     std::vector<int32_t> ids;
 
     //このスレッドが管理するデータら
-    std::vector<Game> games(thread_num_);
-    std::vector<Position> positions(thread_num_);
+    std::vector<Game> games(searcher_num_);
+    std::vector<Position> positions(searcher_num_);
 
     //探索クラスの生成,初期局面を探索する準備
     std::vector<SearcherForGen2> searchers;
-    for (int32_t i = 0; i < thread_num_; i++) {
+    for (int32_t i = 0; i < searcher_num_; i++) {
         searchers.emplace_back(usi_option.USI_Hash, i, features, hash_indices, actions, ids);
         searchers[i].prepareForCurrPos(positions[i]);
     }
 
     //今からi番目のものが担当する番号を初期化
-    std::vector<int64_t> nums(thread_num_);
-    for (int32_t i = 0; i < thread_num_; i++) {
+    std::vector<int64_t> nums(searcher_num_);
+    for (int32_t i = 0; i < searcher_num_; i++) {
         nums[i] = game_num_--;
     }
 
@@ -79,7 +79,7 @@ void GameGenerator2::genSlave(int64_t id) {
         actions.clear();
         ids.clear();
 
-        for (int32_t i = 0; i < thread_num_; i++) {
+        for (int32_t i = 0; i < searcher_num_; i++) {
             if (nums[i] <= 0) {
                 //担当するゲームのidが0以下だったらスキップ
                 continue;
@@ -130,7 +130,7 @@ void GameGenerator2::genSlave(int64_t id) {
 
         //numsが正であるものが一つでもあるかどうかを確認
         bool all_finish = true;
-        for (int32_t i = 0; i < thread_num_; i++) {
+        for (int32_t i = 0; i < searcher_num_; i++) {
             if (nums[i] > 0) {
                 all_finish = false;
                 break;
