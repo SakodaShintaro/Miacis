@@ -11,8 +11,6 @@
 #include"usi_options.hpp"
 #include"replay_buffer.hpp"
 #include"game_generator.hpp"
-#include"game_generator2.hpp"
-
 
 #include<cassert>
 #include<numeric>
@@ -281,11 +279,11 @@ void checkGenSpeed() {
     for (int64_t thread_num = 8; thread_num <= 128; thread_num *= 2) {
         buffer.clear();
         auto start = std::chrono::steady_clock::now();
-        GameGenerator2 generator(0, thread_num, buffer, *nn);
-        generator.genGames(thread_num * 2);
+        GameGenerator generator(0, thread_num, buffer, *nn);
+        generator.genGames(thread_num);
         auto end = std::chrono::steady_clock::now();
         auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         std::cout << "thread_num = " << std::setw(4) << thread_num << ", elapsed = " << ela.count() << ", speed = "
-                  << (usi_option.draw_turn * thread_num * 2 * 1000.0) / ela.count() << " pos / sec" << std::endl;
+                  << (usi_option.draw_turn * thread_num * 1000.0) / ela.count() << " pos / sec" << std::endl;
     }
 }
