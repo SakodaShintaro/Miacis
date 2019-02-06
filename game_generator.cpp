@@ -153,7 +153,7 @@ void GameGenerator::genGames(int64_t game_num) {
 
     //生成スレッドを生成
     std::vector<std::thread> threads;
-    for (int64_t i = 0; i < 2; i++) {
+    for (int64_t i = 0; i < THREAD_NUM; i++) {
         threads.emplace_back(&GameGenerator::genSlave, this, i);
     }
 
@@ -170,20 +170,24 @@ void GameGenerator::genSlave(int64_t id) {
     std::vector<std::stack<int32_t>> actions;
     std::vector<int32_t> ids;
 
+    //並列化する総数をスレッド数で割ったものがこのスレッドで管理するべき数
+    assert(parallel_num_ % THREAD_NUM == 0);
+    const int64_t parallel_num = parallel_num_ / THREAD_NUM;
+
     //このスレッドが管理するデータら
-    std::vector<Game> games(parallel_num_);
-    std::vector<Position> positions(parallel_num_);
+    std::vector<Game> games(parallel_num);
+    std::vector<Position> positions(parallel_num);
 
     //探索クラスの生成,初期局面を探索する準備
     std::vector<SearcherForGen> searchers;
-    for (int32_t i = 0; i < parallel_num_; i++) {
+    for (int32_t i = 0; i < parallel_num; i++) {
         searchers.emplace_back(usi_option.USI_Hash, i, features, hash_indices, actions, ids);
         searchers[i].prepareForCurrPos(positions[i]);
     }
 
     //今からi番目のものが担当する番号を初期化
-    std::vector<int64_t> nums(parallel_num_);
-    for (int32_t i = 0; i < parallel_num_; i++) {
+    std::vector<int64_t> nums(parallel_num);
+    for (int32_t i = 0; i < parallel_num; i++) {
         nums[i] = game_num_--;
     }
 
@@ -225,7 +229,7 @@ void GameGenerator::genSlave(int64_t id) {
         actions.clear();
         ids.clear();
 
-        for (int32_t i = 0; i < parallel_num_; i++) {
+        for (int32_t i = 0; i < parallel_num; i++) {
             if (nums[i] <= 0) {
                 //担当するゲームのidが0以下だったらスキップ
                 continue;
@@ -276,7 +280,7 @@ void GameGenerator::genSlave(int64_t id) {
 
         //numsが正であるものが一つでもあるかどうかを確認
         bool all_finish = true;
-        for (int32_t i = 0; i < parallel_num_; i++) {
+        for (int32_t i = 0; i < parallel_num; i++) {
             if (nums[i] > 0) {
                 all_finish = false;
                 break;

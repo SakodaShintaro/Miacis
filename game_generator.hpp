@@ -114,6 +114,9 @@ private:
     //生成する局数
     std::atomic<int64_t> game_num_;
 
+    //スレッド数:GPUを交互に使う2が最適値なはず
+    static constexpr int32_t THREAD_NUM = 2;
+
     //探索クラス
     class SearcherForGen {
     public:
