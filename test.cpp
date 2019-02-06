@@ -134,7 +134,6 @@ void testNN() {
     Position pos;
     auto searcher = std::make_unique<MCTSearcher<Tensor>>(16, 1, *nn);
     usi_option.playout_limit = 800;
-    usi_option.print_usi_info = true;
 
     testToLabel();
 

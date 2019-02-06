@@ -14,7 +14,6 @@ public:
     //探索中に参照するものら
 	int64_t limit_msec;
 	bool stop_signal;
-	bool print_usi_info;
 
     int64_t playout_limit;
 };

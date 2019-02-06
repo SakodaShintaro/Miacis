@@ -190,7 +190,6 @@ void USI::position() {
 
 void USI::go() {
     usi_option.stop_signal = false;
-    usi_option.print_usi_info = true;
     std::string input;
     std::cin >> input;
     if (input == "ponder") {

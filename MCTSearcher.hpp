@@ -106,27 +106,26 @@ std::pair<Move, TeacherType> MCTSearcher<Var>::think(Position& root) {
 
     const auto& child_move_counts = current_node.child_move_counts;
 
-    if (usi_option.print_usi_info) {
-        printUSIInfo();
-        root.print(false);
-        auto root_moves = current_node.legal_moves;
-        for (int32_t i = 0; i < current_node.child_num; i++) {
+    printUSIInfo();
+    root.print(false);
+    auto root_moves = current_node.legal_moves;
+    for (int32_t i = 0; i < current_node.child_num; i++) {
 #ifdef USE_CATEGORICAL
-            double v = 0.0;
-            if (child_move_counts[i] != 0) {
-                for (int32_t j = 0; j < BIN_SIZE; j++) {
-                    v += VALUE_WIDTH * (0.5 + j) * (current_node.child_wins[i][j] / child_move_counts[i]);
-                }
+        double v = 0.0;
+        if (child_move_counts[i] != 0) {
+            for (int32_t j = 0; j < BIN_SIZE; j++) {
+                v += VALUE_WIDTH * (0.5 + j) * (current_node.child_wins[i][j] / child_move_counts[i]);
             }
-            printf("%3d: move_count = %6d, nn_rate = %.5f, win_rate = %7.5f, ", i, child_move_counts[i],
-                current_node.nn_rates[i], v);
-            root_moves[i].print();
-#else
-            printf("%3d: move_count = %6d, nn_rate = %.5f, win_rate = %+7.5f, ", i, child_move_counts[i],
-                   current_node.nn_rates[i], (child_move_counts[i] > 0 ? current_node.child_wins[i] / child_move_counts[i] : 0));
-            root_moves[i].print();
-#endif
         }
+        printf("%3d: move_count = %6d, nn_rate = %.5f, win_rate = %7.5f, ", i, child_move_counts[i],
+            current_node.nn_rates[i], v);
+        root_moves[i].print();
+#else
+        printf("%3d: move_count = %6d, nn_rate = %.5f, win_rate = %+7.5f, ", i, child_move_counts[i],
+               current_node.nn_rates[i],
+               (child_move_counts[i] > 0 ? current_node.child_wins[i] / child_move_counts[i] : 0));
+        root_moves[i].print();
+#endif
     }
 
     // 訪問回数最大の手を選択する
