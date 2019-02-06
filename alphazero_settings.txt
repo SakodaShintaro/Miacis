@@ -19,3 +19,4 @@ max_stack_size 100000
 first_wait 10000
 max_step_num 700000
 playout_limit 800
+parallel_num 64

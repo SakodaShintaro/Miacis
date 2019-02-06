@@ -77,6 +77,8 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
             ifs >> MAX_STEP_NUM;
         } else if (name == "playout_limit") {
             ifs >> usi_option.playout_limit;
+        } else if (name == "parallel_num") {
+            ifs >> PARALLEL_NUM;
         }
     }
 
@@ -132,22 +134,15 @@ void AlphaZeroTrainer::startLearn() {
     optimizer.set_weight_decay(1e-4);
     optimizer.add(learning_model_);
 
-    //自己対局をしてreplay_buffer_にデータを追加
-    GameGenerator gg(0, 30, replay_buffer_, *nn);
-    gg.genGames(0);
+    //自己対局をしてreplay_buffer_にデータを追加するインスタンス
+    GameGenerator generator(0, PARALLEL_NUM, replay_buffer_, *nn);
+
+    //最初にいくらか追加しておく
+    generator.genGames(10);
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         //自己対局をしてreplay_buffer_にデータを追加
-//        for (Game& game : play(1, false)) {
-//            if (game.result == Game::RESULT_DRAW_OVER_LIMIT || game.result == Game::RESULT_DRAW_REPEAT) {
-//                if (USE_DRAW_GAME) {
-//                    game.result = (MAX_SCORE + MIN_SCORE) / 2;
-//                } else {
-//                    continue;
-//                }
-//            }
-//            pushOneGame(game);
-//        }
+        generator.genGames(10);
 
         //バッチサイズだけデータを選択
         std::vector<float> inputs;

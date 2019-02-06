@@ -48,6 +48,9 @@ private:
     //ステップ数
     int64_t MAX_STEP_NUM;
 
+    //並列に対局を生成する数
+    int64_t PARALLEL_NUM;
+
     //------------
     //    変数
     //------------
