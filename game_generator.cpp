@@ -14,13 +14,13 @@ void GameGenerator::genGames(int64_t game_num) {
     std::thread gpu_thread(&GameGenerator::gpuFunc, this);
 
     //先に探索クラスを生成しておくと上手く動く
-    for (int64_t i = 0; i < thread_num_; i++) {
+    for (int64_t i = 0; i < parallel_num_; i++) {
         searchers_.emplace_back(usi_option.USI_Hash, i, *this);
     }
 
     //生成スレッドを生成
     std::vector<std::thread> threads;
-    for (int64_t i = 0; i < thread_num_; i++) {
+    for (int64_t i = 0; i < parallel_num_; i++) {
         threads.emplace_back(&GameGenerator::genSlave, this, i);
     }
 
@@ -87,7 +87,7 @@ void GameGenerator::gpuFunc() {
             continue;
         }
 
-        if (!enough_batch_size && current_features_.size() < thread_num_ / 2) {
+        if (!enough_batch_size && current_features_.size() < parallel_num_ / 2) {
             lock_expand_.unlock();
             std::this_thread::sleep_for(std::chrono::microseconds(1));
             enough_batch_size = true;

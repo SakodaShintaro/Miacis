@@ -9,10 +9,8 @@
 
 class GameGenerator{
 public:
-    GameGenerator(int64_t gpu_id, int64_t thread_num, ReplayBuffer &rb, NeuralNetwork<Tensor> &nn) :
-    gpu_id_(gpu_id), thread_num_(thread_num), rb_(rb), evaluator_(nn) {
-        clearEvalQueue();
-    };
+    GameGenerator(int64_t gpu_id, int64_t parallel_num, ReplayBuffer &rb, NeuralNetwork<Tensor> &nn) :
+    gpu_id_(gpu_id), parallel_num_(parallel_num), rb_(rb), evaluator_(nn) {};
 
     //決まったゲーム数生成する関数
     void genGames(int64_t game_num);
@@ -34,7 +32,7 @@ private:
     std::atomic<int64_t> game_num_;
 
     //並列化するスレッド数
-    int64_t thread_num_;
+    int64_t parallel_num_;
 
     //実行を続けるフラグ
     bool running_;
