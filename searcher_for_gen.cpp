@@ -95,6 +95,10 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::think(Position& root
         return { NULL_MOVE, TeacherType() };
     }
 
+    while (!hash_table_[current_root_index_].evaled) {
+        std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
+
     //ノイズを加える
     //Alpha Zeroの論文と同じディリクレノイズ
     constexpr double epsilon = 0.25;

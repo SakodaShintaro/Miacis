@@ -10,10 +10,10 @@
 
 //#define USE_PARALLEL_SEARCHER
 
-class GameGenerator{
+class GameGenerator {
 public:
-    GameGenerator(int64_t gpu_id, int64_t parallel_num, ReplayBuffer &rb, NeuralNetwork<Tensor> &nn) :
-    gpu_id_(gpu_id), parallel_num_(parallel_num), rb_(rb), evaluator_(nn) {};
+    GameGenerator(int64_t gpu_id, int64_t parallel_num, ReplayBuffer& rb, NeuralNetwork<Tensor>& nn) :
+            gpu_id_(gpu_id), parallel_num_(parallel_num), rb_(rb), evaluator_(nn) {};
 
     //決まったゲーム数生成する関数
     void genGames(int64_t game_num);
@@ -105,6 +105,7 @@ private:
     };
     std::vector<SearcherForGen> searchers_;
 #else
+
     //生成してはreplay_bufferへ送る関数
     void genSlave(int64_t id);
 
@@ -114,16 +115,18 @@ private:
     //生成する局数
     std::atomic<int64_t> game_num_;
 
-    //スレッド数:GPUを交互に使う2が最適値なはず
+    //スレッド数:GPUを交互に使う"2"が最適値なはず
     static constexpr int32_t THREAD_NUM = 2;
 
     //探索クラス
     class SearcherForGen {
     public:
         //コンストラクタ
-        SearcherForGen(int64_t hash_size, int32_t id, std::vector<float> &features, std::vector<std::stack<int32_t>> &hash_indices,
-                        std::vector<std::stack<int32_t>> &actions, std::vector<int32_t> &ids) : hash_table_(hash_size), id_(id),
-                                                                                                features_(features), hash_indices_(hash_indices), actions_(actions), ids_(ids) {}
+        SearcherForGen(int64_t hash_size, int32_t id, std::vector<float>& features,
+                       std::vector<std::stack<int32_t>>& hash_indices,
+                       std::vector<std::stack<int32_t>>& actions, std::vector<int32_t>& ids) :
+                hash_table_(hash_size), id_(id), features_(features), hash_indices_(hash_indices), actions_(actions),
+                ids_(ids) {}
 
         //置換表:GameGeneratorが書き込める必要があるのでpublicに置く.friend指定とかでなんとかできるかも？
         UctHashTable hash_table_;
@@ -132,19 +135,20 @@ private:
         bool shouldStop();
 
         //現局面の探索結果を返す関数
-        std::pair<Move, TeacherType> resultForCurrPos(Position &root);
+        std::pair<Move, TeacherType> resultForCurrPos(Position& root);
 
         //探索1回を行う関数
-        void onePlay(Position &pos);
+        void onePlay(Position& pos);
 
         //root局面を探索する準備を行う関数
-        bool prepareForCurrPos(Position &root);
+        bool prepareForCurrPos(Position& root);
 
         //GPUの計算結果をルートノードまでバックアップする関数
-        void backup(std::stack<int32_t> &indices, std::stack<int32_t> &actions);
+        void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
+
     private:
         //ノードを展開する関数
-        Index expandNode(Position &pos, std::stack<int32_t> &indices, std::stack<int32_t> &actions);
+        Index expandNode(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
         //Ucbを計算して最大値を持つインデックスを返す
         static int32_t selectMaxUcbChild(const UctHashEntry& current_node);
@@ -162,11 +166,12 @@ private:
         Index current_root_index_;
 
         //評価要求を投げる先
-        std::vector<float> &features_;
-        std::vector<std::stack<int32_t>> &hash_indices_;
-        std::vector<std::stack<int32_t>> &actions_;
-        std::vector<int32_t> &ids_;
+        std::vector<float>& features_;
+        std::vector<std::stack<int32_t>>& hash_indices_;
+        std::vector<std::stack<int32_t>>& actions_;
+        std::vector<int32_t>& ids_;
     };
+
 #endif
 };
 

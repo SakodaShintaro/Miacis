@@ -67,13 +67,6 @@ void GameGenerator::genSlave(int64_t id) {
             }
         }
 
-        if (game.result == Game::RESULT_DRAW_OVER_LIMIT || game.result == Game::RESULT_DRAW_REPEAT) {
-            if (1) {
-                game.result = (MAX_SCORE + MIN_SCORE) / 2;
-            } else {
-                continue;
-            }
-        }
         rb_.push(game);
     }
 }

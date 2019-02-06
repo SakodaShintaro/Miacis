@@ -137,12 +137,9 @@ void AlphaZeroTrainer::startLearn() {
     //自己対局をしてreplay_buffer_にデータを追加するインスタンス
     GameGenerator generator(0, PARALLEL_NUM, replay_buffer_, *nn);
 
-    //最初にいくらか追加しておく
-    generator.genGames(10);
-
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         //自己対局をしてreplay_buffer_にデータを追加
-        generator.genGames(10);
+        generator.genGames(PARALLEL_NUM);
 
         //バッチサイズだけデータを選択
         std::vector<float> inputs;
@@ -167,11 +164,7 @@ void AlphaZeroTrainer::startLearn() {
 
         //書き出し
         learning_model_.save(MODEL_PATH);
-
-        //評価
-        if (step_num % EVALUATION_INTERVAL == 0 || step_num == MAX_STEP_NUM) {
-            evaluate(step_num);
-        }
+        nn->load(MODEL_PATH);
     }
 
     usi_option.stop_signal = true;
