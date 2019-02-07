@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
+list(APPEND CMAKE_PREFIX_PATH ~/pytorch)
+find_package(Torch REQUIRED)
+
 #使用するソースも共通なので変数でまとめる
 set(SRCS alphazero_trainer.cpp
          base_trainer.cpp
@@ -29,5 +32,5 @@ add_executable(Miacis_sv ${SRCS})
 add_executable(Miacis_cv ${SRCS})
 target_compile_definitions(Miacis_cv PUBLIC USE_CATEGORICAL)
 
-target_link_libraries(Miacis_sv pthread stdc++fs primitiv)
-target_link_libraries(Miacis_cv pthread stdc++fs primitiv)
+target_link_libraries(Miacis_sv pthread stdc++fs primitiv "${TORCH_LIBRARIES}")
+target_link_libraries(Miacis_cv pthread stdc++fs primitiv "${TORCH_LIBRARIES}")

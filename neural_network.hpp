@@ -5,6 +5,90 @@
 #include<vector>
 #include<primitiv/primitiv.h>
 
+//ネットワークの設定
+constexpr int32_t POLICY_CHANNEL_NUM = 27;
+constexpr int32_t BLOCK_NUM = 4;
+constexpr int32_t KERNEL_SIZE = 3;
+constexpr int32_t CHANNEL_NUM = 32;
+constexpr int32_t VALUE_HIDDEN_NUM = 256;
+
+//LibTorchを使う場合
+#define USE_LIBTORCH
+
+#ifdef USE_LIBTORCH
+#include<torch/torch.h>
+
+class NeuralNetworkImpl : torch::nn::Module {
+public:
+    NeuralNetwork() {
+        first_conv = register_module("first_conv", torch::nn::Conv2d(nn::Conv2dOptions(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1));
+        first_bn = register_module("first_bn", torch::nn::BatchNorm());
+        for (int32_t i = 0; i < BLOCK_NUM; i++) {
+            for (int32_t j = 0; j < 2; j++) {
+                conv = register_module("conv" + std::to_string(i) + "_" + std::to_string(j), torch::nn::Conv2d(nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1));
+                bn = register_module("bn" + std::to_string(i) + "_" + std::to_string(j), torch::nn::BatchNorm());
+            }
+        }
+        policy_conv = register_module("policy_conv", torch::nn::Conv2D(nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true));
+        value_conv = register_module("value_conv", torch::nn::Conv2D(nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, 1).padding(0).with_bias(false)));
+        value_bn = register_module("value_bn", torch::nn::BatchNorm());
+        value_fc1 = register_module("value_fc1", torch::nn::Linear());
+        value_fc2 = register_module("value_fc2", torch::nn::Linear());
+    }
+
+    torch::Tensor forward(torch::Tensor x) {
+        x = first_conv->forward(x);
+        x = first_bn->forward(x);
+        x = torch::relu(x);
+
+        for (int32_t i = 0; i < BLOCK_NUM; i++) {
+            auto t = x;
+
+            x = conv[i][0]->forward(x);
+            x = bn[i][0]->forward(x);
+            x = torch::relu(x);
+
+            x = conv[i][1]->forward(x);
+            x = bn[i][1]->forward(x);
+            x = torch::relu(x);
+        }
+
+        //ここから分岐
+        //policy
+        torch::Tensor policy = policy_conv->forward(x);
+
+        //value
+        torch::Tensor value = value_conv->forward(x);
+        value = value_bn->forward(value);
+        value = torch::relu(value);
+        value = fc1->forward(value)
+        value = torch::relu(value);
+        value = fc2->forward(value)
+
+#ifndef USE_CATEGORICAL
+#ifdef USE_SIGMOID
+        value = torch::sigmoid(value);
+#else
+        value = torch::tanh(value);
+#endif
+#endif
+        return { policy, value };
+    }
+private:
+    torch::nn::Conv2D first_conv{nullptr};
+    torch::nn::BatchNorm first_bn{nullptr};
+    torch::nn::Conv2D conv[BLOCK_NUM][2] = {nullptr};
+    torch::nn::BatchNorm bn[BLOCK_NUM][2] = {nullptr};
+    torch::nn::Conv2D policy_conv{nullptr};
+    torch::nn::Conv2D value_conv{nullptr};
+    torch::nn::batchNorm value_bn{nullptr};
+    torch::nn::Linear value_fc1{nullptr};
+    torch::nn::Linear value_fc2{nullptr};
+};
+TORCH_MODULE(NeuralNetwork);
+
+#endif
+
 //primitiv
 using namespace primitiv;
 namespace F = primitiv::functions;
@@ -20,7 +104,6 @@ const std::string MODEL_PATH = "sv.model";
 
 //型のエイリアス
 using CalcType = float;
-//using PolicyType = std::array<float, SQUARE_NUM * POLICY_CHANNEL_NUM>;
 using PolicyType = std::vector<float>;
 #ifdef USE_CATEGORICAL
 constexpr int32_t BIN_SIZE = 51;
@@ -47,13 +130,6 @@ struct TeacherType {
     uint32_t policy;
     ValueTeacher value;
 };
-
-//出力のチャンネル数:各マスに対する移動元方向(10) * 2 + 持ち駒7
-constexpr uint32_t POLICY_CHANNEL_NUM = 27;
-constexpr int32_t BLOCK_NUM = 4;
-constexpr int32_t KERNEL_SIZE = 3;
-constexpr int32_t CHANNEL_NUM = 32;
-constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
 template <typename Var>
 class BatchNormLayer : public primitiv::Model {
