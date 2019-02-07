@@ -12,8 +12,13 @@
 
 class GameGenerator {
 public:
+#ifdef USE_LIBTORCH
+    GameGenerator(int64_t gpu_id, int64_t parallel_num, ReplayBuffer& rb, NeuralNetwork nn) :
+            gpu_id_(gpu_id), parallel_num_(parallel_num), rb_(rb), evaluator_(nn) {};
+#else
     GameGenerator(int64_t gpu_id, int64_t parallel_num, ReplayBuffer& rb, NeuralNetwork<Tensor>& nn) :
             gpu_id_(gpu_id), parallel_num_(parallel_num), rb_(rb), evaluator_(nn) {};
+#endif
 
     //決まったゲーム数生成する関数
     void genGames(int64_t game_num);
@@ -29,7 +34,11 @@ private:
     ReplayBuffer& rb_;
 
     //局面評価に用いるネットワーク
+#ifdef USE_LIBTORCH
+    NeuralNetwork evaluator_;
+#else
     NeuralNetwork<Tensor>& evaluator_;
+#endif
 
 #ifdef USE_PARALLEL_SEARCHER
     //生成してはreplay_bufferへ送る関数

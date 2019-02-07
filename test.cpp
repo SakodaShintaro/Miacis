@@ -128,11 +128,16 @@ void testMakeRandomPosition() {
 }
 
 void testNN() {
+#ifdef USE_LIBTORCH
+    torch::load(nn, MODEL_PATH);
+    auto searcher = std::make_unique<MCTSearcher<int32_t>>(1, 1, nn);
+#else
     nn->load(MODEL_PATH);
-    Position pos;
     auto searcher = std::make_unique<MCTSearcher<Tensor>>(16, 1, *nn);
-    usi_option.playout_limit = 800;
+#endif
 
+    Position pos;
+    usi_option.playout_limit = 800;
     testToLabel();
 
     std::random_device rd;
@@ -227,7 +232,6 @@ void testKifuOutput() {
 void testSFENoutput() {
     std::random_device rd;
     std::default_random_engine engine(rd());
-    nn->init();
     usi_option.draw_turn = 512;
     for (int32_t i = 0; i < 100; i++) {
         Position pos1, pos2;
@@ -246,7 +250,11 @@ void testSFENoutput() {
 }
 
 void testSpeed() {
+#ifdef USE_LIBTORCH
+    torch::load(nn, MODEL_PATH);
+#else
     nn->load(MODEL_PATH);
+#endif
 
     usi_option.limit_msec = LLONG_MAX;
     usi_option.random_turn = 0;
@@ -256,7 +264,11 @@ void testSpeed() {
     Position pos;
 
     for (usi_option.thread_num = 1; usi_option.thread_num <= 128; usi_option.thread_num++) {
+#ifdef USE_LIBTORCH
+        ParallelMCTSearcher<int> searcher(usi_option.USI_Hash, usi_option.thread_num, nn);
+#else
         ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
+#endif
 
         auto start = std::chrono::steady_clock::now();
         for (int32_t i = 0; i < 10; i++) {
@@ -281,7 +293,11 @@ void checkGenSpeed() {
         game_num = thread_num;
         buffer.clear();
         auto start = std::chrono::steady_clock::now();
+#ifdef USE_LIBTORCH
+        GameGenerator generator(0, thread_num, buffer, nn);
+#else
         GameGenerator generator(0, thread_num, buffer, *nn);
+#endif
         generator.genGames(game_num);
         auto end = std::chrono::steady_clock::now();
         auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

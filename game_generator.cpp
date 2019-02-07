@@ -187,7 +187,11 @@ void GameGenerator::genSlave(int64_t id) {
     //GPUで評価する関数
     auto evalWithGPU = [&](){
         gpu_mutex_.lock();
+#ifdef USE_LIBTORCH
+        auto result = evaluator_->policyAndValueBatch(features);
+#else
         auto result = evaluator_.policyAndValueBatch(features);
+#endif
         gpu_mutex_.unlock();
         auto policies = result.first;
         auto values = result.second;

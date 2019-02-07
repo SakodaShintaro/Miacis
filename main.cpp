@@ -5,15 +5,21 @@
 #include"MCTSearcher.hpp"
 #include"neural_network.hpp"
 
+#ifdef USE_LIBTORCH
+NeuralNetwork nn;
+#else
 std::unique_ptr<NeuralNetwork<Tensor>> nn(new NeuralNetwork<Tensor>);
+#endif
 
 int main()
 {
+#ifndef USE_LIBTORCH
     //devices::Naive dev;
     devices::CUDA dev(0);
     Device::set_default(dev);
 
     nn->init();
+#endif
 
     initCanMove();
 

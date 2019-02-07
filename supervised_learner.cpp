@@ -41,8 +41,13 @@ void SupervisedLearner::train() {
     start_time_ = std::chrono::steady_clock::now();
 
     //評価関数ロード
+#ifdef USE_LIBTORCH
+    torch::load(learning_model_, MODEL_PATH);
+    torch::save(learning_model_, "before_supervised_learn.model");
+#else
     learning_model_.load(MODEL_PATH);
     learning_model_.save("before_supervised_learn.model");
+#endif
 
     //棋譜を読み込む
     std::cout << "start loadGames ..." << std::flush;
@@ -111,6 +116,9 @@ void SupervisedLearner::train() {
     validation_log << "epoch\ttime\tloss" << std::fixed << std::endl;
 
     //optimizerの設定
+#ifdef USE_LIBTORCH
+    torch::optim::SGD optimizer(learning_model_->parameters(), LEARN_RATE);
+#else
     O::MomentumSGD optimizer(LEARN_RATE);
     optimizer.add(learning_model_);
     optimizer.set_weight_decay(WEIGHT_DECAY);
@@ -118,6 +126,8 @@ void SupervisedLearner::train() {
     //グラフの設定
     Graph g;
     Graph::set_default(g);
+
+#endif
 
     //学習開始
     for (int32_t epoch = 1; epoch <= 100; epoch++) {
@@ -129,6 +139,10 @@ void SupervisedLearner::train() {
             std::vector<uint32_t> policy_labels;
             std::vector<ValueTeacher> value_teachers;
             std::tie(inputs, policy_labels, value_teachers) = getBatch(data_buffer, step * BATCH_SIZE);
+
+#ifdef USE_LIBTORCH
+            auto loss = learning_model_->loss(inputs, policy_labels, value_teachers);
+#else
             g.clear();
             auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
             if (step % 100 == 0) {
@@ -141,11 +155,14 @@ void SupervisedLearner::train() {
             loss.first.backward();
             loss.second.backward();
             optimizer.update();
+#endif
         }
 
+#ifdef USE_LIBTORCH
+        //TODO:実装
+#else
         learning_model_.save(MODEL_PATH);
-
-        //ここからvalidation
+                //ここからvalidation
         nn->load(MODEL_PATH);
 
         int32_t num = 0;
@@ -169,6 +186,7 @@ void SupervisedLearner::train() {
         } else if (++patience >= PATIENCE) {
             break;
         }
+#endif
     }
 
     std::cout << "finish SupervisedLearn" << std::endl;

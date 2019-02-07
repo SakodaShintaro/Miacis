@@ -114,9 +114,15 @@ void AlphaZeroTrainer::startLearn() {
     Position pos;
 
     //モデル読み込み
+#ifdef USE_LIBTORCH
+    torch::load(learning_model_, MODEL_PATH);
+    torch::save(learning_model_, BEST_MODEL);
+    torch::load(nn, MODEL_PATH);
+#else
     learning_model_.load(MODEL_PATH);
     learning_model_.save(BEST_MODEL);
     nn->load(MODEL_PATH);
+#endif
 
     //時間を初期化
     start_time_ = std::chrono::steady_clock::now();
@@ -130,12 +136,20 @@ void AlphaZeroTrainer::startLearn() {
     std::cout << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
     //Optimizerの準備
+#ifdef USE_LIBTORCH
+    torch::optim::SGD optimizer(learning_model_->parameters(), LEARN_RATE);
+
+    //自己対局をしてreplay_buffer_にデータを追加するインスタンス
+    GameGenerator generator(0, PARALLEL_NUM, replay_buffer_, nn);
+#else
     O::MomentumSGD optimizer(LEARN_RATE);
     optimizer.set_weight_decay(1e-4);
     optimizer.add(learning_model_);
 
     //自己対局をしてreplay_buffer_にデータを追加するインスタンス
     GameGenerator generator(0, PARALLEL_NUM, replay_buffer_, *nn);
+#endif
+
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         //自己対局をしてreplay_buffer_にデータを追加
@@ -147,6 +161,9 @@ void AlphaZeroTrainer::startLearn() {
         std::vector<ValueTeacher> value_teachers;
         std::tie(inputs, policy_labels, value_teachers) = replay_buffer_.makeBatch(static_cast<int32_t>(BATCH_SIZE));
 
+#ifdef USE_LIBTORCH
+
+#else
         Graph g;
         Graph::set_default(g);
         auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
@@ -165,6 +182,7 @@ void AlphaZeroTrainer::startLearn() {
         //書き出し
         learning_model_.save(MODEL_PATH);
         nn->load(MODEL_PATH);
+#endif
     }
 
     usi_option.stop_signal = true;
@@ -227,7 +245,11 @@ void AlphaZeroTrainer::evaluate(int64_t step) {
     win_rate /= test_games.size();
 
     if (win_rate >= THRESHOLD) {
+#ifdef USE_LIBTORCH
+        torch::save(learning_model_, BEST_MODEL);
+#else
         learning_model_.save(BEST_MODEL);
+#endif
         update_num_++;
     }
     eval_log << step << "\t" << elapsedHours() << "\t" << win_rate * 100.0 << "\t" << draw_repeat_num << "\t"
@@ -239,6 +261,19 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
     std::vector<Game> games((unsigned long)game_num);
 
     //現在のパラメータ
+#ifdef USE_LIBTORCH
+    NeuralNetwork curr;
+    torch::load(curr, MODEL_PATH);
+    if (eval) {
+        torch::load(nn, MODEL_PATH);
+    }
+
+    //TODO:探索部は形無しでいんじゃん
+    auto searcher1 = std::make_unique<ParallelMCTSearcher<int>>(usi_option.USI_Hash, usi_option.thread_num, curr);
+    auto searcher2 = (eval ? //searcher2は評価時にしか使わない
+                      std::make_unique<ParallelMCTSearcher<int>>(usi_option.USI_Hash, usi_option.thread_num, nn) :
+                      nullptr);
+#else
     NeuralNetwork<Tensor> curr;
     curr.load(MODEL_PATH);
 
@@ -250,6 +285,7 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
     auto searcher2 = (eval ? //searcher2は評価時にしか使わない
             std::make_unique<ParallelMCTSearcher<Tensor>>(usi_option.USI_Hash, usi_option.thread_num, *nn) :
             nullptr);
+#endif
 
     for (int32_t i = 0; i < game_num; i++) {
         Game& game = games[i];

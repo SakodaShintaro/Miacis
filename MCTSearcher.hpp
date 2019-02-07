@@ -15,7 +15,11 @@ template <class Var>
 class MCTSearcher {
 public:
     //コンストラクタ
+#ifdef USE_LIBTORCH
+    MCTSearcher(int64_t hash_size, int64_t thread_num, NeuralNetwork nn) : hash_table_(hash_size), evaluator_(nn) {}
+#else
     MCTSearcher(int64_t hash_size, int64_t thread_num, NeuralNetwork<Var>& nn) : hash_table_(hash_size), evaluator_(nn) {}
+#endif
     
     //一番良い指し手と学習データを返す関数
     std::pair<Move, TeacherType> think(Position& root);
@@ -64,7 +68,11 @@ private:
     std::chrono::steady_clock::time_point start_;
 
     //局面評価に用いるネットワーク
+#ifdef USE_LIBTORCH
+    NeuralNetwork evaluator_;
+#else
     NeuralNetwork<Var>& evaluator_;
+#endif
 };
 
 template <class Var>
@@ -297,7 +305,11 @@ void MCTSearcher<Var>::evalNode(Position& pos, Index index) {
     auto& current_node = hash_table_[index];
     std::vector<float> legal_move_policy(current_node.child_num);
 
+#ifdef USE_LIBTORCH
+    auto policy_and_value = evaluator_->policyAndValue(pos);
+#else
     auto policy_and_value = evaluator_.policyAndValue(pos);
+#endif
 
     for (int32_t i = 0; i < current_node.child_num; i++) {
         legal_move_policy[i] = policy_and_value.first[current_node.legal_moves[i].toLabel()];

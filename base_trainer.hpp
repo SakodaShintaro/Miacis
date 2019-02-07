@@ -58,7 +58,11 @@ protected:
     std::chrono::time_point<std::chrono::steady_clock> start_time_;
 
     //学習中のモデル
+#ifdef USE_LIBTORCH
+    NeuralNetwork learning_model_;
+#else
     NeuralNetwork<Node> learning_model_;
+#endif
 };
 
 #endif // !TRAINER_HPP

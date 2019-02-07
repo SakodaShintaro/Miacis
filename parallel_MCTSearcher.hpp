@@ -17,11 +17,19 @@ template <class Var>
 class ParallelMCTSearcher {
 public:
     //コンストラクタ
+#ifdef USE_LIBTORCH
+    ParallelMCTSearcher(int64_t hash_size, int64_t thread_num, NeuralNetwork nn) : hash_table_(hash_size),
+    evaluator_(nn), thread_num_(static_cast<int32_t>(thread_num)) {
+        lock_node_ = std::vector<std::mutex>(static_cast<unsigned long>(hash_table_.size()));
+        clearEvalQueue();
+    }
+#else
     ParallelMCTSearcher(int64_t hash_size, int64_t thread_num, NeuralNetwork<Var>& nn) : hash_table_(hash_size),
     evaluator_(nn), thread_num_(static_cast<int32_t>(thread_num)) {
         lock_node_ = std::vector<std::mutex>(static_cast<unsigned long>(hash_table_.size()));
         clearEvalQueue();
     }
+#endif
     
     //一番良い指し手と学習データを返す関数
     std::pair<Move, TeacherType> think(Position& root);
@@ -78,7 +86,11 @@ private:
     std::chrono::steady_clock::time_point start_;
 
     //局面評価に用いるネットワーク
+#ifdef USE_LIBTORCH
+    NeuralNetwork evaluator_;
+#else
     NeuralNetwork<Var>& evaluator_;
+#endif
 
     //並列化に必要なもの
     //mutex
@@ -411,7 +423,11 @@ void ParallelMCTSearcher<Var>::evalNode() {
         current_hash_index_queue_.clear();
         lock_expand_.unlock();
 
+#ifdef USE_LIBTORCH
+        auto result = evaluator_->policyAndValueBatch(eval_features);
+#else
         auto result = evaluator_.policyAndValueBatch(eval_features);
+#endif
         auto policies = result.first;
         auto values = result.second;
 

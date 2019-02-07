@@ -7,6 +7,8 @@ set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 list(APPEND CMAKE_PREFIX_PATH ~/pytorch)
+list(APPEND CMAKE_PREFIX_PATH ~/pytorch/torch)
+list(APPEND CMAKE_PREFIX_PATH ~/pytorch/torch/lib)
 find_package(Torch REQUIRED)
 
 #使用するソースも共通なので変数でまとめる

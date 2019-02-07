@@ -41,8 +41,12 @@ void USI::loop() {
         } else if (input == "gameover") {
             gameover();
         } else if (input == "prepareForLearn") {
+#ifdef USE_LIBTORCH
+            torch::save(nn, MODEL_PATH);
+#else
             nn->init();
             nn->save(MODEL_PATH);
+#endif
             std::cout << "初期化したパラメータを出力" << std::endl;
         } else if (input == "cleanGame") {
             std::cout << "棋譜のあるフォルダへのパス : ";
@@ -100,7 +104,11 @@ void USI::usi() {
 }
 
 void USI::isready() {
+#ifdef USE_LIBTORCH
+    torch::load(nn, MODEL_PATH);
+#else
     nn->load(MODEL_PATH);
+#endif
     printf("readyok\n");
 }
 
@@ -230,7 +238,11 @@ void USI::go() {
     //別スレッドに投げる
     thread_ = std::thread([&]() {
         //MCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
+#ifdef USE_LIBTORCH
+        ParallelMCTSearcher<int> searcher(usi_option.USI_Hash, usi_option.thread_num, nn);
+#else
         ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
+#endif
         auto result = searcher.think(root_);
         if (result.first == NULL_MOVE) {
             std::cout << "bestmove resign" << std::endl;
