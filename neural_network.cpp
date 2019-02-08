@@ -71,8 +71,8 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(std::vector<f
 std::pair<PolicyType, ValueType> NeuralNetworkImpl::policyAndValue(const Position& pos) {
     std::vector<float> input = pos.makeFeature();
     auto y = forward(input);
-    auto policy_data = torch::flatten(y.first).data<float>();
-    PolicyType policy;
+    auto policy_data = y.first.to(torch::Device(torch::kCPU)).data<float>();
+    PolicyType policy(POLICY_CHANNEL_NUM * SQUARE_NUM);
     std::copy(policy_data, policy_data + POLICY_CHANNEL_NUM * SQUARE_NUM, policy.begin());
 
     auto value = y.second;

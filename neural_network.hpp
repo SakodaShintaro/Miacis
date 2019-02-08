@@ -11,13 +11,6 @@ constexpr int32_t KERNEL_SIZE = 3;
 constexpr int32_t CHANNEL_NUM = 32;
 constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
-//評価パラメータを読み書きするデフォルトのファイル名
-#ifdef USE_CATEGORICAL
-const std::string MODEL_PATH = "cv.model";
-#else
-const std::string MODEL_PATH = "sv.model";
-#endif
-
 //型のエイリアス
 using CalcType = float;
 using PolicyType = std::vector<float>;
@@ -50,6 +43,13 @@ struct TeacherType {
 #ifdef USE_LIBTORCH
 //LibTorchを使う
 #include<torch/torch.h>
+
+//評価パラメータを読み書きするデフォルトのファイル名
+#ifdef USE_CATEGORICAL
+const std::string MODEL_PATH = "torch_categorical.model";
+#else
+const std::string MODEL_PATH = "torch_scalar.model";
+#endif
 
 extern torch::Device device;
 
@@ -92,6 +92,13 @@ extern NeuralNetwork nn;
 #else
 //primitivを使う
 #include<primitiv/primitiv.h>
+
+//評価パラメータを読み書きするデフォルトのファイル名
+#ifdef USE_CATEGORICAL
+const std::string MODEL_PATH = "primitiv_categorical.model";
+#else
+const std::string MODEL_PATH = "primitiv_scalar.model";
+#endif
 
 using namespace primitiv;
 namespace F = primitiv::functions;
