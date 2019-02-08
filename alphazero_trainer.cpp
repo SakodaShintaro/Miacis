@@ -269,9 +269,9 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
     }
 
     //TODO:探索部は形無しでいんじゃん
-    auto searcher1 = std::make_unique<ParallelMCTSearcher<int>>(usi_option.USI_Hash, usi_option.thread_num, curr);
+    auto searcher1 = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, usi_option.thread_num, curr);
     auto searcher2 = (eval ? //searcher2は評価時にしか使わない
-                      std::make_unique<ParallelMCTSearcher<int>>(usi_option.USI_Hash, usi_option.thread_num, nn) :
+                      std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, usi_option.thread_num, nn) :
                       nullptr);
 #else
     NeuralNetwork<Tensor> curr;
@@ -281,9 +281,9 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
         nn->load(BEST_MODEL);
     }
 
-    auto searcher1 = std::make_unique<ParallelMCTSearcher<Tensor>>(usi_option.USI_Hash, usi_option.thread_num, curr);
+    auto searcher1 = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, usi_option.thread_num, curr);
     auto searcher2 = (eval ? //searcher2は評価時にしか使わない
-            std::make_unique<ParallelMCTSearcher<Tensor>>(usi_option.USI_Hash, usi_option.thread_num, *nn) :
+            std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, usi_option.thread_num, *nn) :
             nullptr);
 #endif
 

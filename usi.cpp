@@ -231,7 +231,7 @@ void USI::go() {
     thread_ = std::thread([&]() {
         //MCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
 #ifdef USE_LIBTORCH
-        ParallelMCTSearcher<int> searcher(usi_option.USI_Hash, usi_option.thread_num, nn);
+        ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, nn);
 #else
         ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
 #endif
