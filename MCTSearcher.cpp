@@ -1,4 +1,7 @@
 #include"MCTSearcher.hpp"
+#include"operate_params.hpp"
+#include"usi_options.hpp"
+#include<stack>
 
 std::pair<Move, TeacherType> MCTSearcher::think(Position& root) {
     //思考開始時間をセット

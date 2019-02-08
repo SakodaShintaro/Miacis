@@ -1,15 +1,10 @@
 ﻿#ifndef MCTSEARCHER_HPP
 #define MCTSEARCHER_HPP
 
-#include"types.hpp"
 #include"uct_hash_table.hpp"
 #include"neural_network.hpp"
-#include"usi_options.hpp"
-#include"operate_params.hpp"
 #include<vector>
 #include<chrono>
-#include<atomic>
-#include<stack>
 
 //1スレッドでモンテカルロ木探索を行うクラス.マルチスレッド探索がちゃんと動いているか比較するために一応取っておくが,不要かもしれない
 class MCTSearcher {
