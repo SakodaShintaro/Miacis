@@ -28,7 +28,8 @@ set(SRCS alphazero_trainer.cpp
          replay_buffer.cpp
          game_generator.cpp
          searcher_for_gen.cpp
-         neural_network.cpp MCTSearcher.cpp)
+         neural_network.cpp
+         MCTSearcher.cpp)
 
 add_executable(Miacis_sv ${SRCS})
 add_executable(Miacis_cv ${SRCS})
