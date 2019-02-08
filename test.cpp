@@ -17,6 +17,8 @@
 #include<iomanip>
 
 void test() {
+    usi_option.playout_limit = 800;
+    usi_option.limit_msec = LLONG_MAX;
     usi_option.USI_Hash = 8;
 #ifdef USE_LIBTORCH
     torch::load(nn, MODEL_PATH);
@@ -27,8 +29,6 @@ void test() {
 #endif
 
     Position pos;
-    usi_option.playout_limit = 800;
-
     Game game;
 
     while (true) {
@@ -37,6 +37,12 @@ void test() {
         auto search_result = searcher->think(pos);
         Move best_move = search_result.first;
         if (best_move == NULL_MOVE) {
+            //投了
+            break;
+        }
+        Score repeat_score;
+        if (pos.isRepeating(repeat_score)) {
+            //千日手
             break;
         }
 
@@ -44,7 +50,7 @@ void test() {
         game.moves.push_back(best_move);
     }
 
-    game.writeKifuFile("test.kif");
+    game.writeKifuFile("./");
     std::cout << "finish test" << std::endl;
 }
 
