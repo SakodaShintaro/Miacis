@@ -53,9 +53,6 @@ private:
     //置換表
     UctHashTable hash_table_;
 
-    //Playout回数
-    uint32_t playout_num;
-
     //ルート局面のインデックス
     Index current_root_index_;
 

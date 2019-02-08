@@ -59,16 +59,10 @@ void USI::loop() {
         } else if (input == "alphaZero") {
             AlphaZeroTrainer trainer("alphazero_settings.txt");
             trainer.startLearn();
-        } else if (input == "testMakeRandomPosition") {
-            testMakeRandomPosition();
         } else if (input == "testKifuOutput") {
             testKifuOutput();
         } else if (input == "testNN") {
             testNN();
-        } else if (input == "testSFEN") {
-            testSFENoutput();
-        } else if (input == "testSpeed") {
-            testSpeed();
         } else if (input == "checkGenSpeed") {
             checkGenSpeed();
         } else {

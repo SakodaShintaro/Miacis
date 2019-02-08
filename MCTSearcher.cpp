@@ -19,18 +19,12 @@ std::pair<Move, TeacherType> MCTSearcher::think(Position& root) {
         return { NULL_MOVE, TeacherType() };
     }
 
-    //初期化
-    playout_num = 0;
-
-    //プレイアウトを繰り返す
-    //探索回数が閾値を超える、または探索が打ち切られたらループを抜ける
-    while (playout_num < usi_option.playout_limit) {
-        //探索回数を1回増やす
-        playout_num++;
-
-        //1回プレイアウト
+    //探索を繰り返す.探索回数が閾値に達する,または打ち切り判定がtrueになったらループを抜ける
+    for (int32_t i = 0; i < usi_option.playout_limit; i++) {
+        //1回探索
         uctSearch(root, current_root_index_);
 
+        //再帰じゃない探索.なぜか遅くなった
         //onePlay(root);
 
         //探索を打ち切るか確認
