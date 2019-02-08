@@ -1,8 +1,7 @@
 ﻿#ifndef TEST_HPP
 #define TEST_HPP
 
-void testNN();
-void testKifuOutput();
+void test();
 void checkGenSpeed();
 
 #endif // !TEST_HPP

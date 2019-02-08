@@ -16,19 +16,20 @@
 #include<climits>
 #include<iomanip>
 
-void testNN() {
+void test() {
+    usi_option.USI_Hash = 8;
 #ifdef USE_LIBTORCH
     torch::load(nn, MODEL_PATH);
-    auto searcher = std::make_unique<MCTSearcher>(1, nn);
+    auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, nn);
 #else
     nn->load(MODEL_PATH);
-    auto searcher = std::make_unique<MCTSearcher>(16, *nn);
+    auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, *nn);
 #endif
 
     Position pos;
     usi_option.playout_limit = 800;
 
-    std::random_device rd;
+    Game game;
 
     while (true) {
         pos.print(false);
@@ -40,59 +41,11 @@ void testNN() {
         }
 
         pos.doMove(best_move);
+        game.moves.push_back(best_move);
     }
-}
 
-void testKifuOutput() {
-    //Game game;
-    //eval_params->readFile();
-    //Position pos_c(*eval_params), pos_t(*eval_params);
-    //auto searcher = std::make_unique<Searcher>(usi_option.USI_Hash, 1);
-    //usi_option.draw_turn = 512;
-    //usi_option.depth_limit = PLY * 3;
-
-    //while (true) {
-    //    //iが偶数のときpos_cが先手
-    //    auto move_and_teacher = ((pos_c.turn_number() % 2) == 0 ?
-    //        searcher->think(pos_c) :
-    //        searcher->think(pos_t));
-    //    Move best_move = move_and_teacher.first;
-    //    TeacherType teacher = move_and_teacher.second;
-
-    //    if (best_move == NULL_MOVE) { //NULL_MOVEは投了を示す
-    //        game.result = (pos_c.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
-    //        break;
-    //    }
-
-    //    if (!pos_c.isLegalMove(best_move)) {
-    //        pos_c.printForDebug();
-    //        best_move.printWithScore();
-    //        assert(false);
-    //    }
-    //    pos_c.doMove(best_move);
-    //    pos_t.doMove(best_move);
-    //    game.moves.push_back(best_move);
-    //    game.teachers.push_back(teacher);
-
-    //    Score repeat_score;
-    //    if (pos_c.isRepeating(repeat_score)) { //繰り返し
-    //        if (isMatedScore(repeat_score)) { //連続王手の千日手だけが怖い
-    //            //しかしどうすればいいかわからない
-    //        } else {
-    //            game.result = Game::RESULT_DRAW_REPEAT;
-    //            break;
-    //        }
-    //    }
-
-    //    if (pos_c.turn_number() >= usi_option.draw_turn) { //長手数
-    //        game.result = Game::RESULT_DRAW_OVER_LIMIT;
-    //        break;
-    //    }
-    //}
-
-    //game.writeCSAFile("./");
-    //game.writeKifuFile("./");
-    //printf("finish testKifuOutput()\n");
+    game.writeKifuFile("test.kif");
+    std::cout << "finish test" << std::endl;
 }
 
 void checkGenSpeed() {
