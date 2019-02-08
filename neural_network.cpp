@@ -159,7 +159,8 @@ NeuralNetworkImpl::loss(std::vector<float>& input, std::vector<uint32_t>& policy
 #ifdef USE_SIGMOID
     Var value_loss = -value_t * F::log(y.second) -(1 - value_t) * F::log(1 - y.second);
 #else
-    torch::Tensor value_loss = (y.second - value_t) * (y.second - value_t);
+    auto value = y.second.reshape(y.second.size(0));
+    torch::Tensor value_loss = (value - value_t) * (value - value_t);
 #endif
 #endif
     return { torch::mean(policy_loss), torch::mean(value_loss) };
