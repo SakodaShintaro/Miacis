@@ -59,7 +59,7 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(torch::Tensor
     torch::Tensor value = value_conv->forward(x);
     value = value_bn->forward(value);
     value = torch::relu(value);
-    value = torch::flatten(value);
+    value = value.reshape({value.size(0), SQUARE_NUM * CHANNEL_NUM});
     value = value_fc1->forward(value);
     value = torch::relu(value);
     value = value_fc2->forward(value);
@@ -86,7 +86,8 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(std::vector<f
 std::pair<PolicyType, ValueType> NeuralNetworkImpl::policyAndValue(const Position& pos) {
     std::vector<float> input = pos.makeFeature();
     auto y = forward(input);
-    auto p = y.first.to(torch::Device(torch::kCPU));
+    //auto p = y.first.to(torch::Device(torch::kCPU));
+    auto p = y.first.cpu();
     PolicyType policy(POLICY_CHANNEL_NUM * SQUARE_NUM);
     std::copy(p.data<float>(), p.data<float>() + POLICY_CHANNEL_NUM * SQUARE_NUM, policy.begin());
 
@@ -142,11 +143,11 @@ NeuralNetworkImpl::loss(std::vector<float>& input, std::vector<uint32_t>& policy
     auto y = forward(input);
     auto logits = y.first.reshape({ y.first.size(0), SQUARE_NUM * POLICY_CHANNEL_NUM });
 
-    std::vector<float> float_labels(policy_labels.size());
+    std::vector<long> float_labels(policy_labels.size());
     for (int32_t i = 0; i < policy_labels.size(); i++) {
         float_labels[i] = policy_labels[i];
     }
-    auto target = torch::tensor(float_labels);
+    auto target = torch::tensor(float_labels).to(device);
     torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(logits, 1), target);
 
 #ifdef USE_CATEGORICAL
@@ -154,7 +155,7 @@ NeuralNetworkImpl::loss(std::vector<float>& input, std::vector<uint32_t>& policy
         torch::Tensor value_loss;
         //Var value_loss = F::softmax_cross_entropy(y.second, value_labels, 0);
 #else
-    torch::Tensor value_t = torch::tensor(value_teachers);
+    torch::Tensor value_t = torch::tensor(value_teachers).to(device);
 #ifdef USE_SIGMOID
     Var value_loss = -value_t * F::log(y.second) -(1 - value_t) * F::log(1 - y.second);
 #else

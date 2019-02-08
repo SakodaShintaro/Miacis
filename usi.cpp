@@ -53,7 +53,7 @@ void USI::loop() {
             std::string file_path;
             std::cin >> file_path;
             cleanGames(file_path);
-        } else if (input == "SupervisedLearn") {
+        } else if (input == "supervisedLearn") {
             SupervisedLearner trainer("supervised_learn_settings.txt");
             trainer.train();
         } else if (input == "alphaZero") {

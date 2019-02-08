@@ -143,14 +143,14 @@ void SupervisedLearner::train() {
 #ifdef USE_LIBTORCH
             optimizer.zero_grad();
             auto loss = learning_model_->loss(inputs, policy_labels, value_teachers);
-            if (step % 100 == 0) {
+            if (step % 1 == 0) {
                 auto p_loss = loss.first.item<float>();
                 auto v_loss = loss.second.item<float>();
                 std::cout << elapsedTime()  << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
                 learn_log << elapsedHours() << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
             }
-            loss.first.backward();
-            loss.second.backward();
+            auto sum_loss = loss.first + loss.second;
+            sum_loss.backward();
             optimizer.step();
 #else
             g.clear();
