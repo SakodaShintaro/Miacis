@@ -130,10 +130,10 @@ void testMakeRandomPosition() {
 void testNN() {
 #ifdef USE_LIBTORCH
     torch::load(nn, MODEL_PATH);
-    auto searcher = std::make_unique<MCTSearcher<int32_t>>(1, 1, nn);
+    auto searcher = std::make_unique<MCTSearcher>(1, nn);
 #else
     nn->load(MODEL_PATH);
-    auto searcher = std::make_unique<MCTSearcher<Tensor>>(16, 1, *nn);
+    auto searcher = std::make_unique<MCTSearcher>(16, *nn);
 #endif
 
     Position pos;
