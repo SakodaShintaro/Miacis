@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#ifndef UCT_HASH_ENTRY_HPP
+﻿#ifndef UCT_HASH_ENTRY_HPP
 #define UCT_HASH_ENTRY_HPP
 
 #include"piece.hpp"

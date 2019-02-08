@@ -99,7 +99,7 @@ inline std::vector<Type> softmax(std::vector<Type> x, Type temperature = 1.0) {
 }
 
 template<class Type>
-inline int32_t randomChoose(std::vector<Type> x) {
+inline int32_t randomChoose(const std::vector<Type>& x) {
     std::random_device seed;
     std::uniform_real_distribution<Type> dist(0.0, 1.0);
     Type prob = dist(seed);

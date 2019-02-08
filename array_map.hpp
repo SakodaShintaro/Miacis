@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#ifndef ARRAYMAP_HPP
+﻿#ifndef ARRAYMAP_HPP
 #define ARRAYMAP_HPP
 
 #include<cstdint>

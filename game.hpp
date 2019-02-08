@@ -1,7 +1,5 @@
-﻿#pragma once
-
-#ifndef LOAD_GAME_HPP
-#define LOAD_GAME_HPP
+﻿#ifndef GAME_HPP
+#define GAME_HPP
 
 #include"move.hpp"
 #include"neural_network.hpp"
@@ -30,4 +28,4 @@ Game loadGameFromCSA(std::experimental::filesystem::path p);
 std::vector<Game> loadGames(std::string path, uint64_t num);
 void cleanGames(std::string path);
 
-#endif // !LOAD_GAME_HPP
+#endif // !GAME_HPP
