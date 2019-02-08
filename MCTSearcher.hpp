@@ -16,14 +16,14 @@ public:
     MCTSearcher(int64_t hash_size, NeuralNetwork<Tensor>& nn) : hash_table_(hash_size), evaluator_(nn) {}
 #endif
     
-    //一番良い指し手と学習データを返す関数
-    std::pair<Move, TeacherType> think(Position& root);
+    //探索を行って一番良い指し手を返す関数
+    Move think(Position& root);
 
 private:
     //再帰する探索関数
     ValueType uctSearch(Position& pos, Index current_index);
 
-    //プレイアウト1回
+    //再帰しない探索関数
     void onePlay(Position& pos);
 
     //ノードを展開する関数
@@ -44,11 +44,8 @@ private:
     //情報をUSIプロトコルに従って標準出力に出す関数
     void printUSIInfo() const;
 
-    //Ucbを計算して最大値を持つインデックスを返す
+    //Ucbを計算して最大値を持つインデックスを返す関数
     static int32_t selectMaxUcbChild(const UctHashEntry& current_node);
-
-    //ディリクレ分布に従ったものを返す関数
-    static std::vector<double> dirichletDistribution(int32_t k, double alpha);
 
     //置換表
     UctHashTable hash_table_;

@@ -2,8 +2,9 @@
 #include"operate_params.hpp"
 #include"usi_options.hpp"
 #include<stack>
+#include <iomanip>
 
-std::pair<Move, TeacherType> MCTSearcher::think(Position& root) {
+Move MCTSearcher::think(Position& root) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
 
@@ -16,7 +17,7 @@ std::pair<Move, TeacherType> MCTSearcher::think(Position& root) {
 
     //合法手が0だったら投了
     if (current_node.child_num == 0) {
-        return { NULL_MOVE, TeacherType() };
+        return NULL_MOVE;
     }
 
     //探索を繰り返す.探索回数が閾値に達する,または打ち切り判定がtrueになったらループを抜ける
@@ -35,30 +36,26 @@ std::pair<Move, TeacherType> MCTSearcher::think(Position& root) {
 
     const auto& child_move_counts = current_node.child_move_counts;
 
+    std::cout << std::fixed << std::setprecision(5);
     printUSIInfo();
     root.print(false);
-    auto root_moves = current_node.legal_moves;
     for (int32_t i = 0; i < current_node.child_num; i++) {
+        double nn = 100.0 * current_node.nn_rates[i];
+        double p  = 100.0 * child_move_counts[i] / current_node.move_count;
 #ifdef USE_CATEGORICAL
-        double v = 0.0;
-        if (child_move_counts[i] != 0) {
-            for (int32_t j = 0; j < BIN_SIZE; j++) {
-                v += VALUE_WIDTH * (0.5 + j) * (current_node.child_wins[i][j] / child_move_counts[i]);
-            }
-        }
-        printf("%3d: move_count = %6d, nn_rate = %.5f, win_rate = %7.5f, ", i, child_move_counts[i],
-            current_node.nn_rates[i], v);
-        root_moves[i].print();
+        double v = (child_move_counts[i] > 0 ? expOfValueDist(current_node.child_wins[i]) / child_move_counts[i] : MIN_SCORE);
 #else
-        printf("%3d: move_count = %6d, nn_rate = %.5f, win_rate = %+7.5f, ", i, child_move_counts[i],
-               current_node.nn_rates[i],
-               (child_move_counts[i] > 0 ? current_node.child_wins[i] / child_move_counts[i] : 0));
-        root_moves[i].print();
+        double v = (child_move_counts[i] > 0 ? current_node.child_wins[i] / child_move_counts[i] : MIN_SCORE);
 #endif
+        printf("%3d  %4.1f  %4.1f  %+.3f  ", i, nn, p, v);
+        current_node.legal_moves[i].print();
     }
 
-    // 訪問回数最大の手を選択する
+    //探索回数最大の手を選択する
     int32_t best_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
+
+    //選んだ手の探索回数は少なくとも1以上であることを前提とする
+    assert(child_move_counts[best_index] != 0);
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
@@ -68,36 +65,30 @@ std::pair<Move, TeacherType> MCTSearcher::think(Position& root) {
         best_wp += VALUE_WIDTH * (0.5 + i) * v;
     }
 #else
-    auto best_wp = (child_move_counts[best_index] == 0 ? 0.0
-                                                       : current_node.child_wins[best_index] / child_move_counts[best_index]);
+    auto best_wp = current_node.child_wins[best_index] / child_move_counts[best_index];
 #endif
 
-    //投了しない場合教師データを作成
-    TeacherType teacher;
+    //best_moveの選択
+    Move best_move;
+    if (root.turn_number() >= usi_option.random_turn) {
+        //最善手をそのまま返す
+        best_move = current_node.legal_moves[best_index];
+    } else {
+        //探索回数を正規化して分布を得る
+        std::vector<CalcType> distribution(current_node.child_num);
+        for (int32_t i = 0; i < current_node.child_num; i++) {
+            distribution[i] = (CalcType)child_move_counts[i] / current_node.move_count;
+            assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
+        }
 
-    //valueのセット
-#ifdef USE_CATEGORICAL
-    teacher.value = valueToIndex(best_wp);
-#else
-    teacher.value = (CalcType)best_wp;
-#endif
-
-    //訪問回数に基づいた分布を得る
-    std::vector<CalcType> distribution(current_node.child_num);
-    for (int32_t i = 0; i < current_node.child_num; i++) {
-        distribution[i] = (CalcType)child_move_counts[i] / current_node.move_count;
-        assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
+        //分布からランダムにサンプリング
+        best_move = current_node.legal_moves[randomChoose(distribution)];
     }
 
-    //最善手
-    Move best_move = (root.turn_number() < usi_option.random_turn ?
-                      current_node.legal_moves[randomChoose(distribution)] :
-                      current_node.legal_moves[best_index]);
+    //使うかどうかは微妙だけどscoreに最善の値をセットする
+    best_move.score = best_wp;
 
-    best_move.score = (Score)(best_wp);
-    teacher.policy = best_move.toLabel();
-
-    return { best_move, teacher };
+    return best_move;
 }
 
 ValueType MCTSearcher::uctSearch(Position & pos, Index current_index) {
@@ -330,22 +321,6 @@ void MCTSearcher::printUSIInfo() const {
         std::cout << m << " ";
     }
     std::cout << std::endl;
-}
-
-std::vector<double> MCTSearcher::dirichletDistribution(int32_t k, double alpha) {
-    static std::random_device seed;
-    static std::default_random_engine engine(seed());
-    static constexpr double eps = 0.000000001;
-    std::gamma_distribution<double> gamma(alpha, 1.0);
-    std::vector<double> dirichlet(k);
-    double sum = 0.0;
-    for (int32_t i = 0; i < k; i++) {
-        sum += (dirichlet[i] = std::max(gamma(engine), eps));
-    }
-    for (int32_t i = 0; i < k; i++) {
-        dirichlet[i] /= sum;
-    }
-    return dirichlet;
 }
 
 int32_t MCTSearcher::selectMaxUcbChild(const UctHashEntry & current_node) {

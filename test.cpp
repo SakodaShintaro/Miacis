@@ -20,6 +20,7 @@ void test() {
     usi_option.playout_limit = 800;
     usi_option.limit_msec = LLONG_MAX;
     usi_option.USI_Hash = 8;
+    usi_option.draw_turn = 256;
 #ifdef USE_LIBTORCH
     torch::load(nn, MODEL_PATH);
     auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, nn);
@@ -34,8 +35,7 @@ void test() {
     while (true) {
         pos.print(false);
 
-        auto search_result = searcher->think(pos);
-        Move best_move = search_result.first;
+        Move best_move = searcher->think(pos);
         if (best_move == NULL_MOVE) {
             //投了
             break;
