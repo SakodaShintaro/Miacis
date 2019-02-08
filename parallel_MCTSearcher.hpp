@@ -30,8 +30,8 @@ public:
     }
 #endif
     
-    //一番良い指し手と学習データを返す関数
-    std::pair<Move, TeacherType> think(Position& root);
+    //探索を行って一番良い指し手を返す関数
+    Move think(Position& root);
 
 private:
     static constexpr int32_t VIRTUAL_LOSS = 1;
@@ -39,10 +39,10 @@ private:
     //再帰する探索関数
     ValueType uctSearch(Position& pos, Index current_index);
 
-    //プレイアウト1回
+    //再帰しない探索関数
     void onePlay(Position& pos);
 
-    //スレッドとして探索する関数
+    //各スレッドに割り当てられる探索関数
     void parallelUctSearch(Position root);
 
     //ノードを展開する関数
@@ -65,9 +65,6 @@ private:
 
     //Ucbを計算して最大値を持つインデックスを返す
     static int32_t selectMaxUcbChild(const UctHashEntry& current_node);
-
-    //ディリクレ分布に従ったものを返す関数
-    static std::vector<double> dirichletDistribution(int32_t k, double alpha);
 
     //キューをクリア
     void clearEvalQueue();

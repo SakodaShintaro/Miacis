@@ -235,11 +235,11 @@ void USI::go() {
 #else
         ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
 #endif
-        auto result = searcher.think(root_);
-        if (result.first == NULL_MOVE) {
+        auto best_move = searcher.think(root_);
+        if (best_move == NULL_MOVE) {
             std::cout << "bestmove resign" << std::endl;
         } else {
-            std::cout << "bestmove " << result.first << std::endl;
+            std::cout << "bestmove " << best_move << std::endl;
         }
     });
 }

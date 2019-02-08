@@ -268,7 +268,6 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
         torch::load(nn, MODEL_PATH);
     }
 
-    //TODO:探索部は形無しでいんじゃん
     auto searcher1 = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, usi_option.thread_num, curr);
     auto searcher2 = (eval ? //searcher2は評価時にしか使わない
                       std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, usi_option.thread_num, nn) :
@@ -292,18 +291,16 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
         Position pos;
 
         while (true) {
-            std::pair<Move, TeacherType> move_and_teacher;
+            Move best_move;
             if (eval) {
                 //評価時:iが偶数のときsearcher1が先手
-                move_and_teacher = ((pos.turn_number() % 2) == (i % 2) ?
+                best_move = ((pos.turn_number() % 2) == (i % 2) ?
                                          searcher1->think(pos) :
                                          searcher2->think(pos));
             } else {
                 //データ生成時:searcher1のみを使って自己対局
-                move_and_teacher = searcher1->think(pos);
+                best_move = searcher1->think(pos);
             }
-            Move best_move = move_and_teacher.first;
-            TeacherType teacher = move_and_teacher.second;
 
             if (best_move == NULL_MOVE) { //NULL_MOVEは投了を示す
                 game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
@@ -318,7 +315,6 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
             pos.doMove(best_move);
             pos.print(false);
             game.moves.push_back(best_move);
-            game.teachers.push_back(teacher);
 
             if (pos.turn_number() >= usi_option.draw_turn) { //長手数
                 game.result = Game::RESULT_DRAW_OVER_LIMIT;

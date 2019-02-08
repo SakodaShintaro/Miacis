@@ -36,7 +36,6 @@ Move MCTSearcher::think(Position& root) {
 
     const auto& child_move_counts = current_node.child_move_counts;
 
-    std::cout << std::fixed << std::setprecision(5);
     printUSIInfo();
     root.print(false);
     for (int32_t i = 0; i < current_node.child_num; i++) {
