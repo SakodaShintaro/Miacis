@@ -13,7 +13,9 @@ std::unique_ptr<NeuralNetwork<Tensor>> nn(new NeuralNetwork<Tensor>);
 
 int main()
 {
-#ifndef USE_LIBTORCH
+#ifdef USE_LIBTORCH
+    nn->to(device);
+#else
     //devices::Naive dev;
     devices::CUDA dev(0);
     Device::set_default(dev);

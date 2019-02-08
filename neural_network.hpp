@@ -3,7 +3,6 @@
 
 #include"position.hpp"
 #include<vector>
-#include<primitiv/primitiv.h>
 
 //ネットワークの設定
 constexpr int32_t POLICY_CHANNEL_NUM = 27;
@@ -49,145 +48,29 @@ struct TeacherType {
 };
 
 //LibTorchを使う場合
-#define USE_LIBTORCH
-
 #ifdef USE_LIBTORCH
 #include<torch/torch.h>
 
+extern torch::Device device;
+
 class NeuralNetworkImpl : public torch::nn::Module {
 public:
-    NeuralNetworkImpl() {
-        first_conv = register_module("first_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
-        first_bn = register_module("first_bn", torch::nn::BatchNorm(CHANNEL_NUM));
-        for (int32_t i = 0; i < BLOCK_NUM; i++) {
-            for (int32_t j = 0; j < 2; j++) {
-                conv[i][j] = register_module("conv" + std::to_string(i) + "_" + std::to_string(j), torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
-                bn[i][j] = register_module("bn" + std::to_string(i) + "_" + std::to_string(j), torch::nn::BatchNorm(CHANNEL_NUM));
-            }
-        }
-        policy_conv = register_module("policy_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
-        value_conv = register_module("value_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, 1).padding(0).with_bias(false)));
-        value_bn = register_module("value_bn", torch::nn::BatchNorm(CHANNEL_NUM));
-        value_fc1 = register_module("value_fc1", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
-        value_fc2 = register_module("value_fc2", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
-    }
+    NeuralNetworkImpl();
 
-    std::pair<torch::Tensor, torch::Tensor> forward(torch::Tensor x) {
-        x = first_conv->forward(x);
-        x = first_bn->forward(x);
-        x = torch::relu(x);
+    //Tensorを受け取ってpolicyとvalueに相当するTensorを返す関数
+    std::pair<torch::Tensor, torch::Tensor> forward(torch::Tensor x);
 
-        for (int32_t i = 0; i < BLOCK_NUM; i++) {
-            auto t = x;
+    //上の関数をラップして入力部をfloatのvectorにした関数.不要かもしれない
+    std::pair<torch::Tensor, torch::Tensor> forward(std::vector<float>& input);
 
-            x = conv[i][0]->forward(x);
-            x = bn[i][0]->forward(x);
-            x = torch::relu(x);
+    //1局面を受け取ってそれに対する評価を返す関数.不要な気がする
+    std::pair<PolicyType, ValueType> policyAndValue(const Position& pos);
 
-            x = conv[i][1]->forward(x);
-            x = bn[i][1]->forward(x);
-            x = torch::relu(x);
-        }
+    //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(std::vector<float>& inputs);
 
-        //ここから分岐
-        //policy
-        torch::Tensor policy = policy_conv->forward(x);
-
-        //value
-        torch::Tensor value = value_conv->forward(x);
-        value = value_bn->forward(value);
-        value = torch::relu(value);
-        value = torch::flatten(value);
-        value = value_fc1->forward(value);
-        value = torch::relu(value);
-        value = value_fc2->forward(value);
-
-#ifndef USE_CATEGORICAL
-#ifdef USE_SIGMOID
-        value = torch::sigmoid(value);
-#else
-        value = torch::tanh(value);
-#endif
-#endif
-        return { policy, value };
-    }
-
-    std::pair<torch::Tensor, torch::Tensor> forward(std::vector<float>& input) {
-        auto batch_size = input.size() / (INPUT_CHANNEL_NUM * SQUARE_NUM);
-        torch::Tensor x = torch::tensor(input);
-        x = x.reshape({(long)batch_size, INPUT_CHANNEL_NUM, 9, 9});
-        return forward(x);
-    }
-
-    std::pair<PolicyType, ValueType> policyAndValue(const Position& pos) {
-        std::vector<float> input = pos.makeFeature();
-        auto y = forward(input);
-        auto policy_data = torch::flatten(y.first).data<float>();
-        PolicyType policy;
-        std::copy(policy_data, policy_data + POLICY_CHANNEL_NUM * SQUARE_NUM, policy.begin());
-
-        auto value = y.second;
-#ifdef USE_CATEGORICAL
-        value = F::softmax(value, 0).to_vector();
-        //std::arrayの形で返す
-        ValueType retval;
-        std::copy(value.begin(), value.end(), retval.begin());
-        return { policy.to_vector(), retval };
-#else
-        return { policy, value.item<float>() };
-#endif
-    }
-
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(std::vector<float>& inputs) {
-        auto y = forward(inputs);
-
-        auto batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);
-
-        std::vector<PolicyType> policies(batch_size);
-        std::vector<ValueType> values(batch_size);
-
-        auto policy = torch::flatten(y.first).data<float>();
-        for (int32_t i = 0; i < batch_size; i++) {
-            policies[i].resize(POLICY_CHANNEL_NUM * SQUARE_NUM);
-            for (int32_t j = 0; j < POLICY_CHANNEL_NUM * SQUARE_NUM; j++) {
-                policies[i][j] = policy[i * POLICY_CHANNEL_NUM * SQUARE_NUM + j];
-            }
-        }
-
-#ifdef USE_CATEGORICAL
-        auto value = F::softmax(y.second, 0).to_vector();
-        for (int32_t i = 0; i < batch_size; i++) {
-            for (int32_t j = 0; j < BIN_SIZE; j++) {
-                values[i][j] = value[i * BIN_SIZE + j];
-            }
-        }
-#else
-        auto d = y.second.data<float>();
-        std::copy(d, d + batch_size, values.begin());
-#endif
-        return { policies, values };
-    }
-
-    std::pair<torch::Tensor, torch::Tensor> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<ValueTeacher>& value_teachers) {
-        auto y = forward(input);
-        auto logits = torch::flatten(y.first);
-
-        //torch::Tensor policy_loss = torch::nll_loss();
-        torch::Tensor policy_loss = logits;
-
-#ifdef USE_CATEGORICAL
-        Var value_loss = F::softmax_cross_entropy(y.second, value_labels, 0);
-#else
-        //Var value_t = F::input<Var>(Shape({1}, (uint32_t)value_teachers.size()), value_teachers);
-#ifdef USE_SIGMOID
-        Var value_loss = -value_t * F::log(y.second) -(1 - value_t) * F::log(1 - y.second);
-#else
-        //Var value_loss = (y.second - value_t) * (y.second - value_t);
-        torch::Tensor value_loss = y.second;
-#endif
-#endif
-        return { torch::mean(policy_loss), torch::mean(value_loss) };
-    }
+    //バッチの入力特徴量,教師情報を引数として損失を返す関数.これをモデルが一括で行うのが良い実装？
+    std::pair<torch::Tensor, torch::Tensor> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<ValueTeacher>& value_teachers);
 
 private:
     torch::nn::Conv2d first_conv{nullptr};
@@ -207,6 +90,7 @@ TORCH_MODULE(NeuralNetwork);
 extern NeuralNetwork nn;
 
 #else
+#include<primitiv/primitiv.h>
 
 //primitiv
 using namespace primitiv;
