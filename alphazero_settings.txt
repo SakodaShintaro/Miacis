@@ -1,4 +1,4 @@
-﻿batch_size 4096
+batch_size 4096
 learn_rate 0.2
 learn_rate_decay 0.9999
 momentum_decay 0.9

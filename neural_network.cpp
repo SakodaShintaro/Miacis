@@ -4,20 +4,34 @@
 
 torch::Device device(torch::kCUDA);
 
-NeuralNetworkImpl::NeuralNetworkImpl() {
+NeuralNetworkImpl::NeuralNetworkImpl() : conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)), bn(BLOCK_NUM, std::vector<torch::nn::BatchNorm>(2, nullptr)) {
     first_conv = register_module("first_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
+    torch::nn::init::xavier_normal_(first_conv->weight);
     first_bn = register_module("first_bn", torch::nn::BatchNorm(CHANNEL_NUM));
+    torch::nn::init::constant_(first_bn->weight, 1);
+    torch::nn::init::constant_(first_bn->bias, 1);
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
         for (int32_t j = 0; j < 2; j++) {
             conv[i][j] = register_module("conv" + std::to_string(i) + "_" + std::to_string(j), torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
+            torch::nn::init::xavier_normal_(conv[i][j]->weight);
             bn[i][j] = register_module("bn" + std::to_string(i) + "_" + std::to_string(j), torch::nn::BatchNorm(CHANNEL_NUM));
+            torch::nn::init::constant_(bn[i][j]->weight, 1);
+            torch::nn::init::constant_(bn[i][j]->bias, 1);
         }
     }
     policy_conv = register_module("policy_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
+    torch::nn::init::xavier_normal_(policy_conv->weight);
     value_conv = register_module("value_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, 1).padding(0).with_bias(false)));
+    torch::nn::init::xavier_normal_(value_conv->weight);
     value_bn = register_module("value_bn", torch::nn::BatchNorm(CHANNEL_NUM));
+    torch::nn::init::constant_(value_bn->weight, 1);
+    torch::nn::init::constant_(value_bn->bias, 1);
     value_fc1 = register_module("value_fc1", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
+    torch::nn::init::xavier_normal_(value_fc1->weight);
+    torch::nn::init::constant_(value_fc1->bias, 0);
     value_fc2 = register_module("value_fc2", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
+    torch::nn::init::xavier_normal_(value_fc2->weight);
+    torch::nn::init::constant_(value_fc2->bias, 0);
 }
 
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(torch::Tensor x) {
@@ -57,6 +71,7 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(torch::Tensor
     value = torch::tanh(value);
 #endif
 #endif
+
     return { policy, value };
 }
 
@@ -71,9 +86,9 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(std::vector<f
 std::pair<PolicyType, ValueType> NeuralNetworkImpl::policyAndValue(const Position& pos) {
     std::vector<float> input = pos.makeFeature();
     auto y = forward(input);
-    auto policy_data = y.first.to(torch::Device(torch::kCPU)).data<float>();
+    auto p = y.first.to(torch::Device(torch::kCPU));
     PolicyType policy(POLICY_CHANNEL_NUM * SQUARE_NUM);
-    std::copy(policy_data, policy_data + POLICY_CHANNEL_NUM * SQUARE_NUM, policy.begin());
+    std::copy(p.data<float>(), p.data<float>() + POLICY_CHANNEL_NUM * SQUARE_NUM, policy.begin());
 
     auto value = y.second;
 #ifdef USE_CATEGORICAL
@@ -96,11 +111,13 @@ NeuralNetworkImpl::policyAndValueBatch(std::vector<float>& inputs) {
     std::vector<PolicyType> policies(batch_size);
     std::vector<ValueType> values(batch_size);
 
-    auto policy = y.first.to(torch::Device(torch::kCPU)).data<float>();
+    //CPUに持ってくる
+    auto policy = y.first.to(torch::Device(torch::kCPU));
+    auto p = policy.data<float>();
     for (int32_t i = 0; i < batch_size; i++) {
         policies[i].resize(POLICY_CHANNEL_NUM * SQUARE_NUM);
         for (int32_t j = 0; j < POLICY_CHANNEL_NUM * SQUARE_NUM; j++) {
-            policies[i][j] = policy[i * POLICY_CHANNEL_NUM * SQUARE_NUM + j];
+            policies[i][j] = p[i * POLICY_CHANNEL_NUM * SQUARE_NUM + j];
         }
     }
 
@@ -112,8 +129,9 @@ NeuralNetworkImpl::policyAndValueBatch(std::vector<float>& inputs) {
             }
         }
 #else
-    auto d = y.second.to(torch::Device(torch::kCPU)).data<float>();
-    std::copy(d, d + batch_size, values.begin());
+    //CPUに持ってくる
+    auto value = y.second.to(torch::Device(torch::kCPU));
+    std::copy(value.data<float>(), value.data<float>() + batch_size, values.begin());
 #endif
     return { policies, values };
 }
@@ -122,22 +140,25 @@ std::pair<torch::Tensor, torch::Tensor>
 NeuralNetworkImpl::loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels,
                         std::vector<ValueTeacher>& value_teachers) {
     auto y = forward(input);
-    auto logits = torch::flatten(y.first);
+    auto logits = y.first.reshape({ y.first.size(0), SQUARE_NUM * POLICY_CHANNEL_NUM });
 
-    //torch::Tensor policy_loss = torch::nll_loss();
-    torch::Tensor policy_loss = logits;
+    std::vector<float> float_labels(policy_labels.size());
+    for (int32_t i = 0; i < policy_labels.size(); i++) {
+        float_labels[i] = policy_labels[i];
+    }
+    auto target = torch::tensor(float_labels);
+    torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(logits, 1), target);
 
 #ifdef USE_CATEGORICAL
     assert(false);
         torch::Tensor value_loss;
         //Var value_loss = F::softmax_cross_entropy(y.second, value_labels, 0);
 #else
-    //Var value_t = F::input<Var>(Shape({1}, (uint32_t)value_teachers.size()), value_teachers);
+    torch::Tensor value_t = torch::tensor(value_teachers);
 #ifdef USE_SIGMOID
     Var value_loss = -value_t * F::log(y.second) -(1 - value_t) * F::log(1 - y.second);
 #else
-    //Var value_loss = (y.second - value_t) * (y.second - value_t);
-    torch::Tensor value_loss = y.second;
+    torch::Tensor value_loss = (y.second - value_t) * (y.second - value_t);
 #endif
 #endif
     return { torch::mean(policy_loss), torch::mean(value_loss) };

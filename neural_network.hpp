@@ -75,10 +75,8 @@ public:
 private:
     torch::nn::Conv2d first_conv{nullptr};
     torch::nn::BatchNorm first_bn{nullptr};
-    //torch::nn::Conv2d conv[BLOCK_NUM][2] = {nullptr};
-    std::vector<std::vector<torch::nn::Conv2d>> conv{BLOCK_NUM, std::vector<torch::nn::Conv2d>{2, nullptr}};
-    //torch::nn::BatchNorm bn[BLOCK_NUM][2] = {nullptr};
-    std::vector<std::vector<torch::nn::BatchNorm>> bn{BLOCK_NUM, std::vector<torch::nn::BatchNorm>{2, nullptr}};
+    std::vector<std::vector<torch::nn::Conv2d>> conv;
+    std::vector<std::vector<torch::nn::BatchNorm>> bn;
     torch::nn::Conv2d policy_conv{nullptr};
     torch::nn::Conv2d value_conv{nullptr};
     torch::nn::BatchNorm value_bn{nullptr};

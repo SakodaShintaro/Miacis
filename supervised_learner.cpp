@@ -141,7 +141,17 @@ void SupervisedLearner::train() {
             std::tie(inputs, policy_labels, value_teachers) = getBatch(data_buffer, step * BATCH_SIZE);
 
 #ifdef USE_LIBTORCH
+            optimizer.zero_grad();
             auto loss = learning_model_->loss(inputs, policy_labels, value_teachers);
+            if (step % 100 == 0) {
+                auto p_loss = loss.first.item<float>();
+                auto v_loss = loss.second.item<float>();
+                std::cout << elapsedTime()  << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
+                learn_log << elapsedHours() << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
+            }
+            loss.first.backward();
+            loss.second.backward();
+            optimizer.step();
 #else
             g.clear();
             auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
@@ -159,7 +169,30 @@ void SupervisedLearner::train() {
         }
 
 #ifdef USE_LIBTORCH
-        //TODO:実装
+        torch::save(learning_model_, MODEL_PATH);
+        torch::load(nn, MODEL_PATH);
+
+        int32_t num = 0;
+        float curr_loss = 0.0;
+        for (int32_t i = 0; (i + 1) * BATCH_SIZE <= validation_size; i++, num++) {
+            std::vector<float> inputs;
+            std::vector<uint32_t> policy_labels;
+            std::vector<ValueTeacher> value_teachers;
+            std::tie(inputs, policy_labels, value_teachers) = getBatch(validation_data, i * BATCH_SIZE);
+            auto loss = nn->loss(inputs, policy_labels, value_teachers);
+            curr_loss += (loss.first.item<float>() + loss.second.item<float>());
+        }
+        curr_loss /= num;
+
+        validation_log << epoch << "\t" << elapsedHours() << "\t" << curr_loss << std::endl;
+
+        if (curr_loss < min_loss) {
+            min_loss = curr_loss;
+            patience = 0;
+            torch::save(learning_model_, "pytorch_best.model");
+        } else if (++patience >= PATIENCE) {
+            break;
+        }
 #else
         learning_model_.save(MODEL_PATH);
                 //ここからvalidation

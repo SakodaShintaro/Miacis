@@ -9,6 +9,7 @@ int main()
 {
 #ifdef USE_LIBTORCH
     nn->to(device);
+    nn->eval();
 #else
     //devices::Naive dev;
     devices::CUDA dev(0);
