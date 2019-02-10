@@ -25,6 +25,9 @@ public:
     //決まったゲーム数生成する関数
     void genGames(int64_t game_num);
 
+    //mutex:AlphaZeroTrainerから触れるようにpublicに置いている
+    std::mutex gpu_mutex;
+
 private:
     //使うGPUのid
     int64_t gpu_id_;
@@ -57,9 +60,6 @@ private:
 
     //実行を続けるフラグ
     bool running_;
-
-    //mutex
-    std::mutex lock_expand_;
 
     //キュー
     int8_t current_queue_index_;
@@ -116,12 +116,8 @@ private:
     };
     std::vector<SearcherForGen> searchers_;
 #else
-
     //生成してはreplay_bufferへ送る関数
     void genSlave(int64_t id);
-
-    //mutex
-    std::mutex gpu_mutex_;
 
     //生成する局数
     std::atomic<int64_t> game_num_;
@@ -182,7 +178,6 @@ private:
         std::vector<std::stack<int32_t>>& actions_;
         std::vector<int32_t>& ids_;
     };
-
 #endif
 };
 

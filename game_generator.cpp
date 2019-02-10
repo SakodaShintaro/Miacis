@@ -75,15 +75,15 @@ void GameGenerator::gpuFunc() {
     bool enough_batch_size = true;
 
     while (running_) {
-        lock_expand_.lock();
+        gpu_mutex.lock();
         if (current_features_.empty()) {
-            lock_expand_.unlock();
+            gpu_mutex.unlock();
             std::this_thread::sleep_for(std::chrono::microseconds(1));
             continue;
         }
 
         if (!enough_batch_size && current_features_.size() < parallel_num_ / 2) {
-            lock_expand_.unlock();
+            gpu_mutex.unlock();
             std::this_thread::sleep_for(std::chrono::microseconds(1));
             enough_batch_size = true;
             continue;
@@ -104,7 +104,7 @@ void GameGenerator::gpuFunc() {
         current_hash_index_queue_.clear();
         current_thread_ids_ = thread_ids_[current_queue_index_];
         current_thread_ids_.clear();
-        lock_expand_.unlock();
+        gpu_mutex.unlock();
 
         auto result = evaluator_.policyAndValueBatch(eval_features);
         auto policies = result.first;
@@ -186,13 +186,13 @@ void GameGenerator::genSlave(int64_t id) {
 
     //GPUで評価する関数
     auto evalWithGPU = [&](){
-        gpu_mutex_.lock();
+        gpu_mutex.lock();
 #ifdef USE_LIBTORCH
         auto result = evaluator_->policyAndValueBatch(features);
 #else
         auto result = evaluator_.policyAndValueBatch(features);
 #endif
-        gpu_mutex_.unlock();
+        gpu_mutex.unlock();
         auto policies = result.first;
         auto values = result.second;
 
@@ -233,6 +233,9 @@ void GameGenerator::genSlave(int64_t id) {
             }
 
             if (searchers[i].shouldStop()) {
+                if (usi_option.stop_signal) {
+                    return;
+                }
                 //探索結果を取得して次の局面へ遷移
                 auto result = searchers[i].resultForCurrPos(positions[i]);
                 positions[i].doMove(result.first);

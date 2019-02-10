@@ -90,9 +90,6 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
     //変数の初期化
     update_num_ = 0;
 
-    //評価関数読み込み
-    //learning_model_.load(MODEL_PATH);
-
     //棋譜を保存するディレクトリの削除
     std::experimental::filesystem::remove_all("./learn_games");
     std::experimental::filesystem::remove_all("./test_games");
@@ -148,13 +145,10 @@ void AlphaZeroTrainer::startLearn() {
 
     //自己対局をしてreplay_buffer_にデータを追加するインスタンス
     GameGenerator generator(0, PARALLEL_NUM, replay_buffer_, *nn);
+    std::thread gen_thread([&generator]() { generator.genGames(static_cast<int64_t>(1e10)); });
 #endif
 
-
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
-        //自己対局をしてreplay_buffer_にデータを追加
-        generator.genGames(PARALLEL_NUM);
-
         //バッチサイズだけデータを選択
         std::vector<float> inputs;
         std::vector<uint32_t> policy_labels;
@@ -162,10 +156,11 @@ void AlphaZeroTrainer::startLearn() {
         std::tie(inputs, policy_labels, value_teachers) = replay_buffer_.makeBatch(static_cast<int32_t>(BATCH_SIZE));
 
 #ifdef USE_LIBTORCH
-
+        asssert(false);
 #else
         Graph g;
         Graph::set_default(g);
+        generator.gpu_mutex.lock();
         auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
         optimizer.reset_gradients();
         loss.first.backward();
@@ -182,10 +177,13 @@ void AlphaZeroTrainer::startLearn() {
         //書き出し
         learning_model_.save(MODEL_PATH);
         nn->load(MODEL_PATH);
+        generator.gpu_mutex.unlock();
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 #endif
     }
 
     usi_option.stop_signal = true;
+    gen_thread.detach();
 
     std::cout << "finish alphaZero()" << std::endl;
 }
