@@ -117,7 +117,10 @@ void SupervisedLearner::train() {
 
     //optimizerの設定
 #ifdef USE_LIBTORCH
-    torch::optim::SGD optimizer(learning_model_->parameters(), LEARN_RATE);
+    torch::optim::SGDOptions sgd_option(LEARN_RATE);
+    sgd_option.momentum(MOMENTUM_DECAY);
+    sgd_option.weight_decay(WEIGHT_DECAY);
+    torch::optim::SGD optimizer(learning_model_->parameters(), sgd_option);
 #else
     O::MomentumSGD optimizer(LEARN_RATE);
     optimizer.add(learning_model_);
@@ -126,7 +129,6 @@ void SupervisedLearner::train() {
     //グラフの設定
     Graph g;
     Graph::set_default(g);
-
 #endif
 
     //学習開始
@@ -143,7 +145,7 @@ void SupervisedLearner::train() {
 #ifdef USE_LIBTORCH
             optimizer.zero_grad();
             auto loss = learning_model_->loss(inputs, policy_labels, value_teachers);
-            if (step % 1 == 0) {
+            if (step % 100 == 0) {
                 auto p_loss = loss.first.item<float>();
                 auto v_loss = loss.second.item<float>();
                 std::cout << elapsedTime()  << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
