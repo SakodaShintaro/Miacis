@@ -3,6 +3,7 @@
 #include "operate_params.hpp"
 #include <thread>
 #include <stack>
+#include <iomanip>
 
 //共通するものは分岐する前に置いておく
 std::vector<double> GameGenerator::SearcherForGen::dirichletDistribution(int32_t k, double alpha) {
@@ -369,6 +370,9 @@ Index GameGenerator::SearcherForGen::expandNode(Position &pos, std::stack<int32_
 
     // 合流先が検知できればそれを返す
     if (index != hash_table_.size()) {
+        //GPUに送らないのでこのタイミングでバックアップを行う
+        indices.push(index);
+        backup(indices, actions);
         return index;
     }
 
@@ -400,8 +404,22 @@ Index GameGenerator::SearcherForGen::expandNode(Position &pos, std::stack<int32_
 #endif
 
     // ノードを評価
-    // 千日手でも普通に展開して良いはず
-    if (current_node.child_num > 0) {
+    Score repeat_score;
+    if (pos.isRepeating(repeat_score)) {
+        //繰り返し
+#ifdef USE_CATEGORICAL
+        for (int32_t i = 0; i < BIN_SIZE; i++) {
+            current_node.value[i] = (i == 0 ? 1.0f : 0.0f);
+        }
+        current_node.value = onehotDist(repeat_score);
+#else
+        current_node.value = repeat_score;
+#endif
+        current_node.evaled = true;
+        //GPUに送らないのでこのタイミングでバックアップを行う
+        indices.push(index);
+        backup(indices, actions);
+    } else if (current_node.child_num > 0) {
         auto this_feature = pos.makeFeature();
         features_.resize(features_.size() + this_feature.size());
         std::copy(this_feature.begin(), this_feature.end(), features_.end() - this_feature.size());
@@ -463,6 +481,12 @@ void GameGenerator::SearcherForGen::onePlay(Position &pos) {
     while(index != UctHashTable::NOT_EXPANDED) {
         if (hash_table_[index].child_num == 0) {
             //詰みの場合抜ける
+            break;
+        }
+
+        Score repeat_score;
+        if (index != current_root_index_ && pos.isRepeating(repeat_score)) {
+            //繰り返しが発生している場合も抜ける
             break;
         }
 

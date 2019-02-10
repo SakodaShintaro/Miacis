@@ -19,8 +19,8 @@
 void test() {
     usi_option.playout_limit = 800;
     usi_option.limit_msec = LLONG_MAX;
-    usi_option.USI_Hash = 8;
-    usi_option.draw_turn = 256;
+    usi_option.USI_Hash = 1;
+    usi_option.draw_turn = 512;
 #ifdef USE_LIBTORCH
     torch::load(nn, MODEL_PATH);
     //auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, nn);
@@ -40,11 +40,17 @@ void test() {
         Move best_move = searcher->think(pos);
         if (best_move == NULL_MOVE) {
             //投了
+            game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
             break;
         }
         Score repeat_score;
         if (pos.isRepeating(repeat_score)) {
             //千日手
+            game.result = Game::RESULT_DRAW_REPEAT;
+            break;
+        } else if (pos.turn_number() >= usi_option.draw_turn) {
+            //長手数
+            game.result = Game::RESULT_DRAW_OVER_LIMIT;
             break;
         }
 
