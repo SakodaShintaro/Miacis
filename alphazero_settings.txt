@@ -9,7 +9,7 @@ draw_turn 512
 draw_score 0
 lambda 1.0
 use_draw_game 1
-USI_Hash 32
+USI_Hash 1
 evaluation_game_num 100
 evaluation_interval 1000
 evaluation_random_turn 10

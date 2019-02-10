@@ -365,7 +365,7 @@ void GameGenerator::SearcherForGen::onePlay(Position &pos) {
 
 #else
 
-Index GameGenerator::SearcherForGen::expandNode(Position &pos, std::stack<int32_t> &indices, std::stack<int32_t> &actions) {
+Index GameGenerator::SearcherForGen::expandNode(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
     auto index = hash_table_.findSameHashIndex(pos.hash_value(), static_cast<int16_t>(pos.turn_number()));
 
     // 合流先が検知できればそれを返す
@@ -384,14 +384,15 @@ Index GameGenerator::SearcherForGen::expandNode(Position &pos, std::stack<int32_
     // 候補手の展開
     current_node.legal_moves = pos.generateAllMoves();
     current_node.child_num = (uint32_t)current_node.legal_moves.size();
-    current_node.child_indices = std::vector<int32_t>(current_node.child_num, UctHashTable::NOT_EXPANDED);
-    current_node.child_move_counts = std::vector<int32_t>(current_node.child_num, 0);
+    current_node.child_indices.assign(current_node.child_num, UctHashTable::NOT_EXPANDED);
+    current_node.child_move_counts.assign(current_node.child_num, 0);
 
     // 現在のノードの初期化
     current_node.move_count = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
-    current_node.child_wins = std::vector<std::array<CalcType, BIN_SIZE>>(current_node.child_num);
+    //TODO:正しく初期化できているか確認すること
+    current_node.child_wins.assign(static_cast<unsigned long>(current_node.child_num), std::array<float, BIN_SIZE>{});
     for (int32_t i = 0; i < BIN_SIZE; i++) {
         current_node.value[i] = 0.0;
         for (int32_t j = 0; j < current_node.child_num; j++) {
@@ -400,26 +401,24 @@ Index GameGenerator::SearcherForGen::expandNode(Position &pos, std::stack<int32_
     }
 #else
     current_node.value = 0.0;
-    current_node.child_wins = std::vector<float>(static_cast<unsigned long>(current_node.child_num), 0.0);
+    current_node.child_wins.assign(static_cast<unsigned long>(current_node.child_num), 0.0);
 #endif
 
     // ノードを評価
-    Score repeat_score;
-    if (pos.isRepeating(repeat_score)) {
-        //繰り返し
-#ifdef USE_CATEGORICAL
-        for (int32_t i = 0; i < BIN_SIZE; i++) {
-            current_node.value[i] = (i == 0 ? 1.0f : 0.0f);
-        }
-        current_node.value = onehotDist(repeat_score);
-#else
-        current_node.value = repeat_score;
-#endif
-        current_node.evaled = true;
-        //GPUに送らないのでこのタイミングでバックアップを行う
-        indices.push(index);
-        backup(indices, actions);
-    } else if (current_node.child_num > 0) {
+//    Score repeat_score;
+//    if (pos.isRepeating(repeat_score)) {
+//        //繰り返し
+//#ifdef USE_CATEGORICAL
+//        current_node.value = onehotDist(repeat_score);
+//#else
+//        current_node.value = repeat_score;
+//#endif
+//        current_node.evaled = true;
+//        //GPUに送らないのでこのタイミングでバックアップを行う
+//        indices.push(index);
+//        backup(indices, actions);
+//    } else
+        if (current_node.child_num > 0) {
         auto this_feature = pos.makeFeature();
         features_.resize(features_.size() + this_feature.size());
         std::copy(this_feature.begin(), this_feature.end(), features_.end() - this_feature.size());
@@ -484,11 +483,11 @@ void GameGenerator::SearcherForGen::onePlay(Position &pos) {
             break;
         }
 
-        Score repeat_score;
-        if (index != current_root_index_ && pos.isRepeating(repeat_score)) {
-            //繰り返しが発生している場合も抜ける
-            break;
-        }
+//        Score repeat_score;
+//        if (index != current_root_index_ && pos.isRepeating(repeat_score)) {
+//            //繰り返しが発生している場合も抜ける
+//            break;
+//        }
 
         //状態を記録
         curr_indices.push(index);
