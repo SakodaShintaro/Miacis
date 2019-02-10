@@ -145,8 +145,8 @@ void AlphaZeroTrainer::startLearn() {
 
     //自己対局をしてreplay_buffer_にデータを追加するインスタンス
     GameGenerator generator(0, PARALLEL_NUM, replay_buffer_, *nn);
-    std::thread gen_thread([&generator]() { generator.genGames(static_cast<int64_t>(1e10)); });
 #endif
+    std::thread gen_thread([&generator]() { generator.genGames(static_cast<int64_t>(1e10)); });
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         //バッチサイズだけデータを選択
@@ -156,7 +156,7 @@ void AlphaZeroTrainer::startLearn() {
         std::tie(inputs, policy_labels, value_teachers) = replay_buffer_.makeBatch(static_cast<int32_t>(BATCH_SIZE));
 
 #ifdef USE_LIBTORCH
-        asssert(false);
+        assert(false);
 #else
         Graph g;
         Graph::set_default(g);
