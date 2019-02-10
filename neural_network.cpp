@@ -8,15 +8,11 @@ NeuralNetworkImpl::NeuralNetworkImpl() : conv(BLOCK_NUM, std::vector<torch::nn::
     first_conv = register_module("first_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
     torch::nn::init::xavier_normal_(first_conv->weight);
     first_bn = register_module("first_bn", torch::nn::BatchNorm(CHANNEL_NUM));
-    torch::nn::init::constant_(first_bn->weight, 1);
-    torch::nn::init::constant_(first_bn->bias, 1);
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
         for (int32_t j = 0; j < 2; j++) {
             conv[i][j] = register_module("conv" + std::to_string(i) + "_" + std::to_string(j), torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
             torch::nn::init::xavier_normal_(conv[i][j]->weight);
             bn[i][j] = register_module("bn" + std::to_string(i) + "_" + std::to_string(j), torch::nn::BatchNorm(CHANNEL_NUM));
-            torch::nn::init::constant_(bn[i][j]->weight, 1);
-            torch::nn::init::constant_(bn[i][j]->bias, 1);
         }
     }
     policy_conv = register_module("policy_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
@@ -24,8 +20,6 @@ NeuralNetworkImpl::NeuralNetworkImpl() : conv(BLOCK_NUM, std::vector<torch::nn::
     value_conv = register_module("value_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, 1).padding(0).with_bias(false)));
     torch::nn::init::xavier_normal_(value_conv->weight);
     value_bn = register_module("value_bn", torch::nn::BatchNorm(CHANNEL_NUM));
-    torch::nn::init::constant_(value_bn->weight, 1);
-    torch::nn::init::constant_(value_bn->bias, 1);
     value_fc1 = register_module("value_fc1", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
     torch::nn::init::xavier_normal_(value_fc1->weight);
     torch::nn::init::constant_(value_fc1->bias, 0);
