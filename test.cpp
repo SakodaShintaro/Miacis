@@ -59,14 +59,14 @@ void test() {
 void checkGenSpeed() {
     usi_option.USI_Hash = 1;
     usi_option.playout_limit = 800;
-    usi_option.draw_turn = 512;
+    usi_option.draw_turn = 100;
 
     int64_t game_num;
     ReplayBuffer buffer;
-    buffer.max_size = game_num * usi_option.draw_turn;
-    
+
     for (int64_t thread_num = 2; thread_num <= 256; thread_num *= 2) {
         game_num = thread_num;
+        buffer.max_size = static_cast<uint64_t>(game_num * usi_option.draw_turn);
         buffer.clear();
         auto start = std::chrono::steady_clock::now();
 #ifdef USE_LIBTORCH

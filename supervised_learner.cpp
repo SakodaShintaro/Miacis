@@ -28,6 +28,8 @@ SupervisedLearner::SupervisedLearner(std::string settings_file_path) {
             ifs >> BATCH_SIZE;
         } else if (name == "learn_rate") {
             ifs >> LEARN_RATE;
+        } else if (name == "momentum") {
+            ifs >> MOMENTUM;
         } else if (name == "weight_decay") {
             ifs >> WEIGHT_DECAY;
         } else if (name == "patience") {
@@ -118,7 +120,7 @@ void SupervisedLearner::train() {
     //optimizerの設定
 #ifdef USE_LIBTORCH
     torch::optim::SGDOptions sgd_option(LEARN_RATE);
-    sgd_option.momentum(MOMENTUM_DECAY);
+    sgd_option.momentum(MOMENTUM);
     sgd_option.weight_decay(WEIGHT_DECAY);
     torch::optim::SGD optimizer(learning_model_->parameters(), sgd_option);
 #else

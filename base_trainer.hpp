@@ -35,7 +35,7 @@ protected:
     double LEARN_RATE_DECAY;
 
     //Momentumにおける混合比
-    double MOMENTUM_DECAY;
+    double MOMENTUM;
 
     //バッチサイズ
     unsigned long BATCH_SIZE;

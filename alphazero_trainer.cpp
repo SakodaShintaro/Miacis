@@ -39,8 +39,8 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
             ifs >> LEARN_RATE;
         } else if (name == "learn_rate_decay") {
             ifs >> LEARN_RATE_DECAY;
-        } else if (name == "momentum_decay") {
-            ifs >> MOMENTUM_DECAY;
+        } else if (name == "momentum") {
+            ifs >> MOMENTUM;
         } else if (name == "thread_num") {
             ifs >> THREAD_NUM;
             THREAD_NUM = std::min(std::max(2u, THREAD_NUM), std::thread::hardware_concurrency());
