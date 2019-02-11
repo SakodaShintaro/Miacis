@@ -165,6 +165,7 @@ void AlphaZeroTrainer::startLearn() {
 
 #ifdef USE_LIBTORCH
         optimizer.zero_grad();
+        generator.gpu_mutex.lock();
         auto loss = learning_model_->loss(inputs, policy_labels, value_teachers);
         auto sum_loss = loss.first + loss.second;
         auto p_loss = loss.first.item<float>();
@@ -175,6 +176,9 @@ void AlphaZeroTrainer::startLearn() {
                  << std::endl;
         sum_loss.backward();
         optimizer.step();
+        torch::save(learning_model_, MODEL_PATH);
+        torch::load(nn, MODEL_PATH);
+        generator.gpu_mutex.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 #else
         g.clear();
