@@ -78,6 +78,12 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
             ifs >> usi_option.playout_limit;
         } else if (name == "parallel_num") {
             ifs >> PARALLEL_NUM;
+        } else if (name == "validation_kifu_path") {
+            ifs >> VALIDATION_KIFU_PATH;
+        } else if (name == "validation_size") {
+            ifs >> VALIDATION_SIZE;
+            assert(VALIDATION_SIZE > 0);
+            assert(VALIDATION_SIZE % BATCH_SIZE == 0);
         }
     }
 
@@ -323,7 +329,7 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
     return games;
 }
 
-void AlphaZeroTrainer::validation(int64_t step_num, int64_t position_num) {
+void AlphaZeroTrainer::validation(int64_t step_num) {
     static bool first = true;
     static std::vector<std::pair<std::string, TeacherType>> validation_data;
     static std::ofstream validation_log("a0_validation_log.txt");
@@ -348,12 +354,8 @@ void AlphaZeroTrainer::validation(int64_t step_num, int64_t position_num) {
     };
 
     if (first) {
-        //計算する局面数を設定
-        assert(position_num > 0);
-        assert(position_num % BATCH_SIZE == 0);
-
         //棋譜を読み込めるだけ読み込む
-        auto games = loadGames("", 100000);
+        auto games = loadGames(VALIDATION_KIFU_PATH, 100000);
 
         //データを局面単位にバラす
         std::vector<std::pair<std::string, TeacherType>> data_buffer;
@@ -371,13 +373,14 @@ void AlphaZeroTrainer::validation(int64_t step_num, int64_t position_num) {
                 pos.doMove(move);
             }
         }
+        assert(data_buffer.size() >= VALIDATION_SIZE);
 
         //データをシャッフル
         std::default_random_engine engine(0);
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
         //validationデータを確保
-        for (int32_t i = 0; i < position_num; i++) {
+        for (int32_t i = 0; i < VALIDATION_SIZE; i++) {
             validation_data.push_back(data_buffer.back());
             data_buffer.pop_back();
         }

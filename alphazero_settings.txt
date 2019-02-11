@@ -19,4 +19,6 @@ max_stack_size 100000
 first_wait 10000
 max_step_num 700000
 playout_limit 800
-parallel_num 64
+parallel_num 128
+validation_kifu_path ~/Downloads/2016
+validation_size 40960

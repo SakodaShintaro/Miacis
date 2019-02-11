@@ -26,7 +26,8 @@ private:
 
     std::vector<Game> play(int32_t game_num, bool eval);
 
-    void validation(int64_t step_num, int64_t position_num);
+    //棋譜を用いてvalidationを行う関数
+    void validation(int64_t step_num);
 
     //---------------------------------------------
     //    ファイルから読み込むためconst化はして
@@ -52,6 +53,12 @@ private:
 
     //並列に対局を生成する数
     int64_t PARALLEL_NUM;
+
+    //validationに用いる棋譜へのパス
+    std::string VALIDATION_KIFU_PATH;
+
+    //validationで用いる局面数
+    int64_t VALIDATION_SIZE;
 
     //------------
     //    変数
