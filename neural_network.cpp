@@ -87,7 +87,7 @@ std::pair<PolicyType, ValueType> NeuralNetworkImpl::policyAndValue(const Positio
 
     auto value = y.second;
 #ifdef USE_CATEGORICAL
-    value = torch::softmax(value, 0).cpu();
+    value = torch::log_softmax(value, 0).cpu();
     //std::arrayの形で返す
     ValueType retval;
     std::copy(value.data<float>(), value.data<float>() + BIN_SIZE, retval.begin());
@@ -117,7 +117,7 @@ NeuralNetworkImpl::policyAndValueBatch(std::vector<float>& inputs) {
     }
 
 #ifdef USE_CATEGORICAL
-    auto value = torch::softmax(y.second, 0).cpu();
+    auto value = torch::log_softmax(y.second, 0).cpu();
     for (int32_t i = 0; i < batch_size; i++) {
         for (int32_t j = 0; j < BIN_SIZE; j++) {
             values[i][j] = value.data<float>()[i * BIN_SIZE + j];
