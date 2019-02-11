@@ -311,11 +311,9 @@ NeuralNetwork<Var>::policyAndValueBatch(const std::vector<float>& inputs) {
 
 #ifdef USE_CATEGORICAL
     auto value = F::softmax(y.second, 0).to_vector();
-        for (int32_t i = 0; i < batch_size; i++) {
-            for (int32_t j = 0; j < BIN_SIZE; j++) {
-                values[i][j] = value[i * BIN_SIZE + j];
-            }
-        }
+    for (int32_t i = 0; i < batch_size; i++) {
+        std::copy(&value[i * BIN_SIZE], &value[(i + 1) * BIN_SIZE], values[i].begin());
+    }
 #else
     values = y.second.to_vector();
 #endif
@@ -327,10 +325,9 @@ std::pair<Var, Var> NeuralNetwork<Var>::loss(const std::vector<float>& input,
                                              const std::vector<uint32_t>& policy_labels,
                                              const std::vector<ValueTeacher>& value_teachers) {
     auto y = feedForward(input);
+    auto policy_logits = F::flatten(y.first);
 
-    auto logits = F::flatten(y.first);
-
-    Var policy_loss = F::softmax_cross_entropy(logits, policy_labels, 0);
+    Var policy_loss = F::softmax_cross_entropy(policy_logits, policy_labels, 0);
 
 #ifdef USE_CATEGORICAL
     Var value_loss = F::softmax_cross_entropy(y.second, value_teachers, 0);
