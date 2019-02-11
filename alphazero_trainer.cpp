@@ -5,9 +5,6 @@
 #include"neural_network.hpp"
 #include"parallel_MCTSearcher.hpp"
 #include"game_generator.hpp"
-#include "alphazero_trainer.hpp"
-
-
 #include<iomanip>
 #include<algorithm>
 #include<thread>
@@ -365,7 +362,11 @@ void AlphaZeroTrainer::validation(int64_t step_num, int64_t position_num) {
             for (const auto& move : game.moves) {
                 TeacherType teacher;
                 teacher.policy = (uint32_t)move.toLabel();
+#ifdef USE_CATEGORICAL
+                assert(false);
+#else
                 teacher.value = (float)(pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
+#endif
                 data_buffer.emplace_back(pos.toSFEN(), teacher);
                 pos.doMove(move);
             }
