@@ -13,7 +13,7 @@ void ReplayBuffer::makeBatch(int32_t batch_size, std::vector<float>& inputs, std
         double per = 100.0 * data_.size() / first_wait;
         std::cout << "replay_buffer.size() = " << data_.size() << " (" << per << "%)" << std::endl;
         mutex_.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds((uint64_t)(100 - per + 1) / 10));
+        std::this_thread::sleep_for(std::chrono::seconds((uint64_t)((100 - per) / 10 + 1)));
         mutex_.lock();
     }
 

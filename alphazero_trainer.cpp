@@ -150,6 +150,9 @@ void AlphaZeroTrainer::startLearn() {
 
     //自己対局をしてreplay_buffer_にデータを追加するインスタンス
     GameGenerator generator(0, PARALLEL_NUM, replay_buffer_, *nn);
+
+    Graph g;
+    Graph::set_default(g);
 #endif
     std::thread gen_thread([&generator]() { generator.genGames(static_cast<int64_t>(1e10)); });
 
@@ -161,10 +164,20 @@ void AlphaZeroTrainer::startLearn() {
         replay_buffer_.makeBatch(static_cast<int32_t>(BATCH_SIZE), inputs, policy_labels, value_teachers);
 
 #ifdef USE_LIBTORCH
-        assert(false);
+        optimizer.zero_grad();
+        auto loss = learning_model_->loss(inputs, policy_labels, value_teachers);
+        auto sum_loss = loss.first + loss.second;
+        auto p_loss = loss.first.item<float>();
+        auto v_loss = loss.second.item<float>();
+        std::cout << elapsedTime() << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss << "\t" << v_loss
+                  << std::endl;
+        log_file << elapsedHours() << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss << "\t" << v_loss
+                 << std::endl;
+        sum_loss.backward();
+        optimizer.step();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 #else
-        Graph g;
-        Graph::set_default(g);
+        g.clear();
         generator.gpu_mutex.lock();
         auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
         optimizer.reset_gradients();
