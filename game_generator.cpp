@@ -204,6 +204,7 @@ void GameGenerator::genSlave(int64_t id) {
             std::vector<float> legal_moves_policy(static_cast<unsigned long>(current_node.child_num));
             for (int32_t j = 0; j < current_node.child_num; j++) {
                 legal_moves_policy[j] = policies[i][current_node.legal_moves[j].toLabel()];
+                assert(!std::isnan(legal_moves_policy[j]));
             }
             current_node.nn_rates = softmax(legal_moves_policy);
 

@@ -82,9 +82,7 @@ inline double sigmoid(Type x, double gain) {
 
 template<class Type>
 inline std::vector<Type> softmax(std::vector<Type> x, Type temperature = 1.0) {
-    if (x.size() == 0) {
-        return x;
-    }
+    assert(!x.empty());
     auto max_value = *std::max_element(x.begin(), x.end());
     Type sum = 0.0;
     for (auto& p : x) {

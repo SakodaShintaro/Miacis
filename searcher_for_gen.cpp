@@ -55,6 +55,7 @@ int32_t GameGenerator::SearcherForGen::selectMaxUcbChild(const UctHashEntry & cu
 #endif
         double U = std::sqrt(current_node.move_count + 1) / (child_move_counts[i] + 1);
         double ucb = Q + C_PUCT * current_node.nn_rates[i] * U;
+        assert(!std::isnan(current_node.nn_rates[i]));
 
         if (ucb > max_value) {
             max_value = ucb;
