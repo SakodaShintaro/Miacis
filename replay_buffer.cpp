@@ -1,10 +1,7 @@
 #include"replay_buffer.hpp"
 #include"operate_params.hpp"
-#include "replay_buffer.hpp"
-
-
 #include<thread>
-#include <iomanip>
+#include<iomanip>
 
 std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>> ReplayBuffer::makeBatch(int32_t batch_size) {
     //ロックの確保
