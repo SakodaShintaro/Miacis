@@ -89,6 +89,7 @@ inline std::vector<Type> softmax(std::vector<Type> x, Type temperature = 1.0) {
         p = (Type)std::exp((p - max_value) / temperature);
         sum += p;
     }
+    assert(sum != 0);
     for (auto& p : x) {
         p /= sum;
     }
