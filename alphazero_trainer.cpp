@@ -163,9 +163,9 @@ void AlphaZeroTrainer::startLearn() {
         std::vector<ValueTeacher> value_teachers;
         replay_buffer_.makeBatch(static_cast<int32_t>(BATCH_SIZE), inputs, policy_labels, value_teachers);
 
+        generator.gpu_mutex.lock();
 #ifdef USE_LIBTORCH
         optimizer.zero_grad();
-        generator.gpu_mutex.lock();
         auto loss = learning_model_->loss(inputs, policy_labels, value_teachers);
         auto sum_loss = loss.first + loss.second;
         auto p_loss = loss.first.item<float>();
@@ -182,7 +182,6 @@ void AlphaZeroTrainer::startLearn() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 #else
         g.clear();
-        generator.gpu_mutex.lock();
         auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
         optimizer.reset_gradients();
         loss.first.backward();
@@ -199,9 +198,13 @@ void AlphaZeroTrainer::startLearn() {
         //書き出し
         learning_model_.save(MODEL_PATH);
         nn->load(MODEL_PATH);
+#endif
         generator.gpu_mutex.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-#endif
+
+        if (step_num % EVALUATION_INTERVAL == 0) {
+            validation(step_num);
+        }
     }
 
     usi_option.stop_signal = true;
@@ -351,25 +354,6 @@ void AlphaZeroTrainer::validation(int64_t step_num) {
     static std::vector<std::pair<std::string, TeacherType>> validation_data;
     static std::ofstream validation_log("a0_validation_log.txt");
 
-    //dataのvectorからミニバッチを構築する関数
-    auto getBatch = [this](const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64_t index) {
-        Position pos;
-        std::vector<float> inputs;
-        std::vector<uint32_t> policy_labels;
-        std::vector<ValueTeacher> value_teachers;
-        for (int32_t b = 0; b < BATCH_SIZE; b++) {
-            const auto& datum = data_buf[index + b];
-            pos.loadSFEN(datum.first);
-            const auto& feature = pos.makeFeature();
-            for (const auto& e : feature) {
-                inputs.push_back(e);
-            }
-            policy_labels.push_back(datum.second.policy);
-            value_teachers.push_back(datum.second.value);
-        }
-        return std::make_tuple(inputs, policy_labels, value_teachers);
-    };
-
     if (first) {
         //棋譜を読み込めるだけ読み込む
         auto games = loadGames(VALIDATION_KIFU_PATH, 100000);
@@ -403,7 +387,7 @@ void AlphaZeroTrainer::validation(int64_t step_num) {
         }
 
         //ラベルを記入
-        validation_log << "step_num\telapsed_hours\tsum_loss\tpolicy_loss\tvalue_loss" << std::endl;
+        validation_log << "step_num\telapsed_hours\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
         first = false;
     }
@@ -419,7 +403,17 @@ void AlphaZeroTrainer::validation(int64_t step_num) {
         std::vector<float> inputs;
         std::vector<uint32_t> policy_labels;
         std::vector<ValueTeacher> value_teachers;
-        std::tie(inputs, policy_labels, value_teachers) = getBatch(validation_data, i * BATCH_SIZE);
+
+        Position pos;
+        for (int32_t b = 0; b < BATCH_SIZE; b++) {
+            const auto& datum = validation_data[i * BATCH_SIZE + b];
+            pos.loadSFEN(datum.first);
+            const auto& feature = pos.makeFeature();
+            inputs.insert(inputs.end(), feature.begin(), feature.end());
+            policy_labels.push_back(datum.second.policy);
+            value_teachers.push_back(datum.second.value);
+        }
+
         auto loss = nn->loss(inputs, policy_labels, value_teachers);
 #ifdef USE_LIBTORCH
         policy_loss += loss.first.item<float>();
