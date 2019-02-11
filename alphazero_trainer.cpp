@@ -5,6 +5,8 @@
 #include"neural_network.hpp"
 #include"parallel_MCTSearcher.hpp"
 #include"game_generator.hpp"
+#include "alphazero_trainer.hpp"
+
 
 #include<iomanip>
 #include<algorithm>
@@ -322,4 +324,93 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
     }
 
     return games;
+}
+
+void AlphaZeroTrainer::validation(int64_t step_num, int64_t position_num) {
+    static bool first = true;
+    static std::vector<std::pair<std::string, TeacherType>> validation_data;
+    static std::ofstream validation_log("a0_validation_log.txt");
+
+    //dataのvectorからミニバッチを構築する関数
+    auto getBatch = [this](const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64_t index) {
+        Position pos;
+        std::vector<float> inputs;
+        std::vector<uint32_t> policy_labels;
+        std::vector<ValueTeacher> value_teachers;
+        for (int32_t b = 0; b < BATCH_SIZE; b++) {
+            const auto& datum = data_buf[index + b];
+            pos.loadSFEN(datum.first);
+            const auto& feature = pos.makeFeature();
+            for (const auto& e : feature) {
+                inputs.push_back(e);
+            }
+            policy_labels.push_back(datum.second.policy);
+            value_teachers.push_back(datum.second.value);
+        }
+        return std::make_tuple(inputs, policy_labels, value_teachers);
+    };
+
+    if (first) {
+        //計算する局面数を設定
+        assert(position_num > 0);
+        assert(position_num % BATCH_SIZE == 0);
+
+        //棋譜を読み込めるだけ読み込む
+        auto games = loadGames("", 100000);
+
+        //データを局面単位にバラす
+        std::vector<std::pair<std::string, TeacherType>> data_buffer;
+        for (const auto& game : games) {
+            Position pos;
+            for (const auto& move : game.moves) {
+                TeacherType teacher;
+                teacher.policy = (uint32_t)move.toLabel();
+                teacher.value = (float)(pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
+                data_buffer.emplace_back(pos.toSFEN(), teacher);
+                pos.doMove(move);
+            }
+        }
+
+        //データをシャッフル
+        std::default_random_engine engine(0);
+        std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
+
+        //validationデータを確保
+        for (int32_t i = 0; i < position_num; i++) {
+            validation_data.push_back(data_buffer.back());
+            data_buffer.pop_back();
+        }
+
+        //ラベルを記入
+        validation_log << "step_num\telapsed_hours\tsum_loss\tpolicy_loss\tvalue_loss" << std::endl;
+
+        first = false;
+    }
+#ifdef USE_LIBTORCH
+    torch::load(nn, MODEL_PATH);
+#else
+    nn->load(MODEL_PATH);
+#endif
+
+    int32_t num = 0;
+    float policy_loss = 0.0, value_loss = 0.0;
+    for (int32_t i = 0; (i + 1) * BATCH_SIZE <= validation_data.size(); i++, num++) {
+        std::vector<float> inputs;
+        std::vector<uint32_t> policy_labels;
+        std::vector<ValueTeacher> value_teachers;
+        std::tie(inputs, policy_labels, value_teachers) = getBatch(validation_data, i * BATCH_SIZE);
+        auto loss = nn->loss(inputs, policy_labels, value_teachers);
+#ifdef USE_LIBTORCH
+        policy_loss += loss.first.item<float>();
+        value_loss  += loss.second.item<float>();
+#else
+        policy_loss += loss.first.to_float();
+        value_loss  += loss.second.to_float();
+#endif
+    }
+    policy_loss /= num;
+    value_loss /= num;
+
+    validation_log << step_num << "\t" << elapsedHours() << "\t" << POLICY_LOSS_COEFF * policy_loss + VALUE_LOSS_COEFF * value_loss
+                   << "\t" << policy_loss << "\t" << value_loss << std::endl;
 }

@@ -393,8 +393,10 @@ Index GameGenerator::SearcherForGen::expandNode(Position& pos, std::stack<int32_
 #ifdef USE_CATEGORICAL
     //TODO:正しく初期化できているか確認すること
     current_node.child_wins.assign(static_cast<unsigned long>(current_node.child_num), std::array<float, BIN_SIZE>{});
+    current_node.value = std::array<float, BIN_SIZE>{};
     for (int32_t i = 0; i < BIN_SIZE; i++) {
-        current_node.value[i] = 0.0;
+        //current_node.value[i] = 0.0;
+        std::cout << current_node.value[i] << std::endl;
         for (int32_t j = 0; j < current_node.child_num; j++) {
             current_node.child_wins[j][i] = 0.0;
         }
@@ -418,12 +420,12 @@ Index GameGenerator::SearcherForGen::expandNode(Position& pos, std::stack<int32_
 //        indices.push(index);
 //        backup(indices, actions);
 //    } else
-        if (current_node.child_num > 0) {
+    if (current_node.child_num > 0) {
+        //特徴量の追加
         auto this_feature = pos.makeFeature();
-        features_.resize(features_.size() + this_feature.size());
-        std::copy(this_feature.begin(), this_feature.end(), features_.end() - this_feature.size());
+        features_.insert(features_.end(), this_feature.begin(), this_feature.end());
 
-        //現在のノードを追加
+        //インデックス,行動の履歴およびidを追加
         indices.push(index);
         hash_indices_.push_back(indices);
         actions_.push_back(actions);

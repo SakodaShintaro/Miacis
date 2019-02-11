@@ -4,6 +4,7 @@
 
 
 #include<thread>
+#include <iomanip>
 
 std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>> ReplayBuffer::makeBatch(int32_t batch_size) {
     //ロックの確保
@@ -11,9 +12,17 @@ std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>>
 
     //一番最初だけ十分量に達するまで待つ
     while (data_.size() < first_wait) {
+        double per = 100.0 * data_.size() / first_wait;
+        std::cout << "replay_buffer.size() = " << data_.size() << " (" << per << "%)" << std::endl;
         mutex_.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds((uint64_t)(100 - per + 1)));
         mutex_.lock();
+    }
+
+    //最大量を超えていたらその分を削除
+    if (data_.size() > max_size) {
+        data_.erase(data_.begin(), data_.begin() + data_.size() - max_size);
+        data_.shrink_to_fit();
     }
 
     //とりあえずランダムに取得

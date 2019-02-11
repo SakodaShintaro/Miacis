@@ -26,6 +26,8 @@ private:
 
     std::vector<Game> play(int32_t game_num, bool eval);
 
+    void validation(int64_t step_num, int64_t position_num);
+
     //---------------------------------------------
     //    ファイルから読み込むためconst化はして
     //    いないがほぼ定数であるもの

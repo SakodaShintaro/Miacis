@@ -198,7 +198,7 @@ void GameGenerator::genSlave(int64_t id) {
 
         for (int32_t i = 0; i < hash_indices.size(); i++) {
             //何番目のsearcherが持つハッシュテーブルのどの位置に書き込むかを取得
-            auto &current_node = searchers[ids[i]].hash_table_[hash_indices[i].top()];
+            auto& current_node = searchers[ids[i]].hash_table_[hash_indices[i].top()];
 
             //policyを設定
             std::vector<float> legal_moves_policy(static_cast<unsigned long>(current_node.child_num));
