@@ -12,7 +12,7 @@ std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>>
         double per = 100.0 * data_.size() / first_wait;
         std::cout << "replay_buffer.size() = " << data_.size() << " (" << per << "%)" << std::endl;
         mutex_.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds((uint64_t)(100 - per + 1)));
+        std::this_thread::sleep_for(std::chrono::seconds((uint64_t)(100 - per + 1) / 2));
         mutex_.lock();
     }
 
@@ -41,8 +41,7 @@ std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>>
         //入力特徴量の確保
         pos.loadSFEN(sfen);
         auto feature = pos.makeFeature();
-        inputs.resize(inputs.size() + feature.size());
-        std::copy(feature.begin(), feature.end(), inputs.end() - feature.size());
+        inputs.insert(inputs.end(), feature.begin(), feature.begin());
 
         //policyの教師
         policy_labels.push_back(policy_label);

@@ -130,16 +130,17 @@ public:
     void init();
 
     //複数バッチ分の入力特徴量を1次元vectorとしたものを引数としてバッチ数のデータを持つVarを返す関数.privateでいいか？
-    std::pair<Var, Var> feedForward(std::vector<float>& input);
+    std::pair<Var, Var> feedForward(const std::vector<float>& input);
 
     //1局面を受け取って評価結果を返す関数.不要そう
     std::pair<PolicyType, ValueType> policyAndValue(const Position& pos);
 
     //複数バッチ分の入力特徴量を1次元vectorとしたものを引数としてそれぞれの評価結果を返す関数.内部でfeedForwardを呼び出す
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(std::vector<float>& inputs);
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
     //複数バッチ分の入力特徴量,教師情報から損失を返す関数.F::batch::meanをどこのタイミングでかけるべきか
-    std::pair<Var, Var> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<ValueTeacher>& value_teachers);
+    std::pair<Var, Var> loss(const std::vector<float>& input, const std::vector<uint32_t>& policy_labels,
+                             const std::vector<ValueTeacher>& value_teachers);
 
 private:
     Parameter first_filter;

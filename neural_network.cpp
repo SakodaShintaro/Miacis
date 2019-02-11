@@ -241,7 +241,7 @@ void NeuralNetwork<Var>::init() {
 }
 
 template<typename Var>
-std::pair<Var, Var> NeuralNetwork<Var>::feedForward(std::vector<float>& input) {
+std::pair<Var, Var> NeuralNetwork<Var>::feedForward(const std::vector<float>& input) {
     uint32_t batch_size = (uint32_t)(input.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM));
     Var x = F::input<Var>(Shape({9, 9, INPUT_CHANNEL_NUM}, batch_size), input);
 
@@ -304,7 +304,7 @@ std::pair<PolicyType, ValueType> NeuralNetwork<Var>::policyAndValue(const Positi
 
 template<typename Var>
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
-NeuralNetwork<Var>::policyAndValueBatch(std::vector<float>& inputs) {
+NeuralNetwork<Var>::policyAndValueBatch(const std::vector<float>& inputs) {
     auto y = feedForward(inputs);
 
     auto batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);
@@ -334,8 +334,9 @@ NeuralNetwork<Var>::policyAndValueBatch(std::vector<float>& inputs) {
 }
 
 template<typename Var>
-std::pair<Var, Var> NeuralNetwork<Var>::loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels,
-                                             std::vector<ValueTeacher>& value_teachers) {
+std::pair<Var, Var> NeuralNetwork<Var>::loss(const std::vector<float>& input,
+                                             const std::vector<uint32_t>& policy_labels,
+                                             const std::vector<ValueTeacher>& value_teachers) {
     auto y = feedForward(input);
 
     auto logits = F::flatten(y.first);
