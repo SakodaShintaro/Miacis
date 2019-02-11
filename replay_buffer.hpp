@@ -7,7 +7,8 @@
 class ReplayBuffer{
 public:
     //ミニバッチを作って返す関数
-    std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>> makeBatch(int32_t batch_size);
+    void makeBatch(int32_t batch_size, std::vector<float>& inputs, std::vector<uint32_t>& policy_labels,
+                   std::vector<ValueTeacher>& value_teachers);
 
     //データを入れる関数
     void push(Game& game);

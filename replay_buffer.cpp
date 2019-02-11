@@ -3,7 +3,8 @@
 #include<thread>
 #include<iomanip>
 
-std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>> ReplayBuffer::makeBatch(int32_t batch_size) {
+void ReplayBuffer::makeBatch(int32_t batch_size, std::vector<float>& inputs, std::vector<uint32_t>& policy_labels,
+                             std::vector<ValueTeacher>& value_teachers) {
     //ロックの確保
     mutex_.lock();
 
@@ -12,7 +13,7 @@ std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>>
         double per = 100.0 * data_.size() / first_wait;
         std::cout << "replay_buffer.size() = " << data_.size() << " (" << per << "%)" << std::endl;
         mutex_.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds((uint64_t)(100 - per + 1) / 2));
+        std::this_thread::sleep_for(std::chrono::seconds((uint64_t)(100 - per + 1)));
         mutex_.lock();
     }
 
@@ -28,9 +29,9 @@ std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>>
 
     Position pos;
 
-    std::vector<float> inputs;
-    std::vector<uint32_t> policy_labels;
-    std::vector<ValueTeacher> value_teachers;
+    inputs.clear();
+    policy_labels.clear();
+    value_teachers.clear();
     for (int32_t i = 0; i < batch_size; i++) {
         //データの取り出し
         std::string sfen;
@@ -41,7 +42,7 @@ std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>>
         //入力特徴量の確保
         pos.loadSFEN(sfen);
         auto feature = pos.makeFeature();
-        inputs.insert(inputs.end(), feature.begin(), feature.begin());
+        inputs.insert(inputs.end(), feature.begin(), feature.end());
 
         //policyの教師
         policy_labels.push_back(policy_label);
@@ -56,8 +57,6 @@ std::tuple<std::vector<float>, std::vector<uint32_t>, std::vector<ValueTeacher>>
 
     //ロックの解放
     mutex_.unlock();
-
-    return std::make_tuple(inputs, policy_labels, value_teachers);
 }
 
 void ReplayBuffer::push(Game &game) {
