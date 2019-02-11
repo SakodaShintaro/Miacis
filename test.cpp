@@ -22,9 +22,10 @@ void test() {
     usi_option.USI_Hash = 1;
     usi_option.draw_turn = 512;
 #ifdef USE_LIBTORCH
+    std::cout << nn << std::endl;
     torch::load(nn, MODEL_PATH);
-    //auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, nn);
-    auto searcher = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, 1, nn);
+    auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, nn);
+    //auto searcher = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, 1, nn);
 #else
     nn->load(MODEL_PATH);
     auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, *nn);

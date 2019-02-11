@@ -6,26 +6,18 @@ torch::Device device(torch::kCUDA);
 
 NeuralNetworkImpl::NeuralNetworkImpl() : conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)), bn(BLOCK_NUM, std::vector<torch::nn::BatchNorm>(2, nullptr)) {
     first_conv = register_module("first_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
-    torch::nn::init::xavier_uniform_(first_conv->weight);
     first_bn = register_module("first_bn", torch::nn::BatchNorm(CHANNEL_NUM));
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
         for (int32_t j = 0; j < 2; j++) {
             conv[i][j] = register_module("conv" + std::to_string(i) + "_" + std::to_string(j), torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
-            torch::nn::init::xavier_uniform_(conv[i][j]->weight);
             bn[i][j] = register_module("bn" + std::to_string(i) + "_" + std::to_string(j), torch::nn::BatchNorm(CHANNEL_NUM));
         }
     }
     policy_conv = register_module("policy_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
-    torch::nn::init::xavier_uniform_(policy_conv->weight);
     value_conv = register_module("value_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, 1).padding(0).with_bias(false)));
-    torch::nn::init::xavier_uniform_(value_conv->weight);
     value_bn = register_module("value_bn", torch::nn::BatchNorm(CHANNEL_NUM));
     value_fc1 = register_module("value_fc1", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
-    torch::nn::init::xavier_uniform_(value_fc1->weight);
-    torch::nn::init::constant_(value_fc1->bias, 0);
     value_fc2 = register_module("value_fc2", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
-    torch::nn::init::xavier_uniform_(value_fc2->weight);
-    torch::nn::init::constant_(value_fc2->bias, 0);
 }
 
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(torch::Tensor x) {
