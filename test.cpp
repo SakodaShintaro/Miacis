@@ -22,19 +22,19 @@ void test() {
     usi_option.USI_Hash = 1;
     usi_option.draw_turn = 512;
 #ifdef USE_LIBTORCH
-    std::cout << nn << std::endl;
     torch::load(nn, MODEL_PATH);
-    auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, nn);
-    //auto searcher = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, 1, nn);
+    //auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, nn);
+    auto searcher = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, 1, nn);
 #else
     nn->load(MODEL_PATH);
-    auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, *nn);
-    //auto searcher = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, 1, *nn);
+    //auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, *nn);
+    auto searcher = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, 1, *nn);
 #endif
 
     Position pos;
     Game game;
 
+    auto start = std::chrono::steady_clock::now();
     while (true) {
         pos.print(false);
 
@@ -58,6 +58,9 @@ void test() {
         pos.doMove(best_move);
         game.moves.push_back(best_move);
     }
+    auto end = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << elapsed.count() / pos.turn_number() << " msec / pos" << std::endl;
 
     game.writeKifuFile("./");
     std::cout << "finish test" << std::endl;

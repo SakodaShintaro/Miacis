@@ -61,13 +61,13 @@ public:
     std::pair<torch::Tensor, torch::Tensor> forward(torch::Tensor x);
 
     //上の関数をラップして入力部をfloatのvectorにした関数.不要かもしれない
-    std::pair<torch::Tensor, torch::Tensor> forward(std::vector<float>& input);
+    std::pair<torch::Tensor, torch::Tensor> forward(const std::vector<float>& inputs);
 
     //1局面を受け取ってそれに対する評価を返す関数.不要な気がする
     std::pair<PolicyType, ValueType> policyAndValue(const Position& pos);
 
     //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(std::vector<float>& inputs);
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
     //バッチの入力特徴量,教師情報を引数として損失を返す関数.これをモデルが一括で行うのが良い実装？
     std::pair<torch::Tensor, torch::Tensor> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<ValueTeacher>& value_teachers);

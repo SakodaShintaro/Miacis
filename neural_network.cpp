@@ -61,21 +61,18 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(torch::Tensor
     return { policy, value };
 }
 
-std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(std::vector<float>& input) {
-    auto batch_size = input.size() / (INPUT_CHANNEL_NUM * SQUARE_NUM);
-    torch::Tensor x = torch::tensor(input);
+std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::vector<float>& inputs) {
+    auto batch_size = inputs.size() / (INPUT_CHANNEL_NUM * SQUARE_NUM);
+    torch::Tensor x = torch::tensor(inputs);
     x = x.reshape({(long)batch_size, INPUT_CHANNEL_NUM, 9, 9});
     x = x.to(device);
     return forward(x);
 }
 
 std::pair<PolicyType, ValueType> NeuralNetworkImpl::policyAndValue(const Position& pos) {
-    std::vector<float> input = pos.makeFeature();
-    auto y = forward(input);
-    //auto p = y.first.to(torch::Device(torch::kCPU));
+    auto y = forward(pos.makeFeature());
     auto p = y.first.cpu();
-    PolicyType policy(POLICY_CHANNEL_NUM * SQUARE_NUM);
-    std::copy(p.data<float>(), p.data<float>() + POLICY_CHANNEL_NUM * SQUARE_NUM, policy.begin());
+    PolicyType policy(p.data<float>(), p.data<float>() + POLICY_CHANNEL_NUM * SQUARE_NUM);
 
     auto value = y.second;
 #ifdef USE_CATEGORICAL
@@ -90,7 +87,7 @@ std::pair<PolicyType, ValueType> NeuralNetworkImpl::policyAndValue(const Positio
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
-NeuralNetworkImpl::policyAndValueBatch(std::vector<float>& inputs) {
+NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     auto y = forward(inputs);
 
     auto batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);
@@ -102,18 +99,15 @@ NeuralNetworkImpl::policyAndValueBatch(std::vector<float>& inputs) {
     auto policy = y.first.cpu();
     auto p = policy.data<float>();
     for (int32_t i = 0; i < batch_size; i++) {
-        policies[i].resize(POLICY_CHANNEL_NUM * SQUARE_NUM);
-        for (int32_t j = 0; j < POLICY_CHANNEL_NUM * SQUARE_NUM; j++) {
-            policies[i][j] = p[i * POLICY_CHANNEL_NUM * SQUARE_NUM + j];
-        }
+        constexpr auto unit_size = POLICY_CHANNEL_NUM * SQUARE_NUM;
+        policies[i].assign(p + i * unit_size, p + (i + 1) * unit_size);
     }
 
 #ifdef USE_CATEGORICAL
     auto value = torch::log_softmax(y.second, 0).cpu();
+    auto value_p = value.data<float>();
     for (int32_t i = 0; i < batch_size; i++) {
-        for (int32_t j = 0; j < BIN_SIZE; j++) {
-            values[i][j] = value.data<float>()[i * BIN_SIZE + j];
-        }
+        std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
     }
 #else
     //CPUに持ってくる
