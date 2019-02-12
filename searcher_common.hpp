@@ -1,6 +1,8 @@
 #ifndef MIACIS_SEARCHER_COMMON_HPP
 #define MIACIS_SEARCHER_COMMON_HPP
 
+#include"operate_params.hpp"
+
 inline ValueType reverse(ValueType value) {
 #ifdef USE_CATEGORICAL
     //カテゴリカルなら反転を返す

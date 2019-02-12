@@ -60,8 +60,8 @@ void SupervisedLearner::train() {
     auto getBatch = [this](const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64_t index) {
         Position pos;
         std::vector<float> inputs;
-        std::vector<uint32_t> policy_labels;
-        std::vector<ValueTeacher> value_teachers;
+        std::vector<PolicyTeacherType> policy_teachers;
+        std::vector<ValueTeacherType> value_teachers;
         for (int32_t b = 0; b < BATCH_SIZE; b++) {
             const auto& datum = data_buf[index + b];
             pos.loadSFEN(datum.first);
@@ -69,10 +69,10 @@ void SupervisedLearner::train() {
             for (const auto& e : feature) {
                 inputs.push_back(e);
             }
-            policy_labels.push_back(datum.second.policy);
+            policy_teachers.push_back(datum.second.policy);
             value_teachers.push_back(datum.second.value);
         }
-        return std::make_tuple(inputs, policy_labels, value_teachers);
+        return std::make_tuple(inputs, policy_teachers, value_teachers);
     };
 
     //学習データを局面単位にバラして保持
@@ -140,13 +140,13 @@ void SupervisedLearner::train() {
 
         for (int32_t step = 0; (step + 1) * BATCH_SIZE <= data_buffer.size(); step++) {
             std::vector<float> inputs;
-            std::vector<uint32_t> policy_labels;
-            std::vector<ValueTeacher> value_teachers;
-            std::tie(inputs, policy_labels, value_teachers) = getBatch(data_buffer, step * BATCH_SIZE);
+            std::vector<PolicyTeacherType> policy_teachers;
+            std::vector<ValueTeacherType> value_teachers;
+            std::tie(inputs, policy_teachers, value_teachers) = getBatch(data_buffer, step * BATCH_SIZE);
 
 #ifdef USE_LIBTORCH
             optimizer.zero_grad();
-            auto loss = learning_model_->loss(inputs, policy_labels, value_teachers);
+            auto loss = learning_model_->loss(inputs, policy_teachers, value_teachers);
             if (step % 100 == 0) {
                 auto p_loss = loss.first.item<float>();
                 auto v_loss = loss.second.item<float>();
@@ -158,7 +158,7 @@ void SupervisedLearner::train() {
             optimizer.step();
 #else
             g.clear();
-            auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
+            auto loss = learning_model_.loss(inputs, policy_teachers, value_teachers);
             if (step % 100 == 0) {
                 float p_loss = loss.first.to_float();
                 float v_loss = loss.second.to_float();
@@ -180,10 +180,10 @@ void SupervisedLearner::train() {
         float curr_loss = 0.0;
         for (int32_t i = 0; (i + 1) * BATCH_SIZE <= validation_size; i++, num++) {
             std::vector<float> inputs;
-            std::vector<uint32_t> policy_labels;
-            std::vector<ValueTeacher> value_teachers;
-            std::tie(inputs, policy_labels, value_teachers) = getBatch(validation_data, i * BATCH_SIZE);
-            auto loss = nn->loss(inputs, policy_labels, value_teachers);
+            std::vector<PolicyTeacherType> policy_teachers;
+            std::vector<ValueTeacherType> value_teachers;
+            std::tie(inputs, policy_teachers, value_teachers) = getBatch(validation_data, i * BATCH_SIZE);
+            auto loss = nn->loss(inputs, policy_teachers, value_teachers);
             curr_loss += (loss.first.item<float>() + loss.second.item<float>());
         }
         curr_loss /= num;
@@ -207,7 +207,7 @@ void SupervisedLearner::train() {
         for (int32_t i = 0; (i + 1) * BATCH_SIZE <= validation_size; i++, num++) {
             std::vector<float> inputs;
             std::vector<uint32_t> policy_labels;
-            std::vector<ValueTeacher> value_teachers;
+            std::vector<ValueTeacherType> value_teachers;
             std::tie(inputs, policy_labels, value_teachers) = getBatch(validation_data, i * BATCH_SIZE);
             auto loss = nn->loss(inputs, policy_labels, value_teachers);
             curr_loss += (loss.first.to_float() + loss.second.to_float());

@@ -118,24 +118,17 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
 }
 
 std::pair<torch::Tensor, torch::Tensor>
-NeuralNetworkImpl::loss(const std::vector<float>& input, const std::vector<uint32_t>& policy_labels,
-                        const std::vector<ValueTeacher>& value_teachers) {
+NeuralNetworkImpl::loss(const std::vector<float>& input,
+                        const std::vector<PolicyTeacherType>& policy_teachers,
+                        const std::vector<ValueTeacherType>& value_teachers) {
     auto y = forward(input);
     auto logits = y.first.reshape({ y.first.size(0), SQUARE_NUM * POLICY_CHANNEL_NUM });
 
-    std::vector<long> long_policy_labels(policy_labels.size());
-    for (int32_t i = 0; i < policy_labels.size(); i++) {
-        long_policy_labels[i] = policy_labels[i];
-    }
-    torch::Tensor policy_target = torch::tensor(long_policy_labels).to(device);
+    torch::Tensor policy_target = torch::tensor(policy_teachers).to(device);
     torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(logits, 1), policy_target);
 
 #ifdef USE_CATEGORICAL
-    std::vector<long> long_value_labels(value_teachers.size());
-    for (int32_t i = 0; i < value_teachers.size(); i++) {
-        long_value_labels[i] = value_teachers[i];
-    }
-    auto categorical_target = torch::tensor(long_policy_labels);
+    auto categorical_target = torch::tensor(value_teachers);
     torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
 #else
     torch::Tensor value_t = torch::tensor(value_teachers).to(device);
@@ -323,7 +316,7 @@ NeuralNetwork<Var>::policyAndValueBatch(const std::vector<float>& inputs) {
 template<typename Var>
 std::pair<Var, Var> NeuralNetwork<Var>::loss(const std::vector<float>& input,
                                              const std::vector<uint32_t>& policy_labels,
-                                             const std::vector<ValueTeacher>& value_teachers) {
+                                             const std::vector<ValueTeacherType>& value_teachers) {
     auto y = feedForward(input);
     auto policy_logits = F::flatten(y.first);
 

@@ -3,8 +3,8 @@
 #include<thread>
 #include<iomanip>
 
-void ReplayBuffer::makeBatch(int32_t batch_size, std::vector<float>& inputs, std::vector<uint32_t>& policy_labels,
-                             std::vector<ValueTeacher>& value_teachers) {
+void ReplayBuffer::makeBatch(int32_t batch_size, std::vector<float>& inputs, std::vector<PolicyTeacherType>& policy_teachers,
+                             std::vector<ValueTeacherType>& value_teachers) {
     //ロックの確保
     mutex_.lock();
 
@@ -30,13 +30,13 @@ void ReplayBuffer::makeBatch(int32_t batch_size, std::vector<float>& inputs, std
     Position pos;
 
     inputs.clear();
-    policy_labels.clear();
+    policy_teachers.clear();
     value_teachers.clear();
     for (int32_t i = 0; i < batch_size; i++) {
         //データの取り出し
         std::string sfen;
         uint32_t policy_label;
-        ValueTeacher value;
+        ValueTeacherType value;
         std::tie(sfen, policy_label, value) = data_[dist(engine)];
 
         //入力特徴量の確保
@@ -45,7 +45,7 @@ void ReplayBuffer::makeBatch(int32_t batch_size, std::vector<float>& inputs, std
         inputs.insert(inputs.end(), feature.begin(), feature.end());
 
         //policyの教師
-        policy_labels.push_back(policy_label);
+        policy_teachers.push_back(policy_label);
 
         //valueの教師
 #ifdef USE_CATEGORICAL

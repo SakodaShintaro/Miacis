@@ -11,25 +11,6 @@ constexpr int32_t KERNEL_SIZE = 3;
 constexpr int32_t CHANNEL_NUM = 32;
 constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
-//型のエイリアス
-using CalcType = float;
-using PolicyType = std::vector<float>;
-#ifdef USE_CATEGORICAL
-constexpr int32_t BIN_SIZE = 51;
-constexpr double VALUE_WIDTH = (MAX_SCORE - MIN_SCORE) / BIN_SIZE;
-using ValueType = std::array<float, BIN_SIZE>;
-using ValueTeacher = uint32_t;
-#else
-constexpr int32_t BIN_SIZE = 1;
-using ValueType = float;
-using ValueTeacher = float;
-#endif
-
-struct TeacherType {
-    uint32_t policy;
-    ValueTeacher value;
-};
-
 #ifdef USE_LIBTORCH
 //LibTorchを使う
 #include<torch/torch.h>
@@ -42,6 +23,21 @@ const std::string MODEL_PREFIX = "torch_sca_bl" + std::to_string(BLOCK_NUM) + "_
 #endif
 //デフォルトで読み書きするファイル名
 const std::string MODEL_PATH = MODEL_PREFIX + ".model";
+
+//型のエイリアス
+using CalcType = float;
+using PolicyType = std::vector<float>;
+#ifdef USE_CATEGORICAL
+constexpr int32_t BIN_SIZE = 51;
+constexpr double VALUE_WIDTH = (MAX_SCORE - MIN_SCORE) / BIN_SIZE;
+using ValueType = std::array<float, BIN_SIZE>;
+using ValueTeacherType = int32_t;
+#else
+constexpr int32_t BIN_SIZE = 1;
+using ValueType = float;
+using ValueTeacherType = float;
+#endif
+using PolicyTeacherType = int32_t;
 
 extern torch::Device device;
 
@@ -63,8 +59,8 @@ public:
 
     //バッチの入力特徴量,教師情報を引数として損失を返す関数.これをモデルが一括で行うのが良い実装？
     std::pair<torch::Tensor, torch::Tensor> loss(const std::vector<float>& input,
-                                                 const std::vector<uint32_t>& policy_labels,
-                                                 const std::vector<ValueTeacher>& value_teachers);
+                                                 const std::vector<PolicyTeacherType>& policy_teachers,
+                                                 const std::vector<ValueTeacherType>& value_teachers);
 
 private:
     torch::nn::Conv2d first_conv{nullptr};
@@ -93,6 +89,21 @@ const std::string MODEL_PREFIX = "primitiv_sca_bl" + std::to_string(BLOCK_NUM) +
 #endif
 //デフォルトで読み書きするファイル名
 const std::string MODEL_PATH = MODEL_PREFIX + ".model";
+
+//型のエイリアス
+using CalcType = float;
+using PolicyType = std::vector<float>;
+#ifdef USE_CATEGORICAL
+constexpr int32_t BIN_SIZE = 51;
+constexpr double VALUE_WIDTH = (MAX_SCORE - MIN_SCORE) / BIN_SIZE;
+using ValueType = std::array<float, BIN_SIZE>;
+using ValueTeacherType = uint32_t;
+#else
+constexpr int32_t BIN_SIZE = 1;
+using ValueType = float;
+using ValueTeacherType = float;
+#endif
+using PolicyTeacherType = uint32_t;
 
 using namespace primitiv;
 namespace F = primitiv::functions;
@@ -136,7 +147,7 @@ public:
 
     //複数バッチ分の入力特徴量,教師情報から損失を返す関数.F::batch::meanをどこのタイミングでかけるべきか
     std::pair<Var, Var> loss(const std::vector<float>& input, const std::vector<uint32_t>& policy_labels,
-                             const std::vector<ValueTeacher>& value_teachers);
+                             const std::vector<ValueTeacherType>& value_teachers);
 
 private:
     Parameter first_filter;
@@ -156,5 +167,11 @@ private:
 extern std::unique_ptr<NeuralNetwork<Tensor>> nn;
 
 #endif
+
+//教師の型
+struct TeacherType {
+    PolicyTeacherType policy;
+    ValueTeacherType value;
+};
 
 #endif //MIACIS_NEURAL_NETWORK_HPP

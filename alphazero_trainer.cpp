@@ -159,14 +159,14 @@ void AlphaZeroTrainer::startLearn() {
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
         //バッチサイズだけデータを選択
         std::vector<float> inputs;
-        std::vector<uint32_t> policy_labels;
-        std::vector<ValueTeacher> value_teachers;
-        replay_buffer_.makeBatch(static_cast<int32_t>(BATCH_SIZE), inputs, policy_labels, value_teachers);
+        std::vector<PolicyTeacherType> policy_teachers;
+        std::vector<ValueTeacherType> value_teachers;
+        replay_buffer_.makeBatch(static_cast<int32_t>(BATCH_SIZE), inputs, policy_teachers, value_teachers);
 
         generator.gpu_mutex.lock();
 #ifdef USE_LIBTORCH
         optimizer.zero_grad();
-        auto loss = learning_model_->loss(inputs, policy_labels, value_teachers);
+        auto loss = learning_model_->loss(inputs, policy_teachers, value_teachers);
         auto sum_loss = loss.first + loss.second;
         auto p_loss = loss.first.item<float>();
         auto v_loss = loss.second.item<float>();
@@ -182,7 +182,7 @@ void AlphaZeroTrainer::startLearn() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 #else
         g.clear();
-        auto loss = learning_model_.loss(inputs, policy_labels, value_teachers);
+        auto loss = learning_model_.loss(inputs, policy_teachers, value_teachers);
         optimizer.reset_gradients();
         loss.first.backward();
         loss.second.backward();
@@ -401,8 +401,8 @@ void AlphaZeroTrainer::validation(int64_t step_num) {
     float policy_loss = 0.0, value_loss = 0.0;
     for (int32_t i = 0; (i + 1) * BATCH_SIZE <= validation_data.size(); i++, num++) {
         std::vector<float> inputs;
-        std::vector<uint32_t> policy_labels;
-        std::vector<ValueTeacher> value_teachers;
+        std::vector<PolicyTeacherType> policy_teachers;
+        std::vector<ValueTeacherType> value_teachers;
 
         Position pos;
         for (int32_t b = 0; b < BATCH_SIZE; b++) {
@@ -410,11 +410,11 @@ void AlphaZeroTrainer::validation(int64_t step_num) {
             pos.loadSFEN(datum.first);
             const auto& feature = pos.makeFeature();
             inputs.insert(inputs.end(), feature.begin(), feature.end());
-            policy_labels.push_back(datum.second.policy);
+            policy_teachers.push_back(datum.second.policy);
             value_teachers.push_back(datum.second.value);
         }
 
-        auto loss = nn->loss(inputs, policy_labels, value_teachers);
+        auto loss = nn->loss(inputs, policy_teachers, value_teachers);
 #ifdef USE_LIBTORCH
         policy_loss += loss.first.item<float>();
         value_loss  += loss.second.item<float>();
