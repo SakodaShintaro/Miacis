@@ -5,7 +5,6 @@
 #include"parallel_MCTSearcher.hpp"
 #include"usi_options.hpp"
 #include"game.hpp"
-#include"supervised_learner.hpp"
 #include"alphazero_trainer.hpp"
 #include"test.hpp"
 #include"neural_network.hpp"

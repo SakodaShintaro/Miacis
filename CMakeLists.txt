@@ -13,7 +13,6 @@ find_package(Torch REQUIRED)
 set(SRCS alphazero_trainer.cpp
          base_trainer.cpp
          bitboard.cpp
-         supervised_learner.cpp
          game.cpp
          main.cpp
          move.cpp
@@ -29,7 +28,8 @@ set(SRCS alphazero_trainer.cpp
          neural_network.cpp
          MCTSearcher.cpp
          parallel_MCTSearcher.cpp
-         supervised_learn.cpp learn.cpp)
+         supervised_learn.cpp
+         learn.cpp)
 
 add_executable(Miacis_sv ${SRCS})
 add_executable(Miacis_cv ${SRCS})
