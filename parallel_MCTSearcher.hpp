@@ -18,13 +18,13 @@ public:
     //コンストラクタ
 #ifdef USE_LIBTORCH
     ParallelMCTSearcher(int64_t hash_size, int64_t thread_num, NeuralNetwork nn) : hash_table_(hash_size),
-    evaluator_(nn), thread_num_(static_cast<int32_t>(thread_num)) {
+    evaluator_(nn), thread_num_(thread_num) {
         lock_node_ = std::vector<std::mutex>(static_cast<unsigned long>(hash_table_.size()));
         clearEvalQueue();
     }
 #else
     ParallelMCTSearcher(int64_t hash_size, int64_t thread_num, NeuralNetwork<Tensor>& nn) : hash_table_(hash_size),
-    evaluator_(nn), thread_num_(static_cast<int32_t>(thread_num)) {
+    evaluator_(nn), thread_num_(thread_num) {
         lock_node_ = std::vector<std::mutex>(static_cast<unsigned long>(hash_table_.size()));
         clearEvalQueue();
     }
@@ -98,7 +98,7 @@ private:
     std::vector<Index>& current_hash_index_queue_ = hash_index_queues_[0];
 
     //スレッド数
-    int32_t thread_num_;
+    int64_t thread_num_;
 
     //探索中であるかどうかのフラグ
     bool running_;
