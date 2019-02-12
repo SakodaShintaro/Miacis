@@ -25,16 +25,6 @@ using ValueType = float;
 using ValueTeacher = float;
 #endif
 
-inline ValueType reverse(ValueType value) {
-#ifdef USE_CATEGORICAL
-    //カテゴリカルなら反転を返す
-    std::reverse(value.begin(), value.end());
-    return value;
-#else
-    return MAX_SCORE + MIN_SCORE - value;
-#endif
-}
-
 struct TeacherType {
     uint32_t policy;
     ValueTeacher value;
@@ -44,12 +34,14 @@ struct TeacherType {
 //LibTorchを使う
 #include<torch/torch.h>
 
-//評価パラメータを読み書きするデフォルトのファイル名
+//評価パラメータを読み書きするファイルのprefix
 #ifdef USE_CATEGORICAL
-const std::string MODEL_PATH = "torch_categorical.model";
+const std::string MODEL_PREFIX = "torch_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 #else
-const std::string MODEL_PATH = "torch_scalar.model";
+const std::string MODEL_PREFIX = "torch_sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 #endif
+//デフォルトで読み書きするファイル名
+const std::string MODEL_PATH = MODEL_PREFIX + ".model";
 
 extern torch::Device device;
 
@@ -91,12 +83,14 @@ extern NeuralNetwork nn;
 //primitivを使う
 #include<primitiv/primitiv.h>
 
-//評価パラメータを読み書きするデフォルトのファイル名
+//評価パラメータを読み書きするファイルのprefix
 #ifdef USE_CATEGORICAL
-const std::string MODEL_PATH = "primitiv_categorical.model";
+const std::string MODEL_PREFIX = "primitiv_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 #else
-const std::string MODEL_PATH = "primitiv_scalar.model";
+const std::string MODEL_PREFIX = "primitiv_sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 #endif
+//デフォルトで読み書きするファイル名
+const std::string MODEL_PATH = MODEL_PREFIX + ".model";
 
 using namespace primitiv;
 namespace F = primitiv::functions;

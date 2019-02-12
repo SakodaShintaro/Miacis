@@ -63,9 +63,6 @@ private:
     //情報をUSIプロトコルに従って標準出力に出す関数
     void printUSIInfo() const;
 
-    //Ucbを計算して最大値を持つインデックスを返す
-    static int32_t selectMaxUcbChild(const UctHashEntry& current_node);
-
     //キューをクリア
     void clearEvalQueue();
 

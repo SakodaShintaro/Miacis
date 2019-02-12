@@ -157,9 +157,6 @@ private:
         //ノードを展開する関数
         Index expandNode(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
-        //Ucbを計算して最大値を持つインデックスを返す
-        static int32_t selectMaxUcbChild(const UctHashEntry& current_node);
-
         //ディリクレ分布に従ったものを返す関数
         static std::vector<double> dirichletDistribution(int32_t k, double alpha);
 
