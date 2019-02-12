@@ -82,8 +82,6 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
             ifs >> VALIDATION_KIFU_PATH;
         } else if (name == "validation_size") {
             ifs >> VALIDATION_SIZE;
-            assert(VALIDATION_SIZE > 0);
-            assert(VALIDATION_SIZE % BATCH_SIZE == 0);
         }
     }
 
@@ -352,7 +350,7 @@ std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
 void AlphaZeroTrainer::validation(int64_t step_num) {
     static bool first = true;
     static std::vector<std::pair<std::string, TeacherType>> validation_data;
-    static std::ofstream validation_log("a0_validation_log.txt");
+    static std::ofstream validation_log("alphazero_validation_log.txt");
 
     if (first) {
         //棋譜を読み込めるだけ読み込む
