@@ -10,9 +10,7 @@ list(APPEND CMAKE_PREFIX_PATH ~/pytorch)
 find_package(Torch REQUIRED)
 
 #使用するソースも共通なので変数でまとめる
-set(SRCS alphazero_trainer.cpp
-         base_trainer.cpp
-         bitboard.cpp
+set(SRCS bitboard.cpp
          game.cpp
          main.cpp
          move.cpp
@@ -29,7 +27,8 @@ set(SRCS alphazero_trainer.cpp
          MCTSearcher.cpp
          parallel_MCTSearcher.cpp
          supervised_learn.cpp
-         learn.cpp)
+         learn.cpp
+         alphazero_learn.cpp)
 
 add_executable(Miacis_sv ${SRCS})
 add_executable(Miacis_cv ${SRCS})

@@ -1,5 +1,4 @@
 #include"learn.hpp"
-#include "learn.hpp"
 
 #include<sstream>
 #include<iomanip>

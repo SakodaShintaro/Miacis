@@ -5,7 +5,6 @@
 #include"parallel_MCTSearcher.hpp"
 #include"usi_options.hpp"
 #include"game.hpp"
-#include"alphazero_trainer.hpp"
 #include"test.hpp"
 #include"neural_network.hpp"
 #include"operate_params.hpp"
@@ -56,8 +55,7 @@ void USI::loop() {
         } else if (input == "supervisedLearn") {
             supervisedLearn();
         } else if (input == "alphaZero") {
-            AlphaZeroTrainer trainer("alphazero_settings.txt");
-            trainer.startLearn();
+            alphaZero();
         } else if (input == "test") {
             test();
         } else if (input == "checkGenSpeed") {
