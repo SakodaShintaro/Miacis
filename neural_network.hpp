@@ -31,13 +31,13 @@ using PolicyType = std::vector<float>;
 constexpr int32_t BIN_SIZE = 51;
 constexpr double VALUE_WIDTH = (MAX_SCORE - MIN_SCORE) / BIN_SIZE;
 using ValueType = std::array<float, BIN_SIZE>;
-using ValueTeacherType = int32_t;
+using ValueTeacherType = int64_t;
 #else
 constexpr int32_t BIN_SIZE = 1;
 using ValueType = float;
 using ValueTeacherType = float;
 #endif
-using PolicyTeacherType = int32_t;
+using PolicyTeacherType = int64_t;
 
 extern torch::Device device;
 
