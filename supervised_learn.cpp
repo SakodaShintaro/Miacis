@@ -7,7 +7,7 @@
 
 void supervisedLearn() {
     //学習開始時間の設定
-    auto start_time_ = std::chrono::steady_clock::now();
+    auto start_time = std::chrono::steady_clock::now();
 
     //設定ファイルの読み込み
     std::ifstream ifs("supervised_learn_settings.txt");
@@ -54,13 +54,13 @@ void supervisedLearn() {
 
     //評価関数読み込み
 #ifdef USE_LIBTORCH
-    NeuralNetwork learning_model_;
-    torch::load(learning_model_, MODEL_PATH);
-    torch::save(learning_model_, MODEL_PREFIX + "_before_learn.model");
+    NeuralNetwork learning_model;
+    torch::load(learning_model, MODEL_PATH);
+    torch::save(learning_model, MODEL_PREFIX + "_before_learn.model");
 #else
-    NeuralNetwork<Node> learning_model_;
-    learning_model_.load(MODEL_PATH);
-    learning_model_.save(MODEL_PREFIX + "_before_learn.model");
+    NeuralNetwork<Node> learning_model;
+    learning_model.load(MODEL_PATH);
+    learning_model.save(MODEL_PREFIX + "_before_learn.model");
 #endif
 
     //棋譜を読み込む
@@ -117,10 +117,10 @@ void supervisedLearn() {
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
     sgd_option.weight_decay(weight_decay);
-    torch::optim::SGD optimizer(learning_model_->parameters(), sgd_option);
+    torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 #else
     O::MomentumSGD optimizer(learn_rate);
-    optimizer.add(learning_model_);
+    optimizer.add(learning_model);
     optimizer.set_weight_decay(weight_decay);
 
     //グラフの設定
@@ -141,24 +141,24 @@ void supervisedLearn() {
 
 #ifdef USE_LIBTORCH
             optimizer.zero_grad();
-            auto loss = learning_model_->loss(inputs, policy_teachers, value_teachers);
+            auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
             if (step % 100 == 0) {
                 auto p_loss = loss.first.item<float>();
                 auto v_loss = loss.second.item<float>();
-                std::cout << elapsedTime(start_time_)  << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
-                learn_log << elapsedHours(start_time_) << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
+                std::cout << elapsedTime(start_time)  << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
+                learn_log << elapsedHours(start_time) << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
             }
             auto sum_loss = loss.first + loss.second;
             sum_loss.backward();
             optimizer.step();
 #else
             g.clear();
-            auto loss = learning_model_.loss(inputs, policy_teachers, value_teachers);
+            auto loss = learning_model.loss(inputs, policy_teachers, value_teachers);
             if (step % 100 == 0) {
                 float p_loss = loss.first.to_float();
                 float v_loss = loss.second.to_float();
-                std::cout << elapsedTime(start_time_)  << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
-                learn_log << elapsedHours(start_time_) << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
+                std::cout << elapsedTime(start_time)  << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
+                learn_log << elapsedHours(start_time) << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
             }
             optimizer.reset_gradients();
             loss.first.backward();
@@ -169,10 +169,10 @@ void supervisedLearn() {
 
         //学習中のパラメータを書き出して推論用のモデルで読み込む
 #ifdef USE_LIBTORCH
-        torch::save(learning_model_, MODEL_PATH);
+        torch::save(learning_model, MODEL_PATH);
         torch::load(nn, MODEL_PATH);
 #else
-        learning_model_.save(MODEL_PATH);
+        learning_model.save(MODEL_PATH);
         nn->load(MODEL_PATH);
 #endif
         int32_t num = 0;
@@ -195,16 +195,16 @@ void supervisedLearn() {
         value_loss /= num;
         float sum_loss = policy_loss + value_loss;
 
-        std::cout      << epoch << "\t" << elapsedTime(start_time_)  << "\t" << sum_loss << "\t" << policy_loss << "\t" << value_loss << std::endl;
-        validation_log << epoch << "\t" << elapsedHours(start_time_) << "\t" << sum_loss << "\t" << policy_loss << "\t" << value_loss << std::endl;
+        std::cout      << epoch << "\t" << elapsedTime(start_time)  << "\t" << sum_loss << "\t" << policy_loss << "\t" << value_loss << std::endl;
+        validation_log << epoch << "\t" << elapsedHours(start_time) << "\t" << sum_loss << "\t" << policy_loss << "\t" << value_loss << std::endl;
 
         if (sum_loss < min_loss) {
             min_loss = sum_loss;
             patience = 0;
 #ifdef USE_LIBTORCH
-            torch::save(learning_model_, MODEL_PREFIX + "_supervised_best.model");
+            torch::save(learning_model, MODEL_PREFIX + "_supervised_best.model");
 #else
-            learning_model_.save(MODEL_PREFIX + "_supervised_best.model");
+            learning_model.save(MODEL_PREFIX + "_supervised_best.model");
 #endif
         } else if (++patience >= patience_limit) {
 #ifdef USE_LIBTORCH
