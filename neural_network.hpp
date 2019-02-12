@@ -62,7 +62,9 @@ public:
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
     //バッチの入力特徴量,教師情報を引数として損失を返す関数.これをモデルが一括で行うのが良い実装？
-    std::pair<torch::Tensor, torch::Tensor> loss(std::vector<float>& input, std::vector<uint32_t>& policy_labels, std::vector<ValueTeacher>& value_teachers);
+    std::pair<torch::Tensor, torch::Tensor> loss(const std::vector<float>& input,
+                                                 const std::vector<uint32_t>& policy_labels,
+                                                 const std::vector<ValueTeacher>& value_teachers);
 
 private:
     torch::nn::Conv2d first_conv{nullptr};
