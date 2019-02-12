@@ -199,12 +199,12 @@ void AlphaZeroTrainer::startLearn() {
         learning_model_.save(MODEL_PATH);
         nn->load(MODEL_PATH);
 #endif
-        generator.gpu_mutex.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
         if (step_num % EVALUATION_INTERVAL == 0) {
             validation(step_num);
         }
+
+        generator.gpu_mutex.unlock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
     usi_option.stop_signal = true;
