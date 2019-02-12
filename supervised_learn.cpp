@@ -207,6 +207,11 @@ void supervisedLearn() {
             learning_model_.save(MODEL_PREFIX + "_supervised_best.model");
 #endif
         } else if (++patience >= patience_limit) {
+#ifdef USE_LIBTORCH
+            optimizer.options.learning_rate_ /= 2;
+#else
+            optimizer.set_learning_rate_scaling(optimizer.get_learning_rate_scaling() / 2);
+#endif
             break;
         }
     }
