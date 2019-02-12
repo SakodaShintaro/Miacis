@@ -10,6 +10,7 @@
 #include"test.hpp"
 #include"neural_network.hpp"
 #include"operate_params.hpp"
+#include"learn.hpp"
 #include<iostream>
 #include<string>
 #include<climits>
@@ -54,8 +55,7 @@ void USI::loop() {
             std::cin >> file_path;
             cleanGames(file_path);
         } else if (input == "supervisedLearn") {
-            SupervisedLearner trainer("supervised_learn_settings.txt");
-            trainer.train();
+            supervisedLearn();
         } else if (input == "alphaZero") {
             AlphaZeroTrainer trainer("alphazero_settings.txt");
             trainer.startLearn();

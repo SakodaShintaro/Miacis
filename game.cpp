@@ -67,7 +67,7 @@ Game loadGameFromCSA(sys::path p) {
 	return game;
 }
 
-std::vector<Game> loadGames(std::string path, uint64_t num) {
+std::vector<Game> loadGames(std::string path, int64_t num) {
     const sys::path dir(path);
 	std::vector<Game> games;
     for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {

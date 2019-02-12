@@ -25,7 +25,7 @@ struct Game {
 };
 
 Game loadGameFromCSA(std::experimental::filesystem::path p);
-std::vector<Game> loadGames(std::string path, uint64_t num);
+std::vector<Game> loadGames(std::string path, int64_t num);
 void cleanGames(std::string path);
 
 #endif // !GAME_HPP

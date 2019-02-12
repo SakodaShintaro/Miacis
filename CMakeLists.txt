@@ -28,7 +28,8 @@ set(SRCS alphazero_trainer.cpp
          searcher_for_gen.cpp
          neural_network.cpp
          MCTSearcher.cpp
-         parallel_MCTSearcher.cpp)
+         parallel_MCTSearcher.cpp
+         supervised_learn.cpp learn.cpp)
 
 add_executable(Miacis_sv ${SRCS})
 add_executable(Miacis_cv ${SRCS})
