@@ -40,10 +40,6 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
             ifs >> LEARN_RATE_DECAY;
         } else if (name == "momentum") {
             ifs >> MOMENTUM;
-        } else if (name == "thread_num") {
-            ifs >> THREAD_NUM;
-            THREAD_NUM = std::min(std::max(2u, THREAD_NUM), std::thread::hardware_concurrency());
-            usi_option.thread_num = THREAD_NUM;
         } else if (name == "threshold(0.0~1.0)") {
             ifs >> THRESHOLD;
         } else if (name == "random_move_num") {

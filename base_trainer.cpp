@@ -1,4 +1,5 @@
 ﻿#include"base_trainer.hpp"
+#include<iomanip>
 
 std::string BaseTrainer::elapsedTime() {
     auto elapsed = std::chrono::steady_clock::now() - start_time_;

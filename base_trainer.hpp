@@ -1,16 +1,8 @@
 #ifndef TRAINER_HPP
 #define TRAINER_HPP
 
-#include"position.hpp"
 #include"neural_network.hpp"
-#include<iomanip>
-#include<fstream>
 #include<chrono>
-#include<ctime>
-
-//損失の型を設定する
-//PolicyとValueの2つ
-using LossType = std::array<double, 2>;
 
 //各Trainerの基底となるクラス
 class BaseTrainer {
@@ -38,10 +30,7 @@ protected:
     double MOMENTUM;
 
     //バッチサイズ
-    unsigned long BATCH_SIZE;
-
-    //並列化するスレッド数
-    uint32_t THREAD_NUM;
+    uint64_t BATCH_SIZE;
 
     //policy_lossにかける係数
     float POLICY_LOSS_COEFF;
