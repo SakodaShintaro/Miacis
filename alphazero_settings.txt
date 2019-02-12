@@ -2,7 +2,6 @@ batch_size 4096
 learn_rate 0.2
 learn_rate_decay 0.9999
 momentum 0.9
-thread_num 16
 threshold(0.0~1.0) 0.75
 random_move_num 512
 draw_turn 512
