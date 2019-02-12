@@ -10,17 +10,6 @@
 #include<thread>
 #include<mutex>
 #include<climits>
-#include<experimental/filesystem>
-
-#ifdef _MSC_VER
-#include<direct.h>
-#elif __GNUC__
-#include<sys/stat.h>
-#endif
-
-const std::string LEARN_DIR = "learn_games";
-const std::string TEST_DIR  = "test_games";
-const std::string BEST_MODEL = "best.model";
 
 AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
     //オプションをファイルから読み込む
@@ -40,8 +29,6 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
             ifs >> LEARN_RATE_DECAY;
         } else if (name == "momentum") {
             ifs >> MOMENTUM;
-        } else if (name == "threshold(0.0~1.0)") {
-            ifs >> THRESHOLD;
         } else if (name == "random_move_num") {
             ifs >> usi_option.random_turn;
         } else if (name == "draw_turn") {
@@ -54,12 +41,6 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
             ifs >> USE_DRAW_GAME;
         } else if (name == "USI_Hash") {
             ifs >> usi_option.USI_Hash;
-        } else if (name == "evaluation_game_num") {
-            ifs >> EVALUATION_GAME_NUM;
-        } else if (name == "evaluation_interval") {
-            ifs >> EVALUATION_INTERVAL;
-        } else if (name == "evaluation_random_turn") {
-            ifs >> EVALUATION_RANDOM_TURN;
         } else if (name == "policy_loss_coeff") {
             ifs >> POLICY_LOSS_COEFF;
         } else if (name == "value_loss_coeff") {
@@ -74,6 +55,8 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
             ifs >> usi_option.playout_limit;
         } else if (name == "parallel_num") {
             ifs >> PARALLEL_NUM;
+        } else if (name == "evaluation_interval") {
+            ifs >> EVALUATION_INTERVAL;
         } else if (name == "validation_kifu_path") {
             ifs >> VALIDATION_KIFU_PATH;
         } else if (name == "validation_size") {
@@ -85,22 +68,6 @@ AlphaZeroTrainer::AlphaZeroTrainer(std::string settings_file_path) {
     usi_option.limit_msec = LLONG_MAX;
     usi_option.stop_signal = false;
     usi_option.byoyomi_margin = 0LL;
-
-    //変数の初期化
-    update_num_ = 0;
-
-    //棋譜を保存するディレクトリの削除
-    std::experimental::filesystem::remove_all("./learn_games");
-    std::experimental::filesystem::remove_all("./test_games");
-
-    //棋譜を保存するディレクトリの作成
-#ifdef _MSC_VER
-    _mkdir(LEARN_DIR);
-    _mkdir(TEST_DIR);
-#elif __GNUC__
-    mkdir(LEARN_DIR.c_str(), ACCESSPERMS);
-    mkdir(TEST_DIR.c_str(),  ACCESSPERMS);
-#endif
 }
 
 void AlphaZeroTrainer::startLearn() {
@@ -112,19 +79,16 @@ void AlphaZeroTrainer::startLearn() {
     //モデル読み込み
 #ifdef USE_LIBTORCH
     torch::load(learning_model_, MODEL_PATH);
-    torch::save(learning_model_, BEST_MODEL);
+    torch::save(learning_model_, MODEL_PREFIX + "_best.model");
     torch::load(nn, MODEL_PATH);
 #else
     learning_model_.load(MODEL_PATH);
-    learning_model_.save(BEST_MODEL);
+    learning_model_.save(MODEL_PREFIX + "_best.model");
     nn->load(MODEL_PATH);
 #endif
 
     //時間を初期化
     start_time_ = std::chrono::steady_clock::now();
-
-    //変数の初期化
-    update_num_ = 0;
 
     //ログファイルの設定
     std::ofstream log_file("alphazero_log.txt");
@@ -205,142 +169,6 @@ void AlphaZeroTrainer::startLearn() {
     gen_thread.detach();
 
     std::cout << "finish alphaZero()" << std::endl;
-}
-
-void AlphaZeroTrainer::evaluate(int64_t step) {
-    static std::ofstream eval_log;
-    if (!eval_log) {
-        eval_log.open("eval_log.txt");
-        eval_log << "step\ttime\t勝率\t千日手\t超手数\t更新回数\t重複数\t次回のランダム数" << std::endl;
-    }
-
-    //設定を評価用に変える
-    auto before_random_turn = usi_option.random_turn;
-    usi_option.random_turn = EVALUATION_RANDOM_TURN;
-    auto test_games = play(EVALUATION_GAME_NUM, false);
-
-    //設定を戻す
-    usi_option.random_turn = before_random_turn;
-
-    //いくつか出力
-    for (int32_t i = 0; i < std::min(4, (int32_t) test_games.size()); i++) {
-        test_games[i].writeKifuFile(TEST_DIR);
-    }
-
-    double win_rate = 0.0;
-    int32_t draw_repeat_num = 0, draw_over_limit_num = 0;
-    for (int32_t i = 0; i < test_games.size(); i++) {
-        if (test_games[i].result == Game::RESULT_DRAW_REPEAT) {
-            draw_repeat_num++;
-            test_games[i].result = (MAX_SCORE + MIN_SCORE) / 2;
-        } else if (test_games[i].result == Game::RESULT_DRAW_OVER_LIMIT) {
-            draw_over_limit_num++;
-            test_games[i].result = (MAX_SCORE + MIN_SCORE) / 2;
-        }
-        win_rate += (i % 2 == 0 ? test_games[i].result : 1.0 - test_games[i].result);
-    }
-
-    //重複の確認をしてみる
-    int32_t same_num = 0;
-    for (int32_t i = 0; i < test_games.size(); i++) {
-        for (int32_t j = i + 1; j < test_games.size(); j++) {
-            if (test_games[i].moves.size() != test_games[i].moves.size()) {
-                continue;
-            }
-            bool same = true;
-            for (int32_t k = 0; k < test_games[i].moves.size(); k++) {
-                if (test_games[i].moves[k] != test_games[j].moves[k]) {
-                    same = false;
-                    break;
-                }
-            }
-            if (same) {
-                same_num++;
-            }
-        }
-    }
-    win_rate /= test_games.size();
-
-    if (win_rate >= THRESHOLD) {
-#ifdef USE_LIBTORCH
-        torch::save(learning_model_, BEST_MODEL);
-#else
-        learning_model_.save(BEST_MODEL);
-#endif
-        update_num_++;
-    }
-    eval_log << step << "\t" << elapsedHours() << "\t" << win_rate * 100.0 << "\t" << draw_repeat_num << "\t"
-    << draw_over_limit_num << "\t" << update_num_ << "\t"
-    << same_num << "\t" << (same_num == 0 ? --EVALUATION_RANDOM_TURN : ++EVALUATION_RANDOM_TURN);
-}
-
-std::vector<Game> AlphaZeroTrainer::play(int32_t game_num, bool eval) {
-    std::vector<Game> games((unsigned long)game_num);
-
-    //現在のパラメータ
-#ifdef USE_LIBTORCH
-    NeuralNetwork curr;
-    torch::load(curr, MODEL_PATH);
-    if (eval) {
-        torch::load(nn, MODEL_PATH);
-    }
-
-    auto searcher1 = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, usi_option.thread_num, curr);
-    auto searcher2 = (eval ? //searcher2は評価時にしか使わない
-                      std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, usi_option.thread_num, nn) :
-                      nullptr);
-#else
-    NeuralNetwork<Tensor> curr;
-    curr.load(MODEL_PATH);
-
-    if (eval) {
-        nn->load(BEST_MODEL);
-    }
-
-    auto searcher1 = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, usi_option.thread_num, curr);
-    auto searcher2 = (eval ? //searcher2は評価時にしか使わない
-            std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, usi_option.thread_num, *nn) :
-            nullptr);
-#endif
-
-    for (int32_t i = 0; i < game_num; i++) {
-        Game& game = games[i];
-        Position pos;
-
-        while (true) {
-            Move best_move;
-            if (eval) {
-                //評価時:iが偶数のときsearcher1が先手
-                best_move = ((pos.turn_number() % 2) == (i % 2) ?
-                                         searcher1->think(pos) :
-                                         searcher2->think(pos));
-            } else {
-                //データ生成時:searcher1のみを使って自己対局
-                best_move = searcher1->think(pos);
-            }
-
-            if (best_move == NULL_MOVE) { //NULL_MOVEは投了を示す
-                game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
-                break;
-            }
-
-            if (!pos.isLegalMove(best_move)) {
-                pos.printForDebug();
-                best_move.printWithScore();
-                assert(false);
-            }
-            pos.doMove(best_move);
-            pos.print(false);
-            game.moves.push_back(best_move);
-
-            if (pos.turn_number() >= usi_option.draw_turn) { //長手数
-                game.result = Game::RESULT_DRAW_OVER_LIMIT;
-                break;
-            }
-        }
-    }
-
-    return games;
 }
 
 void AlphaZeroTrainer::validation(int64_t step_num) {

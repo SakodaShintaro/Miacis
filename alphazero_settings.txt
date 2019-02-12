@@ -2,16 +2,13 @@ batch_size 4096
 learn_rate 0.2
 learn_rate_decay 0.9999
 momentum 0.9
-threshold(0.0~1.0) 0.75
 random_move_num 512
 draw_turn 512
 draw_score 0
 lambda 1.0
 use_draw_game 1
 USI_Hash 1
-evaluation_game_num 100
 evaluation_interval 1000
-evaluation_random_turn 10
 policy_loss_coeff 1
 value_loss_coeff 1
 max_stack_size 100000
