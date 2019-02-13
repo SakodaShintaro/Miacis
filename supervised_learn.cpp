@@ -52,17 +52,6 @@ void supervisedLearn() {
     assert(weight_decay >= 0);
     assert(patience_limit > 0);
 
-    //評価関数読み込み
-#ifdef USE_LIBTORCH
-    NeuralNetwork learning_model;
-    torch::load(learning_model, MODEL_PATH);
-    torch::save(learning_model, MODEL_PREFIX + "_before_learn.model");
-#else
-    NeuralNetwork<Node> learning_model;
-    learning_model.load(MODEL_PATH);
-    learning_model.save(MODEL_PREFIX + "_before_learn.model");
-#endif
-
     //棋譜を読み込む
     std::cout << "start loadGames ..." << std::flush;
     std::vector<Game> games = loadGames(kifu_path, game_num);
@@ -112,13 +101,20 @@ void supervisedLearn() {
     std::ofstream validation_log("validation_log.txt");
     validation_log << "epoch\ttime\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
-    //optimizerの設定
+    //評価関数読み込み,optimizerの準備
 #ifdef USE_LIBTORCH
+    NeuralNetwork learning_model;
+    torch::load(learning_model, MODEL_PATH);
+    torch::save(learning_model, MODEL_PREFIX + "_before_learn.model");
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
     sgd_option.weight_decay(weight_decay);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 #else
+    NeuralNetwork<Node> learning_model;
+    learning_model.load(MODEL_PATH);
+    learning_model.save(MODEL_PREFIX + "_before_learn.model");
+
     O::MomentumSGD optimizer(learn_rate);
     optimizer.add(learning_model);
     optimizer.set_weight_decay(weight_decay);
@@ -175,28 +171,11 @@ void supervisedLearn() {
         learning_model.save(MODEL_PATH);
         nn->load(MODEL_PATH);
 #endif
-        int32_t num = 0;
-        float policy_loss = 0.0, value_loss = 0.0;
-        for (int32_t i = 0; (i + 1) * batch_size <= validation_size; i++, num++) {
-            std::vector<float> inputs;
-            std::vector<PolicyTeacherType> policy_teachers;
-            std::vector<ValueTeacherType> value_teachers;
-            std::tie(inputs, policy_teachers, value_teachers) = getBatch(validation_data, i * batch_size, batch_size);
-            auto loss = nn->loss(inputs, policy_teachers, value_teachers);
-#ifdef USE_LIBTORCH
-            policy_loss += loss.first.item<float>();
-            value_loss += loss.second.item<float>();
-#else
-            policy_loss += loss.first.to_float();
-            value_loss += loss.second.to_float();
-#endif
-        }
-        policy_loss /= num;
-        value_loss /= num;
-        float sum_loss = policy_loss + value_loss;
+        auto val_loss = validation(validation_data);
+        float sum_loss = val_loss[0] + val_loss[1];
 
-        std::cout      << epoch << "\t" << elapsedTime(start_time)  << "\t" << sum_loss << "\t" << policy_loss << "\t" << value_loss << std::endl;
-        validation_log << epoch << "\t" << elapsedHours(start_time) << "\t" << sum_loss << "\t" << policy_loss << "\t" << value_loss << std::endl;
+        std::cout      << epoch << "\t" << elapsedTime(start_time)  << "\t" << sum_loss << "\t" << val_loss[0] << "\t" << val_loss[1] << std::endl;
+        validation_log << epoch << "\t" << elapsedHours(start_time) << "\t" << sum_loss << "\t" << val_loss[0] << "\t" << val_loss[1] << std::endl;
 
         if (sum_loss < min_loss) {
             min_loss = sum_loss;

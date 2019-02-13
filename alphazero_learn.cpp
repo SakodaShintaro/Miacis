@@ -83,7 +83,10 @@ void alphaZero() {
     usi_option.stop_signal = false;
     usi_option.byoyomi_margin = 0LL;
 
-    //validation_dataの準備
+    //ログファイルの設定
+    std::ofstream log_file("alphazero_log.txt");
+    log_file  << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
+    std::cout << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
     std::ofstream validation_log("alphazero_validation_log.txt");
     validation_log << "step_num\telapsed_hours\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
@@ -115,7 +118,7 @@ void alphaZero() {
     validation_data.erase(validation_data.begin() + VALIDATION_SIZE);
 
     //局面インスタンスは一つ用意して都度局面を構成
-    Position pos;
+    //Position pos;
 
     //モデル読み込み
 #ifdef USE_LIBTORCH
@@ -123,25 +126,21 @@ void alphaZero() {
     torch::load(learning_model_, MODEL_PATH);
     torch::save(learning_model_, MODEL_PREFIX + "_before_alphazero.model");
     torch::load(nn, MODEL_PATH);
+
+    //Optimizerの準備
+    torch::optim::SGDOptions sgd_option(LEARN_RATE);
+    sgd_option.momentum(MOMENTUM);
+    sgd_option.weight_decay(1e-4);
+    torch::optim::SGD optimizer(learning_model_->parameters(), sgd_option);
+
+    //自己対局をしてreplay_buffer_にデータを追加するインスタンス
+    GameGenerator generator(0, PARALLEL_NUM, replay_buffer_, nn);
 #else
     NeuralNetwork<Node> learning_model_;
     learning_model_.load(MODEL_PATH);
     learning_model_.save(MODEL_PREFIX + "_before_alphazero.model");
     nn->load(MODEL_PATH);
-#endif
 
-    //ログファイルの設定
-    std::ofstream log_file("alphazero_log.txt");
-    log_file  << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
-    std::cout << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
-
-    //Optimizerの準備
-#ifdef USE_LIBTORCH
-    torch::optim::SGD optimizer(learning_model_->parameters(), LEARN_RATE);
-
-    //自己対局をしてreplay_buffer_にデータを追加するインスタンス
-    GameGenerator generator(0, PARALLEL_NUM, replay_buffer_, nn);
-#else
     O::MomentumSGD optimizer(LEARN_RATE);
     optimizer.set_weight_decay(1e-4);
     optimizer.add(learning_model_);
@@ -152,6 +151,8 @@ void alphaZero() {
     Graph g;
     Graph::set_default(g);
 #endif
+
+    //自己対局スレッドを立てる
     std::thread gen_thread([&generator]() { generator.genGames(static_cast<int64_t>(1e10)); });
 
     for (int32_t step_num = 1; step_num <= MAX_STEP_NUM; step_num++) {
@@ -165,7 +166,7 @@ void alphaZero() {
 #ifdef USE_LIBTORCH
         optimizer.zero_grad();
         auto loss = learning_model_->loss(inputs, policy_teachers, value_teachers);
-        auto sum_loss = loss.first + loss.second;
+        auto sum_loss = POLICY_LOSS_COEFF * loss.first + VALUE_LOSS_COEFF * loss.second;
         auto p_loss = loss.first.item<float>();
         auto v_loss = loss.second.item<float>();
         std::cout << elapsedTime(start_time_) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
@@ -196,25 +197,12 @@ void alphaZero() {
         nn->load(MODEL_PATH);
 #endif
         if (step_num % EVALUATION_INTERVAL == 0) {
-            int32_t num = 0;
-            float policy_loss = 0.0, value_loss = 0.0;
-            for (int32_t i = 0; (i + 1) * BATCH_SIZE <= VALIDATION_SIZE; i++, num++) {
-                std::tie(inputs, policy_teachers, value_teachers) = getBatch(validation_data, i * BATCH_SIZE, BATCH_SIZE);
-                auto val_loss = nn->loss(inputs, policy_teachers, value_teachers);
-#ifdef USE_LIBTORCH
-                policy_loss += val_loss.first.item<float>();
-                value_loss  += val_loss.second.item<float>();
-#else
-                policy_loss += val_loss.first.to_float();
-                value_loss  += val_loss.second.to_float();
-#endif
-            }
-            policy_loss /= num;
-            value_loss /= num;
-
-            validation_log << step_num << "\t" << elapsedHours(start_time_) << "\t"
-                           << POLICY_LOSS_COEFF * policy_loss + VALUE_LOSS_COEFF * value_loss
-                           << "\t" << policy_loss << "\t" << value_loss << std::endl;
+            auto val_loss = validation(validation_data);
+            validation_log << step_num << "\t"
+                           << elapsedHours(start_time_) << "\t"
+                           << POLICY_LOSS_COEFF * val_loss[0] + VALUE_LOSS_COEFF * val_loss[1] << "\t"
+                           << val_loss[0] << "\t"
+                           << val_loss[1] << std::endl;
         }
 
         generator.gpu_mutex.unlock();
