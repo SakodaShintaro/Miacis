@@ -478,7 +478,7 @@ Move ParallelMCTSearcher::think(Position& root) {
     //キューの初期化
     for (int32_t i = 0; i < WORKER_NUM; i++) {
         input_queues_[i].clear();
-        route_queues_[i].clear();
+        index_queues_[i].clear();
         route_queues_[i].clear();
         action_queues_[i].clear();
     }
@@ -495,7 +495,12 @@ Move ParallelMCTSearcher::think(Position& root) {
     }
 
     //GPUで計算:child_num == 1のときはいらなそうだけど
-    assert(!input_queues_[0].empty());
+    if (input_queues_[0].empty()) {
+        //繰り返しなどでキューに送られなかった
+        //ルートノードでは強制的に評価
+        const auto feature = root.makeFeature();
+        input_queues_[0].insert(input_queues_[0].end(), feature.begin(), feature.end());
+    }
 #ifdef USE_LIBTORCH
     auto y = evaluator_->policyAndValueBatch(input_queues_[0]);
 #else
@@ -510,6 +515,12 @@ Move ParallelMCTSearcher::think(Position& root) {
     current_node.nn_rates = softmax(current_node.nn_rates);
     //valueは使わないはずだけど気分で
     current_node.value = y.second[0];
+
+    //0番目のキューをクリア
+    input_queues_[0].clear();
+    index_queues_[0].clear();
+    route_queues_[0].clear();
+    action_queues_[0].clear();
 
     //初期化
     playout_num_ = 0;
@@ -635,11 +646,11 @@ void ParallelMCTSearcher::onePlay(Position &pos, int32_t id) {
             break;
         }
 
-//        Score repeat_score;
-//        if (index != current_root_index_ && pos.isRepeating(repeat_score)) {
-//            //繰り返しが発生している場合も抜ける
-//            break;
-//        }
+        Score repeat_score;
+        if (index != current_root_index_ && pos.isRepeating(repeat_score)) {
+            //繰り返しが発生している場合も抜ける
+            break;
+        }
 
         //状態を記録
         curr_indices.push(index);
@@ -716,20 +727,19 @@ Index ParallelMCTSearcher::expandNode(Position& pos, std::stack<int32_t>& indice
 #endif
 
     // ノードを評価
-//    Score repeat_score;
-//    if (pos.isRepeating(repeat_score)) {
-//        //繰り返し
-//#ifdef USE_CATEGORICAL
-//        current_node.value = onehotDist(repeat_score);
-//#else
-//        current_node.value = repeat_score;
-//#endif
-//        current_node.evaled = true;
-//        //GPUに送らないのでこのタイミングでバックアップを行う
-//        indices.push(index);
-//        backup(indices, actions);
-//    } else
-    if (current_node.child_num > 0) {
+    Score repeat_score;
+    if (pos.isRepeating(repeat_score)) {
+        //繰り返し
+#ifdef USE_CATEGORICAL
+        current_node.value = onehotDist(repeat_score);
+#else
+        current_node.value = repeat_score;
+#endif
+        current_node.evaled = true;
+        //GPUに送らないのでこのタイミングでバックアップを行う
+        indices.push(index);
+        backup(indices, actions);
+    } else if (current_node.child_num > 0) {
         //インデックスを追加
         indices.push(index);
 
