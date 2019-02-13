@@ -77,7 +77,7 @@ void USI::usi() {
     usi_option.byoyomi_margin = 0;
 	printf("option name random_turn type spin default 0 min 0 max 1000\n");
     usi_option.random_turn = 0;
-    printf("option name thread_num type spin default 1 min 1 max %d\n", std::max(std::thread::hardware_concurrency(), 1U));
+    printf("option name thread_num type spin default 1 min 1 max 2048\n");
     usi_option.thread_num = 1;
     printf("option name draw_score type spin default -1 min -30000 max 30000\n");
     usi_option.draw_score = -1;

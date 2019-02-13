@@ -6,9 +6,9 @@
 
 //ネットワークの設定
 constexpr int32_t POLICY_CHANNEL_NUM = 27;
-constexpr int32_t BLOCK_NUM = 4;
+constexpr int32_t BLOCK_NUM = 10;
 constexpr int32_t KERNEL_SIZE = 3;
-constexpr int32_t CHANNEL_NUM = 32;
+constexpr int32_t CHANNEL_NUM = 64;
 constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
 #ifdef USE_LIBTORCH
