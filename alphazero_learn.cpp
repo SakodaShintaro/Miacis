@@ -29,13 +29,6 @@ void alphaZero() {
     std::string VALIDATION_KIFU_PATH;
     int64_t VALIDATION_SIZE = -1;
 
-    //学習中のモデル
-#ifdef USE_LIBTORCH
-    NeuralNetwork learning_model_;
-#else
-    NeuralNetwork<Node> learning_model_;
-#endif
-
     //リプレイバッファ
     ReplayBuffer replay_buffer_;
 
@@ -126,12 +119,14 @@ void alphaZero() {
 
     //モデル読み込み
 #ifdef USE_LIBTORCH
+    NeuralNetwork learning_model_;
     torch::load(learning_model_, MODEL_PATH);
-    torch::save(learning_model_, MODEL_PREFIX + "_best.model");
+    torch::save(learning_model_, MODEL_PREFIX + "_before_alphazero.model");
     torch::load(nn, MODEL_PATH);
 #else
+    NeuralNetwork<Node> learning_model_;
     learning_model_.load(MODEL_PATH);
-    learning_model_.save(MODEL_PREFIX + "_best.model");
+    learning_model_.save(MODEL_PREFIX + "_before_alphazero.model");
     nn->load(MODEL_PATH);
 #endif
 
