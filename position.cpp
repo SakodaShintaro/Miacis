@@ -1322,25 +1322,30 @@ inline bool Position::isLastMoveCheck() {
 bool Position::isRepeating(Score& score) const {
     //千日手or連続王手の千日手だったらtrueを返してscoreに適切な値を入れる(技巧と似た実装)
     for (int32_t index = (int32_t)stack_.size() - 4; index > 0 && (index > ((int32_t)stack_.size() - 32)); index -= 2) {
-        if (board_hash_ == stack_[index].board_hash) { //局面が一致
-            if (hand_hash_ == stack_[index].hand_hash) { //手駒も一致
-                if ((index == (int32_t)stack_.size() - 4) && (stack_[index].isChecked && stack_[index + 2].isChecked)) { //手番側が連続王手された
-                    score = MAX_SCORE;
-                } else { //普通の千日手
-                    score = 0;
-                }
-            } else { //局面だけが一致
-                if (hand_[color_].superior(stack_[index].hand[color_])) { //優等局面
-                    score = MAX_SCORE;
-                } else if (hand_[color_].inferior(stack_[index].hand[color_])) { //劣等局面
-                    score = MIN_SCORE;
-                } else {
-                    //その他は繰り返しではない
-                    return false;
-                }
-            }
-            return true;
+        if (board_hash_ != stack_[index].board_hash) {
+            //局面のハッシュ値が一致しなかったら関係ない
+            continue;
         }
+
+        //局面のハッシュ値が一致
+        if (hand_hash_ == stack_[index].hand_hash) { //手駒も一致
+            if ((index == (int32_t) stack_.size() - 4) &&
+                (stack_[index].isChecked && stack_[index + 2].isChecked)) { //手番側が連続王手された
+                score = MAX_SCORE;
+            } else { //普通の千日手
+                score = (MAX_SCORE + MIN_SCORE) / 2;
+            }
+        } else { //局面だけが一致
+            if (hand_[color_].superior(stack_[index].hand[color_])) { //優等局面
+                score = MAX_SCORE;
+            } else if (hand_[color_].inferior(stack_[index].hand[color_])) { //劣等局面
+                score = MIN_SCORE;
+            } else {
+                //その他は繰り返しではない
+                return false;
+            }
+        }
+        return true;
     }
     return false;
 }

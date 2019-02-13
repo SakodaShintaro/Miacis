@@ -28,7 +28,7 @@ void test() {
 #else
     nn->load(MODEL_PATH);
     //auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, *nn);
-    auto searcher = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, 1, *nn);
+    auto searcher = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, 2, *nn);
 #endif
 
     Position pos;
@@ -45,7 +45,7 @@ void test() {
             break;
         }
         Score repeat_score;
-        if (pos.isRepeating(repeat_score)) {
+        if (pos.isRepeating(repeat_score) && repeat_score == (MAX_SCORE + MIN_SCORE) / 2) {
             //千日手
             game.result = Game::RESULT_DRAW_REPEAT;
             break;

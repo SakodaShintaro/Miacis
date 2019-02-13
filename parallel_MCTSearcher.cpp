@@ -652,6 +652,11 @@ void ParallelMCTSearcher::onePlay(Position &pos, int32_t id) {
             break;
         }
 
+        if (hash_table_[index].nn_rates.size() != hash_table_[index].legal_moves.size()) {
+            //policyが展開されていなかったら抜ける
+            break;
+        }
+
         //状態を記録
         curr_indices.push(index);
 
@@ -660,6 +665,10 @@ void ParallelMCTSearcher::onePlay(Position &pos, int32_t id) {
 
         //取った行動を記録
         curr_actions.push(action);
+
+        //VIRTUAL_LOSSの追加
+        hash_table_[index].move_count += VIRTUAL_LOSS;
+        hash_table_[index].child_move_counts[action] += VIRTUAL_LOSS;
 
         //遷移
         pos.doMove(hash_table_[index].legal_moves[action]);
@@ -812,8 +821,8 @@ void ParallelMCTSearcher::backup(std::stack<int32_t> &indices, std::stack<int32_
 
         // 探索結果の反映
         hash_table_[index].child_wins[action] += value;
-        hash_table_[index].move_count++;
-        hash_table_[index].child_move_counts[action]++;
+        hash_table_[index].move_count += 1 - VIRTUAL_LOSS;
+        hash_table_[index].child_move_counts[action] += 1 - VIRTUAL_LOSS;
         assert(hash_table_[index].child_num != 0);
     }
 }
