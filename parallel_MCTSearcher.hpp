@@ -1,4 +1,6 @@
-﻿#ifndef PARALLEL_MCTSEARCHER_HPP
+﻿#include <utility>
+
+#ifndef PARALLEL_MCTSEARCHER_HPP
 #define PARALLEL_MCTSEARCHER_HPP
 
 #include"types.hpp"
@@ -39,10 +41,14 @@ public:
 #else
 #ifdef USE_LIBTORCH
     ParallelMCTSearcher(int64_t hash_size, int64_t thread_num, NeuralNetwork nn) : hash_table_(hash_size),
-    evaluator_(nn), thread_num_(thread_num) {}
+    evaluator_(std::move(nn)), thread_num_(thread_num) {
+        lock_node_ = std::vector<std::mutex>(static_cast<uint64_t>(hash_table_.size()));
+    }
 #else
     ParallelMCTSearcher(int64_t hash_size, int64_t thread_num, NeuralNetwork<Tensor>& nn) : hash_table_(hash_size),
-    evaluator_(nn), thread_num_(thread_num) {}
+    evaluator_(nn), thread_num_(thread_num) {
+        lock_node_ = std::vector<std::mutex>(static_cast<uint64_t>(hash_table_.size()));
+    }
 #endif
 
 #endif
@@ -90,6 +96,10 @@ private:
     NeuralNetwork<Tensor>& evaluator_;
 #endif
 
+    //mutex
+    std::vector<std::mutex> lock_node_;
+    std::mutex lock_expand_;
+
 #ifdef USE_PARALLEL_SEARCHER
 
     //再帰する探索関数
@@ -110,11 +120,6 @@ private:
     //キューをクリア
     void clearEvalQueue();
 
-    //並列化に必要なもの
-    //mutex
-    std::vector<std::mutex> lock_node_;
-    std::mutex lock_expand_;
-
     //キュー
     int8_t current_queue_index_;
     std::vector<float> features_[2];
@@ -125,7 +130,7 @@ private:
     //探索中であるかどうかのフラグ
     bool running_;
 #else
-    static constexpr int32_t WORKER_NUM = 1;
+    static constexpr int32_t WORKER_NUM = 2;
 
     //各スレッドに割り当てられる探索関数
     void parallelUctSearch(Position root, int32_t id);

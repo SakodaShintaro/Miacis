@@ -601,13 +601,17 @@ void ParallelMCTSearcher::parallelUctSearch(Position root, int32_t id) {
 
         //評価要求をGPUで計算
         if (!index_queues_[id].empty()) {
+            lock_expand_.lock();
 #ifdef USE_LIBTORCH
             auto y = evaluator_->policyAndValueBatch(input_queues_[id]);
 #else
             auto y = evaluator_.policyAndValueBatch(input_queues_[id]);
 #endif
+            lock_expand_.unlock();
+
             //書き込み
             for (int32_t i = 0; i < index_queues_[id].size(); i++) {
+                std::unique_lock<std::mutex> lock(lock_node_[index_queues_[id][i]]);
                 auto& curr_node = hash_table_[index_queues_[id][i]];
                 curr_node.nn_rates.resize(static_cast<uint64_t>(curr_node.child_num));
                 for (int32_t j = 0; j < curr_node.legal_moves.size(); j++) {
@@ -641,6 +645,8 @@ void ParallelMCTSearcher::onePlay(Position &pos, int32_t id) {
 
     //未展開の局面に至るまで遷移を繰り返す
     while(index != UctHashTable::NOT_EXPANDED) {
+        std::unique_lock<std::mutex> lock(lock_node_[index]);
+
         if (hash_table_[index].child_num == 0) {
             //詰みの場合抜ける
             break;
@@ -686,7 +692,9 @@ void ParallelMCTSearcher::onePlay(Position &pos, int32_t id) {
     auto leaf_index = expandNode(pos, curr_indices, curr_actions, id);
 
     //葉の直前ノードを更新
+    lock_node_[index].lock();
     hash_table_[index].child_indices[action] = leaf_index;
+    lock_node_[index].unlock();
 
     //バックアップはGPU計算後にやるので局面だけ戻す
     for (int32_t i = 0; i < move_num; i++) {
@@ -695,6 +703,9 @@ void ParallelMCTSearcher::onePlay(Position &pos, int32_t id) {
 }
 
 Index ParallelMCTSearcher::expandNode(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id) {
+    //全体をロック.このノードだけではなく探す部分も含めてなので
+    std::unique_lock<std::mutex> lock(lock_expand_);
+
     auto index = hash_table_.findSameHashIndex(pos.hash_value(), static_cast<int16_t>(pos.turn_number()));
 
     // 合流先が検知できればそれを返す
@@ -802,7 +813,7 @@ Index ParallelMCTSearcher::expandNode(Position& pos, std::stack<int32_t>& indice
     return index;
 }
 
-void ParallelMCTSearcher::backup(std::stack<int32_t> &indices, std::stack<int32_t> &actions) {
+void ParallelMCTSearcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
     assert(indices.size() == actions.size() + 1);
     auto leaf = indices.top();
     indices.pop();
@@ -820,10 +831,12 @@ void ParallelMCTSearcher::backup(std::stack<int32_t> &indices, std::stack<int32_
         value = reverse(value);
 
         // 探索結果の反映
+        lock_node_[index].lock();
         hash_table_[index].child_wins[action] += value;
         hash_table_[index].move_count += 1 - VIRTUAL_LOSS;
         hash_table_[index].child_move_counts[action] += 1 - VIRTUAL_LOSS;
         assert(hash_table_[index].child_num != 0);
+        lock_node_[index].unlock();
     }
 }
 
