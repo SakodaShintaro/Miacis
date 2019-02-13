@@ -181,8 +181,6 @@ void alphaZero() {
         optimizer.step();
         torch::save(learning_model_, MODEL_PATH);
         torch::load(nn, MODEL_PATH);
-        generator.gpu_mutex.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 #else
         g.clear();
         auto loss = learning_model_.loss(inputs, policy_teachers, value_teachers);
@@ -207,13 +205,13 @@ void alphaZero() {
             float policy_loss = 0.0, value_loss = 0.0;
             for (int32_t i = 0; (i + 1) * BATCH_SIZE <= VALIDATION_SIZE; i++, num++) {
                 std::tie(inputs, policy_teachers, value_teachers) = getBatch(validation_data, i * BATCH_SIZE, BATCH_SIZE);
-                auto loss = nn->loss(inputs, policy_teachers, value_teachers);
+                auto val_loss = nn->loss(inputs, policy_teachers, value_teachers);
 #ifdef USE_LIBTORCH
-                policy_loss += loss.first.item<float>();
-                value_loss  += loss.second.item<float>();
+                policy_loss += val_loss.first.item<float>();
+                value_loss  += val_loss.second.item<float>();
 #else
-                policy_loss += loss.first.to_float();
-                value_loss  += loss.second.to_float();
+                policy_loss += val_loss.first.to_float();
+                value_loss  += val_loss.second.to_float();
 #endif
             }
             policy_loss /= num;

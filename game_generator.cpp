@@ -276,14 +276,8 @@ void GameGenerator::genSlave(int64_t id) {
         }
 
         //numsが正であるものが一つでもあるかどうかを確認
-        bool all_finish = true;
-        for (int32_t i = 0; i < parallel_num; i++) {
-            if (nums[i] > 0) {
-                all_finish = false;
-                break;
-            }
-        }
-        if (all_finish) {
+        if (std::find_if(nums.begin(), nums.end(), [](const auto& e){ return e > 0; }) == nums.end()) {
+            //一つもなかったら終了
             break;
         }
 
