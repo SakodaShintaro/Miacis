@@ -1,5 +1,6 @@
 #include"learn.hpp"
 #include"game.hpp"
+#include"operate_params.hpp"
 #include<sstream>
 #include<iomanip>
 
@@ -43,7 +44,7 @@ getBatch(const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64
     return std::make_tuple(inputs, policy_teachers, value_teachers);
 }
 
-std::array<float, 2> validation(const std::vector<std::pair<string, TeacherType>>& validation_data) {
+std::array<float, 2> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data) {
     static constexpr int32_t batch_size = 4096;
     int32_t num = 0;
     float policy_loss = 0.0, value_loss = 0.0;
@@ -84,7 +85,7 @@ std::array<float, 2> validation(const std::vector<std::pair<string, TeacherType>
     return { policy_loss, value_loss };
 }
 
-std::vector<std::pair<string, TeacherType>> loadData(const std::string& file_path) {
+std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& file_path) {
     //棋譜を読み込めるだけ読み込む
     auto games = loadGames(file_path, 100000);
 
