@@ -38,7 +38,7 @@ Move MCTSearcher::think(Position& root) {
     const auto& child_move_counts = current_node.child_move_counts;
 
     printUSIInfo();
-    root.print(false);
+    root.print(true);
     for (int32_t i = 0; i < current_node.child_num; i++) {
         double nn = 100.0 * current_node.nn_rates[i];
         double p  = 100.0 * child_move_counts[i] / current_node.move_count;

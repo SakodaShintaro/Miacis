@@ -226,9 +226,9 @@ void USI::go() {
     //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので
     //別スレッドに投げる
     thread_ = std::thread([&]() {
-        //MCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
 #ifdef USE_LIBTORCH
         ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, nn);
+        //MCTSearcher searcher(usi_option.USI_Hash, nn);
 #else
         ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
 #endif
