@@ -90,35 +90,14 @@ void alphaZero() {
     std::ofstream validation_log("alphazero_validation_log.txt");
     validation_log << "step_num\telapsed_hours\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
-    //棋譜を読み込めるだけ読み込む
-    auto games = loadGames(VALIDATION_KIFU_PATH, 100000);
-
-    //データを局面単位にバラす
-    std::vector<std::pair<std::string, TeacherType>> validation_data;
-    for (const auto& game : games) {
-        Position pos;
-        for (const auto& move : game.moves) {
-            TeacherType teacher;
-            teacher.policy = (uint32_t) move.toLabel();
-#ifdef USE_CATEGORICAL
-            assert(false);
-            teacher.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
-#else
-            teacher.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
-#endif
-            validation_data.emplace_back(pos.toSFEN(), teacher);
-            pos.doMove(move);
-        }
-    }
+    //データを取得
+    std::vector<std::pair<std::string, TeacherType>> validation_data = loadData(VALIDATION_KIFU_PATH);
     assert(validation_data.size() >= VALIDATION_SIZE);
 
     //データをシャッフルして必要量以外を削除
     std::default_random_engine engine(0);
     std::shuffle(validation_data.begin(), validation_data.end(), engine);
     validation_data.erase(validation_data.begin() + VALIDATION_SIZE);
-
-    //局面インスタンスは一つ用意して都度局面を構成
-    //Position pos;
 
     //モデル読み込み
 #ifdef USE_LIBTORCH

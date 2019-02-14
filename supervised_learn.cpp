@@ -52,27 +52,8 @@ void supervisedLearn() {
     assert(weight_decay >= 0);
     assert(patience_limit > 0);
 
-    //棋譜を読み込む
-    std::cout << "start loadGames ..." << std::flush;
-    std::vector<Game> games = loadGames(kifu_path, game_num);
-    std::cout << " done.  games.size() = " << games.size() << std::endl;
-
-    //学習データを局面単位にバラして保持
-    std::vector<std::pair<std::string, TeacherType>> data_buffer;
-    for (const auto& game : games) {
-        Position pos;
-        for (const auto& move : game.moves) {
-            TeacherType teacher;
-            teacher.policy = move.toLabel();
-#ifdef USE_CATEGORICAL
-            teacher.value = valueToIndex(pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
-#else
-            teacher.value = (float)(pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
-#endif
-            data_buffer.emplace_back(pos.toSFEN(), teacher);
-            pos.doMove(move);
-        }
-    }
+    //学習データを取得
+    std::vector<std::pair<std::string, TeacherType>> data_buffer = loadData(kifu_path);
 
     //データをシャッフル
     std::default_random_engine engine(0);
@@ -98,7 +79,7 @@ void supervisedLearn() {
     std::cout << "time\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
     //validation結果のログファイル
-    std::ofstream validation_log("validation_log.txt");
+    std::ofstream validation_log("supervised_learn_validation_log.txt");
     validation_log << "epoch\ttime\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
     //評価関数読み込み,optimizerの準備
@@ -186,12 +167,13 @@ void supervisedLearn() {
             learning_model.save(MODEL_PREFIX + "_supervised_best.model");
 #endif
         } else if (++patience >= patience_limit) {
+            break;
+        } else {
 #ifdef USE_LIBTORCH
             optimizer.options.learning_rate_ /= 2;
 #else
             optimizer.set_learning_rate_scaling(optimizer.get_learning_rate_scaling() / 2);
 #endif
-            break;
         }
     }
 

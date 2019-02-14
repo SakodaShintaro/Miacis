@@ -1,7 +1,5 @@
 #include"learn.hpp"
-#include "learn.hpp"
-
-
+#include"game.hpp"
 #include<sstream>
 #include<iomanip>
 
@@ -84,4 +82,29 @@ std::array<float, 2> validation(const std::vector<std::pair<string, TeacherType>
     value_loss /= validation_data.size();
 
     return { policy_loss, value_loss };
+}
+
+std::vector<std::pair<string, TeacherType>> loadData(const std::string& file_path) {
+    //棋譜を読み込めるだけ読み込む
+    auto games = loadGames(file_path, 100000);
+
+    //データを局面単位にバラす
+    std::vector<std::pair<std::string, TeacherType>> data_buffer;
+    for (const auto& game : games) {
+        Position pos;
+        for (const auto& move : game.moves) {
+            TeacherType teacher;
+            teacher.policy = (uint32_t) move.toLabel();
+#ifdef USE_CATEGORICAL
+            assert(false);
+            teacher.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
+#else
+            teacher.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
+#endif
+            data_buffer.emplace_back(pos.toSFEN(), teacher);
+            pos.doMove(move);
+        }
+    }
+
+    return data_buffer;
 }
