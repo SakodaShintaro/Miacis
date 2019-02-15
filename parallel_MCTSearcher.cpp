@@ -516,11 +516,11 @@ Move ParallelMCTSearcher::think(Position& root) {
     //valueは使わないはずだけど気分で
     current_node.value = y.second[0];
 
-    //0番目のキューをクリア
-    input_queues_[0].clear();
-    index_queues_[0].clear();
-    route_queues_[0].clear();
-    action_queues_[0].clear();
+    //thread_numをWORKER_NUMの倍数にする
+    thread_num_ = thread_num_ / WORKER_NUM * WORKER_NUM;
+    if (thread_num_ == 0) {
+        thread_num_ = WORKER_NUM;
+    }
 
     //初期化
     playout_num_ = 0;
@@ -539,7 +539,7 @@ Move ParallelMCTSearcher::think(Position& root) {
     const auto& child_move_counts = current_node.child_move_counts;
 
     printUSIInfo();
-    root.print(false);
+    root.print(true);
     for (int32_t i = 0; i < current_node.child_num; i++) {
         double nn = 100.0 * current_node.nn_rates[i];
         double p  = 100.0 * child_move_counts[i] / current_node.move_count;
@@ -589,14 +589,21 @@ Move ParallelMCTSearcher::think(Position& root) {
 void ParallelMCTSearcher::parallelUctSearch(Position root, int32_t id) {
     //限界に達するまで探索を繰り返す
     while (playout_num_ < usi_option.playout_limit && !shouldStop()) {
+        //キューをクリア
+        input_queues_[id].clear();
+        index_queues_[id].clear();
+        route_queues_[id].clear();
+        action_queues_[id].clear();
+        redundancy_num_[id].clear();
+
         //評価要求を貯める
         for (int32_t i = 0; i < thread_num_ / WORKER_NUM; i++) {
+            //1回探索
+            onePlay(root, id);
+
             if (playout_num_++ >= usi_option.playout_limit || shouldStop()) {
                 break;
             }
-
-            //1回探索
-            onePlay(root, id);
         }
 
         //評価要求をGPUで計算
@@ -619,19 +626,17 @@ void ParallelMCTSearcher::parallelUctSearch(Position root, int32_t id) {
                 }
                 curr_node.nn_rates = softmax(curr_node.nn_rates);
                 curr_node.value = y.second[i];
+                curr_node.evaled = true;
             }
         }
 
         //バックアップ
         for (int32_t i = 0; i < route_queues_[id].size(); i++) {
-            backup(route_queues_[id][i], action_queues_[id][i]);
+            backup(route_queues_[id][i], action_queues_[id][i], 1 - VIRTUAL_LOSS * redundancy_num_[id][i]);
+            playout_num_ += 1 - redundancy_num_[id][i];
         }
-
-        //キューをクリア
-        input_queues_[id].clear();
-        index_queues_[id].clear();
-        route_queues_[id].clear();
-        action_queues_[id].clear();
+        assert(hash_table_[current_root_index_].move_count = std::accumulate(hash_table_[current_root_index_].child_move_counts.begin(),
+                hash_table_[current_root_index_].child_move_counts.end(), 0));
     }
 }
 
@@ -710,14 +715,34 @@ Index ParallelMCTSearcher::expandNode(Position& pos, std::stack<int32_t>& indice
 
     // 合流先が検知できればそれを返す
     if (index != hash_table_.size()) {
-        //GPUに送らないのでこのタイミングでバックアップを行う
         indices.push(index);
-        backup(indices, actions);
+        if (hash_table_[index].evaled) {
+            //評価済みならば,前回までのループでここへ違う経路で到達していたか,終端状態であるかのいずれか
+            //どちらの場合でもバックアップして良い,と思う
+            //GPUに送らないのでこのタイミングでバックアップを行う
+            backup(indices, actions, 1 - VIRTUAL_LOSS);
+        } else {
+            //評価済みではないけどここへ到達したならば,同じループの中で到達があったということ
+            //全く同じ経路のものがあるかどうか確認
+            auto itr = std::find(route_queues_[id].begin(), route_queues_[id].end(), indices);
+            if (itr == route_queues_[id].end()) {
+                //同じものはなかった
+                route_queues_[id].push_back(indices);
+                action_queues_[id].push_back(actions);
+                redundancy_num_[id].push_back(1);
+            } else {
+                //同じものがあった
+                redundancy_num_[id][itr - route_queues_[id].begin()]++;
+            }
+        }
         return index;
     }
 
     // 空のインデックスを探す
     index = hash_table_.searchEmptyIndex(pos.hash_value(), static_cast<int16_t>(pos.turn_number()));
+
+    //経路として記録
+    indices.push(index);
 
     auto& current_node = hash_table_[index];
 
@@ -757,33 +782,17 @@ Index ParallelMCTSearcher::expandNode(Position& pos, std::stack<int32_t>& indice
 #endif
         current_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
-        indices.push(index);
-        backup(indices, actions);
+        backup(indices, actions, 1 - VIRTUAL_LOSS);
     } else if (current_node.child_num > 0) {
-        //インデックスを追加
-        indices.push(index);
-
-        //今の局面をキューに追加したいが,すでに同じ局面に到達している可能性があるのでキューを調べる
-        bool exist = (std::find(index_queues_[id].begin(), index_queues_[id].end(), index) != index_queues_[id].end());
-
-        if (exist) {
-            //全く同じ経路のものがあるかどうか確認
-            bool same = (std::find(route_queues_[id].begin(), route_queues_[id].end(), indices) != route_queues_[id].end());
-            if (!same) {
-                //違う経路のものしかなかったら計算要求は投げないがバックアップ要求だけは送る
-                route_queues_[id].push_back(indices);
-                action_queues_[id].push_back(actions);
-            }
-        } else {
-            //GPUへ計算要求を投げる
-            //特徴量の追加
-            auto this_feature = pos.makeFeature();
-            input_queues_[id].insert(input_queues_[id].end(), this_feature.begin(), this_feature.end());
-            index_queues_[id].push_back(index);
-            //バックアップ要求も投げる
-            route_queues_[id].push_back(indices);
-            action_queues_[id].push_back(actions);
-        }
+        //GPUへ計算要求を投げる
+        //特徴量の追加
+        auto this_feature = pos.makeFeature();
+        input_queues_[id].insert(input_queues_[id].end(), this_feature.begin(), this_feature.end());
+        index_queues_[id].push_back(index);
+        //バックアップ要求も投げる
+        route_queues_[id].push_back(indices);
+        action_queues_[id].push_back(actions);
+        redundancy_num_[id].push_back(1);
     } else {
         if (pos.lastMove().isDrop() && (kind(pos.lastMove().subject()) == PAWN)) {
             //打ち歩詰めなので勝ち
@@ -806,14 +815,13 @@ Index ParallelMCTSearcher::expandNode(Position& pos, std::stack<int32_t>& indice
         }
         current_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
-        indices.push(index);
-        backup(indices, actions);
+        backup(indices, actions, 1 - VIRTUAL_LOSS);
     }
 
     return index;
 }
 
-void ParallelMCTSearcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
+void ParallelMCTSearcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t add_num) {
     assert(indices.size() == actions.size() + 1);
     auto leaf = indices.top();
     indices.pop();
@@ -833,8 +841,8 @@ void ParallelMCTSearcher::backup(std::stack<int32_t>& indices, std::stack<int32_
         // 探索結果の反映
         lock_node_[index].lock();
         hash_table_[index].child_wins[action] += value;
-        hash_table_[index].move_count += 1 - VIRTUAL_LOSS;
-        hash_table_[index].child_move_counts[action] += 1 - VIRTUAL_LOSS;
+        hash_table_[index].move_count += add_num;
+        hash_table_[index].child_move_counts[action] += add_num;
         assert(hash_table_[index].child_num != 0);
         lock_node_[index].unlock();
     }

@@ -130,7 +130,7 @@ private:
     //探索中であるかどうかのフラグ
     bool running_;
 #else
-    static constexpr int32_t WORKER_NUM = 2;
+    static constexpr int32_t WORKER_NUM = 1;
 
     //各スレッドに割り当てられる探索関数
     void parallelUctSearch(Position root, int32_t id);
@@ -142,13 +142,14 @@ private:
     Index expandNode(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id);
 
     //バックアップ
-    void backup(std::stack<int32_t> &indices, std::stack<int32_t> &actions);
+    void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t add_num);
 
     //キュー
     std::vector<float> input_queues_[WORKER_NUM];
     std::vector<Index> index_queues_[WORKER_NUM];
     std::vector<std::stack<Index>> route_queues_[WORKER_NUM];
     std::vector<std::stack<int32_t>> action_queues_[WORKER_NUM];
+    std::vector<int32_t> redundancy_num_[WORKER_NUM];
 #endif
 };
 
