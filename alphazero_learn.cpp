@@ -146,12 +146,14 @@ void alphaZero() {
         optimizer.zero_grad();
         auto loss = learning_model_->loss(inputs, policy_teachers, value_teachers);
         auto sum_loss = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
-        auto p_loss = loss.first.item<float>();
-        auto v_loss = loss.second.item<float>();
-        std::cout << elapsedTime(start_time) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
-                  << "\t" << v_loss << std::endl;
-        log_file << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
-                 << "\t"  << v_loss << std::endl;
+        if (step_num % (validation_interval / 10) == 0) {
+            auto p_loss = loss.first.item<float>();
+            auto v_loss = loss.second.item<float>();
+            std::cout << elapsedTime(start_time) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
+                      << "\t" << v_loss << std::endl;
+            log_file << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
+                     << "\t" << v_loss << std::endl;
+        }
         sum_loss.backward();
         optimizer.step();
         torch::save(learning_model_, MODEL_PATH);
@@ -165,11 +167,13 @@ void alphaZero() {
         optimizer.update();
 
         //学習情報の表示
-        float p_loss = loss.first.to_float();
-        float v_loss = loss.second.to_float();
-        float sum_loss = policy_loss_coeff * p_loss + value_loss_coeff * v_loss;
-        std::cout << elapsedTime(start_time) << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
-        log_file << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
+        if (step_num % (validation_interval / 10) == 0) {
+            float p_loss = loss.first.to_float();
+            float v_loss = loss.second.to_float();
+            float sum_loss = policy_loss_coeff * p_loss + value_loss_coeff * v_loss;
+            std::cout << elapsedTime(start_time) << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
+            log_file << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
+        }
 
         //書き出し
         learning_model_.save(MODEL_PATH);
@@ -177,11 +181,12 @@ void alphaZero() {
 #endif
         if (step_num % validation_interval == 0) {
             auto val_loss = validation(validation_data);
-            validation_log << step_num << "\t"
-                           << elapsedHours(start_time) << "\t"
+            std::cout      << step_num << "\t" << elapsedHours(start_time) << "\t"
                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
-                           << val_loss[0] << "\t"
-                           << val_loss[1] << std::endl;
+                           << val_loss[0] << "\t" << val_loss[1] << std::endl;
+            validation_log << step_num << "\t" << elapsedHours(start_time) << "\t"
+                           << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
+                           << val_loss[0] << "\t" << val_loss[1] << std::endl;
         }
 
         generator.gpu_mutex.unlock();
