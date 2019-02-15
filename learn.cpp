@@ -53,6 +53,9 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
         std::vector<float> inputs;
         std::vector<PolicyTeacherType> policy_teachers;
         std::vector<ValueTeacherType> value_teachers;
+        inputs.reserve(batch_size * INPUT_CHANNEL_NUM);
+        policy_teachers.reserve(batch_size);
+        value_teachers.reserve(batch_size);
 
         //ミニバッチ分貯める
         //一番最後ではミニバッチ数ピッタリにならないかもしれないのでカウントする
