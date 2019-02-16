@@ -130,7 +130,7 @@ private:
     //探索中であるかどうかのフラグ
     bool running_;
 #else
-    static constexpr int32_t WORKER_NUM = 1;
+    static constexpr int32_t WORKER_NUM = 2;
 
     //各スレッドに割り当てられる探索関数
     void parallelUctSearch(Position root, int32_t id);

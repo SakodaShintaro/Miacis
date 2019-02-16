@@ -530,7 +530,7 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::resultForCurrPos(Pos
 #endif
 
     //訪問回数に基づいた分布を得る
-    std::vector<CalcType> distribution(static_cast<unsigned long>(current_node.child_num));
+    std::vector<CalcType> distribution(static_cast<uint64_t>(current_node.child_num));
     assert(current_node.move_count == std::accumulate(child_move_counts.begin(), child_move_counts.end(), 0));
     for (int32_t i = 0; i < current_node.child_num; i++) {
         distribution[i] = (CalcType)child_move_counts[i] / current_node.move_count;
@@ -545,7 +545,6 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::resultForCurrPos(Pos
     Move best_move = (root.turn_number() < usi_option.random_turn ?
                       current_node.legal_moves[randomChoose(distribution)] :
                       current_node.legal_moves[best_index]);
-
     best_move.score = (Score)(best_wp);
     teacher.policy = best_move.toLabel();
 
