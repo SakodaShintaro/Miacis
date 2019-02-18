@@ -12,25 +12,24 @@ bool ParallelMCTSearcher::isTimeOver() {
 }
 
 bool ParallelMCTSearcher::shouldStop() {
-    return isTimeOver() || !hash_table_.hasEnoughSize();
-//    if (isTimeOver()) {
-//        return true;
-//    }
-//    return false;
-//
-//    // 探索回数が最も多い手と次に多い手を求める
-//    int32_t max1 = 0, max2 = 0;
-//    for (auto e : hash_table_[current_root_index_].child_move_counts) {
-//        if (e > max1) {
-//            max2 = max1;
-//            max1 = e;
-//        } else if (e > max2) {
-//            max2 = e;
-//        }
-//    }
-//
-//    // 残りの探索を全て次善手に費やしても最善手を超えられない場合は探索を打ち切る
-//    return (max1 - max2) > (usi_option.playout_limit - playout_num_);
+//    return isTimeOver() || !hash_table_.hasEnoughSize();
+    if (isTimeOver()) {
+        return true;
+    }
+
+    // 探索回数が最も多い手と次に多い手を求める
+    int32_t max1 = 0, max2 = 0;
+    for (auto e : hash_table_[current_root_index_].child_move_counts) {
+        if (e > max1) {
+            max2 = max1;
+            max1 = e;
+        } else if (e > max2) {
+            max2 = e;
+        }
+    }
+
+    // 残りの探索を全て次善手に費やしても最善手を超えられない場合は探索を打ち切る
+    return (max1 - max2) > (usi_option.playout_limit - playout_num_);
 }
 
 std::vector<Move> ParallelMCTSearcher::getPV() const {
