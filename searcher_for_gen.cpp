@@ -576,4 +576,52 @@ void GameGenerator::SearcherForGen::backup(std::stack<int32_t> &indices, std::st
     }
 }
 
+void GameGenerator::SearcherForGen::mateSearch(Position pos, int32_t depth) {
+    assert(depth % 2 == 1);
+    auto& curr_node = hash_table_[current_root_index_];
+    for (int32_t i = 0; i < curr_node.child_num; i++) {
+        pos.doMove(curr_node.legal_moves[i]);
+        bool result = mateSearchForEvader(pos, depth - 1);
+        pos.undo();
+        if (result) {
+            //この手に書き込み
+            //playout_limitだけ足せば必ずこの手が選ばれるようになる
+            curr_node.child_move_counts[i] += usi_option.playout_limit;
+        }
+    }
+}
+
+bool GameGenerator::SearcherForGen::mateSearchForAttacker(Position& pos, int32_t depth) {
+    assert(depth % 2 == 1);
+    //全ての手を試してみる
+    for (const auto& move : pos.generateAllMoves()) {
+        pos.doMove(move);
+        bool result = mateSearchForEvader(pos, depth - 1);
+        pos.undo();
+        if (result) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool GameGenerator::SearcherForGen::mateSearchForEvader(Position& pos, int32_t depth) {
+    assert(depth % 2 == 0);
+    if (depth == 0) {
+        return pos.generateAllMoves().empty();
+    }
+
+    //全ての手を試してみる
+    for (const auto& move : pos.generateAllMoves()) {
+        pos.doMove(move);
+        bool result = mateSearchForAttacker(pos, depth - 1);
+        pos.undo();
+        if (!result) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 #endif

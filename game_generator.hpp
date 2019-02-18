@@ -1,5 +1,3 @@
-#include <utility>
-
 #ifndef MIACIS_GAME_GENERATOR_HPP
 #define MIACIS_GAME_GENERATOR_HPP
 
@@ -9,6 +7,7 @@
 #include <atomic>
 #include <mutex>
 #include <stack>
+#include <utility>
 
 //#define USE_PARALLEL_SEARCHER
 
@@ -159,6 +158,11 @@ private:
 
         //ディリクレ分布に従ったものを返す関数
         static std::vector<double> dirichletDistribution(int32_t k, double alpha);
+
+        //詰み探索
+        void mateSearch(Position pos, int32_t depth);
+        bool mateSearchForAttacker(Position& pos, int32_t depth);
+        bool mateSearchForEvader(Position& pos, int32_t depth);
 
         //このスレッドのid
         int32_t id_;

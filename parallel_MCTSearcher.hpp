@@ -144,6 +144,11 @@ private:
     //バックアップ
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t add_num);
 
+    //詰み探索
+    void mateSearch(Position pos);
+    bool mateSearchForAttacker(Position& pos, int32_t depth);
+    bool mateSearchForEvader(Position& pos, int32_t depth);
+
     //キュー
     std::vector<float> input_queues_[WORKER_NUM];
     std::vector<Index> index_queues_[WORKER_NUM];

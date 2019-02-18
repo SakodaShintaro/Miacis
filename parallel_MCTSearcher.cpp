@@ -525,6 +525,9 @@ Move ParallelMCTSearcher::think(Position& root) {
     //初期化
     playout_num_ = 0;
 
+    //詰み探索立ち上げ
+    std::thread mate_thread(&ParallelMCTSearcher::mateSearch, this, root);
+
     //workerを立ち上げ
     std::vector<std::thread> threads(static_cast<uint64_t>(WORKER_NUM));
     for (int32_t i = 0; i < WORKER_NUM; i++) {
@@ -532,6 +535,7 @@ Move ParallelMCTSearcher::think(Position& root) {
     }
 
     //終了を待つ
+    mate_thread.join();
     for (auto& t : threads) {
         t.join();
     }
@@ -635,7 +639,7 @@ void ParallelMCTSearcher::parallelUctSearch(Position root, int32_t id) {
             backup(route_queues_[id][i], action_queues_[id][i], 1 - VIRTUAL_LOSS * redundancy_num_[id][i]);
             playout_num_ += 1 - redundancy_num_[id][i];
         }
-        assert(hash_table_[current_root_index_].move_count = std::accumulate(hash_table_[current_root_index_].child_move_counts.begin(),
+        assert(hash_table_[current_root_index_].move_count == std::accumulate(hash_table_[current_root_index_].child_move_counts.begin(),
                 hash_table_[current_root_index_].child_move_counts.end(), 0));
     }
 }
@@ -846,6 +850,63 @@ void ParallelMCTSearcher::backup(std::stack<int32_t>& indices, std::stack<int32_
         assert(hash_table_[index].child_num != 0);
         lock_node_[index].unlock();
     }
+}
+
+void ParallelMCTSearcher::mateSearch(Position pos) {
+    auto& curr_node = hash_table_[current_root_index_];
+    for (int32_t depth = 1; !shouldStop(); depth += 2) {
+        for (int32_t i = 0; i < curr_node.child_num; i++) {
+            pos.doMove(curr_node.legal_moves[i]);
+            bool result = mateSearchForEvader(pos, depth - 1);
+            pos.undo();
+            if (result) {
+                //この手に書き込み
+                //playout_limitだけ足せば必ずこの手が選ばれるようになる
+                curr_node.child_move_counts[i] += usi_option.playout_limit;
+                return;
+            }
+        }
+    }
+}
+
+bool ParallelMCTSearcher::mateSearchForAttacker(Position& pos, int32_t depth) {
+    assert(depth % 2 == 1);
+    if (shouldStop()) {
+        return false;
+    }
+    //全ての手を試してみる
+    for (const auto& move : pos.generateAllMoves()) {
+        pos.doMove(move);
+        bool result = mateSearchForEvader(pos, depth - 1);
+        pos.undo();
+        if (result) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ParallelMCTSearcher::mateSearchForEvader(Position& pos, int32_t depth) {
+    assert(depth % 2 == 0);
+    if (shouldStop() || !pos.isChecked()) {
+        return false;
+    }
+
+    if (depth == 0) {
+        return pos.generateAllMoves().empty();
+    }
+
+    //全ての手を試してみる
+    for (const auto& move : pos.generateAllMoves()) {
+        pos.doMove(move);
+        bool result = mateSearchForAttacker(pos, depth - 1);
+        pos.undo();
+        if (!result) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 #endif
