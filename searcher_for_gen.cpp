@@ -586,6 +586,7 @@ void GameGenerator::SearcherForGen::mateSearch(Position pos, int32_t depth) {
         if (result) {
             //この手に書き込み
             //playout_limitだけ足せば必ずこの手が選ばれるようになる
+            curr_node.move_count += usi_option.playout_limit;
             curr_node.child_move_counts[i] += usi_option.playout_limit;
         }
     }
@@ -608,7 +609,7 @@ bool GameGenerator::SearcherForGen::mateSearchForAttacker(Position& pos, int32_t
 bool GameGenerator::SearcherForGen::mateSearchForEvader(Position& pos, int32_t depth) {
     assert(depth % 2 == 0);
     if (depth == 0) {
-        return pos.generateAllMoves().empty();
+        return pos.generateAllMoves().empty() && !(pos.lastMove().isDrop() && kind(pos.lastMove().subject()) == PAWN);
     }
 
     //全ての手を試してみる
@@ -621,7 +622,7 @@ bool GameGenerator::SearcherForGen::mateSearchForEvader(Position& pos, int32_t d
         }
     }
 
-    return true;
+    return !(pos.lastMove().isDrop() && kind(pos.lastMove().subject()) == PAWN);
 }
 
 #endif

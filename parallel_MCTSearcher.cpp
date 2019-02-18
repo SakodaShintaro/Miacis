@@ -639,8 +639,6 @@ void ParallelMCTSearcher::parallelUctSearch(Position root, int32_t id) {
             backup(route_queues_[id][i], action_queues_[id][i], 1 - VIRTUAL_LOSS * redundancy_num_[id][i]);
             playout_num_ += 1 - redundancy_num_[id][i];
         }
-        assert(hash_table_[current_root_index_].move_count == std::accumulate(hash_table_[current_root_index_].child_move_counts.begin(),
-                hash_table_[current_root_index_].child_move_counts.end(), 0));
     }
 }
 
@@ -862,6 +860,7 @@ void ParallelMCTSearcher::mateSearch(Position pos) {
             if (result) {
                 //この手に書き込み
                 //playout_limitだけ足せば必ずこの手が選ばれるようになる
+                curr_node.move_count += usi_option.playout_limit;
                 curr_node.child_move_counts[i] += usi_option.playout_limit;
                 return;
             }
@@ -893,7 +892,7 @@ bool ParallelMCTSearcher::mateSearchForEvader(Position& pos, int32_t depth) {
     }
 
     if (depth == 0) {
-        return pos.generateAllMoves().empty();
+        return pos.generateAllMoves().empty() && !(pos.lastMove().isDrop() && kind(pos.lastMove().subject()) == PAWN);
     }
 
     //全ての手を試してみる
@@ -906,7 +905,7 @@ bool ParallelMCTSearcher::mateSearchForEvader(Position& pos, int32_t depth) {
         }
     }
 
-    return true;
+    return !(pos.lastMove().isDrop() && kind(pos.lastMove().subject()) == PAWN);
 }
 
 #endif
