@@ -173,6 +173,9 @@ private:
         //ルート局面のインデックス
         Index current_root_index_;
 
+        //詰み探索スレッド
+        std::thread mate_thread_;
+
         //評価要求を投げる先
         std::vector<float>& features_;
         std::vector<std::stack<int32_t>>& hash_indices_;

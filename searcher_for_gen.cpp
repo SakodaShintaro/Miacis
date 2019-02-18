@@ -494,6 +494,8 @@ bool GameGenerator::SearcherForGen::prepareForCurrPos(Position &root) {
     //探索回数を初期化
     playout_num_ = 0;
 
+    mate_thread_ = std::thread(&GameGenerator::SearcherForGen::mateSearch, this, root, 3);
+
     //合法手が0かどうかを判定して返す
     return hash_table_[current_root_index_].child_num > 0;
 }
@@ -503,6 +505,8 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::resultForCurrPos(Pos
     assert(current_node.child_num != 0);
     assert(current_node.move_count != 0);
     const auto& child_move_counts = current_node.child_move_counts;
+
+    mate_thread_.join();
 
     // 訪問回数最大の手を選択する
     int32_t best_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
@@ -579,7 +583,7 @@ void GameGenerator::SearcherForGen::backup(std::stack<int32_t> &indices, std::st
 void GameGenerator::SearcherForGen::mateSearch(Position pos, int32_t depth) {
     assert(depth % 2 == 1);
     auto& curr_node = hash_table_[current_root_index_];
-    for (int32_t i = 0; i < curr_node.child_num; i++) {
+    for (int32_t i = 0; i < curr_node.child_num && !shouldStop(); i++) {
         pos.doMove(curr_node.legal_moves[i]);
         bool result = mateSearchForEvader(pos, depth - 1);
         pos.undo();
@@ -594,6 +598,10 @@ void GameGenerator::SearcherForGen::mateSearch(Position pos, int32_t depth) {
 
 bool GameGenerator::SearcherForGen::mateSearchForAttacker(Position& pos, int32_t depth) {
     assert(depth % 2 == 1);
+    if (shouldStop()) {
+        return false;
+    }
+
     //全ての手を試してみる
     for (const auto& move : pos.generateAllMoves()) {
         pos.doMove(move);
@@ -608,6 +616,10 @@ bool GameGenerator::SearcherForGen::mateSearchForAttacker(Position& pos, int32_t
 
 bool GameGenerator::SearcherForGen::mateSearchForEvader(Position& pos, int32_t depth) {
     assert(depth % 2 == 0);
+    if (shouldStop()) {
+        return false;
+    }
+
     if (depth == 0) {
         return pos.generateAllMoves().empty() && !(pos.lastMove().isDrop() && kind(pos.lastMove().subject()) == PAWN);
     }

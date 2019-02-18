@@ -62,6 +62,8 @@ void ReplayBuffer::makeBatch(int32_t batch_size, std::vector<float>& inputs, std
 void ReplayBuffer::push(Game &game) {
     mutex_.lock();
 
+    game.writeKifuFile("./learn_kifu/");
+
     Position pos;
 
     //まずは最終局面まで動かす
