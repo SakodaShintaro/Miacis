@@ -2,7 +2,6 @@
 #include"usi_options.hpp"
 #include"test.hpp"
 #include"bitboard.hpp"
-#include"MCTSearcher.hpp"
 #include"neural_network.hpp"
 
 int main()

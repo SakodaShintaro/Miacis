@@ -67,7 +67,7 @@ public:
         return used_num_ > table_.size() * 9 / 10;
     }
 
-    int64_t size() {
+    uint64_t size() {
         return table_.size();
     }
 

@@ -339,12 +339,10 @@ Index GameGenerator::SearcherForGen::expandNode(Position& pos, std::stack<int32_
 
     auto& current_node = hash_table_[index];
 
-    // 候補手の展開
+    // 現在のノードの初期化
     current_node.moves = pos.generateAllMoves();
     current_node.child_indices.assign(current_node.moves.size(), UctHashTable::NOT_EXPANDED);
     current_node.N.assign(current_node.moves.size(), 0);
-
-    // 現在のノードの初期化
     current_node.sum_N = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL

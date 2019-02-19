@@ -7,11 +7,12 @@ public:
 	int64_t byoyomi_margin;
 	int64_t random_turn;
     int64_t USI_Hash;
-    int64_t thread_num;
     int64_t draw_turn;
     int64_t draw_score;
+	uint64_t thread_num;
+	uint64_t search_batch_size;
 
-    //探索中に参照するものら
+	//探索中に参照するものら
 	int64_t limit_msec;
 	bool stop_signal;
 

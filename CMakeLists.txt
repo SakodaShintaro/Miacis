@@ -24,11 +24,11 @@ set(SRCS bitboard.cpp
          game_generator.cpp
          searcher_for_gen.cpp
          neural_network.cpp
-         MCTSearcher.cpp
-         parallel_MCTSearcher.cpp
          supervised_learn.cpp
          learn.cpp
-         alphazero_learn.cpp)
+         alphazero_learn.cpp
+         searcher.cpp
+         searcher_for_play.cpp)
 
 add_executable(Miacis_sv ${SRCS})
 add_executable(Miacis_cv ${SRCS})

@@ -1,14 +1,13 @@
 ﻿#include"usi.hpp"
 #include"move.hpp"
 #include"position.hpp"
-#include"MCTSearcher.hpp"
-#include"parallel_MCTSearcher.hpp"
 #include"usi_options.hpp"
 #include"game.hpp"
 #include"test.hpp"
 #include"neural_network.hpp"
 #include"operate_params.hpp"
 #include"learn.hpp"
+#include "searcher_for_play.hpp"
 #include<iostream>
 #include<string>
 #include<climits>
@@ -58,6 +57,8 @@ void USI::loop() {
             alphaZero();
         } else if (input == "test") {
             test();
+        } else if (input == "checkSearchSpeed") {
+            checkSearchSpeed();
         } else if (input == "checkGenSpeed") {
             checkGenSpeed();
         } else {
@@ -87,6 +88,8 @@ void USI::usi() {
     usi_option.random_turn = 0;
     printf("option name thread_num type spin default 1 min 1 max 2048\n");
     usi_option.thread_num = 1;
+    printf("option name search_batch_size type spin default 1 min 1 max 2048\n");
+    usi_option.search_batch_size = 1;
     printf("option name draw_score type spin default -1 min -30000 max 30000\n");
     usi_option.draw_score = -1;
     printf("option name draw_turn type spin default 256 min 0 max 4096\n");
@@ -135,6 +138,10 @@ void USI::setoption() {
             } else if (input == "thread_num") {
                 std::cin >> input; //input == "value"となるはず
                 std::cin >> usi_option.thread_num;
+                return;
+            } else if (input == "search_batch_size") {
+                std::cin >> input; //input == "value"となるはず
+                std::cin >> usi_option.search_batch_size;
                 return;
             } else if (input == "draw_score") {
                 std::cin >> input; //input == "value"となるはず
@@ -235,10 +242,9 @@ void USI::go() {
     //別スレッドに投げる
     thread_ = std::thread([&]() {
 #ifdef USE_LIBTORCH
-        ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, nn);
-        //MCTSearcher searcher(usi_option.USI_Hash, nn);
+        SearcherForPlay searcher(usi_option.USI_Hash, usi_option.thread_num, usi_option.search_batch_size, nn);
 #else
-        ParallelMCTSearcher searcher(usi_option.USI_Hash, usi_option.thread_num, *nn);
+        SearcherForPlay searcher(usi_option.USI_Hash, usi_option.thread_num, usi_option.search_batch_size, *nn);
 #endif
         auto best_move = searcher.think(root_);
         if (best_move == NULL_MOVE) {

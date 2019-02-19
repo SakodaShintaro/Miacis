@@ -6,11 +6,12 @@
 #include"hand.hpp"
 #include"game.hpp"
 #include"neural_network.hpp"
-#include"MCTSearcher.hpp"
-#include"parallel_MCTSearcher.hpp"
 #include"usi_options.hpp"
 #include"replay_buffer.hpp"
 #include"game_generator.hpp"
+#include "searcher_for_play.hpp"
+#include "test.hpp"
+
 #include<cassert>
 #include<numeric>
 #include<climits>
@@ -20,15 +21,15 @@ void test() {
     usi_option.playout_limit = 800;
     usi_option.limit_msec = LLONG_MAX;
     usi_option.USI_Hash = 1;
+    usi_option.thread_num = 1;
+    usi_option.search_batch_size = 1;
     usi_option.draw_turn = 512;
 #ifdef USE_LIBTORCH
     torch::load(nn, MODEL_PATH);
-    //auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, nn);
-    auto searcher = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, 32, nn);
+    auto searcher = std::make_unique<SearcherForPlay>(usi_option.USI_Hash, usi_option.thread_num, usi_option.search_batch_size, nn);
 #else
     nn->load(MODEL_PATH);
-    //auto searcher = std::make_unique<MCTSearcher>(usi_option.USI_Hash, *nn);
-    auto searcher = std::make_unique<ParallelMCTSearcher>(usi_option.USI_Hash, 2, *nn);
+    auto searcher = std::make_unique<SearcherForPlay>(usi_option.USI_Hash, usi_option.thread_num, usi_option.search_batch_size, *nn);
 #endif
 
     Position pos;
@@ -89,5 +90,19 @@ void checkGenSpeed() {
         auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         std::cout << "thread_num = " << std::setw(4) << thread_num << ", elapsed = " << ela.count() << ", speed = "
                   << (buffer.size() * 1000.0) / ela.count() << " pos / sec" << std::endl;
+    }
+}
+
+void checkSearchSpeed() {
+    usi_option.limit_msec = 10000;
+    usi_option.USI_Hash = 1024;
+    usi_option.playout_limit = static_cast<int64_t>(1e10);
+    Position pos;
+    for (uint64_t search_batch_size = 32; search_batch_size <= 1024; search_batch_size *= 2) {
+        std::cout << "search_batch_size = " << search_batch_size << std::endl;
+        for (uint64_t thread_num = 1; thread_num <= 4; thread_num++) {
+            SearcherForPlay searcher(usi_option.USI_Hash, thread_num, search_batch_size, nn);
+            searcher.think(pos);
+        }
     }
 }
