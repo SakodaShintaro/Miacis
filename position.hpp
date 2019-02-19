@@ -26,6 +26,7 @@ public:
     //合法性に関する関数
     bool isLegalMove(Move move) const;
     bool canDropPawn(Square to) const;
+    bool isLastMoveDropPawn() const;
 
     //王手,利き関連
     Bitboard attackersTo(Color c, Square sq) const;

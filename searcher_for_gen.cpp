@@ -388,25 +388,14 @@ Index GameGenerator::SearcherForGen::expandNode(Position& pos, std::stack<int32_
         actions_.push_back(actions);
         ids_.push_back(id_);
     } else {
-        if (pos.lastMove().isDrop() && (kind(pos.lastMove().subject()) == PAWN)) {
-            //打ち歩詰めなので勝ち
+        //打ち歩詰めなら勝ち,そうでないなら負け
+        auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
+
 #ifdef USE_CATEGORICAL
-            for (int32_t i = 0; i < BIN_SIZE; i++) {
-                current_node.value[i] = (i == BIN_SIZE - 1 ? 1.0f : 0.0f);
-            }
+        current_node.value = onehotDist(v);
 #else
-            current_node.value = MAX_SCORE;
+        current_node.value = v;
 #endif
-        } else {
-            //詰み
-#ifdef USE_CATEGORICAL
-            for (int32_t i = 0; i < BIN_SIZE; i++) {
-                current_node.value[i] = (i == 0 ? 1.0f : 0.0f);
-            }
-#else
-            current_node.value = MIN_SCORE;
-#endif
-        }
         current_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
         indices.push(index);

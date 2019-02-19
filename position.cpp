@@ -1186,3 +1186,7 @@ std::vector<float> Position::makeFeature() const {
 
     return features;
 }
+
+bool Position::isLastMoveDropPawn() const {
+    return (lastMove().isDrop() && kind(lastMove().subject()) == PAWN);
+}
