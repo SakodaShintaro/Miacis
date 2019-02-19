@@ -9,13 +9,12 @@ using Index = int32_t;
 
 struct UctHashEntry {
     int32_t move_count;
-    int32_t child_num;
-    std::vector<Move> legal_moves;
+    std::vector<Move> moves;
     std::vector<Index> child_indices;
-    std::vector<int32_t> child_move_counts;
+    std::vector<int32_t> N;
     std::vector<CalcType> nn_rates;
     ValueType value;
-    std::vector<ValueType> child_wins;
+    std::vector<ValueType> W;
     bool evaled;
 
     //識別用データ
@@ -27,11 +26,11 @@ struct UctHashEntry {
 
 #ifdef USE_CATEGORICAL
     UctHashEntry() :
-        move_count(0), child_num(0),
+        move_count(0),
         evaled(false), hash(0), turn_number(0), age(0) {}
 #else
     UctHashEntry() :
-        move_count(0), child_num(0), value(0.0),
+        move_count(0), value(0.0),
         evaled(false), hash(0), turn_number(0), age(0) {}
 #endif
 };
@@ -51,9 +50,9 @@ public:
     void setSize(int64_t megabytes);
 
     // 未使用のインデックスを探して返す(開番地法)
-    Index searchEmptyIndex(int64_t hash, int16_t turn_number);
+    Index searchEmptyIndex(const Position& pos);
 
-    Index findSameHashIndex(int64_t hash, int16_t turn_number);
+    Index findSameHashIndex(const Position& pos);
 
     void saveUsedHash(Position& pos, Index index);
 

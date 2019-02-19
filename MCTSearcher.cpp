@@ -17,7 +17,7 @@ Move MCTSearcher::think(Position& root) {
     auto& current_node = hash_table_[current_root_index_];
 
     //合法手が0だったら投了
-    if (current_node.child_num == 0) {
+    if (current_node.moves.empty()) {
         return NULL_MOVE;
     }
 
@@ -35,54 +35,54 @@ Move MCTSearcher::think(Position& root) {
         }
     }
 
-    const auto& child_move_counts = current_node.child_move_counts;
+    const auto& N = current_node.N;
 
     printUSIInfo();
     root.print(true);
-    for (int32_t i = 0; i < current_node.child_num; i++) {
+    for (int32_t i = 0; i < current_node.moves.size(); i++) {
         double nn = 100.0 * current_node.nn_rates[i];
-        double p  = 100.0 * child_move_counts[i] / current_node.move_count;
+        double p  = 100.0 * N[i] / current_node.move_count;
 #ifdef USE_CATEGORICAL
-        double v = (child_move_counts[i] > 0 ? expOfValueDist(current_node.child_wins[i]) / child_move_counts[i] : MIN_SCORE);
+        double v = (N[i] > 0 ? expOfValueDist(current_node.W[i]) / N[i] : MIN_SCORE);
 #else
-        double v = (child_move_counts[i] > 0 ? current_node.child_wins[i] / child_move_counts[i] : MIN_SCORE);
+        double v = (N[i] > 0 ? current_node.W[i] / N[i] : MIN_SCORE);
 #endif
         printf("%3d  %4.1f  %4.1f  %+.3f  ", i, nn, p, v);
-        current_node.legal_moves[i].print();
+        current_node.moves[i].print();
     }
 
     //探索回数最大の手を選択する
-    int32_t best_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
+    int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
 
     //選んだ手の探索回数は少なくとも1以上であることを前提とする
-    assert(child_move_counts[best_index] != 0);
+    assert(N[best_index] != 0);
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
     double best_wp = 0.0;
     for (int32_t i = 0; i < BIN_SIZE; i++) {
-        double v = current_node.child_wins[best_index][i] / child_move_counts[best_index];
+        double v = current_node.W[best_index][i] / N[best_index];
         best_wp += VALUE_WIDTH * (0.5 + i) * v;
     }
 #else
-    auto best_wp = current_node.child_wins[best_index] / child_move_counts[best_index];
+    auto best_wp = current_node.W[best_index] / N[best_index];
 #endif
 
     //best_moveの選択
     Move best_move;
     if (root.turn_number() >= usi_option.random_turn) {
         //最善手をそのまま返す
-        best_move = current_node.legal_moves[best_index];
+        best_move = current_node.moves[best_index];
     } else {
         //探索回数を正規化して分布を得る
-        std::vector<CalcType> distribution(current_node.child_num);
-        for (int32_t i = 0; i < current_node.child_num; i++) {
-            distribution[i] = (CalcType)child_move_counts[i] / current_node.move_count;
+        std::vector<CalcType> distribution(current_node.moves.size());
+        for (int32_t i = 0; i < current_node.moves.size(); i++) {
+            distribution[i] = (CalcType)N[i] / current_node.move_count;
             assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
         }
 
         //分布からランダムにサンプリング
-        best_move = current_node.legal_moves[randomChoose(distribution)];
+        best_move = current_node.moves[randomChoose(distribution)];
     }
 
     //使うかどうかは微妙だけどscoreに最善の値をセットする
@@ -94,7 +94,7 @@ Move MCTSearcher::think(Position& root) {
 ValueType MCTSearcher::uctSearch(Position & pos, Index current_index) {
     auto& current_node = hash_table_[current_index];
 
-    if (current_node.child_num == 0) {
+    if (current_node.moves.empty()) {
 #ifdef USE_CATEGORICAL
         std::array<CalcType, BIN_SIZE> lose_value_dist;
         for (int32_t i = 0; i < BIN_SIZE; i++) {
@@ -112,7 +112,7 @@ ValueType MCTSearcher::uctSearch(Position & pos, Index current_index) {
     auto next_index = selectMaxUcbChild(current_node);
 
     // 選んだ手を着手
-    pos.doMove(current_node.legal_moves[next_index]);
+    pos.doMove(current_node.moves[next_index]);
 
     ValueType result;
     Score score;
@@ -137,8 +137,8 @@ ValueType MCTSearcher::uctSearch(Position & pos, Index current_index) {
 
     // 探索結果の反映
     current_node.move_count++;
-    current_node.child_wins[next_index] += result;
-    current_node.child_move_counts[next_index]++;
+    current_node.W[next_index] += result;
+    current_node.N[next_index]++;
 
     // 手を戻す
     pos.undo();
@@ -147,7 +147,7 @@ ValueType MCTSearcher::uctSearch(Position & pos, Index current_index) {
 }
 
 Index MCTSearcher::expandNode(Position& pos) {
-    auto index = hash_table_.findSameHashIndex(pos.hash_value(), pos.turn_number());
+    auto index = hash_table_.findSameHashIndex(pos);
 
     // 合流先が検知できればそれを返す
     if (index != hash_table_.size()) {
@@ -155,34 +155,33 @@ Index MCTSearcher::expandNode(Position& pos) {
     }
 
     // 空のインデックスを探す
-    index = hash_table_.searchEmptyIndex(pos.hash_value(), pos.turn_number());
+    index = hash_table_.searchEmptyIndex(pos);
 
     auto& current_node = hash_table_[index];
 
     // 候補手の展開
-    current_node.legal_moves = pos.generateAllMoves();
-    current_node.child_num = (uint32_t)current_node.legal_moves.size();
-    current_node.child_indices = std::vector<int32_t>(current_node.child_num, UctHashTable::NOT_EXPANDED);
-    current_node.child_move_counts = std::vector<int32_t>(current_node.child_num, 0);
+    current_node.moves = pos.generateAllMoves();
+    current_node.child_indices = std::vector<int32_t>(current_node.moves.size(), UctHashTable::NOT_EXPANDED);
+    current_node.N = std::vector<int32_t>(current_node.moves.size(), 0);
 
     // 現在のノードの初期化
     current_node.move_count = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
-    current_node.child_wins = std::vector<std::array<CalcType, BIN_SIZE>>(current_node.child_num);
+    current_node.W = std::vector<std::array<CalcType, BIN_SIZE>>(current_node.moves.size());
     for (int32_t i = 0; i < BIN_SIZE; i++) {
         current_node.value[i] = 0.0;
-        for (int32_t j = 0; j < current_node.child_num; j++) {
-            current_node.child_wins[j][i] = 0.0;
+        for (int32_t j = 0; j < current_node.moves.size(); j++) {
+            current_node.W[j][i] = 0.0;
         }
     }
 #else
     current_node.value = 0.0;
-    current_node.child_wins = std::vector<float>(current_node.child_num, 0.0);
+    current_node.W = std::vector<float>(current_node.moves.size(), 0.0);
 #endif
 
     // ノードを評価
-    if (current_node.child_num > 0) {
+    if (!current_node.moves.empty()) {
         evalNode(pos, index);
     } else {
         if (pos.lastMove().isDrop() && (kind(pos.lastMove().subject()) == PAWN)) {
@@ -212,7 +211,7 @@ Index MCTSearcher::expandNode(Position& pos) {
 
 void MCTSearcher::evalNode(Position& pos, Index index) {
     auto& current_node = hash_table_[index];
-    std::vector<float> legal_move_policy(current_node.child_num);
+    std::vector<float> legal_move_policy(current_node.moves.size());
 
 #ifdef USE_LIBTORCH
     auto policy_and_value = evaluator_->policyAndValue(pos);
@@ -220,8 +219,8 @@ void MCTSearcher::evalNode(Position& pos, Index index) {
     auto policy_and_value = evaluator_.policyAndValue(pos);
 #endif
 
-    for (int32_t i = 0; i < current_node.child_num; i++) {
-        legal_move_policy[i] = policy_and_value.first[current_node.legal_moves[i].toLabel()];
+    for (int32_t i = 0; i < current_node.moves.size(); i++) {
+        legal_move_policy[i] = policy_and_value.first[current_node.moves[i].toLabel()];
     }
 
     //ノードの値を計算
@@ -258,7 +257,7 @@ bool MCTSearcher::shouldStop() {
 //
 //    // 探索回数が最も多い手と次に多い手を求める
 //    int32_t max1 = 0, max2 = 0;
-//    for (auto e : hash_table_[current_root_index_].child_move_counts) {
+//    for (auto e : hash_table_[current_root_index_].N) {
 //        if (e > max1) {
 //            max2 = max1;
 //            max1 = e;
@@ -273,10 +272,10 @@ bool MCTSearcher::shouldStop() {
 
 std::vector<Move> MCTSearcher::getPV() const {
     std::vector<Move> pv;
-    for (Index curr_node_index = current_root_index_; curr_node_index != UctHashTable::NOT_EXPANDED && hash_table_[curr_node_index].child_num != 0; ) {
-        const auto& child_move_counts = hash_table_[curr_node_index].child_move_counts;
+    for (Index curr_node_index = current_root_index_; curr_node_index != UctHashTable::NOT_EXPANDED && !hash_table_[curr_node_index].moves.empty(); ) {
+        const auto& child_move_counts = hash_table_[curr_node_index].N;
         Index next_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
-        pv.push_back(hash_table_[curr_node_index].legal_moves[next_index]);
+        pv.push_back(hash_table_[curr_node_index].moves[next_index]);
         curr_node_index = hash_table_[curr_node_index].child_indices[next_index];
     }
 
@@ -290,19 +289,19 @@ void MCTSearcher::printUSIInfo() const {
     auto finish_time = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - start_);
 
-    const auto& child_move_counts = current_node.child_move_counts;
-    auto selected_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
+    const auto& N = current_node.N;
+    auto selected_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
     double best_wp = 0.0;
     for (int32_t i = 0; i < BIN_SIZE; i++) {
-        double v = current_node.child_wins[selected_index][i] / child_move_counts[selected_index];
+        double v = current_node.W[selected_index][i] / N[selected_index];
         best_wp += VALUE_WIDTH * (0.5 + i) * v;
     }
 #else
-    auto best_wp = (child_move_counts[selected_index] == 0 ? 0.0
-                                                           : current_node.child_wins[selected_index] / child_move_counts[selected_index]);
+    auto best_wp = (N[selected_index] == 0 ? 0.0
+                                                           : current_node.W[selected_index] / N[selected_index]);
 #endif
 
     //勝率を評価値に変換
@@ -341,7 +340,7 @@ void MCTSearcher::onePlay(Position &pos) {
         actions.push(action);
 
         //遷移
-        pos.doMove(hash_table_[index].legal_moves[action]);
+        pos.doMove(hash_table_[index].moves[action]);
 
         //index更新
         index = hash_table_[index].child_indices[action];
@@ -365,8 +364,8 @@ void MCTSearcher::onePlay(Position &pos) {
         result = reverse(result);
 
         // 探索結果の反映
-        hash_table_[index].child_wins[action] += result;
+        hash_table_[index].W[action] += result;
         hash_table_[index].move_count++;
-        hash_table_[index].child_move_counts[action]++;
+        hash_table_[index].N[action]++;
     }
 }

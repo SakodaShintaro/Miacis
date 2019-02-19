@@ -31,7 +31,7 @@ bool GameGenerator::SearcherForGen::shouldStop() {
 
     // 探索回数が最も多い手と次に多い手を求める
     int32_t max1 = 0, max2 = 0;
-    for (auto e : hash_table_[current_root_index_].child_move_counts) {
+    for (auto e : hash_table_[current_root_index_].N) {
         if (e > max1) {
             max2 = max1;
             max1 = e;
@@ -55,7 +55,7 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::think(Position& root
     auto& current_node = hash_table_[current_root_index_];
 
     //合法手が0だったら投了
-    if (current_node.child_num == 0) {
+    if (current_node.moves.size() == 0) {
         return { NULL_MOVE, TeacherType() };
     }
 
@@ -66,8 +66,8 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::think(Position& root
     //ノイズを加える
     //Alpha Zeroの論文と同じディリクレノイズ
     constexpr double epsilon = 0.25;
-    auto dirichlet = dirichletDistribution(current_node.child_num, 0.15);
-    for (int32_t i = 0; i < current_node.child_num; i++) {
+    auto dirichlet = dirichletDistribution(current_node.moves.size(), 0.15);
+    for (int32_t i = 0; i < current_node.moves.size(); i++) {
         current_node.nn_rates[i] = (CalcType) ((1.0 - epsilon) * current_node.nn_rates[i] + epsilon * dirichlet[i]);
     }
 
@@ -94,21 +94,21 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::think(Position& root
         }
     }
 
-    const auto& child_move_counts = current_node.child_move_counts;
+    const auto& N = current_node.N;
 
     // 訪問回数最大の手を選択する
-    int32_t best_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
+    int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
     double best_wp = 0.0;
     for (int32_t i = 0; i < BIN_SIZE; i++) {
-        double v = current_node.child_wins[best_index][i] / child_move_counts[best_index];
+        double v = current_node.W[best_index][i] / N[best_index];
         best_wp += VALUE_WIDTH * (0.5 + i) * v;
     }
 #else
-    auto best_wp = (child_move_counts[best_index] == 0 ? 0.0
-                                                       : current_node.child_wins[best_index] / child_move_counts[best_index]);
+    auto best_wp = (N[best_index] == 0 ? 0.0
+                                                       : current_node.W[best_index] / N[best_index]);
 #endif
 
     //投了しない場合教師データを作成
@@ -122,16 +122,16 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::think(Position& root
 #endif
 
     //訪問回数に基づいた分布を得る
-    std::vector<CalcType> distribution(static_cast<unsigned long>(current_node.child_num));
-    for (int32_t i = 0; i < current_node.child_num; i++) {
-        distribution[i] = (CalcType)child_move_counts[i] / current_node.move_count;
+    std::vector<CalcType> distribution(static_cast<unsigned long>(current_node.moves.size()));
+    for (int32_t i = 0; i < current_node.moves.size(); i++) {
+        distribution[i] = (CalcType)N[i] / current_node.move_count;
         assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
     }
 
     //最善手
     Move best_move = (root.turn_number() < usi_option.random_turn ?
-                      current_node.legal_moves[randomChoose(distribution)] :
-                      current_node.legal_moves[best_index]);
+                      current_node.moves[randomChoose(distribution)] :
+                      current_node.moves[best_index]);
 
     best_move.score = (Score)(best_wp);
     teacher.policy = best_move.toLabel();
@@ -142,7 +142,7 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::think(Position& root
 ValueType GameGenerator::SearcherForGen::uctSearch(Position & pos, Index current_index) {
     auto& current_node = hash_table_[current_index];
 
-    if (current_node.child_num == 0) {
+    if (current_node.moves.size() == 0) {
 #ifdef USE_CATEGORICAL
         std::array<CalcType, BIN_SIZE> lose_value_dist;
         for (int32_t i = 0; i < BIN_SIZE; i++) {
@@ -164,7 +164,7 @@ ValueType GameGenerator::SearcherForGen::uctSearch(Position & pos, Index current
     auto next_index = selectMaxUcbChild(current_node);
 
     // 選んだ手を着手
-    pos.doMove(current_node.legal_moves[next_index]);
+    pos.doMove(current_node.moves[next_index]);
 
     ValueType result;
     Score score;
@@ -194,8 +194,8 @@ ValueType GameGenerator::SearcherForGen::uctSearch(Position & pos, Index current
 
     // 探索結果の反映
     current_node.move_count++;
-    current_node.child_wins[next_index] += result;
-    current_node.child_move_counts[next_index]++;
+    current_node.W[next_index] += result;
+    current_node.N[next_index]++;
 
     // 手を戻す
     pos.undo();
@@ -217,29 +217,29 @@ Index GameGenerator::SearcherForGen::expandNode(Position& pos) {
     auto& current_node = hash_table_[index];
 
     // 候補手の展開
-    current_node.legal_moves = pos.generateAllMoves();
-    current_node.child_num = (uint32_t)current_node.legal_moves.size();
-    current_node.child_indices = std::vector<int32_t>(current_node.child_num, UctHashTable::NOT_EXPANDED);
-    current_node.child_move_counts = std::vector<int32_t>(current_node.child_num, 0);
+    current_node.moves = pos.generateAllMoves();
+    current_node.moves.size() = (uint32_t)current_node.moves.size();
+    current_node.child_indices = std::vector<int32_t>(current_node.moves.size(), UctHashTable::NOT_EXPANDED);
+    current_node.N = std::vector<int32_t>(current_node.moves.size(), 0);
 
     // 現在のノードの初期化
     current_node.move_count = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
-    current_node.child_wins = std::vector<std::array<CalcType, BIN_SIZE>>(current_node.child_num);
+    current_node.W = std::vector<std::array<CalcType, BIN_SIZE>>(current_node.moves.size());
     for (int32_t i = 0; i < BIN_SIZE; i++) {
         current_node.value[i] = 0.0;
-        for (int32_t j = 0; j < current_node.child_num; j++) {
-            current_node.child_wins[j][i] = 0.0;
+        for (int32_t j = 0; j < current_node.moves.size(); j++) {
+            current_node.W[j][i] = 0.0;
         }
     }
 #else
     current_node.value = 0.0;
-    current_node.child_wins = std::vector<float>(static_cast<unsigned long>(current_node.child_num), 0.0);
+    current_node.W = std::vector<float>(static_cast<unsigned long>(current_node.moves.size()), 0.0);
 #endif
 
     // ノードを評価
-    if (current_node.child_num > 0) {
+    if (current_node.moves.size() > 0) {
         auto this_feature = pos.makeFeature();
         gg_.gpu_mutex.lock();
         gg_.current_features_.resize(gg_.current_features_.size() + this_feature.size());
@@ -291,7 +291,7 @@ void GameGenerator::SearcherForGen::onePlay(Position &pos) {
         actions.push(action);
 
         //遷移
-        pos.doMove(hash_table_[index].legal_moves[action]);
+        pos.doMove(hash_table_[index].moves[action]);
 
         //index更新
         index = hash_table_[index].child_indices[action];
@@ -315,16 +315,16 @@ void GameGenerator::SearcherForGen::onePlay(Position &pos) {
         result = reverse(result);
 
         // 探索結果の反映
-        hash_table_[index].child_wins[action] += result;
+        hash_table_[index].W[action] += result;
         hash_table_[index].move_count++;
-        hash_table_[index].child_move_counts[action]++;
+        hash_table_[index].N[action]++;
     }
 }
 
 #else
 
 Index GameGenerator::SearcherForGen::expandNode(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
-    auto index = hash_table_.findSameHashIndex(pos.hash_value(), static_cast<int16_t>(pos.turn_number()));
+    auto index = hash_table_.findSameHashIndex(pos);
 
     // 合流先が検知できればそれを返す
     if (index != hash_table_.size()) {
@@ -335,33 +335,32 @@ Index GameGenerator::SearcherForGen::expandNode(Position& pos, std::stack<int32_
     }
 
     // 空のインデックスを探す
-    index = hash_table_.searchEmptyIndex(pos.hash_value(), static_cast<int16_t>(pos.turn_number()));
+    index = hash_table_.searchEmptyIndex(pos);
 
     auto& current_node = hash_table_[index];
 
     // 候補手の展開
-    current_node.legal_moves = pos.generateAllMoves();
-    current_node.child_num = (uint32_t)current_node.legal_moves.size();
-    current_node.child_indices.assign(current_node.child_num, UctHashTable::NOT_EXPANDED);
-    current_node.child_move_counts.assign(current_node.child_num, 0);
+    current_node.moves = pos.generateAllMoves();
+    current_node.child_indices.assign(current_node.moves.size(), UctHashTable::NOT_EXPANDED);
+    current_node.N.assign(current_node.moves.size(), 0);
 
     // 現在のノードの初期化
     current_node.move_count = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
     //TODO:正しく初期化できているか確認すること
-    current_node.child_wins.assign(static_cast<unsigned long>(current_node.child_num), std::array<float, BIN_SIZE>{});
+    current_node.W.assign(static_cast<unsigned long>(current_node.moves.size()), std::array<float, BIN_SIZE>{});
     current_node.value = std::array<float, BIN_SIZE>{};
     for (int32_t i = 0; i < BIN_SIZE; i++) {
         //current_node.value[i] = 0.0;
         std::cout << current_node.value[i] << std::endl;
-        for (int32_t j = 0; j < current_node.child_num; j++) {
-            current_node.child_wins[j][i] = 0.0;
+        for (int32_t j = 0; j < current_node.moves.size(); j++) {
+            current_node.W[j][i] = 0.0;
         }
     }
 #else
     current_node.value = 0.0;
-    current_node.child_wins.assign(static_cast<unsigned long>(current_node.child_num), 0.0);
+    current_node.W.assign(current_node.moves.size(), 0.0);
 #endif
 
     // ノードを評価
@@ -378,7 +377,7 @@ Index GameGenerator::SearcherForGen::expandNode(Position& pos, std::stack<int32_
 //        indices.push(index);
 //        backup(indices, actions);
 //    } else
-    if (current_node.child_num > 0) {
+    if (!current_node.moves.empty()) {
         //特徴量の追加
         auto this_feature = pos.makeFeature();
         features_.insert(features_.end(), this_feature.begin(), this_feature.end());
@@ -423,8 +422,8 @@ void GameGenerator::SearcherForGen::onePlay(Position &pos) {
         //Alpha Zeroの論文と同じディリクレノイズ
         auto& current_node = hash_table_[current_root_index_];
         constexpr double epsilon = 0.25;
-        auto dirichlet = dirichletDistribution(current_node.child_num, 0.15);
-        for (int32_t i = 0; i < current_node.child_num; i++) {
+        auto dirichlet = dirichletDistribution(current_node.moves.size(), 0.15);
+        for (int32_t i = 0; i < current_node.moves.size(); i++) {
             current_node.nn_rates[i] = (CalcType) ((1.0 - epsilon) * current_node.nn_rates[i] + epsilon * dirichlet[i]);
         }
     }
@@ -434,11 +433,11 @@ void GameGenerator::SearcherForGen::onePlay(Position &pos) {
 
     auto index = current_root_index_;
     //ルートでは合法手が一つはあるはず
-    assert(hash_table_[index].child_num != 0);
+    assert(!hash_table_[index].moves.empty());
 
     //未展開の局面に至るまで遷移を繰り返す
     while(index != UctHashTable::NOT_EXPANDED) {
-        if (hash_table_[index].child_num == 0) {
+        if (hash_table_[index].moves.empty()) {
             //詰みの場合抜ける
             break;
         }
@@ -459,7 +458,7 @@ void GameGenerator::SearcherForGen::onePlay(Position &pos) {
         curr_actions.push(action);
 
         //遷移
-        pos.doMove(hash_table_[index].legal_moves[action]);
+        pos.doMove(hash_table_[index].moves[action]);
 
         //index更新
         index = hash_table_[index].child_indices[action];
@@ -503,28 +502,28 @@ bool GameGenerator::SearcherForGen::prepareForCurrPos(Position &root) {
     }
 
     //合法手が0かどうかを判定して返す
-    return hash_table_[current_root_index_].child_num > 0;
+    return !hash_table_[current_root_index_].moves.empty();
 }
 
 std::pair<Move, TeacherType> GameGenerator::SearcherForGen::resultForCurrPos(Position &root) {
     const auto& current_node = hash_table_[current_root_index_];
-    assert(current_node.child_num != 0);
+    assert(!current_node.moves.empty());
     assert(current_node.move_count != 0);
-    const auto& child_move_counts = current_node.child_move_counts;
+    const auto& N = current_node.N;
 
     // 訪問回数最大の手を選択する
-    int32_t best_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
+    int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
     double best_wp = 0.0;
     for (int32_t i = 0; i < BIN_SIZE; i++) {
-        double v = current_node.child_wins[best_index][i] / child_move_counts[best_index];
+        double v = current_node.W[best_index][i] / N[best_index];
         best_wp += VALUE_WIDTH * (0.5 + i) * v;
     }
 #else
-    auto best_wp = (child_move_counts[best_index] == 0 ? MIN_SCORE
-                                                       : current_node.child_wins[best_index] / child_move_counts[best_index]);
+    auto best_wp = (N[best_index] == 0 ? MIN_SCORE
+                                                       : current_node.W[best_index] / N[best_index]);
 #endif
 
     //投了しない場合教師データを作成
@@ -538,11 +537,11 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::resultForCurrPos(Pos
 #endif
 
     //訪問回数に基づいた分布を得る
-    std::vector<CalcType> distribution(static_cast<uint64_t>(current_node.child_num));
-    assert(current_node.move_count == std::accumulate(child_move_counts.begin(), child_move_counts.end(), 0));
-    for (int32_t i = 0; i < current_node.child_num; i++) {
-        distribution[i] = (CalcType)child_move_counts[i] / current_node.move_count;
-        assert(0 <= child_move_counts[i] && child_move_counts[i] <= current_node.move_count);
+    std::vector<CalcType> distribution(static_cast<uint64_t>(current_node.moves.size()));
+    assert(current_node.move_count == std::accumulate(N.begin(), N.end(), 0));
+    for (int32_t i = 0; i < current_node.moves.size(); i++) {
+        distribution[i] = (CalcType)N[i] / current_node.move_count;
+        assert(0 <= N[i] && N[i] <= current_node.move_count);
         if (!(0.0 <= distribution[i] && distribution[i] <= 1.0)) {
             std::cout << distribution[i] << std::endl;
             assert(false);
@@ -551,8 +550,8 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::resultForCurrPos(Pos
 
     //最善手
     Move best_move = (root.turn_number() < usi_option.random_turn ?
-                      current_node.legal_moves[randomChoose(distribution)] :
-                      current_node.legal_moves[best_index]);
+                      current_node.moves[randomChoose(distribution)] :
+                      current_node.moves[best_index]);
     best_move.score = (Score)(best_wp);
     teacher.policy = best_move.toLabel();
 
@@ -577,25 +576,25 @@ void GameGenerator::SearcherForGen::backup(std::stack<int32_t> &indices, std::st
         value = reverse(value);
 
         // 探索結果の反映
-        hash_table_[index].child_wins[action] += value;
+        hash_table_[index].W[action] += value;
         hash_table_[index].move_count++;
-        hash_table_[index].child_move_counts[action]++;
-        assert(hash_table_[index].child_num != 0);
+        hash_table_[index].N[action]++;
+        assert(!hash_table_[index].moves.empty());
     }
 }
 
 bool GameGenerator::SearcherForGen::mateSearch(Position pos, int32_t depth) {
     assert(depth % 2 == 1);
     auto& curr_node = hash_table_[current_root_index_];
-    for (int32_t i = 0; i < curr_node.child_num && !shouldStop(); i++) {
-        pos.doMove(curr_node.legal_moves[i]);
+    for (int32_t i = 0; i < curr_node.moves.size() && !shouldStop(); i++) {
+        pos.doMove(curr_node.moves[i]);
         bool result = mateSearchForEvader(pos, depth - 1);
         pos.undo();
         if (result) {
             //この手に書き込み
             //playout_limitだけ足せば必ずこの手が選ばれるようになる
             curr_node.move_count += usi_option.playout_limit;
-            curr_node.child_move_counts[i] += usi_option.playout_limit;
+            curr_node.N[i] += usi_option.playout_limit;
             return true;
         }
     }

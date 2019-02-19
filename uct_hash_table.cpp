@@ -13,13 +13,14 @@ void UctHashTable::setSize(int64_t megabytes) {
     table_.resize((unsigned long)size_);
 }
 
-Index UctHashTable::searchEmptyIndex(int64_t hash, int16_t turn_number) {
+Index UctHashTable::searchEmptyIndex(const Position& pos) {
+    auto hash = pos.hash_value();
     auto key = hashToIndex(hash);
     auto i = key;
     while (true) {
         if (table_[i].age != age_) {
             table_[i].hash = hash;
-            table_[i].turn_number = turn_number;
+            table_[i].turn_number = static_cast<int16_t>(pos.turn_number());
             table_[i].age = age_;
             if (++used_ > uct_hash_limit_) {
                 enough_size_ = false;
@@ -37,14 +38,15 @@ Index UctHashTable::searchEmptyIndex(int64_t hash, int16_t turn_number) {
     }
 }
 
-Index UctHashTable::findSameHashIndex(int64_t hash, int16_t turn_number) {
+Index UctHashTable::findSameHashIndex(const Position& pos) {
+    auto hash = pos.hash_value();
     auto key = hashToIndex(hash);
     auto i = key;
     while (true) {
         if (table_[i].age != age_) {
             return (Index)size_;
         } else if (table_[i].hash == hash
-            && table_[i].turn_number == turn_number) {
+            && table_[i].turn_number == pos.turn_number()) {
             return i;
         }
 
@@ -64,9 +66,9 @@ void UctHashTable::saveUsedHash(Position& pos, Index index) {
 
     auto& current_node = table_[index];
     auto& child_indices = current_node.child_indices;
-    for (int32_t i = 0; i < current_node.child_num; i++) {
+    for (int32_t i = 0; i < current_node.moves.size(); i++) {
         if (child_indices[i] != NOT_EXPANDED && table_[child_indices[i]].age != age_) {
-            pos.doMove(current_node.legal_moves[i]);
+            pos.doMove(current_node.moves[i]);
             saveUsedHash(pos, child_indices[i]);
             pos.undo();
         }
@@ -74,7 +76,7 @@ void UctHashTable::saveUsedHash(Position& pos, Index index) {
 }
 
 void UctHashTable::deleteOldHash(Position& root, bool leave_root) {
-    auto root_index = findSameHashIndex(root.hash_value(), (int16_t)root.turn_number());
+    auto root_index = findSameHashIndex(root);
 
     used_ = 0;
     age_++;

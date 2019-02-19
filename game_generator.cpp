@@ -115,9 +115,9 @@ void GameGenerator::gpuFunc() {
             auto& current_node = searchers_[eval_thread_ids[i]].hash_table_[eval_hash_index_queue[i]];
 
             //policyを設定
-            std::vector<float> legal_moves_policy(static_cast<unsigned long>(current_node.child_num));
-            for (int32_t j = 0; j < current_node.child_num; j++) {
-                legal_moves_policy[j] = policies[i][current_node.legal_moves[j].toLabel()];
+            std::vector<float> legal_moves_policy(static_cast<unsigned long>(current_node.moves.size()));
+            for (int32_t j = 0; j < current_node.moves.size(); j++) {
+                legal_moves_policy[j] = policies[i][current_node.moves[j].toLabel()];
             }
             current_node.nn_rates = softmax(legal_moves_policy);
 
@@ -165,7 +165,7 @@ void GameGenerator::genSlave(int64_t id) {
 
     //並列化する総数をスレッド数で割ったものがこのスレッドで管理するべき数
     assert(parallel_num_ % THREAD_NUM == 0);
-    const int64_t parallel_num = parallel_num_ / THREAD_NUM;
+    const uint64_t parallel_num = static_cast<const uint64_t>(parallel_num_ / THREAD_NUM);
 
     //このスレッドが管理するデータら
     std::vector<Game> games(parallel_num);
@@ -201,9 +201,9 @@ void GameGenerator::genSlave(int64_t id) {
             auto& current_node = searchers[ids[i]].hash_table_[hash_indices[i].top()];
 
             //policyを設定
-            std::vector<float> legal_moves_policy(static_cast<unsigned long>(current_node.child_num));
-            for (int32_t j = 0; j < current_node.child_num; j++) {
-                legal_moves_policy[j] = policies[i][current_node.legal_moves[j].toLabel()];
+            std::vector<float> legal_moves_policy(current_node.moves.size());
+            for (int32_t j = 0; j < current_node.moves.size(); j++) {
+                legal_moves_policy[j] = policies[i][current_node.moves[j].toLabel()];
                 assert(!std::isnan(legal_moves_policy[j]));
             }
             current_node.nn_rates = softmax(legal_moves_policy);
