@@ -40,8 +40,8 @@ Move MCTSearcher::think(Position& root) {
     printUSIInfo();
     root.print(true);
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        double nn = 100.0 * current_node.nn_rates[i];
-        double p  = 100.0 * N[i] / current_node.move_count;
+        double nn = 100.0 * current_node.nn_policy[i];
+        double p  = 100.0 * N[i] / current_node.sum_N;
 #ifdef USE_CATEGORICAL
         double v = (N[i] > 0 ? expOfValueDist(current_node.W[i]) / N[i] : MIN_SCORE);
 #else
@@ -77,7 +77,7 @@ Move MCTSearcher::think(Position& root) {
         //探索回数を正規化して分布を得る
         std::vector<CalcType> distribution(current_node.moves.size());
         for (int32_t i = 0; i < current_node.moves.size(); i++) {
-            distribution[i] = (CalcType)N[i] / current_node.move_count;
+            distribution[i] = (CalcType)N[i] / current_node.sum_N;
             assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
         }
 
@@ -136,7 +136,7 @@ ValueType MCTSearcher::uctSearch(Position & pos, Index current_index) {
     result = reverse(result);
 
     // 探索結果の反映
-    current_node.move_count++;
+    current_node.sum_N++;
     current_node.W[next_index] += result;
     current_node.N[next_index]++;
 
@@ -165,7 +165,7 @@ Index MCTSearcher::expandNode(Position& pos) {
     current_node.N = std::vector<int32_t>(current_node.moves.size(), 0);
 
     // 現在のノードの初期化
-    current_node.move_count = 0;
+    current_node.sum_N = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
     current_node.W = std::vector<std::array<CalcType, BIN_SIZE>>(current_node.moves.size());
@@ -227,7 +227,7 @@ void MCTSearcher::evalNode(Position& pos, Index index) {
     current_node.value = policy_and_value.second;
 
     //softmax分布にする
-    current_node.nn_rates = softmax(legal_move_policy);
+    current_node.nn_policy = softmax(legal_move_policy);
 
     Score repeat_score;
     if (pos.isRepeating(repeat_score)) {
@@ -309,9 +309,9 @@ void MCTSearcher::printUSIInfo() const {
     int32_t cp = (int32_t)(best_wp * 1000);
 
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
-           (int)(current_node.move_count * 1000 / std::max((long long)elapsed.count(), 1LL)),
+           (int)(current_node.sum_N * 1000 / std::max((long long)elapsed.count(), 1LL)),
            (int)(elapsed.count()),
-           current_node.move_count,
+           current_node.sum_N,
            (int)(hash_table_.getUsageRate() * 1000),
            cp);
 
@@ -365,7 +365,7 @@ void MCTSearcher::onePlay(Position &pos) {
 
         // 探索結果の反映
         hash_table_[index].W[action] += result;
-        hash_table_[index].move_count++;
+        hash_table_[index].sum_N++;
         hash_table_[index].N[action]++;
     }
 }

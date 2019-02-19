@@ -70,9 +70,9 @@ void ParallelMCTSearcher::printUSIInfo() const {
     int32_t cp = (int32_t)(best_wp * 1000);
 
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
-           (int)(current_node.move_count * 1000 / std::max((long long)elapsed.count(), 1LL)),
+           (int)(current_node.sum_N * 1000 / std::max((long long)elapsed.count(), 1LL)),
            (int)(elapsed.count()),
-           current_node.move_count,
+           current_node.sum_N,
            (int)(hash_table_.getUsageRate() * 1000),
            cp);
 
@@ -135,8 +135,8 @@ Move ParallelMCTSearcher::think(Position& root) {
     printUSIInfo();
     root.print(false);
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        double nn = 100.0 * current_node.nn_rates[i];
-        double p  = 100.0 * N[i] / current_node.move_count;
+        double nn = 100.0 * current_node.nn_policy[i];
+        double p  = 100.0 * N[i] / current_node.sum_N;
 #ifdef USE_CATEGORICAL
         double v = (N[i] > 0 ? expOfValueDist(current_node.W[i]) / N[i] : MIN_SCORE);
 #else
@@ -166,7 +166,7 @@ Move ParallelMCTSearcher::think(Position& root) {
     //訪問回数に基づいた分布を得る
     std::vector<CalcType> distribution(static_cast<unsigned long>(current_node.moves.size()));
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        distribution[i] = (CalcType)N[i] / current_node.move_count;
+        distribution[i] = (CalcType)N[i] / current_node.sum_N;
         assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
     }
 
@@ -206,7 +206,7 @@ ValueType ParallelMCTSearcher::uctSearch(Position & pos, Index current_index) {
     // UCB値が最大の手を求める
     auto next_index = selectMaxUcbChild(current_node);
 
-    current_node.move_count += VIRTUAL_LOSS;
+    current_node.sum_N += VIRTUAL_LOSS;
     current_node.N[next_index] += VIRTUAL_LOSS;
 
     // 選んだ手を着手
@@ -249,7 +249,7 @@ ValueType ParallelMCTSearcher::uctSearch(Position & pos, Index current_index) {
 
     // 探索結果の反映
     lock_node_[current_index].lock();
-    current_node.move_count += 1 - VIRTUAL_LOSS;
+    current_node.sum_N += 1 - VIRTUAL_LOSS;
     current_node.W[next_index] += result;
     current_node.N[next_index] += 1 - VIRTUAL_LOSS;
     lock_node_[current_index].unlock();
@@ -299,7 +299,7 @@ Index ParallelMCTSearcher::expandNode(Position& pos) {
     current_node.N = std::vector<int32_t>(current_node.moves.size(), 0);
 
     // 現在のノードの初期化
-    current_node.move_count = 0;
+    current_node.sum_N = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
     current_node.W = std::vector<std::array<CalcType, BIN_SIZE>>(current_node.moves.size());
@@ -395,7 +395,7 @@ void ParallelMCTSearcher::evalNode() {
             for (int32_t j = 0; j < current_node.moves.size(); j++) {
                 legal_moves_policy[j] = policies[i][current_node.moves[j].toLabel()];
             }
-            current_node.nn_rates = softmax(legal_moves_policy);
+            current_node.nn_policy = softmax(legal_moves_policy);
 
             //valueを設定
             current_node.value = values[i];
@@ -447,7 +447,7 @@ void ParallelMCTSearcher::onePlay(Position &pos) {
 
         // 探索結果の反映
         hash_table_[index].W[action] += result;
-        hash_table_[index].move_count++;
+        hash_table_[index].sum_N++;
         hash_table_[index].N[action]++;
     }
 }
@@ -506,11 +506,11 @@ Move ParallelMCTSearcher::think(Position& root) {
 #endif
 
     //ルートノードへ書き込み
-    current_node.nn_rates.resize(current_node.moves.size());
+    current_node.nn_policy.resize(current_node.moves.size());
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        current_node.nn_rates[i] = y.first[0][current_node.moves[i].toLabel()];
+        current_node.nn_policy[i] = y.first[0][current_node.moves[i].toLabel()];
     }
-    current_node.nn_rates = softmax(current_node.nn_rates);
+    current_node.nn_policy = softmax(current_node.nn_policy);
     //valueは使わないはずだけど気分で
     current_node.value = y.second[0];
 
@@ -543,8 +543,8 @@ Move ParallelMCTSearcher::think(Position& root) {
     printUSIInfo();
     root.print(true);
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        double nn = 100.0 * current_node.nn_rates[i];
-        double p  = 100.0 * N[i] / current_node.move_count;
+        double nn = 100.0 * current_node.nn_policy[i];
+        double p  = 100.0 * N[i] / current_node.sum_N;
 #ifdef USE_CATEGORICAL
         double v = (N[i] > 0 ? expOfValueDist(current_node.W[i]) / N[i] : MIN_SCORE);
 #else
@@ -574,7 +574,7 @@ Move ParallelMCTSearcher::think(Position& root) {
     //訪問回数に基づいた分布を得る
     std::vector<CalcType> distribution(current_node.moves.size());
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        distribution[i] = (CalcType)N[i] / current_node.move_count;
+        distribution[i] = (CalcType)N[i] / current_node.sum_N;
         assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
     }
 
@@ -622,11 +622,11 @@ void ParallelMCTSearcher::parallelUctSearch(Position root, int32_t id) {
             for (int32_t i = 0; i < index_queues_[id].size(); i++) {
                 std::unique_lock<std::mutex> lock(lock_node_[index_queues_[id][i]]);
                 auto& curr_node = hash_table_[index_queues_[id][i]];
-                curr_node.nn_rates.resize(static_cast<uint64_t>(curr_node.moves.size()));
+                curr_node.nn_policy.resize(static_cast<uint64_t>(curr_node.moves.size()));
                 for (int32_t j = 0; j < curr_node.moves.size(); j++) {
-                    curr_node.nn_rates[j] = y.first[i][curr_node.moves[j].toLabel()];
+                    curr_node.nn_policy[j] = y.first[i][curr_node.moves[j].toLabel()];
                 }
-                curr_node.nn_rates = softmax(curr_node.nn_rates);
+                curr_node.nn_policy = softmax(curr_node.nn_policy);
                 curr_node.value = y.second[i];
                 curr_node.evaled = true;
             }
@@ -663,7 +663,7 @@ void ParallelMCTSearcher::onePlay(Position &pos, int32_t id) {
             break;
         }
 
-        if (hash_table_[index].nn_rates.size() != hash_table_[index].moves.size()) {
+        if (hash_table_[index].nn_policy.size() != hash_table_[index].moves.size()) {
             //policyが展開されていなかったら抜ける
             break;
         }
@@ -678,7 +678,7 @@ void ParallelMCTSearcher::onePlay(Position &pos, int32_t id) {
         curr_actions.push(action);
 
         //VIRTUAL_LOSSの追加
-        hash_table_[index].move_count += VIRTUAL_LOSS;
+        hash_table_[index].sum_N += VIRTUAL_LOSS;
         hash_table_[index].N[action] += VIRTUAL_LOSS;
 
         //遷移
@@ -752,7 +752,7 @@ Index ParallelMCTSearcher::expandNode(Position& pos, std::stack<int32_t>& indice
     current_node.N.assign(current_node.moves.size(), 0);
 
     // 現在のノードの初期化
-    current_node.move_count = 0;
+    current_node.sum_N = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
     //TODO:正しく初期化できているか確認すること
@@ -840,7 +840,7 @@ void ParallelMCTSearcher::backup(std::stack<int32_t>& indices, std::stack<int32_
         // 探索結果の反映
         lock_node_[index].lock();
         hash_table_[index].W[action] += value;
-        hash_table_[index].move_count += add_num;
+        hash_table_[index].sum_N += add_num;
         hash_table_[index].N[action] += add_num;
         assert(!hash_table_[index].moves.empty());
         lock_node_[index].unlock();
@@ -857,7 +857,7 @@ void ParallelMCTSearcher::mateSearch(Position pos) {
             if (result) {
                 //この手に書き込み
                 //playout_limitだけ足せば必ずこの手が選ばれるようになる
-                curr_node.move_count += usi_option.playout_limit;
+                curr_node.sum_N += usi_option.playout_limit;
                 curr_node.N[i] += usi_option.playout_limit;
                 return;
             }

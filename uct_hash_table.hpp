@@ -8,13 +8,13 @@
 using Index = int32_t;
 
 struct UctHashEntry {
-    int32_t move_count;
+    int32_t sum_N;
     std::vector<Move> moves;
     std::vector<Index> child_indices;
     std::vector<int32_t> N;
-    std::vector<CalcType> nn_rates;
-    ValueType value;
     std::vector<ValueType> W;
+    std::vector<CalcType> nn_policy;
+    ValueType value;
     bool evaled;
 
     //識別用データ
@@ -26,11 +26,11 @@ struct UctHashEntry {
 
 #ifdef USE_CATEGORICAL
     UctHashEntry() :
-        move_count(0),
+        sum_N(0),
         evaled(false), hash(0), turn_number(0), age(0) {}
 #else
     UctHashEntry() :
-        move_count(0), value(0.0),
+        sum_N(0), value(0.0),
         evaled(false), hash(0), turn_number(0), age(0) {}
 #endif
 };

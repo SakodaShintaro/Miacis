@@ -119,7 +119,7 @@ void GameGenerator::gpuFunc() {
             for (int32_t j = 0; j < current_node.moves.size(); j++) {
                 legal_moves_policy[j] = policies[i][current_node.moves[j].toLabel()];
             }
-            current_node.nn_rates = softmax(legal_moves_policy);
+            current_node.nn_policy = softmax(legal_moves_policy);
 
             //valueを設定
             current_node.value = values[i];
@@ -206,7 +206,7 @@ void GameGenerator::genSlave(int64_t id) {
                 legal_moves_policy[j] = policies[i][current_node.moves[j].toLabel()];
                 assert(!std::isnan(legal_moves_policy[j]));
             }
-            current_node.nn_rates = softmax(legal_moves_policy);
+            current_node.nn_policy = softmax(legal_moves_policy);
 
             //valueを設定
             current_node.value = values[i];

@@ -43,8 +43,8 @@ inline int32_t selectMaxUcbChild(const UctHashEntry& current_node) {
 #else
         double Q = (N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.W[i] / N[i]);
 #endif
-        double U = std::sqrt(current_node.move_count + 1) / (N[i] + 1);
-        double ucb = Q + C_PUCT * current_node.nn_rates[i] * U;
+        double U = std::sqrt(current_node.sum_N + 1) / (N[i] + 1);
+        double ucb = Q + C_PUCT * current_node.nn_policy[i] * U;
 
         if (ucb > max_value) {
             max_value = ucb;
