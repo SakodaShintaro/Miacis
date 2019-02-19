@@ -494,7 +494,13 @@ bool GameGenerator::SearcherForGen::prepareForCurrPos(Position &root) {
     //探索回数を初期化
     playout_num_ = 0;
 
-    mate_thread_ = std::thread(&GameGenerator::SearcherForGen::mateSearch, this, root, 3);
+    //3手詰みを探索
+    if (root.turn_number() >= 50) {
+        //1手詰みを先に行ってなければ3手詰みを探索
+        if (!mateSearch(root, 1)) {
+            mateSearch(root, 3);
+        }
+    }
 
     //合法手が0かどうかを判定して返す
     return hash_table_[current_root_index_].child_num > 0;
@@ -505,8 +511,6 @@ std::pair<Move, TeacherType> GameGenerator::SearcherForGen::resultForCurrPos(Pos
     assert(current_node.child_num != 0);
     assert(current_node.move_count != 0);
     const auto& child_move_counts = current_node.child_move_counts;
-
-    mate_thread_.join();
 
     // 訪問回数最大の手を選択する
     int32_t best_index = (int32_t)(std::max_element(child_move_counts.begin(), child_move_counts.end()) - child_move_counts.begin());
@@ -580,7 +584,7 @@ void GameGenerator::SearcherForGen::backup(std::stack<int32_t> &indices, std::st
     }
 }
 
-void GameGenerator::SearcherForGen::mateSearch(Position pos, int32_t depth) {
+bool GameGenerator::SearcherForGen::mateSearch(Position pos, int32_t depth) {
     assert(depth % 2 == 1);
     auto& curr_node = hash_table_[current_root_index_];
     for (int32_t i = 0; i < curr_node.child_num && !shouldStop(); i++) {
@@ -592,8 +596,10 @@ void GameGenerator::SearcherForGen::mateSearch(Position pos, int32_t depth) {
             //playout_limitだけ足せば必ずこの手が選ばれるようになる
             curr_node.move_count += usi_option.playout_limit;
             curr_node.child_move_counts[i] += usi_option.playout_limit;
+            return true;
         }
     }
+    return false;
 }
 
 bool GameGenerator::SearcherForGen::mateSearchForAttacker(Position& pos, int32_t depth) {
