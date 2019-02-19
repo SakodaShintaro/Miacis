@@ -47,24 +47,24 @@ public:
         return table_[i];
     }
 
-    void setSize(int64_t megabytes);
-
-    // 未使用のインデックスを探して返す(開番地法)
+    //未使用のインデックスを探して返す関数(開番地法)
     Index searchEmptyIndex(const Position& pos);
 
+    //この局面に対応するインデックスがあるか調べて返す関数
     Index findSameHashIndex(const Position& pos);
 
+    //posの局面をindexへ保存する関数
     void saveUsedHash(Position& pos, Index index);
 
-    // 現在の局面をルートとする局面以外を削除する
+    //現在の局面,及びそこから到達できる局面以外を削除する関数
     void deleteOldHash(Position& root, bool leave_root);
 
     double getUsageRate() const {
-        return (double)used_ / size_;
+        return (double)used_num_ / table_.size();
     }
 
     bool hasEnoughSize() {
-        return enough_size_;
+        return used_num_ > table_.size() * 9 / 10;
     }
 
     int64_t size() {
@@ -76,13 +76,10 @@ public:
 
 private:
     Index hashToIndex(int64_t hash) {
-        return (Index)(((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (size_ - 1));
+        return (Index)(((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (table_.size() - 1));
     }
 
-    int64_t uct_hash_limit_;
-    int64_t size_;
-    int64_t used_;
-    bool enough_size_;
+    int64_t used_num_;
     uint16_t age_;
     std::vector<UctHashEntry> table_;
 };

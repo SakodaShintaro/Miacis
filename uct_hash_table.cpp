@@ -1,16 +1,10 @@
 ﻿#include"uct_hash_table.hpp"
 
 UctHashTable::UctHashTable(int64_t hash_size) : age_(1) {
-    setSize(hash_size);
-}
-
-void UctHashTable::setSize(int64_t megabytes) {
-    int64_t bytes = megabytes * 1024 * 1024;
-    size_ = 1ll << MSB64(bytes / sizeof(UctHashEntry));
-    uct_hash_limit_ = size_ * 9 / 10;
-    used_ = 0;
-    enough_size_ = true;
-    table_.resize((unsigned long)size_);
+    int64_t bytes = hash_size * 1024 * 1024;
+    uint64_t size = 1ull << MSB64(bytes / sizeof(UctHashEntry));
+    used_num_ = 0;
+    table_.resize(size);
 }
 
 Index UctHashTable::searchEmptyIndex(const Position& pos) {
@@ -22,18 +16,16 @@ Index UctHashTable::searchEmptyIndex(const Position& pos) {
             table_[i].hash = hash;
             table_[i].turn_number = static_cast<int16_t>(pos.turn_number());
             table_[i].age = age_;
-            if (++used_ > uct_hash_limit_) {
-                enough_size_ = false;
-            }
+            used_num_++;
             return i;
         }
 
         i++;
-        if (i >= size_) {
+        if (i >= table_.size()) {
             i = 0;
         }
         if (i == key) {
-            return (Index)size_;
+            return (Index)table_.size();
         }
     }
 }
@@ -44,25 +36,25 @@ Index UctHashTable::findSameHashIndex(const Position& pos) {
     auto i = key;
     while (true) {
         if (table_[i].age != age_) {
-            return (Index)size_;
+            return (Index)table_.size();
         } else if (table_[i].hash == hash
             && table_[i].turn_number == pos.turn_number()) {
             return i;
         }
 
         i++;
-        if (i >= size_) {
+        if (i >= table_.size()) {
             i = 0;
         }
         if (i == key) {
-            return (Index)size_;
+            return (Index)table_.size();
         }
     }
 }
 
 void UctHashTable::saveUsedHash(Position& pos, Index index) {
     table_[index].age = age_;
-    used_++;
+    used_num_++;
 
     auto& current_node = table_[index];
     auto& child_indices = current_node.child_indices;
@@ -78,15 +70,13 @@ void UctHashTable::saveUsedHash(Position& pos, Index index) {
 void UctHashTable::deleteOldHash(Position& root, bool leave_root) {
     auto root_index = findSameHashIndex(root);
 
-    used_ = 0;
+    used_num_ = 0;
     age_++;
     //for (int i = 0; i < size_; i++) {
     //    table_[i].flag = false;
     //}
 
-    if (leave_root && root_index != size_) { //見つかったということ
+    if (leave_root && root_index != table_.size()) { //見つかったということ
         saveUsedHash(root, root_index);
     }
-
-    enough_size_ = true;
 }
