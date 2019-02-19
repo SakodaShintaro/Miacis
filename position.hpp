@@ -23,8 +23,6 @@ public:
 
     //内部の状態等を表示する関数
     void print(bool with_score = true) const;
-    void printHistory() const;
-    void printForDebug() const;
 
     //一手進める・戻す関数
     void doMove(Move move);

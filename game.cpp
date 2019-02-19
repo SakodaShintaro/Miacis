@@ -54,9 +54,7 @@ Game loadGameFromCSA(sys::path p) {
         move = pos.transformValidMove(move);
 
         if (!pos.isLegalMove(move)) {
-            pos.printForDebug();
             move.print();
-            pos.isLegalMove(move);
             std::cout << p << std::endl;
             assert(false);
         }

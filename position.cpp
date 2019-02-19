@@ -164,28 +164,7 @@ void Position::print(bool with_score) const {
     printf("ハッシュ値:%llx\n", (unsigned long long)hash_value_);
 }
 
-void Position::printHistory() const {
-    printf("print history\n");
-    for (Move move : kifu_) move.print();
-    printf("\n");
-}
-
-void Position::printForDebug() const {
-    print(false);
-}
-
 void Position::doMove(const Move move) {
-#if DEBUG
-    if (!isLegalMove(move)) {
-        printForDebug();
-        std::cout << "違法だった手:";
-        move.print();
-        isLegalMove(move);
-        undo();
-        assert(false);
-    }
-#endif
-
     //動かす前の状態を残しておく
     stack_.emplace_back(*this);
 
@@ -437,168 +416,89 @@ void Position::undoNullMove() {
 bool Position::isLegalMove(const Move move) const {
     //違法の場合だけ早くfalseで返す.合法手は一番最後の行でtrueが返る
 
-    //NULL_MOVEだけは先に判定するか……
+    //NULL_MOVE
     if (move == NULL_MOVE) {
         return false;
     }
 
     //打つ手と動かす手両方に共通するもの
-    //移動先のチェック
+    //移動先が盤面内かチェック
     if (!isOnBoard(move.to())) {
-#if DEBUG
-        std::cout << "移動先が盤上ではありません" << std::endl;
-#endif
-        return false;
-    }
-    if (color_ == BLACK && pieceToColor(board_[move.to()]) == BLACK) {
-#if DEBUG
-        std::cout << "先手の移動先に先手の駒があります" << std::endl;
-#endif
-        return false;
-    }
-    if (color_ == WHITE && pieceToColor(board_[move.to()]) == WHITE) {
-#if DEBUG
-        std::cout << "後手の移動先に後手の駒があります" << std::endl;
-#endif
         return false;
     }
 
-    if (!move.isDrop() && move.subject() != board_[move.from()]) {
-#if DEBUG
-        std::cout << "動かす駒が違います" << std::endl;
-#endif
+    //移動先に味方の駒がないかチェック
+    if (pieceToColor(board_[move.to()]) == color_) {
         return false;
     }
 
+    //動かす駒がEMPTYでないかチェック
     if (move.subject() == EMPTY) {
-#if DEBUG
-        std::cout << "無を動かしています" << std::endl;
-#endif
         return false;
     }
 
     //手番と動かす駒の対応チェック
-    if (color_ == BLACK && (pieceToColor(move.subject()) == WHITE)) {
-#if DEBUG
-        std::cout << "先手の指し手で後手の駒を動かしています" << std::endl;
-#endif
-        return false;
-    }
-    if (color_ == WHITE && (pieceToColor(move.subject()) == BLACK)) {
-#if DEBUG
-        std::cout << "後手の指し手で先手の駒を動かしています" << std::endl;
-#endif
+    if (pieceToColor(move.subject()) != color_) {
         return false;
     }
 
-    //取る駒の対応
+    //取る駒の対応をチェック
     if (move.capture() != board_[move.to()]) {
-#if DEBUG
-        std::cout << "captureとboard_[move.to()]が食い違っています" << std::endl;
-#endif
+        return false;
+    }
+
+    //取った駒が玉でないかチェック
+    if (move.capture() == KING) {
         return false;
     }
 
     //成りのチェック
-    if (move.isPromote() && color_ == BLACK) {
-        if (SquareToRank[move.to()] > Rank3 && SquareToRank[move.from()] > Rank3) {
-#if DEBUG
-            std::cout << "自陣で成っています" << std::endl;
-#endif
-            return false;
-        }
+    if (move.isPromote() && color_ == BLACK && SquareToRank[move.to()] > Rank3 && SquareToRank[move.from()] > Rank3) {
+        return false;
     }
-    if (move.isPromote() && color_ == WHITE) {
-        if (SquareToRank[move.to()] < Rank7 && SquareToRank[move.from()] < Rank7) {
-#if DEBUG
-            std::cout << "自陣で成っています" << std::endl;
-#endif
-            return false;
-        }
+    if (move.isPromote() && color_ == WHITE && SquareToRank[move.to()] < Rank7 && SquareToRank[move.from()] < Rank7) {
+        return false;
     }
+
     if (move.isDrop()) { //駒を打つ手特有の判定
-        //打つ先が空になってるか
+        //打つ先が空であるかチェック
         if (board_[move.to()] != EMPTY) {
-#if DEBUG
-            std::cout << "打つ先に駒があります" << std::endl;
-#endif
-            return false;
-        }
-        //打つ駒はあるか
-        if (hand_[color_].num(kind(move.subject())) <= 0) {
-#if DEBUG
-            std::cout << "打つ駒がありません" << std::endl;
-#endif
             return false;
         }
 
-        //二歩になっていないか
-        if (move.subject() == BLACK_PAWN && !canDropPawn(move.to())) {
-#if DEBUG
-            std::cout << "二歩または打ち歩詰めです" << std::endl;
-#endif
+        //打つ駒が1枚以上持ち駒にあるかチェック
+        if (hand_[color_].num(kind(move.subject())) <= 0) {
             return false;
         }
-        if (move.subject() == WHITE_PAWN && !canDropPawn(move.to())) {
-#if DEBUG
-            std::cout << "二歩または打ち歩詰めです" << std::endl;
-#endif
+
+        //二歩のチェック
+        if (kind(move.subject()) == PAWN && !canDropPawn(move.to())) {
             return false;
         }
+
         //歩を最奥段に打っていないか
         if (move.subject() == BLACK_PAWN && SquareToRank[move.to()] == Rank1) {
-#if DEBUG
-            std::cout << "一段目に歩を打っています" << std::endl;
-#endif
             return false;
         }
         if (move.subject() == WHITE_PAWN && SquareToRank[move.to()] == Rank9) {
-#if DEBUG
-            std::cout << "九段目に歩を打っています" << std::endl;
-#endif
             return false;
         }
         //香を最奥段に打っていないか
         if (move.subject() == BLACK_LANCE && SquareToRank[move.to()] == Rank1) {
-#if DEBUG
-            std::cout << "一段目に香を打っています" << std::endl;
-#endif
             return false;
         }
         if (move.subject() == WHITE_LANCE && SquareToRank[move.to()] == Rank9) {
-#if DEBUG
-            std::cout << "九段目に香を打っています" << std::endl;
-#endif
             return false;
         }
-        //桂を最奥段に打っていないか
-        if (move.subject() == BLACK_KNIGHT && SquareToRank[move.to()] == Rank1) {
-#if DEBUG
-            std::cout << "一段目に桂を打っています" << std::endl;
-#endif
+        //桂を最奥段,二段目に打っていないか
+        if (move.subject() == BLACK_KNIGHT && (SquareToRank[move.to()] == Rank1 || SquareToRank[move.to()] == Rank2)) {
             return false;
         }
-        if (move.subject() == WHITE_KNIGHT && SquareToRank[move.to()] == Rank9) {
-#if DEBUG
-            std::cout << "九段目に桂を打っています" << std::endl;
-#endif
-            return false;
-        }
-        //桂を奥から二段目に打っていないか
-        if (move.subject() == BLACK_KNIGHT && SquareToRank[move.to()] == Rank2) {
-#if DEBUG
-            std::cout << "二段目に香を打っています" << std::endl;
-#endif
-            return false;
-        }
-        if (move.subject() == WHITE_KNIGHT && SquareToRank[move.to()] == Rank8) {
-#if DEBUG
-            std::cout << "八段目に香を打っています" << std::endl;
-#endif
+        if (move.subject() == WHITE_KNIGHT && (SquareToRank[move.to()] == Rank9 || SquareToRank[move.to()] == Rank8)) {
             return false;
         }
     } else { //盤上の駒を動かす手の判定
-        //各駒に合わせた動きになっているか
+        //各駒に合わせた動きになっているかチェック
 //        bool flag = false;
 //        for (auto delta : CanMove[board_[move.from()]]) {
 //            if (move.to() == move.from() + delta) {
@@ -606,52 +506,38 @@ bool Position::isLegalMove(const Move move) const {
 //            }
 //        }
 //        if (!flag) {
-//#ifdef DEBUG
-//            std::cout << "違法な動きです" << std::endl;
-//#endif
 //            return false;
 //        }
 
+        //動かす駒がfromにある駒と一致しているかチェック
+        if (move.subject() != board_[move.from()]) {
+            return false;
+        }
+
+        //駒を飛び越えていないかチェック
         if (BETWEEN_BB[move.from()][move.to()] & occupied_all_) {
-#if DEBUG
-            std::cout << "駒を飛び越えています" << std::endl;
-#endif
             return false;
         }
     }
 
-    //自殺手
+    //自殺手でないかチェック
     if (kind(move.subject()) == KING && isThereControl(~color_, move.to())) {
-#if DEBUG
-        std::cout << "自殺手" << std::endl;
-#endif
         return false;
     }
 
+    //ピンのチェック
     bool flag = true;
     pinners_.forEach([&](const Square pinner_sq) {
-        if (BETWEEN_BB[pinner_sq][king_sq_[color_]] & SQUARE_BB[move.from()]) { //fromがbetween,すなわちピンされている
-            if ((BETWEEN_BB[pinner_sq][king_sq_[color_]] | SQUARE_BB[pinner_sq]) & SQUARE_BB[move.to()]) {
-                //toがbetween内及びpinner_sqだったらOK
-            } else {
-                flag = false;
-            }
+        if ((BETWEEN_BB[pinner_sq][king_sq_[color_]] & SQUARE_BB[move.from()]) //fromがbetween,すなわちピンされている
+            && !((BETWEEN_BB[pinner_sq][king_sq_[color_]] | SQUARE_BB[pinner_sq]) & SQUARE_BB[move.to()]) //toがbetween内及びpinner_sq以外
+            ) {
+            flag = false;
         }
     });
     if (!flag) {
-#if DEBUG
-        std::cout << "ピンされた駒が違法な動き" << std::endl;
-#endif
         return false;
     }
 
-    //玉を取る手がなぜか発生する場合
-    if (kind(board_[move.to()]) == KING) {
-#if DEBUG
-        std::cout << "玉を取る手" << std::endl;
-#endif
-        return false;
-    }
     return true;
 }
 
@@ -661,7 +547,7 @@ bool Position::canDropPawn(const Square to) const {
         return false;
     }
 
-    //打ち歩詰めは探索時点で弾く
+    //打ち歩詰めは探索時点で弾くのでチェック不要
     return true;
 }
 
@@ -719,10 +605,9 @@ void Position::loadSFEN(std::string sfen) {
     }
 
     //手番の設定
-    if (sfen[++i] == 'b') color_ = BLACK;
-    else color_ = WHITE;
+    color_ = (sfen[++i] == 'b' ? BLACK : WHITE);
 
-    //美しくない操作だ……
+    //空白を飛ばす
     i += 2;
 
     //持ち駒
@@ -1068,25 +953,20 @@ void Position::generateRecaptureMovesTo(const Square to, Move *& move_ptr) const
 }
 
 inline bool Position::canPromote(Move move) const {
-    //打つ手だったらダメ
-    if (move.isDrop()) return false;
-
-    //すでに成っている駒を動かす手だったらダメ
-    if (board_[move.from()] & PROMOTE) return false;
-
-    //動かす駒が金だったらダメ
-    if (kind(board_[move.from()]) == GOLD) return false;
-
-    //動かす駒が玉だったらダメ
-    if (kind(board_[move.from()]) == KING) return false;
+    if (move.isDrop()                        //打つ手だったらダメ
+        || board_[move.from()] & PROMOTE     //すでに成っている駒を動かす手だったらダメ
+        || kind(board_[move.from()]) == GOLD //動かす駒が金だったらダメ
+        || kind(board_[move.from()]) == KING //動かす駒が玉だったらダメ
+        ) {
+        return false;
+    }
 
     //位置関係
     if (color_ == BLACK) {
         return ((Rank1 <= SquareToRank[move.to()] && SquareToRank[move.to()] <= Rank3) || (Rank1 <= SquareToRank[move.from()] && SquareToRank[move.from()] <= Rank3));
-    } else if (color_ == WHITE) {
+    } else {
         return ((Rank7 <= SquareToRank[move.to()] && SquareToRank[move.to()] <= Rank9) || (Rank7 <= SquareToRank[move.from()] && SquareToRank[move.from()] <= Rank9));
     }
-    return false;
 }
 
 void Position::pushMove(const Move move, Move*& move_ptr) const {
@@ -1210,24 +1090,6 @@ Bitboard Position::attackersTo(const Color c, const Square sq, const Bitboard & 
     Bitboard king_control = silver_control | gold_control;
     result |= king_control & pieces_bb_[king];
 
-    //Bitboard result1(0, 0);
-    //for (auto p : ColoredPieceList[c]) {
-    //    result1 |= controlBB(sq, oppositeColor(p), occupied) & pieces_bb_[p];
-    //}
-    //if (result != result1) {
-    //    print();
-    //    std::cout << "result" << std::endl;
-    //    std::cout << result << std::endl;
-    //    std::cout << "result1" << std::endl;
-    //    std::cout << result1 << std::endl;
-
-    //    std::cout << "rook_control" << std::endl;
-    //    std::cout << rook_control << std::endl;
-    //    std::cout << "lance_control" << std::endl;
-    //    std::cout << lance_control << std::endl;
-    //    assert(false);
-    //}
-
     return result;
 }
 
@@ -1328,14 +1190,14 @@ bool Position::isRepeating(Score& score) const {
         }
 
         //局面のハッシュ値が一致
-        if (hand_hash_ == stack_[index].hand_hash) { //手駒も一致
+        if (hand_hash_ == stack_[index].hand_hash) { //手駒のハッシュ値も一致
             if ((index == (int32_t) stack_.size() - 4) &&
                 (stack_[index].isChecked && stack_[index + 2].isChecked)) { //手番側が連続王手された
                 score = MAX_SCORE;
             } else { //普通の千日手
                 score = (MAX_SCORE + MIN_SCORE) / 2;
             }
-        } else { //局面だけが一致
+        } else { //局面のハッシュ値だけが一致
             if (hand_[color_].superior(stack_[index].hand[color_])) { //優等局面
                 score = MAX_SCORE;
             } else if (hand_[color_].inferior(stack_[index].hand[color_])) { //劣等局面
@@ -1353,11 +1215,9 @@ bool Position::isRepeating(Score& score) const {
 Move Position::transformValidMove(const Move move) {
     //stringToMoveではどっちの手番かがわからない
     //つまりsubjectが完全には入っていないので手番付きの駒を入れる
-    if (move.isDrop()) {
-        return dropMove(move.to(), (color_ == BLACK ? toBlack(move.subject()) : toWhite(move.subject())));
-    } else {
-        return Move(move.to(), move.from(), false, move.isPromote(), board_[move.from()], board_[move.to()]);
-    }
+    return (move.isDrop() ?
+            dropMove(move.to(), (color_ == BLACK ? toBlack(move.subject()) : toWhite(move.subject()))) :
+            Move(move.to(), move.from(), false, move.isPromote(), board_[move.from()], board_[move.to()]));
 }
 
 void Position::initHashValue() {
@@ -1410,17 +1270,6 @@ std::vector<float> Position::makeFeature() const {
             }
         }
     }
-
-//    for (int32_t i = 0; i < INPUT_CHANNEL_NUM; i++) {
-//        std::cout << i << std::endl;
-//        for (int32_t r = Rank1; r <= Rank9; r++) {
-//            for (int32_t f = File9; f >= File1; f--) {
-//                Square sq = FRToSquare[f][r];
-//                std::cout << features[i * SQUARE_NUM + SquareToNum[sq]] << " ";
-//            }
-//            std::cout << std::endl;
-//        }
-//    }
 
     return features;
 }
