@@ -7,11 +7,6 @@
 #include"hand.hpp"
 #include"types.hpp"
 #include"bitboard.hpp"
-#include<random>
-#include<cstdint>
-#include<unordered_map>
-
-constexpr int MAX_MOVE_LIST_SIZE = 593;
 
 class Position {
 public:

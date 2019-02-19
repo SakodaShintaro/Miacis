@@ -1,6 +1,4 @@
 ﻿#include"position.hpp"
-#include"piece.hpp"
-#include"move.hpp"
 #include"common.hpp"
 #include"usi_options.hpp"
 #include"neural_network.hpp"
@@ -729,7 +727,6 @@ void Position::generateEvasionMoves(Move *& move_ptr) const {
     }
 
     //王手してきた駒の位置
-    //関数をconst化しているのでchecker_自体は変更できないからコンストラクタで包まないといけない
     const Square checker_sq = checkers.pop();
 
     //(b)王手してきた駒を玉以外で取る手
@@ -754,9 +751,9 @@ void Position::generateEvasionMoves(Move *& move_ptr) const {
     });
 
     //王手してきた駒を取れる駒の候補
-    Bitboard romovers = attackersTo(color_, checker_sq) & ~pinned_piece & ~SQUARE_BB[king_sq_[color_]];
+    Bitboard removers = attackersTo(color_, checker_sq) & ~pinned_piece & ~SQUARE_BB[king_sq_[color_]];
 
-    romovers.forEach([&](Square from) {
+    removers.forEach([&](Square from) {
         pushMove(Move(checker_sq, from, false, false, board_[from], board_[checker_sq]), move_ptr);
     });
 
@@ -1031,6 +1028,7 @@ void Position::computePinners() {
 }
 
 std::vector<Move> Position::generateAllMoves() const {
+    constexpr int32_t MAX_MOVE_LIST_SIZE = 593;
     Move move_buf[MAX_MOVE_LIST_SIZE];
     Move* move_ptr = move_buf;
     //手番側に王手がかかっていたら逃れる手だけを生成
