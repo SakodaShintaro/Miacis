@@ -62,8 +62,7 @@ void ParallelMCTSearcher::printUSIInfo() const {
         best_wp += VALUE_WIDTH * (0.5 + i) * v;
     }
 #else
-    auto best_wp = (N[selected_index] == 0 ? 0.0
-                                                           : current_node.W[selected_index] / N[selected_index]);
+    auto best_wp = (N[selected_index] == 0 ? 0.0 : current_node.W[selected_index] / N[selected_index]);
 #endif
 
     //勝率を評価値に変換
@@ -495,8 +494,8 @@ Move ParallelMCTSearcher::think(Position& root) {
 
     //GPUで計算:moves.size() == 1のときはいらなそうだけど
     if (input_queues_[0].empty()) {
-        //繰り返しなどでキューに送られなかった
-        //ルートノードでは強制的に評価
+        //繰り返しなどでキューに送られなかった場合に空になることがありうる
+        //ルートノードでは強制的に評価する
         const auto feature = root.makeFeature();
         input_queues_[0].insert(input_queues_[0].end(), feature.begin(), feature.end());
     }
@@ -507,7 +506,7 @@ Move ParallelMCTSearcher::think(Position& root) {
 #endif
 
     //ルートノードへ書き込み
-    current_node.nn_rates.resize(static_cast<uint64_t>(current_node.moves.size()));
+    current_node.nn_rates.resize(current_node.moves.size());
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
         current_node.nn_rates[i] = y.first[0][current_node.moves[i].toLabel()];
     }
