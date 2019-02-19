@@ -27,8 +27,6 @@ public:
     //一手進める・戻す関数
     void doMove(Move move);
     void undo();
-    void doNullMove();
-    void undoNullMove();
 
     //合法性に関する関数
     bool isLegalMove(Move move) const;
@@ -55,7 +53,6 @@ public:
     void generateEvasionMoves(Move*& move_ptr) const;
     void generateCaptureMoves(Move*& move_ptr) const;
     void generateNonCaptureMoves(Move*& move_ptr) const;
-    void generateRecaptureMovesTo(Square to, Move*& move_ptr) const;
 
     //sfenの入出力
     void loadSFEN(std::string sfen);

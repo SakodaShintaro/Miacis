@@ -369,50 +369,6 @@ void Position::undo() {
     stack_.pop_back();
 }
 
-void Position::doNullMove() {
-    stack_.emplace_back(*this);
-
-    //手番の更新
-    color_ = ~color_;
-
-    //手数の更新
-    turn_number_++;
-
-    //hashの手番要素を更新
-    //1bit目を0にする
-    hash_value_ &= ~1;
-    //手番が先手だったら1bitは0のまま,後手だったら1bit目は1になる
-    hash_value_ |= color_;
-
-    kifu_.push_back(NULL_MOVE);
-
-    //pinnersとpinned
-    computePinners();
-}
-
-void Position::undoNullMove() {
-    kifu_.pop_back();
-
-    //手番を戻す(このタイミングでいいかな?)
-    color_ = ~color_;
-
-    //ハッシュの更新(手番分)
-    //一番右のbitを0にする
-    hash_value_ &= ~1;
-    //一番右のbitが先手番だったら0のまま、後手番だったら1になる
-    hash_value_ |= color_;
-
-    //手数
-    turn_number_--;
-
-    //計算が面倒なものはコピーで戻してみる
-    //NullMoveだからほとんど変わってないはずだけどなんかバグる
-    pinners_ = stack_.back().pinners;
-    isChecked_ = stack_.back().isChecked;
-    //Stack更新
-    stack_.pop_back();
-}
-
 bool Position::isLegalMove(const Move move) const {
     //違法の場合だけ早くfalseで返す.合法手は一番最後の行でtrueが返る
 
@@ -909,47 +865,6 @@ void Position::generateNonCaptureMoves(Move *& move_ptr) const {
     //駒を打つ手
     Bitboard drop_to_bb = (~occupied_all_ & BOARD_BB);
     generateDropMoves(drop_to_bb, move_ptr);
-}
-
-void Position::generateRecaptureMovesTo(const Square to, Move *& move_ptr) const {
-    //ピンされた駒がダメな方向へ動く、または自玉が相手の利きに飛び込む違法手に注意しなければならない
-    if (isChecked_) {
-        //王手されているときはそれ専用のものを考えないとダメだな
-        //generateEvasionMoves(move_ptr);
-        return;
-    }
-
-    //ピンされた駒を先に動かす
-    Bitboard pinned_piece(0, 0);
-
-    pinners_.forEach([&](const Square pinner_sq) {
-        //pinnerと自玉の間にあるのがpinされている駒
-        Bitboard pinned = BETWEEN_BB[pinner_sq][king_sq_[color_]] & occupied_bb_[color_];
-
-        pinned.forEach([&](const Square from) {
-            //取る手なのでpinnerを取る手しかダメ
-            Bitboard to_bb = controlBB(from, board_[from], occupied_all_) & SQUARE_BB[pinner_sq] & SQUARE_BB[to];
-
-            if (to_bb) {
-                pushMove(Move(pinner_sq, from, false, false, board_[from], board_[pinner_sq]), move_ptr);
-            }
-
-            //使ったマスを記録しておく
-            pinned_piece |= SQUARE_BB[from];
-        });
-    });
-
-    //玉は別に処理する
-    Bitboard king_to_bb = controlBB(king_sq_[color_], board_[king_sq_[color_]], occupied_all_);
-    if (king_to_bb & SQUARE_BB[to] && !isThereControl(~color_, to)) { //利きがtoに届いていて、かつそこに相手の利きがない場合動かせる
-        *(move_ptr++) = Move(to, king_sq_[color_], false, false, board_[king_sq_[color_]], board_[to]);
-    }
-
-    //ピンされた駒と玉は先に処理したので除く
-    Bitboard from_bb = attackersTo(color_, to) & ~pinned_piece & ~SQUARE_BB[king_sq_[color_]];
-    from_bb.forEach([&](const Square from) {
-        pushMove(Move(to, from, false, false, board_[from], board_[to]), move_ptr);
-    });
 }
 
 inline bool Position::canPromote(Move move) const {
