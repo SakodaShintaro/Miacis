@@ -101,7 +101,11 @@ void checkSearchSpeed() {
     for (uint64_t search_batch_size = 32; search_batch_size <= 1024; search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_batch_size << std::endl;
         for (uint64_t thread_num = 1; thread_num <= 4; thread_num++) {
+#ifdef USE_LIBTORCH
             SearcherForPlay searcher(usi_option.USI_Hash, thread_num, search_batch_size, nn);
+#else
+            SearcherForPlay searcher(usi_option.USI_Hash, thread_num, search_batch_size, *nn);
+#endif
             searcher.think(pos);
         }
     }

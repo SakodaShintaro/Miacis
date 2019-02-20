@@ -272,7 +272,7 @@ void GameGenerator::genSlave(int64_t id) {
             } else {
                 //引き続き同じ局面について探索
                 //1回分探索してGPUキューへ評価要求を貯める
-                searchers[i].onePlay(positions[i]);
+                searchers[i].select(positions[i]);
             }
         }
 

@@ -21,7 +21,7 @@ Move SearcherForPlay::think(Position& root) {
     //ルートノードの展開:0番目のキューを使う
     std::stack<Index> dummy;
     std::stack<int32_t> dummy2;
-    current_root_index_ = expandNode(root, dummy, dummy2, 0);
+    current_root_index_ = expand(root, dummy, dummy2, 0);
     auto& current_node = hash_table_[current_root_index_];
 
     //合法手が0だったら投了
@@ -186,7 +186,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         //評価要求を貯める
         for (uint64_t i = 0; i < search_batch_size_ && !shouldStop(); i++) {
             //1回探索
-            onePlay(root, id);
+            select(root, id);
         }
 
         //評価要求をGPUで計算
@@ -220,7 +220,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
     }
 }
 
-void SearcherForPlay::onePlay(Position& pos, int32_t id) {
+void SearcherForPlay::select(Position& pos, int32_t id) {
     std::stack<Index> curr_indices;
     std::stack<int32_t> curr_actions;
 
@@ -275,7 +275,7 @@ void SearcherForPlay::onePlay(Position& pos, int32_t id) {
     auto move_num = curr_actions.size();
 
     //今の局面を展開・GPUに評価依頼を投げる
-    auto leaf_index = expandNode(pos, curr_indices, curr_actions, id);
+    auto leaf_index = expand(pos, curr_indices, curr_actions, id);
 
     //葉の直前ノードを更新
     lock_node_[index].lock();
@@ -288,8 +288,7 @@ void SearcherForPlay::onePlay(Position& pos, int32_t id) {
     }
 }
 
-Index
-SearcherForPlay::expandNode(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id) {
+Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id) {
     //全体をロック.このノードだけではなく探す部分も含めてなので
     std::unique_lock<std::mutex> lock(lock_expand_);
 

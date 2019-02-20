@@ -50,10 +50,10 @@ private:
     void parallelUctSearch(Position root, int32_t id);
 
     //再帰しない探索関数
-    void onePlay(Position& pos, int32_t id);
+    void select(Position& pos, int32_t id);
 
     //ノードを展開する関数
-    Index expandNode(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id);
+    Index expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id);
 
     //バックアップ
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t add_num);

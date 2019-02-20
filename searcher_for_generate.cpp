@@ -9,7 +9,7 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     //ルートノードの展開
     std::stack<int32_t> indices;
     std::stack<int32_t> actions;
-    current_root_index_ = expandNode(root, indices, actions);
+    current_root_index_ = expand(root, indices, actions);
 
     //3手詰みを探索
     if (root.turn_number() >= 50) {
@@ -23,7 +23,7 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     return !hash_table_[current_root_index_].moves.empty();
 }
 
-void SearcherForGenerate::onePlay(Position& pos) {
+void SearcherForGenerate::select(Position& pos) {
     if (hash_table_[current_root_index_].sum_N == 0) {
         //初回の探索をする前にノイズを加える
         //Alpha Zeroの論文と同じディリクレノイズ
@@ -77,7 +77,7 @@ void SearcherForGenerate::onePlay(Position& pos) {
     auto move_num = curr_actions.size();
 
     //今の局面を展開・GPUに評価依頼を投げる
-    auto leaf_index = expandNode(pos, curr_indices, curr_actions);
+    auto leaf_index = expand(pos, curr_indices, curr_actions);
 
     //葉の直前ノードを更新
     hash_table_[index].child_indices[action] = leaf_index;
@@ -86,6 +86,79 @@ void SearcherForGenerate::onePlay(Position& pos) {
     for (int32_t i = 0; i < move_num; i++) {
         pos.undo();
     }
+}
+
+Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
+    auto index = hash_table_.findSameHashIndex(pos);
+
+    // 合流先が検知できればそれを返す
+    if (index != hash_table_.size()) {
+        //GPUに送らないのでこのタイミングでバックアップを行う
+        indices.push(index);
+        backup(indices, actions);
+        return index;
+    }
+
+    // 空のインデックスを探す
+    index = hash_table_.searchEmptyIndex(pos);
+
+    auto& current_node = hash_table_[index];
+
+    // 現在のノードの初期化
+    current_node.moves = pos.generateAllMoves();
+    current_node.child_indices.assign(current_node.moves.size(), UctHashTable::NOT_EXPANDED);
+    current_node.N.assign(current_node.moves.size(), 0);
+    current_node.sum_N = 0;
+    current_node.evaled = false;
+#ifdef USE_CATEGORICAL
+    //TODO:正しく初期化できているか確認すること
+    current_node.W.assign(current_node.moves.size(), std::array<float, BIN_SIZE>{});
+    current_node.value = std::array<float, BIN_SIZE>{};
+#else
+    current_node.value = 0.0;
+    current_node.W.assign(current_node.moves.size(), 0.0);
+#endif
+
+    // ノードを評価
+//    Score repeat_score;
+//    if (pos.isRepeating(repeat_score)) {
+//        //繰り返し
+//#ifdef USE_CATEGORICAL
+//        current_node.value = onehotDist(repeat_score);
+//#else
+//        current_node.value = repeat_score;
+//#endif
+//        current_node.evaled = true;
+//        //GPUに送らないのでこのタイミングでバックアップを行う
+//        indices.push(index);
+//        backup(indices, actions);
+//    } else
+    if (!current_node.moves.empty()) {
+        //特徴量の追加
+        auto this_feature = pos.makeFeature();
+        input_queue_.insert(input_queue_.end(), this_feature.begin(), this_feature.end());
+
+        //インデックス,行動の履歴およびidを追加
+        indices.push(index);
+        index_queue_.push_back(indices);
+        action_queue_.push_back(actions);
+        id_queue_.push_back(id_);
+    } else {
+        //打ち歩詰めなら勝ち,そうでないなら負け
+        auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
+
+#ifdef USE_CATEGORICAL
+        current_node.value = onehotDist(v);
+#else
+        current_node.value = v;
+#endif
+        current_node.evaled = true;
+        //GPUに送らないのでこのタイミングでバックアップを行う
+        indices.push(index);
+        backup(indices, actions);
+    }
+
+    return index;
 }
 
 void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
@@ -160,79 +233,6 @@ std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& roo
     teacher.policy = best_move.toLabel();
 
     return { best_move, teacher };
-}
-
-Index SearcherForGenerate::expandNode(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
-    auto index = hash_table_.findSameHashIndex(pos);
-
-    // 合流先が検知できればそれを返す
-    if (index != hash_table_.size()) {
-        //GPUに送らないのでこのタイミングでバックアップを行う
-        indices.push(index);
-        backup(indices, actions);
-        return index;
-    }
-
-    // 空のインデックスを探す
-    index = hash_table_.searchEmptyIndex(pos);
-
-    auto& current_node = hash_table_[index];
-
-    // 現在のノードの初期化
-    current_node.moves = pos.generateAllMoves();
-    current_node.child_indices.assign(current_node.moves.size(), UctHashTable::NOT_EXPANDED);
-    current_node.N.assign(current_node.moves.size(), 0);
-    current_node.sum_N = 0;
-    current_node.evaled = false;
-#ifdef USE_CATEGORICAL
-    //TODO:正しく初期化できているか確認すること
-    current_node.W.assign(current_node.moves.size(), std::array<float, BIN_SIZE>{});
-    current_node.value = std::array<float, BIN_SIZE>{};
-#else
-    current_node.value = 0.0;
-    current_node.W.assign(current_node.moves.size(), 0.0);
-#endif
-
-    // ノードを評価
-//    Score repeat_score;
-//    if (pos.isRepeating(repeat_score)) {
-//        //繰り返し
-//#ifdef USE_CATEGORICAL
-//        current_node.value = onehotDist(repeat_score);
-//#else
-//        current_node.value = repeat_score;
-//#endif
-//        current_node.evaled = true;
-//        //GPUに送らないのでこのタイミングでバックアップを行う
-//        indices.push(index);
-//        backup(indices, actions);
-//    } else
-    if (!current_node.moves.empty()) {
-        //特徴量の追加
-        auto this_feature = pos.makeFeature();
-        input_queue_.insert(input_queue_.end(), this_feature.begin(), this_feature.end());
-
-        //インデックス,行動の履歴およびidを追加
-        indices.push(index);
-        index_queue_.push_back(indices);
-        action_queue_.push_back(actions);
-        id_queue_.push_back(id_);
-    } else {
-        //打ち歩詰めなら勝ち,そうでないなら負け
-        auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
-
-#ifdef USE_CATEGORICAL
-        current_node.value = onehotDist(v);
-#else
-        current_node.value = v;
-#endif
-        current_node.evaled = true;
-        //GPUに送らないのでこのタイミングでバックアップを行う
-        indices.push(index);
-        backup(indices, actions);
-    }
-
-    return index;
 }
 
 std::vector<double> SearcherForGenerate::dirichletDistribution(uint64_t k, double alpha) {

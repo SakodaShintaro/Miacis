@@ -19,10 +19,10 @@ private:
     bool prepareForCurrPos(Position& root);
 
     //探索1回を行う関数
-    void onePlay(Position& pos);
+    void select(Position& pos);
 
     //ノードを展開する関数
-    Index expandNode(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
+    Index expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
     //GPUの計算結果をルートノードまでバックアップする関数
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
