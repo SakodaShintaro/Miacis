@@ -126,7 +126,7 @@ void alphaZero() {
 #endif
 
     //自己対局スレッドを立てる
-    GameGenerator generator(0, parallel_num, replay_buffer, nn);
+    GameGenerator generator(replay_buffer, nn);
     std::thread gen_thread([&generator]() { generator.genGames(static_cast<int64_t>(1e10)); });
 
     for (int32_t step_num = 1; step_num <= max_step_num; step_num++) {

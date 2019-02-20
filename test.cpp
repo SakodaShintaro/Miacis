@@ -77,7 +77,7 @@ void checkGenSpeed() {
         buffer.max_size = static_cast<uint64_t>(game_num * usi_option.draw_turn);
         buffer.clear();
         auto start = std::chrono::steady_clock::now();
-        GameGenerator generator(0, thread_num, buffer, nn);
+        GameGenerator generator(buffer, nn);
         generator.genGames(game_num);
         auto end = std::chrono::steady_clock::now();
         auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

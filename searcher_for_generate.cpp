@@ -13,7 +13,7 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
 
     //3手詰みを探索
     if (root.turn_number() >= 50) {
-        //1手詰みを先に行ってなければ3手詰みを探索
+        //1手詰み探索を先に行ってなければ3手詰みを探索
         if (!mateSearch(root, 1)) {
             mateSearch(root, 3);
         }

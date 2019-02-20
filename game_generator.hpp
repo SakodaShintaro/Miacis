@@ -13,11 +13,11 @@
 class GameGenerator {
 public:
 #ifdef USE_LIBTORCH
-    GameGenerator(int64_t parallel_num, ReplayBuffer& rb, NeuralNetwork nn) :
-            parallel_num_(parallel_num), rb_(rb), evaluator_(std::move(nn)) {};
+    GameGenerator(ReplayBuffer& rb, NeuralNetwork nn) :
+            rb_(rb), evaluator_(std::move(nn)) {};
 #else
-    GameGenerator(int64_t parallel_num, ReplayBuffer& rb, std::shared_ptr<NeuralNetwork<Tensor>> nn) :
-            parallel_num_(parallel_num), rb_(rb), evaluator_(std::move(nn)) {};
+    GameGenerator(ReplayBuffer& rb, std::shared_ptr<NeuralNetwork<Tensor>> nn) :
+            rb_(rb), evaluator_(std::move(nn)) {};
 #endif
 
     //決まったゲーム数生成する関数
@@ -32,9 +32,6 @@ private:
 
     //生成する局数
     std::atomic<int64_t> game_num_;
-
-    //並列化する数
-    int64_t parallel_num_;
 
     //データを送るReplayBufferへの参照
     ReplayBuffer& rb_;
