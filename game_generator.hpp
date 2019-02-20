@@ -30,9 +30,6 @@ private:
     //生成してはreplay_bufferへ送る関数
     void genSlave(int64_t id);
 
-    //スレッド数:GPUを交互に使う"2"が最適値なはず
-    static constexpr int32_t THREAD_NUM = 2;
-
     //生成する局数
     std::atomic<int64_t> game_num_;
 

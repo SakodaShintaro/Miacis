@@ -8,7 +8,7 @@ void GameGenerator::genGames(int64_t game_num) {
 
     //生成スレッドを生成
     std::vector<std::thread> threads;
-    for (int64_t i = 0; i < THREAD_NUM; i++) {
+    for (int64_t i = 0; i < usi_option.thread_num; i++) {
         threads.emplace_back(&GameGenerator::genSlave, this, i);
     }
 
@@ -25,24 +25,20 @@ void GameGenerator::genSlave(int64_t id) {
     std::vector<std::stack<int32_t>> actions;
     std::vector<int32_t> ids;
 
-    //並列化する総数をスレッド数で割ったものがこのスレッドで管理するべき数
-    assert(parallel_num_ % THREAD_NUM == 0);
-    const uint64_t parallel_num = static_cast<const uint64_t>(parallel_num_ / THREAD_NUM);
-
     //このスレッドが管理するデータら
-    std::vector<Game> games(parallel_num);
-    std::vector<Position> positions(parallel_num);
+    std::vector<Game> games(usi_option.search_batch_size);
+    std::vector<Position> positions(usi_option.search_batch_size);
 
     //探索クラスの生成,初期局面を探索する準備
     std::vector<SearcherForGenerate> searchers;
-    for (int32_t i = 0; i < parallel_num; i++) {
+    for (int32_t i = 0; i < usi_option.search_batch_size; i++) {
         searchers.emplace_back(usi_option.USI_Hash, i, features, hash_indices, actions, ids);
         searchers[i].prepareForCurrPos(positions[i]);
     }
 
     //今からi番目のものが担当する番号を初期化
-    std::vector<int64_t> nums(parallel_num);
-    for (int32_t i = 0; i < parallel_num; i++) {
+    std::vector<int64_t> nums(usi_option.search_batch_size);
+    for (int32_t i = 0; i < usi_option.search_batch_size; i++) {
         nums[i] = game_num_--;
     }
 
@@ -85,7 +81,7 @@ void GameGenerator::genSlave(int64_t id) {
         actions.clear();
         ids.clear();
 
-        for (int32_t i = 0; i < parallel_num; i++) {
+        for (int32_t i = 0; i < usi_option.search_batch_size; i++) {
             if (nums[i] <= 0) {
                 //担当するゲームのidが0以下だったらスキップ
                 continue;
