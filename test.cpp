@@ -16,7 +16,7 @@
 #include<iomanip>
 
 void test() {
-    usi_option.playout_limit = 800;
+    usi_option.search_limit = 800;
     usi_option.limit_msec = LLONG_MAX;
     usi_option.USI_Hash = 1;
     usi_option.thread_num = 1;
@@ -66,7 +66,7 @@ void test() {
 
 void checkGenSpeed() {
     usi_option.USI_Hash = 1;
-    usi_option.playout_limit = 800;
+    usi_option.search_limit = 800;
     usi_option.draw_turn = 100;
 
     int64_t game_num;
@@ -89,11 +89,11 @@ void checkGenSpeed() {
 void checkSearchSpeed() {
     usi_option.limit_msec = 10000;
     usi_option.USI_Hash = 1024;
-    usi_option.playout_limit = static_cast<int64_t>(1e10);
+    usi_option.search_limit = static_cast<int64_t>(1e10);
     Position pos;
-    for (uint64_t search_batch_size = 32; search_batch_size <= 1024; search_batch_size *= 2) {
+    for (uint64_t search_batch_size = 64; search_batch_size <= 512; search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_batch_size << std::endl;
-        for (uint64_t thread_num = 1; thread_num <= 4; thread_num++) {
+        for (uint64_t thread_num = 1; thread_num <= 3; thread_num++) {
             SearcherForPlay searcher(usi_option.USI_Hash, thread_num, search_batch_size, nn);
             searcher.think(pos);
         }

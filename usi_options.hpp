@@ -16,7 +16,7 @@ public:
 	int64_t limit_msec;
 	bool stop_signal;
 
-    int64_t playout_limit;
+    int64_t search_limit;
 };
 
 extern USIOption usi_option;

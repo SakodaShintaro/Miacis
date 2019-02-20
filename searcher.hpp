@@ -10,10 +10,7 @@ public:
 protected:
     explicit Searcher(int64_t hash_size) : hash_table_(hash_size) {}
 
-    //経過時間が持ち時間をオーバーしていないか確認する関数
-    bool isTimeOver();
-
-    //時間経過含め、playoutの回数なども考慮しplayoutを続けるかどうかを判定する関数
+    //時間制限含め探索を続けるかどうかを判定する関数
     bool shouldStop();
 
     //今のノードから遷移するべきノードを選択する関数

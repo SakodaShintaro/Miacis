@@ -96,8 +96,8 @@ void USI::usi() {
     usi_option.draw_turn = 256;
 
     auto d = (unsigned long long)1e9;
-    printf("option name playout_limit type spin default %llu min 1 max %llu\n", d, d);
-    usi_option.playout_limit = (int64_t)d;
+    printf("option name search_limit type spin default %llu min 1 max %llu\n", d, d);
+    usi_option.search_limit = (int64_t)d;
 
     usi_option.USI_Hash = 256;
 	printf("usiok\n");
@@ -151,9 +151,9 @@ void USI::setoption() {
                 std::cin >> input; //input == "value"となるはず
                 std::cin >> usi_option.draw_turn;
                 return;
-            } else if (input == "playout_limit") {
+            } else if (input == "search_limit") {
                 std::cin >> input;
-                std::cin >> usi_option.playout_limit;
+                std::cin >> usi_option.search_limit;
                 return;
             }
         }

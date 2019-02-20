@@ -167,7 +167,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
     auto& redundancy_num = redundancy_num_[id];
 
     //限界に達するまで探索を繰り返す
-    while (hash_table_[current_root_index_].sum_N < usi_option.playout_limit && !shouldStop()) {
+    while (hash_table_[current_root_index_].sum_N < usi_option.search_limit && !shouldStop()) {
         //キューをクリア
         input_queue.clear();
         index_queue.clear();
@@ -414,8 +414,8 @@ void SearcherForPlay::mateSearch(Position pos) {
             if (result) {
                 //この手に書き込み
                 //playout_limitだけ足せば必ずこの手が選ばれるようになる
-                curr_node.N[i]  += usi_option.playout_limit;
-                curr_node.sum_N += usi_option.playout_limit;
+                curr_node.N[i]  += usi_option.search_limit;
+                curr_node.sum_N += usi_option.search_limit;
                 return;
             }
         }

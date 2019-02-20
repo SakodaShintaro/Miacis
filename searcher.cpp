@@ -2,19 +2,15 @@
 #include "usi_options.hpp"
 #include "operate_params.hpp"
 
-bool Searcher::isTimeOver() {
+bool Searcher::shouldStop() {
     //時間のチェック
     auto now_time = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_);
-    return (elapsed.count() >= usi_option.limit_msec - usi_option.byoyomi_margin);
-}
-
-bool Searcher::shouldStop() {
-    if (isTimeOver()) {
+    if (elapsed.count() >= usi_option.limit_msec - usi_option.byoyomi_margin) {
         return true;
     }
 
-    // 探索回数が最も多い手と次に多い手を求める
+    //探索回数が最も多い手と2番目に多い手を求める
     int32_t max1 = 0, max2 = 0;
     for (auto e : hash_table_[current_root_index_].N) {
         if (e > max1) {
@@ -26,7 +22,7 @@ bool Searcher::shouldStop() {
     }
 
     // 残りの探索を全て次善手に費やしても最善手を超えられない場合は探索を打ち切る
-    return (max1 - max2) >= (usi_option.playout_limit - hash_table_[current_root_index_].sum_N);
+    return (max1 - max2) >= (usi_option.search_limit - hash_table_[current_root_index_].sum_N);
 }
 
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {

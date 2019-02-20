@@ -13,7 +13,7 @@ value_loss_coeff 1
 max_stack_size 100000
 first_wait 10000
 max_step_num 700000
-playout_limit 800
+search_limit 800
 parallel_num 128
 sleep_msec 2000
 validation_kifu_path /home/sakoda/Downloads/2016

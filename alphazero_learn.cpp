@@ -63,8 +63,8 @@ void alphaZero() {
             ifs >> replay_buffer.first_wait;
         } else if (name == "max_step_num") {
             ifs >> max_step_num;
-        } else if (name == "playout_limit") {
-            ifs >> usi_option.playout_limit;
+        } else if (name == "search_limit") {
+            ifs >> usi_option.search_limit;
         } else if (name == "parallel_num") {
             ifs >> parallel_num;
         } else if (name == "sleep_msec") {

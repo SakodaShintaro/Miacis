@@ -261,8 +261,8 @@ bool SearcherForGenerate::mateSearch(Position pos, int32_t depth) {
         if (result) {
             //この手に書き込み
             //playout_limitだけ足せば必ずこの手が選ばれるようになる
-            curr_node.N[i]  += usi_option.playout_limit;
-            curr_node.sum_N += usi_option.playout_limit;
+            curr_node.N[i]  += usi_option.search_limit;
+            curr_node.sum_N += usi_option.search_limit;
             return true;
         }
     }
