@@ -14,7 +14,7 @@ USI_Hash             1
 max_stack_size       100000
 first_wait           10000
 search_limit         800
-search_batch_size    128
+search_batch_size    64
 validation_interval  1000
 validation_size      4096
 validation_kifu_path /home/sakoda/Downloads/2016
