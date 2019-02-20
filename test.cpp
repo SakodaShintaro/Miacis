@@ -24,11 +24,10 @@ void test() {
     usi_option.draw_turn = 512;
 #ifdef USE_LIBTORCH
     torch::load(nn, MODEL_PATH);
-    auto searcher = std::make_unique<SearcherForPlay>(usi_option.USI_Hash, usi_option.thread_num, usi_option.search_batch_size, nn);
 #else
     nn->load(MODEL_PATH);
-    auto searcher = std::make_unique<SearcherForPlay>(usi_option.USI_Hash, usi_option.thread_num, usi_option.search_batch_size, *nn);
 #endif
+    SearcherForPlay searcher(usi_option.USI_Hash, usi_option.thread_num, usi_option.search_batch_size, nn);
 
     Position pos;
     Game game;
@@ -37,7 +36,7 @@ void test() {
     while (true) {
         pos.print(false);
 
-        Move best_move = searcher->think(pos);
+        Move best_move = searcher.think(pos);
         if (best_move == NULL_MOVE) {
             //投了
             game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
@@ -78,11 +77,7 @@ void checkGenSpeed() {
         buffer.max_size = static_cast<uint64_t>(game_num * usi_option.draw_turn);
         buffer.clear();
         auto start = std::chrono::steady_clock::now();
-#ifdef USE_LIBTORCH
         GameGenerator generator(0, thread_num, buffer, nn);
-#else
-        GameGenerator generator(0, thread_num, buffer, *nn);
-#endif
         generator.genGames(game_num);
         auto end = std::chrono::steady_clock::now();
         auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -99,11 +94,7 @@ void checkSearchSpeed() {
     for (uint64_t search_batch_size = 32; search_batch_size <= 1024; search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_batch_size << std::endl;
         for (uint64_t thread_num = 1; thread_num <= 4; thread_num++) {
-#ifdef USE_LIBTORCH
             SearcherForPlay searcher(usi_option.USI_Hash, thread_num, search_batch_size, nn);
-#else
-            SearcherForPlay searcher(usi_option.USI_Hash, thread_num, search_batch_size, *nn);
-#endif
             searcher.think(pos);
         }
     }

@@ -1,3 +1,5 @@
+#include <utility>
+
 #ifndef MIACIS_SEARCHER_FOR_PLAY_HPP
 #define MIACIS_SEARCHER_FOR_PLAY_HPP
 
@@ -19,8 +21,8 @@ public:
         redundancy_num_.resize(thread_num);
     }
 #else
-    SearcherForPlay(int64_t hash_size, uint64_t thread_num, uint64_t search_batch_size, NeuralNetwork<Tensor>& nn) :
-    Searcher(hash_size), thread_num_(thread_num), search_batch_size_(search_batch_size), evaluator_(nn) {
+    SearcherForPlay(int64_t hash_size, uint64_t thread_num, uint64_t search_batch_size, std::shared_ptr<NeuralNetwork<Tensor>> nn) :
+    Searcher(hash_size), thread_num_(thread_num), search_batch_size_(search_batch_size), evaluator_(std::move(nn)) {
         lock_node_ = std::vector<std::mutex>(hash_table_.size());
         input_queues_.resize(thread_num);
         index_queues_.resize(thread_num);
@@ -65,7 +67,7 @@ private:
 #ifdef USE_LIBTORCH
     NeuralNetwork evaluator_;
 #else
-    NeuralNetwork<Tensor>& evaluator_;
+    std::shared_ptr<NeuralNetwork<Tensor>> evaluator_;
 #endif
 
     //mutex

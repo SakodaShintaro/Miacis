@@ -241,11 +241,7 @@ void USI::go() {
     //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので
     //別スレッドに投げる
     thread_ = std::thread([&]() {
-#ifdef USE_LIBTORCH
         SearcherForPlay searcher(usi_option.USI_Hash, usi_option.thread_num, usi_option.search_batch_size, nn);
-#else
-        SearcherForPlay searcher(usi_option.USI_Hash, usi_option.thread_num, usi_option.search_batch_size, *nn);
-#endif
         auto best_move = searcher.think(root_);
         if (best_move == NULL_MOVE) {
             std::cout << "bestmove resign" << std::endl;

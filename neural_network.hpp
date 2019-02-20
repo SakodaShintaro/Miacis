@@ -158,7 +158,7 @@ private:
     BatchNormLayer<Var> value_bn;
 };
 
-extern std::unique_ptr<NeuralNetwork<Tensor>> nn;
+extern std::shared_ptr<NeuralNetwork<Tensor>> nn;
 
 #endif
 

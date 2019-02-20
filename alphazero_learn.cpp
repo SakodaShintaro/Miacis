@@ -111,9 +111,6 @@ void alphaZero() {
     sgd_option.momentum(momentum);
     sgd_option.weight_decay(1e-4);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
-
-    //自己対局をしてreplay_buffer_にデータを追加するインスタンス
-    GameGenerator generator(0, parallel_num, replay_buffer, nn);
 #else
     NeuralNetwork<Node> learning_model;
     learning_model.load(MODEL_PATH);
@@ -124,14 +121,12 @@ void alphaZero() {
     optimizer.set_weight_decay(1e-4);
     optimizer.add(learning_model);
 
-    //自己対局をしてreplay_buffer_にデータを追加するインスタンス
-    GameGenerator generator(0, parallel_num, replay_buffer, *nn);
-
     Graph g;
     Graph::set_default(g);
 #endif
 
     //自己対局スレッドを立てる
+    GameGenerator generator(0, parallel_num, replay_buffer, nn);
     std::thread gen_thread([&generator]() { generator.genGames(static_cast<int64_t>(1e10)); });
 
     for (int32_t step_num = 1; step_num <= max_step_num; step_num++) {

@@ -304,6 +304,6 @@ std::pair<Var, Var> NeuralNetwork<Var>::loss(const std::vector<float>& input,
 
 template class NeuralNetwork<Node>;
 template class NeuralNetwork<Tensor>;
-std::unique_ptr<NeuralNetwork<Tensor>> nn(new NeuralNetwork<Tensor>);
+std::shared_ptr<NeuralNetwork<Tensor>> nn(new NeuralNetwork<Tensor>);
 
 #endif

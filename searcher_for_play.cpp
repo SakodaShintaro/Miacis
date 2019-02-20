@@ -36,11 +36,7 @@ Move SearcherForPlay::think(Position& root) {
         const auto feature = root.makeFeature();
         input_queues_[0].insert(input_queues_[0].end(), feature.begin(), feature.end());
     }
-#ifdef USE_LIBTORCH
     auto y = evaluator_->policyAndValueBatch(input_queues_[0]);
-#else
-    auto y = evaluator_.policyAndValueBatch(input_queues_[0]);
-#endif
 
     //ルートノードへ書き込み
     current_node.nn_policy.resize(current_node.moves.size());
@@ -187,11 +183,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         //評価要求をGPUで計算
         if (!index_queue.empty()) {
             lock_expand_.lock();
-#ifdef USE_LIBTORCH
             auto y = evaluator_->policyAndValueBatch(input_queue);
-#else
-            auto y = evaluator_.policyAndValueBatch(input_queue);
-#endif
             lock_expand_.unlock();
 
             //書き込み

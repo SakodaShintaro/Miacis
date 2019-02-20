@@ -1,3 +1,5 @@
+#include <utility>
+
 #ifndef MIACIS_GAME_GENERATOR_HPP
 #define MIACIS_GAME_GENERATOR_HPP
 
@@ -19,8 +21,8 @@ public:
     GameGenerator(int64_t gpu_id, int64_t parallel_num, ReplayBuffer& rb, NeuralNetwork nn) :
             gpu_id_(gpu_id), parallel_num_(parallel_num), rb_(rb), evaluator_(std::move(nn)) {};
 #else
-    GameGenerator(int64_t gpu_id, int64_t parallel_num, ReplayBuffer& rb, NeuralNetwork<Tensor>& nn) :
-            gpu_id_(gpu_id), parallel_num_(parallel_num), rb_(rb), evaluator_(nn) {};
+    GameGenerator(int64_t gpu_id, int64_t parallel_num, ReplayBuffer& rb, std::shared_ptr<NeuralNetwork<Tensor>> nn) :
+            gpu_id_(gpu_id), parallel_num_(parallel_num), rb_(rb), evaluator_(std::move(nn)) {};
 #endif
 
     //決まったゲーム数生成する関数
@@ -43,7 +45,7 @@ private:
 #ifdef USE_LIBTORCH
     NeuralNetwork evaluator_;
 #else
-    NeuralNetwork<Tensor>& evaluator_;
+    std::shared_ptr<NeuralNetwork<Tensor>> evaluator_;
 #endif
 
 #ifdef USE_PARALLEL_SEARCHER
