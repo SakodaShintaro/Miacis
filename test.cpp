@@ -9,9 +9,7 @@
 #include"usi_options.hpp"
 #include"replay_buffer.hpp"
 #include"game_generator.hpp"
-#include "searcher_for_play.hpp"
-#include "test.hpp"
-
+#include"searcher_for_play.hpp"
 #include<cassert>
 #include<numeric>
 #include<climits>
