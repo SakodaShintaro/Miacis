@@ -153,9 +153,6 @@ inline Dir directionAtoB(Square A, Square B) {
     return H;
 }
 
-extern std::vector<Dir> CanMove[WHITE_ROOK_PROMOTE + 1];
-void initCanMove();
-
 inline static Square operator+(Square sq, Dir diff) {
     return (Square)((int32_t)sq + (int32_t)diff);
 }

@@ -1,39 +1,6 @@
 ﻿#include"square.hpp"
 #include<array>
 
-std::vector<Dir> CanMove[WHITE_ROOK_PROMOTE + 1];
-
-void initCanMove() {
-    CanMove[BLACK_PAWN] = { U };
-    CanMove[BLACK_LANCE] = {};
-    CanMove[BLACK_KNIGHT] = { RUU, LUU };
-    CanMove[BLACK_SILVER] = { U, RU, RD, LD, LU };
-    CanMove[BLACK_GOLD] = { U, RU, R, D, L, LU };
-    CanMove[BLACK_BISHOP] = {};
-    CanMove[BLACK_ROOK] = {};
-    CanMove[BLACK_KING] = { U, RU, R, RD, D, LD, L, LU };
-    CanMove[BLACK_PAWN_PROMOTE] = { U, RU, R, D, L, LU };
-    CanMove[BLACK_LANCE_PROMOTE] = { U, RU, R, D, L, LU };
-    CanMove[BLACK_KNIGHT_PROMOTE] = { U, RU, R, D, L, LU };
-    CanMove[BLACK_SILVER_PROMOTE] = { U, RU, R, D, L, LU };
-    CanMove[BLACK_BISHOP_PROMOTE] = { U, R, D, L };
-    CanMove[BLACK_ROOK_PROMOTE] = { RU, RD, LD, LU };
-    CanMove[WHITE_PAWN] = { D };
-    CanMove[WHITE_LANCE] = {};
-    CanMove[WHITE_KNIGHT] = { RDD, LDD };
-    CanMove[WHITE_SILVER] = { RU, RD, D, LD, LU };
-    CanMove[WHITE_GOLD] = { U, R, RD, D, LD, L };
-    CanMove[WHITE_BISHOP] = {};
-    CanMove[WHITE_ROOK] = {};
-    CanMove[WHITE_KING] = { U, RU, R, RD, D, LD, L, LU };
-    CanMove[WHITE_PAWN_PROMOTE] = { U, R, RD, D, LD, L };
-    CanMove[WHITE_LANCE_PROMOTE] = { U, R, RD, D, LD, L };
-    CanMove[WHITE_KNIGHT_PROMOTE] = { U, R, RD, D, LD, L };
-    CanMove[WHITE_SILVER_PROMOTE] = { U, R, RD, D, LD, L };
-    CanMove[WHITE_BISHOP_PROMOTE] = { U, R, D, L };
-    CanMove[WHITE_ROOK_PROMOTE] = { RU, RD, LD, LU };
-}
-
 const std::array<Square, 81> SquareList = {
     SQ11, SQ12, SQ13, SQ14, SQ15, SQ16, SQ17, SQ18, SQ19,
     SQ21, SQ22, SQ23, SQ24, SQ25, SQ26, SQ27, SQ28, SQ29,

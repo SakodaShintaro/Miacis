@@ -17,8 +17,6 @@ int main()
     nn->init();
 #endif
 
-    initCanMove();
-
     Position::initHashSeed();
 
     Bitboard::init();

@@ -240,13 +240,15 @@ void Bitboard::init() {
         }
 
         //銀
-        for (Dir delta : CanMove[BLACK_SILVER]) {
+        //先手の銀
+        for (Dir delta : { U, RU, RD, LD, LU }) {
             Square to = sq + delta;
             if (isOnBoard(to)) {
                 SILVER_CONTROL_BB[BLACK][sq] |= SQUARE_BB[to];
             }
         }
-        for (Dir delta : CanMove[WHITE_SILVER]) {
+        //後手の銀
+        for (Dir delta : { RU, RD, D, LD, LU }) {
             Square to = sq + delta;
             if (isOnBoard(to)) {
                 SILVER_CONTROL_BB[WHITE][sq] |= SQUARE_BB[to];
@@ -254,13 +256,13 @@ void Bitboard::init() {
         }
 
         //金
-        for (Dir delta : CanMove[BLACK_GOLD]) {
+        for (Dir delta : { U, RU, R, D, L, LU }) {
             Square to = sq + delta;
             if (isOnBoard(to)) {
                 GOLD_CONTROL_BB[BLACK][sq] |= SQUARE_BB[to];
             }
         }
-        for (Dir delta : CanMove[WHITE_GOLD]) {
+        for (Dir delta : { U, R, RD, D, LD, L }) {
             Square to = sq + delta;
             if (isOnBoard(to)) {
                 GOLD_CONTROL_BB[WHITE][sq] |= SQUARE_BB[to];
