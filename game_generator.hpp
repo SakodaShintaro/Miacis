@@ -13,11 +13,11 @@
 class GameGenerator {
 public:
 #ifdef USE_LIBTORCH
-    GameGenerator(int64_t gpu_id, int64_t parallel_num, ReplayBuffer& rb, NeuralNetwork nn) :
-            gpu_id_(gpu_id), parallel_num_(parallel_num), rb_(rb), evaluator_(std::move(nn)) {};
+    GameGenerator(int64_t parallel_num, ReplayBuffer& rb, NeuralNetwork nn) :
+            parallel_num_(parallel_num), rb_(rb), evaluator_(std::move(nn)) {};
 #else
-    GameGenerator(int64_t gpu_id, int64_t parallel_num, ReplayBuffer& rb, std::shared_ptr<NeuralNetwork<Tensor>> nn) :
-            gpu_id_(gpu_id), parallel_num_(parallel_num), rb_(rb), evaluator_(std::move(nn)) {};
+    GameGenerator(int64_t parallel_num, ReplayBuffer& rb, std::shared_ptr<NeuralNetwork<Tensor>> nn) :
+            parallel_num_(parallel_num), rb_(rb), evaluator_(std::move(nn)) {};
 #endif
 
     //決まったゲーム数生成する関数
@@ -27,8 +27,14 @@ public:
     std::mutex gpu_mutex;
 
 private:
-    //使うGPUのid
-    int64_t gpu_id_;
+    //生成してはreplay_bufferへ送る関数
+    void genSlave(int64_t id);
+
+    //スレッド数:GPUを交互に使う"2"が最適値なはず
+    static constexpr int32_t THREAD_NUM = 2;
+
+    //生成する局数
+    std::atomic<int64_t> game_num_;
 
     //並列化する数
     int64_t parallel_num_;
@@ -42,15 +48,6 @@ private:
 #else
     std::shared_ptr<NeuralNetwork<Tensor>> evaluator_;
 #endif
-
-    //生成してはreplay_bufferへ送る関数
-    void genSlave(int64_t id);
-
-    //生成する局数
-    std::atomic<int64_t> game_num_;
-
-    //スレッド数:GPUを交互に使う"2"が最適値なはず
-    static constexpr int32_t THREAD_NUM = 2;
 };
 
 #endif //MIACIS_GAME_GENERATOR_HPP

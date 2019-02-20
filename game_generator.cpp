@@ -1,7 +1,6 @@
-#include <atomic>
-#include <thread>
 #include "game_generator.hpp"
 #include "usi_options.hpp"
+#include <thread>
 
 void GameGenerator::genGames(int64_t game_num) {
     //生成対局数を設定
