@@ -5,15 +5,16 @@
 #include <stack>
 
 class SearcherForGenerate : public Searcher {
+public:
+    //コンストラクタ
+    SearcherForGenerate(int64_t hash_size, int32_t id, std::vector<float>& input_queue, std::vector<std::stack<int32_t>>& index_queue,
+                        std::vector<std::stack<int32_t>>& action_queue, std::vector<int32_t>& id_queue) :
+            Searcher(hash_size), id_(id), input_queue_(input_queue), index_queue_(index_queue), action_queue_(action_queue),
+            id_queue_(id_queue) {}
+
 private:
     //GameGeneratorでしか用いられないので全てprivateに置いてfriend指定をする
     friend class GameGenerator;
-
-    //コンストラクタ
-    SearcherForGenerate(int64_t hash_size, int32_t id, std::vector<float>& input_queue, std::vector<std::stack<int32_t>>& index_queue,
-            std::vector<std::stack<int32_t>>& action_queue, std::vector<int32_t>& id_queue) :
-    Searcher(hash_size), id_(id), input_queue_(input_queue), index_queue_(index_queue), action_queue_(action_queue),
-    id_queue_(id_queue) {}
 
     //root局面を探索する準備を行う関数
     bool prepareForCurrPos(Position& root);
