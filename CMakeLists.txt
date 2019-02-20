@@ -22,13 +22,13 @@ set(SRCS bitboard.cpp
          usi.cpp
          replay_buffer.cpp
          game_generator.cpp
-         searcher_for_gen.cpp
          neural_network.cpp
          supervised_learn.cpp
          learn.cpp
          alphazero_learn.cpp
          searcher.cpp
-         searcher_for_play.cpp)
+         searcher_for_play.cpp
+         searcher_for_generate.cpp)
 
 add_executable(Miacis_sv ${SRCS})
 add_executable(Miacis_cv ${SRCS})

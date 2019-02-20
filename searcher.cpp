@@ -26,7 +26,7 @@ bool Searcher::shouldStop() {
     }
 
     // 残りの探索を全て次善手に費やしても最善手を超えられない場合は探索を打ち切る
-    return (max1 - max2) > (usi_option.playout_limit - playout_num_);
+    return (max1 - max2) > (usi_option.playout_limit - hash_table_[current_root_index_].sum_N);
 }
 
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {

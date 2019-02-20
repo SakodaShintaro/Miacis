@@ -8,7 +8,7 @@
 class Searcher {
 public:
 protected:
-    Searcher(int64_t hash_size) : hash_table_(hash_size) {}
+    explicit Searcher(int64_t hash_size) : hash_table_(hash_size) {}
 
     //経過時間が持ち時間をオーバーしていないか確認する関数
     bool isTimeOver();
@@ -31,9 +31,6 @@ protected:
 
     //ルート局面のインデックス
     Index current_root_index_;
-
-    //Playout回数
-    std::atomic<uint32_t> playout_num_;
 };
 
 #endif //MIACIS_SEARCHER_HPP

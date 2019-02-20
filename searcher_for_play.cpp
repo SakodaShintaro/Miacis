@@ -51,9 +51,6 @@ Move SearcherForPlay::think(Position& root) {
     //valueは使わないはずだけど気分で
     current_node.value = y.second[0];
 
-    //初期化
-    playout_num_ = 0;
-
     //詰み探索立ち上げ
     std::thread mate_thread(&SearcherForPlay::mateSearch, this, root);
 
@@ -178,7 +175,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
     auto& redundancy_num = redundancy_num_[id];
 
     //限界に達するまで探索を繰り返す
-    while (playout_num_ < usi_option.playout_limit && !shouldStop()) {
+    while (hash_table_[current_root_index_].sum_N < usi_option.playout_limit && !shouldStop()) {
         //キューをクリア
         input_queue.clear();
         index_queue.clear();
@@ -187,13 +184,9 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         redundancy_num.clear();
 
         //評価要求を貯める
-        for (uint64_t i = 0; i < search_batch_size_; i++) {
+        for (uint64_t i = 0; i < search_batch_size_ && !shouldStop(); i++) {
             //1回探索
             onePlay(root, id);
-
-            if (playout_num_++ >= usi_option.playout_limit || shouldStop()) {
-                break;
-            }
         }
 
         //評価要求をGPUで計算
@@ -223,7 +216,6 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         //バックアップ
         for (int32_t i = 0; i < route_queue.size(); i++) {
             backup(route_queue[i], action_queue[i], 1 - VIRTUAL_LOSS * redundancy_num[i]);
-            playout_num_ += 1 - redundancy_num[i];
         }
     }
 }
@@ -436,8 +428,8 @@ void SearcherForPlay::mateSearch(Position pos) {
             if (result) {
                 //この手に書き込み
                 //playout_limitだけ足せば必ずこの手が選ばれるようになる
+                curr_node.N[i]  += usi_option.playout_limit;
                 curr_node.sum_N += usi_option.playout_limit;
-                curr_node.N[i] += usi_option.playout_limit;
                 return;
             }
         }

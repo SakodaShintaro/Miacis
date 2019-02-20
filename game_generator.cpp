@@ -98,7 +98,7 @@ void GameGenerator::gpuFunc() {
 
         //カレントキューを入れ替える
         current_queue_index_ ^= 1;
-        current_features_ = features_[current_queue_index_];
+        current_features_ = input_queue_[current_queue_index_];
         current_features_.clear();
         current_hash_index_queue_ = hash_index_queues_[current_queue_index_];
         current_hash_index_queue_.clear();
@@ -131,10 +131,10 @@ void GameGenerator::gpuFunc() {
 void GameGenerator::clearEvalQueue() {
     current_queue_index_ = 0;
     for (int32_t i = 0; i < 2; i++) {
-        features_[i].clear();
+        input_queue_[i].clear();
         hash_index_queues_[i].clear();
     }
-    current_features_ = features_[current_queue_index_];
+    current_features_ = input_queue_[current_queue_index_];
     current_hash_index_queue_ = hash_index_queues_[current_queue_index_];
 }
 
@@ -172,9 +172,10 @@ void GameGenerator::genSlave(int64_t id) {
     std::vector<Position> positions(parallel_num);
 
     //探索クラスの生成,初期局面を探索する準備
-    std::vector<SearcherForGen> searchers;
+    std::vector<SearcherForGenerate> searchers;
     for (int32_t i = 0; i < parallel_num; i++) {
-        searchers.emplace_back(usi_option.USI_Hash, i, features, hash_indices, actions, ids);
+        SearcherForGenerate s(usi_option.USI_Hash, i, features, hash_indices, actions, ids);
+        searchers.push_back(s);
         searchers[i].prepareForCurrPos(positions[i]);
     }
 
