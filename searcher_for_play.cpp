@@ -148,16 +148,12 @@ void SearcherForPlay::printUSIInfo() const {
     auto best_wp = (curr_node.N[selected_index] == 0 ? 0.0 : curr_node.W[selected_index] / curr_node.N[selected_index]);
 #endif
 
-    //勝率を評価値に変換
-    //int32_t cp = inv_sigmoid(best_wp, CP_GAIN);
-    int32_t cp = (int32_t)(best_wp * 1000);
-
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
            (int32_t)(curr_node.sum_N * 1000 / std::max(elapsed.count(), 1L)),
            (int32_t)(elapsed.count()),
            curr_node.sum_N,
            (int32_t)(hash_table_.getUsageRate() * 1000),
-           cp);
+           (int32_t)(best_wp * 1000));
 
     auto pv = getPV();
     for (auto m : pv) {
@@ -185,7 +181,6 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
 
         //評価要求を貯める
         for (uint64_t i = 0; i < search_batch_size_ && !shouldStop(); i++) {
-            //1回探索
             select(root, id);
         }
 
