@@ -7,12 +7,12 @@
 #include <iomanip>
 
 //共通するものは分岐する前に置いておく
-std::vector<double> GameGenerator::SearcherForGen::dirichletDistribution(int32_t k, double alpha) {
+std::vector<double> GameGenerator::SearcherForGen::dirichletDistribution(uint64_t k, double alpha) {
     static std::random_device seed;
     static std::default_random_engine engine(seed());
     static constexpr double eps = 0.000000001;
     std::gamma_distribution<double> gamma(alpha, 1.0);
-    std::vector<double> dirichlet(static_cast<unsigned long>(k));
+    std::vector<double> dirichlet(k);
     double sum = 0.0;
     for (int32_t i = 0; i < k; i++) {
         sum += (dirichlet[i] = std::max(gamma(engine), eps));

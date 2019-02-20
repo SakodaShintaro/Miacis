@@ -157,7 +157,7 @@ private:
         Index expandNode(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
         //ディリクレ分布に従ったものを返す関数
-        static std::vector<double> dirichletDistribution(int32_t k, double alpha);
+        static std::vector<double> dirichletDistribution(uint64_t k, double alpha);
 
         //詰み探索
         bool mateSearch(Position pos, int32_t depth);
