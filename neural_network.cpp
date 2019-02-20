@@ -69,23 +69,6 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::ve
     return forward(x);
 }
 
-std::pair<PolicyType, ValueType> NeuralNetworkImpl::policyAndValue(const Position& pos) {
-    auto y = forward(pos.makeFeature());
-    auto p = y.first.cpu();
-    PolicyType policy(p.data<float>(), p.data<float>() + POLICY_CHANNEL_NUM * SQUARE_NUM);
-
-    auto value = y.second;
-#ifdef USE_CATEGORICAL
-    value = torch::log_softmax(value, 0).cpu();
-    //std::arrayの形で返す
-    ValueType retval;
-    std::copy(value.data<float>(), value.data<float>() + BIN_SIZE, retval.begin());
-    return { policy, retval };
-#else
-    return { policy, value.item<float>() };
-#endif
-}
-
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
 NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     auto y = forward(inputs);
@@ -266,22 +249,6 @@ std::pair<Var, Var> NeuralNetwork<Var>::feedForward(const std::vector<float>& in
 #endif
 #endif
     return { policy, value };
-}
-
-template<typename Var>
-std::pair<PolicyType, ValueType> NeuralNetwork<Var>::policyAndValue(const Position& pos) {
-    std::vector<float> input = pos.makeFeature();
-    auto y = feedForward(input);
-    auto policy = F::flatten(y.first);
-
-#ifdef USE_CATEGORICAL
-    auto value = F::softmax(y.second, 0).to_vector();
-        ValueType retval;
-        std::copy(value.begin(), value.end(), retval.begin());
-        return { policy.to_vector(), retval };
-#else
-    return { policy.to_vector(), y.second.to_float() };
-#endif
 }
 
 template<typename Var>

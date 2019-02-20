@@ -144,18 +144,18 @@ void Position::print(bool with_score) const {
     //評価値
     if (with_score) {
 #ifdef USE_CATEGORICAL
-        auto y = nn->policyAndValue(*this);
-        auto value1 = y.second;
+        auto y = nn->policyAndValueBatch(makeFeature());
+        auto categorical = y.second.front();
 
         CalcType value = 0.0;
         for (int32_t i = 0; i < BIN_SIZE; i++) {
-            printf("p[%f] = %f\n", MIN_SCORE + VALUE_WIDTH * (0.5 + i), value1[i]);
-            value += (CalcType)((MIN_SCORE + VALUE_WIDTH * (0.5 + i)) * value1[i]);
+            printf("p[%f] = %f\n", MIN_SCORE + VALUE_WIDTH * (0.5 + i), categorical[i]);
+            value += (CalcType)((MIN_SCORE + VALUE_WIDTH * (0.5 + i)) * categorical[i]);
         }
         printf("value = %f\n", value);
 #else
-        auto y = nn->policyAndValue(*this);
-        std::cout << "value = " << y.second << std::endl;
+        auto y = nn->policyAndValueBatch(makeFeature());
+        std::cout << "value = " << y.second.front() << std::endl;
 #endif
     }
 

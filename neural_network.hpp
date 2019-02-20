@@ -51,9 +51,6 @@ public:
     //上の関数をラップして入力部をfloatのvectorにした関数.不要かもしれない
     std::pair<torch::Tensor, torch::Tensor> forward(const std::vector<float>& inputs);
 
-    //1局面を受け取ってそれに対する評価を返す関数.不要な気がする
-    std::pair<PolicyType, ValueType> policyAndValue(const Position& pos);
-
     //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
@@ -138,9 +135,6 @@ public:
 
     //複数バッチ分の入力特徴量を1次元vectorとしたものを引数としてバッチ数のデータを持つVarを返す関数.privateでいいか？
     std::pair<Var, Var> feedForward(const std::vector<float>& input);
-
-    //1局面を受け取って評価結果を返す関数.不要そう
-    std::pair<PolicyType, ValueType> policyAndValue(const Position& pos);
 
     //複数バッチ分の入力特徴量を1次元vectorとしたものを引数としてそれぞれの評価結果を返す関数.内部でfeedForwardを呼び出す
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
