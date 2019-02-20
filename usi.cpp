@@ -90,8 +90,6 @@ void USI::usi() {
     usi_option.thread_num = 1;
     printf("option name search_batch_size type spin default 1 min 1 max 2048\n");
     usi_option.search_batch_size = 1;
-    printf("option name draw_score type spin default -1 min -30000 max 30000\n");
-    usi_option.draw_score = -1;
     printf("option name draw_turn type spin default 256 min 0 max 4096\n");
     usi_option.draw_turn = 256;
 
@@ -142,10 +140,6 @@ void USI::setoption() {
             } else if (input == "search_batch_size") {
                 std::cin >> input; //input == "value"となるはず
                 std::cin >> usi_option.search_batch_size;
-                return;
-            } else if (input == "draw_score") {
-                std::cin >> input; //input == "value"となるはず
-                std::cin >> usi_option.draw_score;
                 return;
             } else if (input == "draw_turn") {
                 std::cin >> input; //input == "value"となるはず

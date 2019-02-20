@@ -6,8 +6,10 @@
 
 class ReplayBuffer{
 public:
+    ReplayBuffer(int64_t first_wait, int64_t max_size, float lambda) : first_wait_(first_wait), max_size_(max_size), lambda_(lambda) {}
+
     //ミニバッチを作って返す関数
-    void makeBatch(int32_t batch_size, std::vector<float>& inputs, std::vector<PolicyTeacherType>& policy_teachers,
+    void makeBatch(int64_t batch_size, std::vector<float>& inputs, std::vector<PolicyTeacherType>& policy_teachers,
                    std::vector<ValueTeacherType>& value_teachers);
 
     //データを入れる関数
@@ -17,18 +19,18 @@ public:
     void clear();
     int64_t size() { return data_.size(); }
 
-    //最初に待つ量
-    uint64_t first_wait;
-
-    //最大サイズ
-    uint64_t max_size;
-
-    //TD(λ)のパラメータ
-    double lambda;
-
 private:
     //実際のデータ
     std::vector<std::tuple<std::string, uint32_t, ValueTeacherType>> data_;
+
+    //最初に待つ量
+    int64_t first_wait_;
+
+    //最大サイズ
+    int64_t max_size_;
+
+    //TD(λ)のパラメータ
+    double lambda_;
 
     //排他制御用
     std::mutex mutex_;

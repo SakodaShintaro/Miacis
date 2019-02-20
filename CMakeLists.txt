@@ -28,7 +28,8 @@ set(SRCS bitboard.cpp
          alphazero_learn.cpp
          searcher.cpp
          searcher_for_play.cpp
-         searcher_for_generate.cpp)
+         searcher_for_generate.cpp
+         hyperparameter_manager.cpp)
 
 add_executable(Miacis_sv ${SRCS})
 add_executable(Miacis_cv ${SRCS})

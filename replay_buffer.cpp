@@ -3,14 +3,15 @@
 #include<thread>
 #include<iomanip>
 
-void ReplayBuffer::makeBatch(int32_t batch_size, std::vector<float>& inputs, std::vector<PolicyTeacherType>& policy_teachers,
+void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
+                             std::vector<PolicyTeacherType>& policy_teachers,
                              std::vector<ValueTeacherType>& value_teachers) {
     //ロックの確保
     mutex_.lock();
 
     //一番最初だけ十分量に達するまで待つ
-    while (data_.size() < first_wait) {
-        double per = 100.0 * data_.size() / first_wait;
+    while (data_.size() < first_wait_) {
+        double per = 100.0 * data_.size() / first_wait_;
         std::cout << "replay_buffer.size() = " << data_.size() << " (" << per << "%)" << std::endl;
         mutex_.unlock();
         std::this_thread::sleep_for(std::chrono::seconds((uint64_t)((100 - per) + 1)));
@@ -18,8 +19,8 @@ void ReplayBuffer::makeBatch(int32_t batch_size, std::vector<float>& inputs, std
     }
 
     //最大量を超えていたらその分を削除
-    if (data_.size() > max_size) {
-        data_.erase(data_.begin(), data_.begin() + data_.size() - max_size);
+    if (data_.size() > max_size_) {
+        data_.erase(data_.begin(), data_.begin() + data_.size() - max_size_);
         data_.shrink_to_fit();
     }
 
@@ -83,7 +84,7 @@ void ReplayBuffer::push(Game &game) {
         //探索結果を先手から見た値に変換
         double curr_win_rate = (pos.color() == BLACK ? game.moves[i].score : MAX_SCORE + MIN_SCORE - game.moves[i].score);
         //混合
-        win_rate_for_black = lambda * win_rate_for_black + (1.0 - lambda) * curr_win_rate;
+        win_rate_for_black = lambda_ * win_rate_for_black + (1.0 - lambda_) * curr_win_rate;
 
         double teacher_signal = (pos.color() == BLACK ? win_rate_for_black : MAX_SCORE + MIN_SCORE - win_rate_for_black);
 

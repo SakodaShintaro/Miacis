@@ -3,101 +3,80 @@
 #include"usi_options.hpp"
 #include"game_generator.hpp"
 #include"operate_params.hpp"
+#include"hyperparameter_manager.hpp"
 #include<thread>
 #include<climits>
 
 void alphaZero() {
     auto start_time = std::chrono::steady_clock::now();
 
-    //オプションをファイルから読み込む
-    std::ifstream ifs("alphazero_settings.txt");
-    if (!ifs) {
-        std::cerr << "fail to open alphazero_settings.txt" << std::endl;
-        assert(false);
-    }
+    HyperparameterManager settings;
+    settings.add("learn_rate",          0.0f, 100.0f);
+    settings.add("learn_rate_decay",    0.0f, 1.0f);
+    settings.add("momentum",            0.0f, 1.0f);
+    settings.add("policy_loss_coeff",   0.0f, 1e10f);
+    settings.add("value_loss_coeff",    0.0f, 1e10f);
+    settings.add("lambda",              0.0f, 1.0f);
+    settings.add("draw_turn",           0, (int64_t)1024);
+    settings.add("random_turn",         0, (int64_t)1024);
+    settings.add("batch_size",          1, (int64_t)1e10);
+    settings.add("thread_num",          1, (int64_t)std::thread::hardware_concurrency());
+    settings.add("max_step_num",        1, (int64_t)1e10);
+    settings.add("sleep_msec",          0, (int64_t)1e10);
+    settings.add("USI_Hash",            1, (int64_t)1e10);
+    settings.add("max_stack_size",      1, (int64_t)1e10);
+    settings.add("first_wait",          0, (int64_t)1e10);
+    settings.add("search_limit",        1, (int64_t)1e10);
+    settings.add("search_batch_size",   1, (int64_t)1e10);
+    settings.add("validation_interval", 1, (int64_t)1e10);
+    settings.add("validation_size",     0, (int64_t)1e10);
+    settings.add("validation_kifu_path");
 
-    float learn_rate = -1;
-    float learn_rate_decay = -1;
-    float momentum = -1;
-    float policy_loss_coeff = -1;
-    float value_loss_coeff = -1;
-    int64_t batch_size = -1;
-    int64_t validation_interval = -1;
-    int64_t max_step_num = -1;
-    int64_t parallel_num = -1;
-    int64_t sleep_msec = -1;
-    int64_t validation_size = -1;
-    std::string validation_kifu_path;
+    settings.load("alphazero_settings.txt");
+    if (!settings.check()) {
+        exit(1);
+    }
 
     //リプレイバッファ
-    ReplayBuffer replay_buffer;
+    ReplayBuffer replay_buffer(settings.get<int64_t>("first_wait"), settings.get<int64_t>("max_stack_size"), settings.get<float>("lambda"));
 
-    //ファイルを読み込んで値を設定
-    std::string name;
-    while (ifs >> name) {
-        if (name == "batch_size") {
-            ifs >> batch_size;
-        } else if (name == "learn_rate") {
-            ifs >> learn_rate;
-        } else if (name == "learn_rate_decay") {
-            ifs >> learn_rate_decay;
-        } else if (name == "momentum") {
-            ifs >> momentum;
-        } else if (name == "random_move_num") {
-            ifs >> usi_option.random_turn;
-        } else if (name == "draw_turn") {
-            ifs >> usi_option.draw_turn;
-        } else if (name == "draw_score") {
-            ifs >> usi_option.draw_score;
-        } else if (name == "USI_Hash") {
-            ifs >> usi_option.USI_Hash;
-        } else if (name == "policy_loss_coeff") {
-            ifs >> policy_loss_coeff;
-        } else if (name == "value_loss_coeff") {
-            ifs >> value_loss_coeff;
-        } else if (name == "lambda") {
-            ifs >> replay_buffer.lambda;
-        } else if (name == "max_stack_size") {
-            ifs >> replay_buffer.max_size;
-        } else if (name == "first_wait") {
-            ifs >> replay_buffer.first_wait;
-        } else if (name == "max_step_num") {
-            ifs >> max_step_num;
-        } else if (name == "search_limit") {
-            ifs >> usi_option.search_limit;
-        } else if (name == "parallel_num") {
-            ifs >> parallel_num;
-        } else if (name == "sleep_msec") {
-            ifs >> sleep_msec;
-        } else if (name == "validation_interval") {
-            ifs >> validation_interval;
-        } else if (name == "validation_size") {
-            ifs >> validation_size;
-        } else if (name == "validation_kifu_path") {
-            ifs >> validation_kifu_path;
-        }
-    }
+    //usi_optionの設定
+    usi_option.random_turn       = settings.get<int64_t>("random_turn");
+    usi_option.USI_Hash          = settings.get<int64_t>("USI_Hash");
+    usi_option.draw_turn         = settings.get<int64_t>("draw_turn");
+    usi_option.thread_num        = settings.get<int64_t>("thread_num");
+    usi_option.search_batch_size = settings.get<int64_t>("search_batch_size");
+    usi_option.search_limit      = settings.get<int64_t>("search_limit");
 
     //その他オプションを学習用に設定
     usi_option.limit_msec = LLONG_MAX;
     usi_option.stop_signal = false;
     usi_option.byoyomi_margin = 0LL;
 
+    //学習ループ中で複数回参照するオプションは変数として確保する
+    //速度的な問題はほぼないと思うが,学習始まってからtypoで中断が入るのも嫌なので
+    int64_t batch_size          = settings.get<int64_t>("batch_size");
+    int64_t max_step_num        = settings.get<int64_t>("max_step_num");
+    int64_t validation_interval = settings.get<int64_t>("validation_interval");
+    int64_t sleep_msec          = settings.get<int64_t>("sleep_msec");
+    float policy_loss_coeff     = settings.get<float>("policy_loss_coeff");
+    float value_loss_coeff      = settings.get<float>("value_loss_coeff");
+
     //ログファイルの設定
-    std::ofstream log_file("alphazero_log.txt");
-    log_file  << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
+    std::ofstream learn_log("alphazero_log.txt");
+    learn_log << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
     std::cout << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
     std::ofstream validation_log("alphazero_validation_log.txt");
     validation_log << "step_num\telapsed_hours\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
     //データを取得
-    std::vector<std::pair<std::string, TeacherType>> validation_data = loadData(validation_kifu_path);
-    assert(validation_data.size() >= validation_size);
+    std::vector<std::pair<std::string, TeacherType>> validation_data = loadData(settings.get<std::string>("validation_kifu_path"));
+    assert(validation_data.size() >= settings.get<int64_t>("validation_size"));
 
     //データをシャッフルして必要量以外を削除
     std::default_random_engine engine(0);
     std::shuffle(validation_data.begin(), validation_data.end(), engine);
-    validation_data.erase(validation_data.begin() + validation_size);
+    validation_data.erase(validation_data.begin() + settings.get<int64_t>("validation_size"));
 
     //モデル読み込み
 #ifdef USE_LIBTORCH
@@ -107,8 +86,8 @@ void alphaZero() {
     torch::load(nn, MODEL_PATH);
 
     //Optimizerの準備
-    torch::optim::SGDOptions sgd_option(learn_rate);
-    sgd_option.momentum(momentum);
+    torch::optim::SGDOptions sgd_option(settings.get<float>("learn_rate"));
+    sgd_option.momentum(settings.get<float>("momentum"));
     sgd_option.weight_decay(1e-4);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 #else
@@ -117,7 +96,7 @@ void alphaZero() {
     learning_model.save(MODEL_PREFIX + "_before_alphazero.model");
     nn->load(MODEL_PATH);
 
-    O::MomentumSGD optimizer(learn_rate);
+    O::MomentumSGD optimizer(settings.get<float>("learn_rate"));
     optimizer.set_weight_decay(1e-4);
     optimizer.add(learning_model);
 
@@ -134,19 +113,19 @@ void alphaZero() {
         std::vector<float> inputs;
         std::vector<PolicyTeacherType> policy_teachers;
         std::vector<ValueTeacherType> value_teachers;
-        replay_buffer.makeBatch(static_cast<int32_t>(batch_size), inputs, policy_teachers, value_teachers);
+        replay_buffer.makeBatch(batch_size, inputs, policy_teachers, value_teachers);
 
         generator.gpu_mutex.lock();
 #ifdef USE_LIBTORCH
         optimizer.zero_grad();
         auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
         auto sum_loss = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
-        if (step_num % (validation_interval / 10) == 0) {
+        if (step_num % (validation_interval  / 10) == 0) {
             auto p_loss = loss.first.item<float>();
             auto v_loss = loss.second.item<float>();
             std::cout << elapsedTime(start_time) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
                       << "\t" << v_loss << std::endl;
-            log_file << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
+            learn_log << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
                      << "\t" << v_loss << std::endl;
         }
         sum_loss.backward();
@@ -162,12 +141,12 @@ void alphaZero() {
         optimizer.update();
 
         //学習情報の表示
-        if (step_num % (validation_interval / 10) == 0) {
+        if (step_num % (settings.get<int64_t>("validation_interval") / 10) == 0) {
             float p_loss = loss.first.to_float();
             float v_loss = loss.second.to_float();
             float sum_loss = policy_loss_coeff * p_loss + value_loss_coeff * v_loss;
-            std::cout << elapsedTime(start_time) << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
-            log_file << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
+            std::cout << elapsedTime(start_time)  << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
+            learn_log << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
         }
 
         //書き出し

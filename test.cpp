@@ -69,13 +69,10 @@ void checkGenSpeed() {
     usi_option.search_limit = 800;
     usi_option.draw_turn = 100;
 
-    int64_t game_num;
-    ReplayBuffer buffer;
 
     for (int64_t thread_num = 2; thread_num <= 256; thread_num *= 2) {
-        game_num = thread_num;
-        buffer.max_size = static_cast<uint64_t>(game_num * usi_option.draw_turn);
-        buffer.clear();
+        int64_t game_num = thread_num;
+        ReplayBuffer buffer(0, game_num * usi_option.draw_turn, 1.0);
         auto start = std::chrono::steady_clock::now();
         GameGenerator generator(buffer, nn);
         generator.genGames(game_num);
