@@ -64,7 +64,7 @@ public:
     }
 
     bool hasEnoughSize() {
-        return used_num_ > table_.size() * 9 / 10;
+        return used_num_ <= (table_.size() * 9 / 10);
     }
 
     uint64_t size() {
