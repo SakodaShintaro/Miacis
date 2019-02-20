@@ -1,5 +1,4 @@
-﻿#pragma once
-#ifndef USI_OPTIONS_HPP
+﻿#ifndef USI_OPTIONS_HPP
 #define USI_OPTIONS_HPP
 
 class USIOption{

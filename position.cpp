@@ -452,17 +452,6 @@ bool Position::isLegalMove(const Move move) const {
             return false;
         }
     } else { //盤上の駒を動かす手の判定
-        //各駒に合わせた動きになっているかチェック
-//        bool flag = false;
-//        for (auto delta : CanMove[board_[move.from()]]) {
-//            if (move.to() == move.from() + delta) {
-//                flag = true;
-//            }
-//        }
-//        if (!flag) {
-//            return false;
-//        }
-
         //動かす駒がfromにある駒と一致しているかチェック
         if (move.subject() != board_[move.from()]) {
             return false;

@@ -10,6 +10,11 @@ bool Searcher::shouldStop() {
         return true;
     }
 
+    if (!hash_table_.hasEnoughSize()) {
+        printf("ハッシュ表が埋まるのは想定内？\n");
+        return true;
+    }
+
     //探索回数が最も多い手と2番目に多い手を求める
     int32_t max1 = 0, max2 = 0;
     for (auto e : hash_table_[current_root_index_].N) {
