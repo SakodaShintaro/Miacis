@@ -1,12 +1,5 @@
 ﻿#include"uct_hash_table.hpp"
 
-UctHashTable::UctHashTable(int64_t hash_size) : age_(1) {
-    int64_t bytes = hash_size * 1024 * 1024;
-    uint64_t size = 1ull << MSB64(bytes / sizeof(UctHashEntry));
-    used_num_ = 0;
-    table_.resize(size);
-}
-
 Index UctHashTable::searchEmptyIndex(const Position& pos) {
     auto hash = pos.hash_value();
     auto key = hashToIndex(hash);

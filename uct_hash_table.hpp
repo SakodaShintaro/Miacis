@@ -37,7 +37,7 @@ struct UctHashEntry {
 
 class UctHashTable {
 public:
-    explicit UctHashTable(int64_t hash_size);
+    explicit UctHashTable(int64_t hash_size) : used_num_(0), age_(1), table_(1ull << MSB64(hash_size)) {}
 
     UctHashEntry& operator[](Index i) {
         return table_[i];
@@ -64,7 +64,7 @@ public:
     }
 
     bool hasEnoughSize() {
-        return used_num_ <= (table_.size() * 9 / 10);
+        return used_num_ < table_.size();
     }
 
     uint64_t size() {

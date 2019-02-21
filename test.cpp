@@ -27,7 +27,7 @@ void test() {
 #else
     nn->load(MODEL_PATH);
 #endif
-    SearcherForPlay searcher(usi_option.USI_Hash, usi_option.thread_num, usi_option.search_batch_size, nn);
+    SearcherForPlay searcher(usi_option.search_limit, usi_option.thread_num, usi_option.search_batch_size, nn);
 
     Position pos;
     Game game;
@@ -69,7 +69,6 @@ void checkGenSpeed() {
     usi_option.search_limit = 800;
     usi_option.draw_turn = 100;
 
-
     for (int64_t thread_num = 2; thread_num <= 256; thread_num *= 2) {
         int64_t game_num = thread_num;
         ReplayBuffer buffer(0, game_num * usi_option.draw_turn, 1.0);
@@ -85,13 +84,12 @@ void checkGenSpeed() {
 
 void checkSearchSpeed() {
     usi_option.limit_msec = 10000;
-    usi_option.USI_Hash = 1024;
     usi_option.search_limit = static_cast<int64_t>(1e10);
     Position pos;
     for (uint64_t search_batch_size = 64; search_batch_size <= 512; search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_batch_size << std::endl;
         for (uint64_t thread_num = 1; thread_num <= 3; thread_num++) {
-            SearcherForPlay searcher(usi_option.USI_Hash, thread_num, search_batch_size, nn);
+            SearcherForPlay searcher(1000000, thread_num, search_batch_size, nn);
             searcher.think(pos);
         }
     }
