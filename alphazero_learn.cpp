@@ -23,7 +23,6 @@ void alphaZero() {
     settings.add("thread_num",          1, (int64_t)std::thread::hardware_concurrency());
     settings.add("max_step_num",        1, (int64_t)1e10);
     settings.add("sleep_msec",          0, (int64_t)1e10);
-    settings.add("USI_Hash",            1, (int64_t)1e10);
     settings.add("max_stack_size",      1, (int64_t)1e10);
     settings.add("first_wait",          0, (int64_t)1e10);
     settings.add("search_limit",        1, (int64_t)1e10);
@@ -42,7 +41,6 @@ void alphaZero() {
 
     //usi_optionの設定
     usi_option.random_turn       = settings.get<int64_t>("random_turn");
-    usi_option.USI_Hash          = settings.get<int64_t>("USI_Hash");
     usi_option.draw_turn         = settings.get<int64_t>("draw_turn");
     usi_option.thread_num        = settings.get<int64_t>("thread_num");
     usi_option.search_batch_size = settings.get<int64_t>("search_batch_size");

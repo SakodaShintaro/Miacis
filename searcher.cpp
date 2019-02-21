@@ -11,7 +11,6 @@ bool Searcher::shouldStop() {
     }
 
     if (!hash_table_.hasEnoughSize()) {
-        printf("ハッシュ表が埋まるのは想定内？\n");
         return true;
     }
 

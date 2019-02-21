@@ -8,12 +8,11 @@ draw_turn            512
 random_turn          512
 batch_size           4096
 thread_num           2
-max_step_num         700000
+max_step_num         70000
 sleep_msec           1000
-USI_Hash             1
 max_stack_size       100000
 first_wait           10000
-search_limit         800
+search_limit         512
 search_batch_size    64
 validation_interval  1000
 validation_size      4096
