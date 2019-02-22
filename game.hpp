@@ -7,12 +7,15 @@
 #include<vector>
 #include<experimental/filesystem>
 
-struct Game {
-	//指し手のvector
-	std::vector<Move> moves;
+struct OneTurnElement {
+	Move move;
+	TeacherType teacher;
+	ValueType nn_output_value;
+	std::vector<float> nn_output_policy;
+};
 
-    //教師データのvector
-    std::vector<TeacherType> teachers;
+struct Game {
+    std::vector<OneTurnElement> elements;
 	
     //対局結果
     static constexpr double RESULT_BLACK_WIN = MAX_SCORE;

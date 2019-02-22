@@ -93,9 +93,8 @@ void GameGenerator::genSlave(int64_t id) {
                 }
                 //探索結果を取得して次の局面へ遷移
                 auto result = searchers[i].resultForCurrPos(positions[i]);
-                positions[i].doMove(result.first);
-                games[i].moves.push_back(result.first);
-                games[i].teachers.push_back(result.second);
+                positions[i].doMove(result.move);
+                games[i].elements.push_back(result);
 
                 bool curr_game_finish = false;
                 if (positions[i].turn_number() >= usi_option.draw_turn) {
@@ -115,8 +114,7 @@ void GameGenerator::genSlave(int64_t id) {
                     //次の対局へ向かう
                     nums[i] = game_num_--;
                     positions[i].init();
-                    games[i].moves.clear();
-                    games[i].teachers.clear();
+                    games[i].elements.clear();
 
                     if (nums[i] > 0) {
                         searchers[i].prepareForCurrPos(positions[i]);

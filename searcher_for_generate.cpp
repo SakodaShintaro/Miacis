@@ -1,6 +1,7 @@
 #include "searcher_for_generate.hpp"
 #include "usi_options.hpp"
 #include "operate_params.hpp"
+#include "game.hpp"
 
 bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     //古いハッシュを削除
@@ -190,7 +191,7 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
     }
 }
 
-std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& root) {
+OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     const auto& current_node = hash_table_[current_root_index_];
     assert(!current_node.moves.empty());
     assert(current_node.sum_N != 0);
@@ -207,13 +208,13 @@ std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& roo
 #endif
 
     //教師データを作成
-    TeacherType teacher;
+    OneTurnElement element;
 
     //valueのセット
 #ifdef USE_CATEGORICAL
-    teacher.value = valueToIndex(best_wp);
+    element.teacher.value = valueToIndex(best_wp);
 #else
-    teacher.value = (CalcType)best_wp;
+    element.teacher.value = (CalcType)best_wp;
 #endif
 
     //policyのセット
@@ -229,10 +230,17 @@ std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& roo
     Move best_move = (root.turn_number() < usi_option.random_turn ?
                       current_node.moves[randomChoose(distribution)] :
                       current_node.moves[best_index]);
-    best_move.score = (Score)(best_wp);
-    teacher.policy = best_move.toLabel();
+    element.move = best_move;
+    element.teacher.policy = best_move.toLabel();
 
-    return { best_move, teacher };
+    //priorityとしてpolicyの損失を計算
+    element.nn_output_policy.resize(SQUARE_NUM * POLICY_CHANNEL_NUM, 0.0);
+    for (uint64_t i = 0; i < current_node.moves.size(); i++) {
+        element.nn_output_policy[current_node.moves[i].toLabel()] = current_node.nn_policy[i];
+    }
+    element.nn_output_value  = current_node.value;
+
+    return element;
 }
 
 std::vector<double> SearcherForGenerate::dirichletDistribution(uint64_t k, double alpha) {
@@ -263,6 +271,11 @@ bool SearcherForGenerate::mateSearch(Position pos, int32_t depth) {
             //playout_limitだけ足せば必ずこの手が選ばれるようになる
             curr_node.N[i]  += usi_option.search_limit;
             curr_node.sum_N += usi_option.search_limit;
+#ifdef USE_CATEGORICAL
+            curr_node.value[BIN_SIZE - 1] += usi_option.search_limit;
+#else
+            curr_node.value += usi_option.search_limit * MAX_SCORE;
+#endif
             return true;
         }
     }

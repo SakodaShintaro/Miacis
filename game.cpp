@@ -58,7 +58,9 @@ Game loadGameFromCSA(sys::path p) {
             std::cout << p << std::endl;
             assert(false);
         }
-		game.moves.push_back(move);
+        OneTurnElement element;
+        element.move = move;
+		game.elements.push_back(element);
         pos.doMove(move);
 	}
     game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
@@ -184,8 +186,8 @@ void Game::writeKifuFile(std::string dir_path) const {
 
     Position pos;
 
-    for (int32_t i = 0; i < moves.size(); i++) {
-        Move m = moves[i];
+    for (int32_t i = 0; i < elements.size(); i++) {
+        Move m = elements[i].move;
         ofs << i + 1 << " ";
         File to_file = SquareToFile[m.to()];
         Rank to_rank = SquareToRank[m.to()];
@@ -207,7 +209,7 @@ void Game::writeKifuFile(std::string dir_path) const {
         pos.doMove(m);
     }
     
-    ofs << moves.size() + 1 << " ";
+    ofs << elements.size() + 1 << " ";
     if (result == RESULT_BLACK_WIN || result == RESULT_WHITE_WIN) {
         ofs << "投了" << std::endl;
     } else if (result == RESULT_DRAW_REPEAT) {

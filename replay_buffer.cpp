@@ -9,36 +9,21 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
     //ロックの確保
     mutex_.lock();
 
-    //一番最初だけ十分量に達するまで待つ
-    while (data_.size() < first_wait_) {
-        double per = 100.0 * data_.size() / first_wait_;
-        std::cout << "replay_buffer.size() = " << data_.size() << " (" << per << "%)" << std::endl;
-        mutex_.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds((uint64_t)((100 - per) + 1)));
-        mutex_.lock();
-    }
+    //現時点のpriorityの和を取得し,そこまでの範囲の一様分布生成器を作る
+    float sum = segment_tree_.getSum();
+    std::mt19937 engine(0);
+    std::uniform_real_distribution<float> dist(0.0, sum);
 
-    //最大量を超えていたらその分を削除
-    if (data_.size() > max_size_) {
-        data_.erase(data_.begin(), data_.begin() + data_.size() - max_size_);
-        data_.shrink_to_fit();
-    }
-
-    //とりあえずランダムに取得
-    static std::mt19937 engine(0);
-    std::uniform_int_distribution<unsigned long> dist(0, data_.size() - 1);
-
+    //データを入れる
     Position pos;
-
     inputs.clear();
     policy_teachers.clear();
     value_teachers.clear();
     for (int32_t i = 0; i < batch_size; i++) {
         //データの取り出し
         std::string sfen;
-        uint32_t policy_label;
-        ValueTeacherType value;
-        std::tie(sfen, policy_label, value) = data_[dist(engine)];
+        TeacherType teacher;
+        std::tie(sfen, teacher) = data_[segment_tree_.getIndex(dist(engine))];
 
         //入力特徴量の確保
         pos.loadSFEN(sfen);
@@ -46,13 +31,13 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
         inputs.insert(inputs.end(), feature.begin(), feature.end());
 
         //policyの教師
-        policy_teachers.push_back(policy_label);
+        policy_teachers.push_back(teacher.policy);
 
         //valueの教師
 #ifdef USE_CATEGORICAL
-        value_teachers.push_back(valueToIndex(value));
+        value_teachers.push_back(valueToIndex(teacher.value));
 #else
-        value_teachers.push_back(value);
+        value_teachers.push_back(teacher.value);
 #endif
     }
 
@@ -66,8 +51,8 @@ void ReplayBuffer::push(Game &game) {
     Position pos;
 
     //まずは最終局面まで動かす
-    for (auto move : game.moves) {
-        pos.doMove(move);
+    for (const auto& e : game.elements) {
+        pos.doMove(e.move);
     }
 
     assert(Game::RESULT_WHITE_WIN <= game.result && game.result <= Game::RESULT_BLACK_WIN);
@@ -75,12 +60,14 @@ void ReplayBuffer::push(Game &game) {
     //先手から見た勝率,分布.指数移動平均で動かしていく.最初は結果によって初期化
     double win_rate_for_black = game.result;
 
-    for (int32_t i = (int32_t) game.moves.size() - 1; i >= 0; i--) {
+    for (int32_t i = (int32_t)game.elements.size() - 1; i >= 0; i--) {
         //i番目の指し手を教師とするのは1手戻した局面
         pos.undo();
 
+        auto& e = game.elements[i];
+
         //探索結果を先手から見た値に変換
-        double curr_win_rate = (pos.color() == BLACK ? game.moves[i].score : MAX_SCORE + MIN_SCORE - game.moves[i].score);
+        double curr_win_rate = (pos.color() == BLACK ? e.move.score : MAX_SCORE + MIN_SCORE - e.move.score);
         //混合
         win_rate_for_black = lambda_ * win_rate_for_black + (1.0 - lambda_) * curr_win_rate;
 
@@ -88,14 +75,36 @@ void ReplayBuffer::push(Game &game) {
 
 #ifdef USE_CATEGORICAL
         //teacherにコピーする
-        game.teachers[i].value = valueToIndex(teacher_signal);
+        e.teacher.value = valueToIndex(teacher_signal);
 #else
         //teacherにコピーする
-        game.teachers[i].value = (CalcType) (teacher_signal);
+        e.teacher.value = (CalcType) (teacher_signal);
 #endif
-        //スタックに詰める
-        data_.emplace_back(pos.toSFEN(), game.teachers[i].policy, game.teachers[i].value);
+
+        //priorityが最小のものを取る
+        auto t = priority_queue_.top();
+        priority_queue_.pop();
+
+        //そこのデータを入れ替える
+        data_[t.index] = std::make_tuple(pos.toSFEN(), e.teacher);
+
+        //priorityはmoveのscoreに入れられている.そこに時間ボーナスを入れる
+#ifdef USE_CATEGORICAL
+        float priority = 0.0;
+        assert(false);
+#else
+        float priority = -std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f) + priority_time_bonus_;
+#endif
+        std::cout << e.nn_output_policy[e.move.toLabel()] << ", " << e.nn_output_value<< ", " <<  e.teacher.value << std::endl;
+        std::cout << "priority = " << priority << std::endl;
+
+        //pqとsegment_treeのpriorityを更新
+        priority_queue_.push(Element(priority, t.index));
+        segment_tree_.update(t.index, priority);
     }
+
+    priority_time_bonus_ += 1e-4;
+
     mutex_.unlock();
 }
 

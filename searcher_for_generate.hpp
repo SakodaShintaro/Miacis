@@ -2,6 +2,7 @@
 #define MIACIS_SEARCHER_FOR_GENERATE_HPP
 
 #include "searcher.hpp"
+#include "game.hpp"
 #include <stack>
 
 class SearcherForGenerate : public Searcher {
@@ -29,7 +30,7 @@ private:
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
     //現局面の探索結果を返す関数
-    std::pair<Move, TeacherType> resultForCurrPos(Position& root);
+    OneTurnElement resultForCurrPos(Position& root);
 
     //ディリクレ分布に従ったものを返す関数
     static std::vector<double> dirichletDistribution(uint64_t k, double alpha);

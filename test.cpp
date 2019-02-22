@@ -54,7 +54,9 @@ void test() {
         }
 
         pos.doMove(best_move);
-        game.moves.push_back(best_move);
+        OneTurnElement element;
+        element.move = best_move;
+        game.elements.push_back(element);
     }
     auto end = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

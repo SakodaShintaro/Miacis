@@ -96,7 +96,8 @@ std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& fil
     std::vector<std::pair<std::string, TeacherType>> data_buffer;
     for (const auto& game : games) {
         Position pos;
-        for (const auto& move : game.moves) {
+        for (const auto& e : game.elements) {
+            const auto& move = e.move;
             TeacherType teacher;
             teacher.policy = (uint32_t) move.toLabel();
 #ifdef USE_CATEGORICAL
