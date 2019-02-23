@@ -9,9 +9,6 @@ class ReplayBuffer{
 public:
     ReplayBuffer(int64_t first_wait, int64_t max_size, float lambda) : first_wait_(first_wait), max_size_(max_size),
     lambda_(lambda), segment_tree_(max_size), priority_time_bonus_(0.0), data_(max_size) {
-        for (int64_t i = 0; i < max_size; i++) {
-            priority_queue_.push(Element(0.0, i));
-        }
     }
 
     //ミニバッチを作って返す関数
@@ -20,6 +17,9 @@ public:
 
     //データを入れる関数
     void push(Game& game);
+
+    //ミニバッチを学習した結果を用いてpriorityを更新する関数
+    void update(const std::vector<float>& loss);
 
     //checkGenSpeedで使うもの
     void clear();
@@ -35,13 +35,16 @@ private:
     public:
         explicit SegmentTree(uint64_t n) {
             n_ = 1ull << MSB64(n);
-            nodes_.resize(2 * n_ - 1);
+            sum_.resize(2 * n_ - 1);
+            min_.resize(2 * n_ - 1);
         }
 
         void update(uint64_t x, float v) {
-            nodes_[x + n_ - 1] = v;
+            sum_[x + n_ - 1] = v;
+            min_[x + n_ - 1] = v;
             for (uint64_t i = (x + n_ - 2) / 2; ; i = (i - 1) / 2) {
-                nodes_[i] = nodes_[2 * i + 1] + nodes_[2 * i + 2];
+                sum_[i] = sum_[2 * i + 1] + sum_[2 * i + 2];
+                min_[i] = std::min(min_[2 * i + 1], min_[2 * i + 2]);
                 if (i == 0) {
                     break;
                 }
@@ -53,31 +56,29 @@ private:
                 //最下段まで来ていたらindexを返す
                 return k - (n_ - 1);
             }
-            return (value <= nodes_[k] ? getIndex(value, 2 * k + 1) : getIndex(value, 2 * k + 2));
+            return (value <= sum_[k] ? getIndex(value, 2 * k + 1) : getIndex(value, 2 * k + 2));
+        }
+
+        uint64_t getMinIndex(uint64_t k = 0) {
+            if (k >= n_ - 1) {
+                //最下段まで来ていたらindexを返す
+                return k - (n_ - 1);
+            }
+            return (min_[2 * k + 1] <= min_[2 * k + 2] ? getMinIndex(2 * k + 1) : getMinIndex(2 * k + 2));
         }
 
         float getSum() {
-            return nodes_.front();
+            return sum_.front();
         }
 
     private:
         //2のべき乗
         uint64_t n_;
-        std::vector<float> nodes_;
+        std::vector<float> sum_, min_;
     };
     SegmentTree segment_tree_;
 
     float priority_time_bonus_;
-
-    struct Element {
-        Element(float p, int32_t i) : priority(p), index(i) {}
-        float priority;
-        int32_t index;
-        bool operator<(const Element& rhs) const {
-            return priority > rhs.priority;
-        }
-    };
-    std::priority_queue<Element> priority_queue_;
 
     //最初に待つ量
     int64_t first_wait_;
@@ -90,6 +91,9 @@ private:
 
     //排他制御用
     std::mutex mutex_;
+
+    //更新に利用するため前回使用したindexらを保存しておく
+    std::vector<uint64_t> pre_indices_;
 };
 
 #endif //MIACIS_REPLAY_BUFFER_HPP

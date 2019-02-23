@@ -117,16 +117,25 @@ void alphaZero() {
 #ifdef USE_LIBTORCH
         optimizer.zero_grad();
         auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
-        auto sum_loss = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
+
+        //replay_bufferのpriorityを更新
+        auto sum_loss = (policy_loss_coeff * loss.first + value_loss_coeff * loss.second).cpu();
+        std::vector<float> loss_vec(batch_size);
+        std::copy(sum_loss.data<float>(), sum_loss.data<float>() + batch_size, loss_vec.begin());
+        replay_buffer.update(loss_vec);
+
+        auto policy_mean_loss = torch::mean(loss.first);
+        auto value_mean_loss = torch::mean(loss.second);
+        auto sum_mean_loss = policy_loss_coeff * policy_mean_loss + value_loss_coeff * value_mean_loss;
         if (step_num % (validation_interval  / 10) == 0) {
             auto p_loss = loss.first.item<float>();
             auto v_loss = loss.second.item<float>();
-            std::cout << elapsedTime(start_time) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
+            std::cout << elapsedTime(start_time) << "\t" << step_num << "\t" << sum_mean_loss.item<float>() << "\t" << p_loss
                       << "\t" << v_loss << std::endl;
-            learn_log << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
+            learn_log << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_mean_loss.item<float>() << "\t" << p_loss
                      << "\t" << v_loss << std::endl;
         }
-        sum_loss.backward();
+        sum_mean_loss.backward();
         optimizer.step();
         torch::save(learning_model, MODEL_PATH);
         torch::load(nn, MODEL_PATH);
@@ -142,9 +151,9 @@ void alphaZero() {
         if (step_num % (settings.get<int64_t>("validation_interval") / 10) == 0) {
             float p_loss = loss.first.to_float();
             float v_loss = loss.second.to_float();
-            float sum_loss = policy_loss_coeff * p_loss + value_loss_coeff * v_loss;
-            std::cout << elapsedTime(start_time)  << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
-            learn_log << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
+            float sum_mean_loss = policy_loss_coeff * p_loss + value_loss_coeff * v_loss;
+            std::cout << elapsedTime(start_time)  << "\t" << step_num << "\t" << sum_mean_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
+            learn_log << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_mean_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
         }
 
         //書き出し

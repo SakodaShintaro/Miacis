@@ -1,5 +1,7 @@
 #include"replay_buffer.hpp"
 #include"operate_params.hpp"
+#include "replay_buffer.hpp"
+
 #include<thread>
 #include<iomanip>
 
@@ -8,6 +10,12 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
                              std::vector<ValueTeacherType>& value_teachers) {
     //ロックの確保
     mutex_.lock();
+
+    while (first_wait_ > 0) {
+        mutex_.unlock();
+        std::this_thread::sleep_for(std::chrono::seconds(first_wait_));
+        mutex_.lock();
+    }
 
     //現時点のpriorityの和を取得し,そこまでの範囲の一様分布生成器を作る
     float sum = segment_tree_.getSum();
@@ -19,11 +27,20 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
     inputs.clear();
     policy_teachers.clear();
     value_teachers.clear();
+    pre_indices_.clear();
+    inputs.reserve(INPUT_CHANNEL_NUM * SQUARE_NUM * batch_size);
+    policy_teachers.reserve(batch_size);
+    value_teachers.reserve(batch_size);
+    pre_indices_.reserve(batch_size);
     for (int32_t i = 0; i < batch_size; i++) {
         //データの取り出し
         std::string sfen;
         TeacherType teacher;
-        std::tie(sfen, teacher) = data_[segment_tree_.getIndex(dist(engine))];
+        uint64_t index = segment_tree_.getIndex(dist(engine));
+        std::tie(sfen, teacher) = data_[index];
+
+        //使ったindexの保存
+        pre_indices_.push_back(index);
 
         //入力特徴量の確保
         pos.loadSFEN(sfen);
@@ -82,28 +99,27 @@ void ReplayBuffer::push(Game &game) {
 #endif
 
         //priorityが最小のものを取る
-        auto t = priority_queue_.top();
-        priority_queue_.pop();
+        auto min_index = segment_tree_.getMinIndex();
 
         //そこのデータを入れ替える
-        data_[t.index] = std::make_tuple(pos.toSFEN(), e.teacher);
+        data_[min_index] = std::make_tuple(pos.toSFEN(), e.teacher);
 
-        //priorityはmoveのscoreに入れられている.そこに時間ボーナスを入れる
+        //priorityを計算
 #ifdef USE_CATEGORICAL
         float priority = 0.0;
         assert(false);
 #else
         float priority = -std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f) + priority_time_bonus_;
 #endif
-        std::cout << e.nn_output_policy[e.move.toLabel()] << ", " << e.nn_output_value<< ", " <<  e.teacher.value << std::endl;
-        std::cout << "priority = " << priority << std::endl;
+        //segment_treeのpriorityを更新
+        segment_tree_.update(min_index, priority);
 
-        //pqとsegment_treeのpriorityを更新
-        priority_queue_.push(Element(priority, t.index));
-        segment_tree_.update(t.index, priority);
+        if (first_wait_ > 0) {
+            first_wait_--;
+        }
     }
 
-    priority_time_bonus_ += 1e-4;
+    priority_time_bonus_ += 1e-8;
 
     mutex_.unlock();
 }
@@ -113,4 +129,11 @@ void ReplayBuffer::clear() {
     data_.clear();
     data_.shrink_to_fit();
     mutex_.unlock();
+}
+
+void ReplayBuffer::update(const std::vector<float>& loss) {
+    assert(loss.size() == pre_indices_.size());
+    for (uint64_t i = 0; i < loss.size(); i++) {
+        segment_tree_.update(pre_indices_[i], loss[i]);
+    }
 }

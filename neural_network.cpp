@@ -122,7 +122,7 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
     torch::Tensor value_loss = (value - value_t) * (value - value_t);
 #endif
 #endif
-    return { torch::mean(policy_loss), torch::mean(value_loss) };
+    return { policy_loss, value_loss };
 }
 
 NeuralNetwork nn;
