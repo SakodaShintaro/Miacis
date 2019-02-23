@@ -166,7 +166,7 @@ void alphaZero() {
             step_num == 5 * max_step_num / 7) {
             //モデルの保存と学習率減衰
 #ifdef USE_LIBTORCH
-            torch::save(learning_model, MODEL_PREFIX + std::to_string(step_num) + ".model");
+            torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
             optimizer.options.learning_rate_ /= 10;
 #else
             learning_model.save(MODEL_PREFIX + std::to_string(step_num) + ".model");
