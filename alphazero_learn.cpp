@@ -128,8 +128,8 @@ void alphaZero() {
         auto value_mean_loss = torch::mean(loss.second);
         auto sum_mean_loss = policy_loss_coeff * policy_mean_loss + value_loss_coeff * value_mean_loss;
         if (step_num % (validation_interval  / 10) == 0) {
-            auto p_loss = loss.first.item<float>();
-            auto v_loss = loss.second.item<float>();
+            auto p_loss = policy_mean_loss.item<float>();
+            auto v_loss = value_mean_loss.item<float>();
             std::cout << elapsedTime(start_time) << "\t" << step_num << "\t" << sum_mean_loss.item<float>() << "\t" << p_loss
                       << "\t" << v_loss << std::endl;
             learn_log << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_mean_loss.item<float>() << "\t" << p_loss

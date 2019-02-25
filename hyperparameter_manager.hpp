@@ -17,7 +17,7 @@ private:
         VALUE, UPPER_LIMIT, LOWER_LIMIT,
     };
 
-    static const std::string BAT_INIT;
+    static const std::string BAD_INIT;
     std::unordered_map<std::string, std::array<int64_t, 3>> int_map;
     std::unordered_map<std::string, std::array<float, 3>>   float_map;
     std::unordered_map<std::string, std::string>            string_map;

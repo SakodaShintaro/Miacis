@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cassert>
 
-const std::string BAD_INIT = "bad_init";
+const std::string HyperparameterManager::BAD_INIT = "bad_init";
 
 void HyperparameterManager::add(const std::string& name, int64_t lower_limit, int64_t upper_limit) {
     //最初は条件を満たさないように初期化
