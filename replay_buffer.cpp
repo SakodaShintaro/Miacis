@@ -16,7 +16,7 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
         std::this_thread::sleep_for(std::chrono::seconds(first_wait_ / 100));
         mutex_.lock();
     }
-
+    
     //現時点のpriorityの和を取得し,そこまでの範囲の一様分布生成器を作る
     float sum = segment_tree_.getSum();
     std::mt19937 engine(0);
@@ -132,8 +132,10 @@ void ReplayBuffer::clear() {
 }
 
 void ReplayBuffer::update(const std::vector<float>& loss) {
+    mutex_.lock();
     assert(loss.size() == pre_indices_.size());
     for (uint64_t i = 0; i < loss.size(); i++) {
         segment_tree_.update(pre_indices_[i], loss[i]);
     }
+    mutex_.unlock();
 }

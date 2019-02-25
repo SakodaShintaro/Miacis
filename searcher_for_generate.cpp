@@ -233,6 +233,7 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
                       current_node.moves[randomChoose(distribution)] :
                       current_node.moves[best_index]);
     element.move = best_move;
+    element.move.score = best_wp;
     element.teacher.policy = best_move.toLabel();
 
     //priorityとしてpolicyの損失を計算

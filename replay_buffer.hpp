@@ -56,7 +56,7 @@ private:
                 //最下段まで来ていたらindexを返す
                 return k - (n_ - 1);
             }
-            return (value <= sum_[k] ? getIndex(value, 2 * k + 1) : getIndex(value, 2 * k + 2));
+            return (value <= sum_[k] ? getIndex(value, 2 * k + 1) : getIndex(value - sum_[k], 2 * k + 2));
         }
 
         uint64_t getMinIndex(uint64_t k = 0) {
@@ -69,6 +69,16 @@ private:
 
         float getSum() {
             return sum_.front();
+        }
+
+        float operator[](uint64_t i) {
+            return sum_[i + n_ - 1];
+        }
+
+        void print() {
+            for (uint64_t i = 0; i < n_; i++) {
+                std::cout << sum_[i + n_ - 1] << " \n"[i == n_ - 1];
+            }
         }
 
     private:

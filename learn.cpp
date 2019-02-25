@@ -69,17 +69,19 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
         }
 
         //計算
-        auto val_loss = nn->loss(inputs, policy_teachers, value_teachers);
+        auto loss = nn->loss(inputs, policy_teachers, value_teachers);
 
         //平均化されて返ってくるのでバッチサイズをかけて総和に戻す
         //一番最後はbatch_sizeピッタリになるとは限らないのでちゃんとサイズを見てかける値を決める
         auto curr_size = policy_teachers.size();
 #ifdef USE_LIBTORCH
-        policy_loss += val_loss.first.item<float>() * curr_size;
-        value_loss  += val_loss.second.item<float>() * curr_size;
+        auto p_loss = torch::mean(loss.first);
+        auto v_loss = torch::mean(loss.second);
+        policy_loss += p_loss.item<float>() * curr_size;
+        value_loss  += v_loss.item<float>() * curr_size;
 #else
-        policy_loss += val_loss.first.to_float() * curr_size;
-        value_loss  += val_loss.second.to_float() * curr_size;
+        policy_loss += loss.first.to_float() * curr_size;
+        value_loss  += loss.second.to_float() * curr_size;
 #endif
     }
     policy_loss /= validation_data.size();
