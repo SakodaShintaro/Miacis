@@ -12,11 +12,13 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     std::stack<int32_t> actions;
     current_root_index_ = expand(root, indices, actions);
 
-    //3手詰みを探索
     if (root.turn_number() >= 50) {
-        //1手詰み探索を先に行ってなければ3手詰みを探索
-        if (!mateSearch(root, 1)) {
-            mateSearch(root, 3);
+        //詰み探索を実行
+        for (int32_t depth = 1; depth <= 5; depth += 2) {
+            if (mateSearch(root, depth)) {
+                //詰みが見つかった時点で終了
+                break;
+            }
         }
     }
 
