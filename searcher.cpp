@@ -112,3 +112,26 @@ bool Searcher::mateSearchForEvader(Position& pos, int32_t depth) {
     //打ち歩詰めの確認
     return !pos.isLastMoveDropPawn();
 }
+
+void Searcher::mateSearch(Position pos, int32_t depth_limit) {
+    auto& curr_node = hash_table_[current_root_index_];
+    for (int32_t depth = 1; depth <= depth_limit && !shouldStop(); depth += 2) {
+        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+            pos.doMove(curr_node.moves[i]);
+            bool result = mateSearchForEvader(pos, depth - 1);
+            pos.undo();
+            if (result) {
+                //この手に書き込み
+                //playout_limitだけ足せば必ずこの手が選ばれるようになる
+                curr_node.N[i]  += usi_option.search_limit;
+                curr_node.sum_N += usi_option.search_limit;
+#ifdef USE_CATEGORICAL
+                curr_node.value[BIN_SIZE - 1] += usi_option.search_limit;
+#else
+                curr_node.value += usi_option.search_limit * MAX_SCORE;
+#endif
+                return;
+            }
+        }
+    }
+}
