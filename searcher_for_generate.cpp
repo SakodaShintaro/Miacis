@@ -241,7 +241,7 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     for (uint64_t i = 0; i < current_node.moves.size(); i++) {
         element.nn_output_policy[current_node.moves[i].toLabel()] = current_node.nn_policy[i];
     }
-    element.nn_output_value  = current_node.value;
+    element.nn_output_value = current_node.value;
 
     return element;
 }
