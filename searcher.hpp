@@ -17,6 +17,7 @@ protected:
     static int32_t selectMaxUcbChild(const UctHashEntry& current_node);
 
     //詰み探索
+    void mateSearch(Position pos, int32_t depth_limit);
     bool mateSearchForAttacker(Position& pos, int32_t depth);
     bool mateSearchForEvader(Position& pos, int32_t depth);
 

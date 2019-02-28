@@ -11,12 +11,9 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     std::stack<int32_t> actions;
     current_root_index_ = expand(root, indices, actions);
 
-    //3手詰みを探索
     if (root.turn_number() >= 50) {
-        //1手詰み探索を先に行ってなければ3手詰みを探索
-        if (!mateSearch(root, 1)) {
-            mateSearch(root, 3);
-        }
+        //5手詰めまで探索
+        mateSearch(root, 5);
     }
 
     //合法手が0かどうかを判定して返す
@@ -249,22 +246,4 @@ std::vector<double> SearcherForGenerate::dirichletDistribution(uint64_t k, doubl
         dirichlet[i] /= sum;
     }
     return dirichlet;
-}
-
-bool SearcherForGenerate::mateSearch(Position pos, int32_t depth) {
-    assert(depth % 2 == 1);
-    auto& curr_node = hash_table_[current_root_index_];
-    for (int32_t i = 0; i < curr_node.moves.size() && !shouldStop(); i++) {
-        pos.doMove(curr_node.moves[i]);
-        bool result = mateSearchForEvader(pos, depth - 1);
-        pos.undo();
-        if (result) {
-            //この手に書き込み
-            //playout_limitだけ足せば必ずこの手が選ばれるようになる
-            curr_node.N[i]  += usi_option.search_limit;
-            curr_node.sum_N += usi_option.search_limit;
-            return true;
-        }
-    }
-    return false;
 }

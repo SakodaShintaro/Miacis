@@ -34,9 +34,6 @@ private:
     //ディリクレ分布に従ったものを返す関数
     static std::vector<double> dirichletDistribution(uint64_t k, double alpha);
 
-    //詰み探索
-    bool mateSearch(Position pos, int32_t depth);
-
     //このスレッドのid
     int32_t id_;
 

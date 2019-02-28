@@ -60,9 +60,6 @@ private:
     //バックアップ
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t add_num);
 
-    //詰み探索
-    void mateSearch(Position pos);
-
     //局面評価に用いるネットワーク
 #ifdef USE_LIBTORCH
     NeuralNetwork evaluator_;

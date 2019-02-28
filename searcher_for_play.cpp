@@ -48,7 +48,7 @@ Move SearcherForPlay::think(Position& root) {
     current_node.value = y.second[0];
 
     //詰み探索立ち上げ
-    std::thread mate_thread(&SearcherForPlay::mateSearch, this, root);
+    std::thread mate_thread(&SearcherForPlay::mateSearch, this, root, usi_option.draw_turn);
 
     //workerを立ち上げ
     std::vector<std::thread> threads(thread_num_);
@@ -401,23 +401,5 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
         hash_table_[index].sum_N     += add_num;
         assert(!hash_table_[index].moves.empty());
         lock_node_[index].unlock();
-    }
-}
-
-void SearcherForPlay::mateSearch(Position pos) {
-    auto& curr_node = hash_table_[current_root_index_];
-    for (int32_t depth = 1; !shouldStop(); depth += 2) {
-        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
-            pos.doMove(curr_node.moves[i]);
-            bool result = mateSearchForEvader(pos, depth - 1);
-            pos.undo();
-            if (result) {
-                //この手に書き込み
-                //playout_limitだけ足せば必ずこの手が選ばれるようになる
-                curr_node.N[i]  += usi_option.search_limit;
-                curr_node.sum_N += usi_option.search_limit;
-                return;
-            }
-        }
     }
 }
