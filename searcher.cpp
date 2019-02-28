@@ -42,6 +42,9 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
     // U(s, a) = C_PUCT * P(s, a) * sqrt(sum_b(B(s, b)) / (1 + N(s, a))
     constexpr double C_PUCT = 1.0;
 
+//    constexpr double C_base = 19652.0;
+//    constexpr double C_init = 1.25;
+
     int32_t max_index = -1;
     double max_value = MIN_SCORE - 1;
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
@@ -61,6 +64,9 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
 #endif
         double U = std::sqrt(current_node.sum_N + 1) / (N[i] + 1);
         double ucb = Q + C_PUCT * current_node.nn_policy[i] * U;
+
+        //double C = (std::log((current_node.sum_N + C_base + 1) / C_base) + C_init);
+        //double ucb = Q + C * current_node.policy[i] * U;
 
         if (ucb > max_value) {
             max_value = ucb;
