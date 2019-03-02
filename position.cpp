@@ -1139,37 +1139,30 @@ void Position::initHashValue() {
 
 std::vector<float> Position::makeFeature() const {
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
-    if (color_ == BLACK) {
-        for (int32_t i = 0; i < PieceList.size(); i++) {
-            Piece p = PieceList[i];
+
+    int32_t i;
+
+    //盤上の駒の特徴量
+    for (i = 0; i < PieceList.size(); i++) {
+        //いま考慮している駒
+        Piece t = (color_ == BLACK ? PieceList[i] : oppositeColor(PieceList[i]));
+
+        //各マスについてそこにあるなら1,ないなら0とする
+        for (Square sq : SquareList) {
+            //後手のときは盤面を180度反転させる
+            Piece p = (color_ == BLACK ? board_[sq] : board_[InvSquare[sq]]);
+            features[i * SQUARE_NUM + SquareToNum[sq]] = (t == p ? 1 : 0);
+        }
+    }
+
+    //持ち駒の特徴量:最大枚数で割って正規化するべきか？
+    static constexpr Color colors[2][2] = { { BLACK, WHITE }, { WHITE, BLACK} };
+    for (int32_t c : colors[color_]) {
+        for (Piece p : { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK }) {
             for (Square sq : SquareList) {
-                features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[sq] == p ? 1 : 0);
+                features[i * SQUARE_NUM + SquareToNum[sq]] = hand_[c].num(p);
             }
-        }
-        auto i = PieceList.size();
-        for (int c : {BLACK, WHITE}) {
-            for (Piece p : {PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK}) {
-                for (Square sq : SquareList) {
-                    features[i * SQUARE_NUM + SquareToNum[sq]] = (hand_[c].num(p));
-                }
-                i++;
-            }
-        }
-    } else {
-        for (int32_t i = 0; i < PieceList.size(); i++) {
-            Piece p = oppositeColor(PieceList[i]);
-            for (Square sq : SquareList) {
-                features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[InvSquare[sq]] == p ? 1 : 0);
-            }
-        }
-        auto i = PieceList.size();
-        for (int c : {WHITE, BLACK}) {
-            for (Piece p : {PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK}) {
-                for (Square sq : SquareList) {
-                    features[i * SQUARE_NUM + SquareToNum[sq]] = (hand_[c].num(p));
-                }
-                i++;
-            }
+            i++;
         }
     }
 
