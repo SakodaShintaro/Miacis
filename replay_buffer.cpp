@@ -26,7 +26,7 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
 
     //とりあえずランダムに取得
     static std::mt19937 engine(0);
-    std::uniform_int_distribution<unsigned long> dist(0, data_.size() - 1);
+    std::uniform_int_distribution<uint64_t> dist(0, data_.size() - 1);
 
     Position pos;
 
