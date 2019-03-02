@@ -65,18 +65,18 @@ Move SearcherForPlay::think(Position& root) {
     const auto& N = current_node.N;
 
     printUSIInfo();
-//    root.print(true);
-//    for (int32_t i = 0; i < current_node.moves.size(); i++) {
-//        double nn = 100.0 * current_node.nn_policy[i];
-//        double p  = 100.0 * N[i] / current_node.sum_N;
-//#ifdef USE_CATEGORICAL
-//        double v = (N[i] > 0 ? expOfValueDist(current_node.W[i]) / N[i] : MIN_SCORE);
-//#else
-//        double v = (N[i] > 0 ? current_node.W[i] / N[i] : MIN_SCORE);
-//#endif
-//        printf("%3d  %4.1f  %4.1f  %+.3f  ", i, nn, p, v);
-//        current_node.moves[i].print();
-//    }
+    root.print(true);
+    for (int32_t i = 0; i < current_node.moves.size(); i++) {
+        double nn = 100.0 * current_node.nn_policy[i];
+        double p  = 100.0 * N[i] / current_node.sum_N;
+#ifdef USE_CATEGORICAL
+        double v = (N[i] > 0 ? expOfValueDist(current_node.W[i]) / N[i] : MIN_SCORE);
+#else
+        double v = (N[i] > 0 ? current_node.W[i] / N[i] : MIN_SCORE);
+#endif
+        printf("%3d  %4.1f  %4.1f  %+.3f  ", i, nn, p, v);
+        current_node.moves[i].print();
+    }
 
     //探索回数最大の手を選択する
     int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
