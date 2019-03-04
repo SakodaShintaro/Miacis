@@ -1155,15 +1155,14 @@ std::vector<float> Position::makeFeature() const {
         }
     }
 
-    //持ち駒の特徴量:最大枚数で割って正規化するべきか？
+    //持ち駒の特徴量:正規化すると性能が激しく劣化
     static constexpr std::array<Color, ColorNum> colors[2] = { { BLACK, WHITE }, { WHITE, BLACK} };
     static constexpr int32_t HAND_PIECE_NUM = 7;
     static constexpr std::array<Piece, HAND_PIECE_NUM> HAND_PIECES = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
-    static constexpr std::array<float, HAND_PIECE_NUM> MAX_NUM = { 18.0f, 4.0f, 4.0f, 4.0f, 4.0f, 2.0f, 2.0f };
     for (int32_t c : colors[color_]) {
         for (int32_t j = 0; j < HAND_PIECE_NUM; j++) {
             for (Square sq : SquareList) {
-                features[i * SQUARE_NUM + SquareToNum[sq]] = hand_[c].num(HAND_PIECES[j]) / MAX_NUM[j];
+                features[i * SQUARE_NUM + SquareToNum[sq]] = hand_[c].num(HAND_PIECES[j]);
             }
             i++;
         }
