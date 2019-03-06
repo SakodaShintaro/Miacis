@@ -20,10 +20,10 @@ void GameGenerator::genGames(int64_t game_num) {
 
 void GameGenerator::genSlave(int64_t id) {
     //キュー
-    std::vector<float> features;
-    std::vector<std::stack<int32_t>> hash_indices;
-    std::vector<std::stack<int32_t>> actions;
-    std::vector<int32_t> ids;
+    std::vector<float> features(usi_option.search_batch_size * INPUT_CHANNEL_NUM * SQUARE_NUM);
+    std::vector<std::stack<int32_t>> hash_indices(usi_option.search_batch_size);
+    std::vector<std::stack<int32_t>> actions(usi_option.search_batch_size);
+    std::vector<int32_t> ids(usi_option.search_batch_size);
 
     //このスレッドが管理するデータら
     std::vector<Game> games(usi_option.search_batch_size);
@@ -76,6 +76,7 @@ void GameGenerator::genSlave(int64_t id) {
     evalWithGPU();
 
     while (true) {
+        //キューのリセット
         features.clear();
         hash_indices.clear();
         actions.clear();
