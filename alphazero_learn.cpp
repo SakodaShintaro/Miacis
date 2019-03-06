@@ -31,6 +31,7 @@ void alphaZero() {
     settings.add("validation_size",     0, (int64_t)1e10);
     settings.add("validation_kifu_path");
 
+    //設定をファイルからロード
     settings.load("alphazero_settings.txt");
     if (!settings.check()) {
         exit(1);
@@ -53,7 +54,7 @@ void alphaZero() {
 
     //学習ループ中で複数回参照するオプションは変数として確保する
     //速度的な問題はほぼないと思うが,学習始まってからtypoで中断が入るのも嫌なので
-    int64_t batch_size          = settings.get<int64_t>("batch_size");
+    uint64_t batch_size          = static_cast<uint64_t>(settings.get<int64_t>("batch_size"));
     int64_t max_step_num        = settings.get<int64_t>("max_step_num");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
     int64_t sleep_msec          = settings.get<int64_t>("sleep_msec");
@@ -75,6 +76,7 @@ void alphaZero() {
     std::default_random_engine engine(0);
     std::shuffle(validation_data.begin(), validation_data.end(), engine);
     validation_data.erase(validation_data.begin() + settings.get<int64_t>("validation_size"));
+    validation_data.shrink_to_fit();
 
     //モデル読み込み
 #ifdef USE_LIBTORCH
@@ -106,11 +108,13 @@ void alphaZero() {
     GameGenerator generator(replay_buffer, nn);
     std::thread gen_thread([&generator]() { generator.genGames(static_cast<int64_t>(1e10)); });
 
+    //入力,教師データ
+    std::vector<float> inputs(batch_size * SQUARE_NUM * INPUT_CHANNEL_NUM);
+    std::vector<PolicyTeacherType> policy_teachers(batch_size);
+    std::vector<ValueTeacherType> value_teachers(batch_size);
+
     for (int32_t step_num = 1; step_num <= max_step_num; step_num++) {
         //バッチサイズだけデータを選択
-        std::vector<float> inputs;
-        std::vector<PolicyTeacherType> policy_teachers;
-        std::vector<ValueTeacherType> value_teachers;
         replay_buffer.makeBatch(batch_size, inputs, policy_teachers, value_teachers);
 
         generator.gpu_mutex.lock();
@@ -161,9 +165,9 @@ void alphaZero() {
                            << val_loss[0] << "\t" << val_loss[1] << std::endl;
         }
 
-        if (step_num == 1 * max_step_num / 7 ||
-            step_num == 3 * max_step_num / 7 ||
-            step_num == 5 * max_step_num / 7) {
+        if (step_num == max_step_num * 1 / 7 ||
+            step_num == max_step_num * 3 / 7 ||
+            step_num == max_step_num * 5 / 7) {
             //モデルの保存と学習率減衰
 #ifdef USE_LIBTORCH
             torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");

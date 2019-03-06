@@ -30,9 +30,9 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
 
     Position pos;
 
-    inputs.clear();
-    policy_teachers.clear();
-    value_teachers.clear();
+    assert(inputs.size() == batch_size * INPUT_CHANNEL_NUM * SQUARE_NUM);
+    assert(policy_teachers.size() == batch_size);
+    assert(value_teachers.size() == batch_size);
     for (int32_t i = 0; i < batch_size; i++) {
         //データの取り出し
         std::string sfen;
@@ -43,16 +43,16 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
         //入力特徴量の確保
         pos.loadSFEN(sfen);
         auto feature = pos.makeFeature();
-        inputs.insert(inputs.end(), feature.begin(), feature.end());
+        std::copy(feature.begin(), feature.end(), inputs.begin() + i * INPUT_CHANNEL_NUM * SQUARE_NUM);
 
         //policyの教師
-        policy_teachers.push_back(policy_label);
+        policy_teachers[i] = policy_label;
 
         //valueの教師
 #ifdef USE_CATEGORICAL
-        value_teachers.push_back(valueToIndex(value));
+        value_teachers[i] = valueToIndex(value);
 #else
-        value_teachers.push_back(value);
+        value_teachers[i] = value;
 #endif
     }
 
