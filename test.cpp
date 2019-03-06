@@ -21,6 +21,7 @@ void test() {
     usi_option.USI_Hash = 1;
     usi_option.thread_num = 1;
     usi_option.search_batch_size = 1;
+    usi_option.random_turn = 512;
     usi_option.draw_turn = 512;
 #ifdef USE_LIBTORCH
     torch::load(nn, MODEL_PATH);
@@ -34,9 +35,20 @@ void test() {
 
     auto start = std::chrono::steady_clock::now();
     while (true) {
-        pos.print(false);
+        pos.print(true);
 
         Move best_move = searcher.think(pos);
+        if (pos.turn_number() == 0) {
+            best_move = Move(SQ76, SQ77);
+            best_move = pos.transformValidMove(best_move);
+        } else if (pos.turn_number() == 1) {
+            best_move = Move(SQ34, SQ33);
+            best_move = pos.transformValidMove(best_move);
+        } else if (pos.turn_number() == 2) {
+            best_move = Move(SQ33, SQ88, false, true);
+            best_move = pos.transformValidMove(best_move);
+        }
+
         if (best_move == NULL_MOVE) {
             //投了
             game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
