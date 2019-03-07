@@ -8,8 +8,6 @@
 #include<climits>
 
 void alphaZero() {
-    auto start_time = std::chrono::steady_clock::now();
-
     HyperparameterManager settings;
     settings.add("learn_rate",          0.0f, 100.0f);
     settings.add("learn_rate_decay",    0.0f, 1.0f);
@@ -103,6 +101,9 @@ void alphaZero() {
     Graph g;
     Graph::set_default(g);
 #endif
+
+    //時間計測開始
+    auto start_time = std::chrono::steady_clock::now();
 
     //自己対局スレッドを立てる
     GameGenerator generator(replay_buffer, nn);
