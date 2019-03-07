@@ -75,7 +75,7 @@ void alphaZero() {
     //データをシャッフルして必要量以外を削除
     std::default_random_engine engine(0);
     std::shuffle(validation_data.begin(), validation_data.end(), engine);
-    validation_data.erase(validation_data.begin() + settings.get<int64_t>("validation_size"));
+    validation_data.erase(validation_data.begin() + settings.get<int64_t>("validation_size"), validation_data.end());
     validation_data.shrink_to_fit();
 
     //モデル読み込み
