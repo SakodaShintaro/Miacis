@@ -10,6 +10,7 @@
 #include"replay_buffer.hpp"
 #include"game_generator.hpp"
 #include"searcher_for_play.hpp"
+#include"learn.hpp"
 #include<cassert>
 #include<numeric>
 #include<climits>
@@ -104,5 +105,24 @@ void checkSearchSpeed() {
             SearcherForPlay searcher(1000000, thread_num, search_batch_size, nn);
             searcher.think(pos);
         }
+    }
+}
+
+void checkVal() {
+    //データを取得
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
+    auto data = loadData(path);
+
+    //データをシャッフルして必要量以外を削除
+    std::default_random_engine engine(0);
+    std::shuffle(data.begin(), data.end(), engine);
+    data.erase(data.begin() + 409600, data.end());
+    data.shrink_to_fit();
+
+    for (int32_t i = 1; i <= 100000; i++) {
+        auto v = validation(data);
+        printf("%5d回目 : %f\t%f\n", i, v[0], v[1]);
     }
 }

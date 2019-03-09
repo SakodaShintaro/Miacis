@@ -4,5 +4,6 @@
 void test();
 void checkSearchSpeed();
 void checkGenSpeed();
+void checkVal();
 
 #endif // !TEST_HPP
