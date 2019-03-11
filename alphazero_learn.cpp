@@ -109,13 +109,17 @@ void alphaZero() {
     //自己対局スレッドを立てる
 #ifdef USE_LIBTORCH
     auto gpu_num = torch::getNumGPUs();
-#else
-    uint64_t gpu_num = 1;
-#endif
     std::vector<NeuralNetwork> additional_nn(gpu_num - 1);
     for (uint64_t i = 0; i < gpu_num - 1; i++) {
         additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
     }
+#else
+    uint64_t gpu_num = 1;
+    std::vector<std::shared_ptr<NeuralNetwork<Tensor>>> additional_nn(gpu_num - 1);
+    for (uint64_t i = 0; i < gpu_num - 1; i++) {
+        additional_nn[i] = std::make_shared<NeuralNetwork<Tensor>>();
+    }
+#endif
 
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     for (uint64_t i = 0; i < gpu_num; i++) {
