@@ -193,18 +193,11 @@ void alphaZero() {
             validation_log << step_num << "\t" << elapsedHours(start_time) << "\t"
                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
                            << val_loss[0] << "\t" << val_loss[1] << std::endl;
-        }
-
-        if (step_num == max_step_num * 1 / 7 ||
-            step_num == max_step_num * 3 / 7 ||
-            step_num == max_step_num * 5 / 7) {
-            //モデルの保存と学習率減衰
+            //モデルの保存
 #ifdef USE_LIBTORCH
             torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
-            optimizer.options.learning_rate_ /= 10;
 #else
             learning_model.save(MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
-            optimizer.set_learning_rate_scaling(optimizer.get_learning_rate_scaling() / 10);
 #endif
         }
 
