@@ -20,7 +20,11 @@ NeuralNetworkImpl::NeuralNetworkImpl() : conv(BLOCK_NUM, std::vector<torch::nn::
     value_fc2 = register_module("value_fc2", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 }
 
-std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(torch::Tensor x) {
+std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::vector<float>& inputs) {
+    auto batch_size = inputs.size() / (INPUT_CHANNEL_NUM * SQUARE_NUM);
+    torch::Tensor x = torch::tensor(inputs);
+    x = x.reshape({(long)batch_size, INPUT_CHANNEL_NUM, 9, 9});
+    x = x.to(device);
     x = first_conv->forward(x);
     x = first_bn->forward(x);
     x = torch::relu(x);
@@ -59,14 +63,6 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(torch::Tensor
 #endif
 
     return { policy, value };
-}
-
-std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::vector<float>& inputs) {
-    auto batch_size = inputs.size() / (INPUT_CHANNEL_NUM * SQUARE_NUM);
-    torch::Tensor x = torch::tensor(inputs);
-    x = x.reshape({(long)batch_size, INPUT_CHANNEL_NUM, 9, 9});
-    x = x.to(device);
-    return forward(x);
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>

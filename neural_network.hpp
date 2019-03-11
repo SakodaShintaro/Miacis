@@ -45,10 +45,7 @@ class NeuralNetworkImpl : public torch::nn::Module {
 public:
     NeuralNetworkImpl();
 
-    //Tensorを受け取ってpolicyとvalueに相当するTensorを返す関数
-    std::pair<torch::Tensor, torch::Tensor> forward(torch::Tensor x);
-
-    //上の関数をラップして入力部をfloatのvectorにした関数.不要かもしれない
+    //入力としてvectorを受け取ってTensorを返す関数
     std::pair<torch::Tensor, torch::Tensor> forward(const std::vector<float>& inputs);
 
     //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
