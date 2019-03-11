@@ -39,8 +39,6 @@ using ValueTeacherType = float;
 #endif
 using PolicyTeacherType = int64_t;
 
-extern torch::Device device;
-
 class NeuralNetworkImpl : public torch::nn::Module {
 public:
     NeuralNetworkImpl();
@@ -56,7 +54,10 @@ public:
                                                  const std::vector<PolicyTeacherType>& policy_teachers,
                                                  const std::vector<ValueTeacherType>& value_teachers);
 
+    void setGPU(int32_t gpu_id);
+
 private:
+    torch::Device device_;
     torch::nn::Conv2d first_conv{nullptr};
     torch::nn::BatchNorm first_bn{nullptr};
     std::vector<std::vector<torch::nn::Conv2d>> conv;

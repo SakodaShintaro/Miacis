@@ -1,10 +1,10 @@
 #include"neural_network.hpp"
+#include "neural_network.hpp"
+
 
 #ifdef USE_LIBTORCH
 
-torch::Device device(torch::kCUDA);
-
-NeuralNetworkImpl::NeuralNetworkImpl() : conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)), bn(BLOCK_NUM, std::vector<torch::nn::BatchNorm>(2, nullptr)) {
+NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)), bn(BLOCK_NUM, std::vector<torch::nn::BatchNorm>(2, nullptr)) {
     first_conv = register_module("first_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
     first_bn = register_module("first_bn", torch::nn::BatchNorm(CHANNEL_NUM));
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
@@ -22,9 +22,8 @@ NeuralNetworkImpl::NeuralNetworkImpl() : conv(BLOCK_NUM, std::vector<torch::nn::
 
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::vector<float>& inputs) {
     auto batch_size = inputs.size() / (INPUT_CHANNEL_NUM * SQUARE_NUM);
-    torch::Tensor x = torch::tensor(inputs);
+    torch::Tensor x = torch::tensor(inputs).to(device_);
     x = x.reshape({(long)batch_size, INPUT_CHANNEL_NUM, 9, 9});
-    x = x.to(device);
     x = first_conv->forward(x);
     x = first_bn->forward(x);
     x = torch::relu(x);
@@ -103,14 +102,14 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
     auto y = forward(input);
     auto logits = y.first.reshape({ y.first.size(0), SQUARE_NUM * POLICY_CHANNEL_NUM });
 
-    torch::Tensor policy_target = torch::tensor(policy_teachers).to(device);
+    torch::Tensor policy_target = torch::tensor(policy_teachers).to(device_);
     torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(logits, 1), policy_target);
 
 #ifdef USE_CATEGORICAL
     auto categorical_target = torch::tensor(value_teachers);
     torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
 #else
-    torch::Tensor value_t = torch::tensor(value_teachers).to(device);
+    torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
     torch::Tensor value = y.second.reshape(y.second.size(0));
 #ifdef USE_SIGMOID
     Var value_loss = -value_t * F::log(value) -(1 - value_t) * F::log(1 - value);
@@ -119,6 +118,11 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
 #endif
 #endif
     return { torch::mean(policy_loss), torch::mean(value_loss) };
+}
+
+void NeuralNetworkImpl::setGPU(int32_t gpu_id) {
+    device_ = torch::Device(torch::kCUDA, static_cast<c10::DeviceIndex>(gpu_id));
+    to(device_);
 }
 
 NeuralNetwork nn;

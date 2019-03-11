@@ -7,7 +7,7 @@
 int main()
 {
 #ifdef USE_LIBTORCH
-    nn->to(device);
+    nn->setGPU(0);
     nn->eval();
 #else
     //devices::Naive dev;

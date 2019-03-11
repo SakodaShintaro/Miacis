@@ -79,6 +79,7 @@ void alphaZero() {
     //モデル読み込み
 #ifdef USE_LIBTORCH
     NeuralNetwork learning_model;
+    learning_model->setGPU(0);
     torch::load(learning_model, MODEL_PATH);
     torch::save(learning_model, MODEL_PREFIX + "_before_alphazero.model");
     torch::load(nn, MODEL_PATH);
