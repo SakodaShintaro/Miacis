@@ -1,7 +1,6 @@
 #include"neural_network.hpp"
 #include "neural_network.hpp"
 
-
 #ifdef USE_LIBTORCH
 
 NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)), bn(BLOCK_NUM, std::vector<torch::nn::BatchNorm>(2, nullptr)) {
@@ -120,8 +119,8 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
     return { torch::mean(policy_loss), torch::mean(value_loss) };
 }
 
-void NeuralNetworkImpl::setGPU(int32_t gpu_id) {
-    device_ = torch::Device(torch::kCUDA, static_cast<c10::DeviceIndex>(gpu_id));
+void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
+    device_ = torch::Device(torch::kCUDA, gpu_id);
     to(device_);
 }
 
