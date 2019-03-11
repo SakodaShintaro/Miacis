@@ -54,7 +54,7 @@ public:
                                                  const std::vector<PolicyTeacherType>& policy_teachers,
                                                  const std::vector<ValueTeacherType>& value_teachers);
 
-    void setGPU(int32_t gpu_id);
+    void setGPU(int16_t gpu_id);
 
 private:
     torch::Device device_;

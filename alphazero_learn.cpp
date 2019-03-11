@@ -107,8 +107,25 @@ void alphaZero() {
     auto start_time = std::chrono::steady_clock::now();
 
     //自己対局スレッドを立てる
-    GameGenerator generator(replay_buffer, nn);
-    std::thread gen_thread([&generator]() { generator.genGames(static_cast<int64_t>(1e10)); });
+#ifdef USE_LIBTORCH
+    auto gpu_num = torch::getNumGPUs();
+#else
+    uint64_t gpu_num = 1;
+#endif
+    std::vector<NeuralNetwork> additional_nn(gpu_num - 1);
+    for (uint64_t i = 0; i < gpu_num - 1; i++) {
+        additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
+    }
+
+    std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
+    for (uint64_t i = 0; i < gpu_num; i++) {
+        generators[i] = std::make_unique<GameGenerator>(replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
+    }
+
+    std::vector<std::thread> gen_threads;
+    for (uint64_t i = 0; i < gpu_num; i++) {
+        gen_threads.emplace_back([&generators, i]() { generators[i]->genGames((int64_t)(1e15)); });
+    }
 
     //入力,教師データ
     std::vector<float> inputs(batch_size * SQUARE_NUM * INPUT_CHANNEL_NUM);
@@ -119,7 +136,7 @@ void alphaZero() {
         //バッチサイズだけデータを選択
         replay_buffer.makeBatch(batch_size, inputs, policy_teachers, value_teachers);
 
-        generator.gpu_mutex.lock();
+        generators.front()->gpu_mutex.lock();
 #ifdef USE_LIBTORCH
         optimizer.zero_grad();
         auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
@@ -187,12 +204,14 @@ void alphaZero() {
 #endif
         }
 
-        generator.gpu_mutex.unlock();
+        generators.front()->gpu_mutex.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(sleep_msec));
     }
 
     usi_option.stop_signal = true;
-    gen_thread.detach();
+    for (auto& th : gen_threads) {
+        th.join();
+    }
 
     std::cout << "finish alphaZero()" << std::endl;
 }
