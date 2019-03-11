@@ -52,7 +52,7 @@ void alphaZero() {
 
     //学習ループ中で複数回参照するオプションは変数として確保する
     //速度的な問題はほぼないと思うが,学習始まってからtypoで中断が入るのも嫌なので
-    uint64_t batch_size          = static_cast<uint64_t>(settings.get<int64_t>("batch_size"));
+    uint64_t batch_size         = static_cast<uint64_t>(settings.get<int64_t>("batch_size"));
     int64_t max_step_num        = settings.get<int64_t>("max_step_num");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
     int64_t sleep_msec          = settings.get<int64_t>("sleep_msec");
@@ -164,6 +164,9 @@ void alphaZero() {
         optimizer.step();
         torch::save(learning_model, MODEL_PATH);
         torch::load(nn, MODEL_PATH);
+        for (uint64_t i = 0; i < gpu_num - 1; i++) {
+            torch::load(additional_nn[i], MODEL_PATH);
+        }
 #else
         g.clear();
         auto loss = learning_model.loss(inputs, policy_teachers, value_teachers);
