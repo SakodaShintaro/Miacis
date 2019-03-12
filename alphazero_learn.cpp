@@ -165,7 +165,10 @@ void alphaZero() {
         torch::save(learning_model, MODEL_PATH);
         torch::load(nn, MODEL_PATH);
         for (uint64_t i = 0; i < gpu_num - 1; i++) {
+            generators[i + 1]->gpu_mutex.lock();
             torch::load(additional_nn[i], MODEL_PATH);
+            additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
+            generators[i + 1]->gpu_mutex.unlock();
         }
 #else
         g.clear();
