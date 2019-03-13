@@ -20,9 +20,8 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), conv(BLOCK_NUM, 
 }
 
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::vector<float>& inputs) {
-    auto batch_size = inputs.size() / (INPUT_CHANNEL_NUM * SQUARE_NUM);
     torch::Tensor x = torch::tensor(inputs).to(device_);
-    x = x.reshape({(long)batch_size, INPUT_CHANNEL_NUM, 9, 9});
+    x = x.view({ -1, INPUT_CHANNEL_NUM, 9, 9 });
     x = first_conv->forward(x);
     x = first_bn->forward(x);
     x = torch::relu(x);
@@ -47,7 +46,7 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::ve
     torch::Tensor value = value_conv->forward(x);
     value = value_bn->forward(value);
     value = torch::relu(value);
-    value = value.reshape({value.size(0), SQUARE_NUM * CHANNEL_NUM});
+    value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
     value = value_fc1->forward(value);
     value = torch::relu(value);
     value = value_fc2->forward(value);
@@ -99,7 +98,7 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
                         const std::vector<PolicyTeacherType>& policy_teachers,
                         const std::vector<ValueTeacherType>& value_teachers) {
     auto y = forward(input);
-    auto logits = y.first.reshape({ y.first.size(0), SQUARE_NUM * POLICY_CHANNEL_NUM });
+    auto logits = y.first.view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
 
     torch::Tensor policy_target = torch::tensor(policy_teachers).to(device_);
     torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(logits, 1), policy_target);
@@ -109,7 +108,7 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
     torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
 #else
     torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
-    torch::Tensor value = y.second.reshape(y.second.size(0));
+    torch::Tensor value = y.second.view(y.second.size(0));
 #ifdef USE_SIGMOID
     Var value_loss = -value_t * F::log(value) -(1 - value_t) * F::log(1 - value);
 #else
