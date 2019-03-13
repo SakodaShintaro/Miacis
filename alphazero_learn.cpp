@@ -163,13 +163,6 @@ void alphaZero() {
         sum_loss.backward();
         optimizer.step();
         torch::save(learning_model, MODEL_PATH);
-        torch::load(nn, MODEL_PATH);
-        for (uint64_t i = 0; i < gpu_num - 1; i++) {
-            generators[i + 1]->gpu_mutex.lock();
-            torch::load(additional_nn[i], MODEL_PATH);
-            additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
-            generators[i + 1]->gpu_mutex.unlock();
-        }
 #else
         g.clear();
         auto loss = learning_model.loss(inputs, policy_teachers, value_teachers);
@@ -192,6 +185,14 @@ void alphaZero() {
         nn->load(MODEL_PATH);
 #endif
         if (step_num % validation_interval == 0) {
+            torch::load(nn, MODEL_PATH);
+            for (uint64_t i = 0; i < gpu_num - 1; i++) {
+                generators[i + 1]->gpu_mutex.lock();
+                torch::load(additional_nn[i], MODEL_PATH);
+                additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
+                generators[i + 1]->gpu_mutex.unlock();
+            }
+
             auto val_loss = validation(validation_data);
             std::cout      << step_num << "\t" << elapsedHours(start_time) << "\t"
                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
