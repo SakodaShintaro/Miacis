@@ -35,7 +35,7 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::ve
 
         x = conv[i][1]->forward(x);
         x = bn[i][1]->forward(x);
-        x = torch::relu(x);
+        x = torch::relu(x + t);
     }
 
     //ここから分岐
