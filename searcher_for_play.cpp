@@ -321,19 +321,11 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     current_node.sum_N = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
-    //TODO:正しく初期化できているか確認すること
-    current_node.W.assign(static_cast<unsigned long>(current_node.moves.size()), std::array<float, BIN_SIZE>{});
+    current_node.W.assign(current_node.moves.size(), {});
     current_node.value = std::array<float, BIN_SIZE>{};
-    for (int32_t i = 0; i < BIN_SIZE; i++) {
-        //current_node.value[i] = 0.0;
-        std::cout << current_node.value[i] << std::endl;
-        for (int32_t j = 0; j < current_node.moves.size(); j++) {
-            current_node.W[j][i] = 0.0;
-        }
-    }
 #else
-    current_node.value = 0.0;
     current_node.W.assign(current_node.moves.size(), 0.0);
+    current_node.value = 0.0;
 #endif
 
     // ノードを評価
