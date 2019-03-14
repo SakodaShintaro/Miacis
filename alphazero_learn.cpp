@@ -201,6 +201,8 @@ void alphaZero() {
         nn->load(MODEL_PATH);
 #endif
         if (step_num % validation_interval == 0) {
+            //モデルの保存,読み込みなど
+#ifdef USE_LIBTORCH
             torch::load(nn, MODEL_PATH);
             for (uint64_t i = 0; i < gpu_num - 1; i++) {
                 generators[i + 1]->gpu_mutex.lock();
@@ -209,6 +211,11 @@ void alphaZero() {
                 generators[i + 1]->gpu_mutex.unlock();
             }
 
+            torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
+#else
+            learning_model.save(MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
+#endif
+
             auto val_loss = validation(validation_data);
             std::cout      << step_num << "\t" << elapsedHours(start_time) << "\t"
                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
@@ -216,12 +223,6 @@ void alphaZero() {
             validation_log << step_num << "\t" << elapsedHours(start_time) << "\t"
                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
                            << val_loss[0] << "\t" << val_loss[1] << std::endl;
-            //モデルの保存
-#ifdef USE_LIBTORCH
-            torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
-#else
-            learning_model.save(MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
-#endif
         }
 
         generators.front()->gpu_mutex.unlock();
