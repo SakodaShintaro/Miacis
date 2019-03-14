@@ -79,7 +79,7 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     }
 
 #ifdef USE_CATEGORICAL
-    auto value = torch::log_softmax(y.second, 0).cpu();
+    auto value = torch::softmax(y.second, 1).cpu();
     auto value_p = value.data<float>();
     for (int32_t i = 0; i < batch_size; i++) {
         std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
@@ -103,7 +103,7 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
     torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(logits, 1), policy_target);
 
 #ifdef USE_CATEGORICAL
-    auto categorical_target = torch::tensor(value_teachers);
+    torch::Tensor categorical_target = torch::tensor(value_teachers).to(device_);
     torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
 #else
     torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
