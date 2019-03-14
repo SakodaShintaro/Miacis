@@ -6,6 +6,12 @@
 #include"hyperparameter_manager.hpp"
 #include<thread>
 #include<climits>
+#include<experimental/filesystem>
+#ifdef _MSC_VER
+#include<direct.h>
+#elif __GNUC__
+#include<sys/stat.h>
+#endif
 
 void alphaZero() {
     HyperparameterManager settings;
@@ -37,6 +43,16 @@ void alphaZero() {
 
     //リプレイバッファ
     ReplayBuffer replay_buffer(settings.get<int64_t>("first_wait"), settings.get<int64_t>("max_stack_size"), settings.get<float>("lambda"));
+
+    //棋譜を保存するディレクトリの削除
+    std::experimental::filesystem::remove_all("./learn_kifu");
+
+    //棋譜を保存するディレクトリの作成
+#ifdef _MSC_VER
+    _mkdir("./learn_kifu");
+#elif __GNUC__
+    mkdir("./learn_kifu", ACCESSPERMS);
+#endif
 
     //usi_optionの設定
     usi_option.random_turn       = settings.get<int64_t>("random_turn");
