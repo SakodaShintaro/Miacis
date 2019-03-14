@@ -1,5 +1,4 @@
 #include"neural_network.hpp"
-#include "neural_network.hpp"
 
 #ifdef USE_LIBTORCH
 

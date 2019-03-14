@@ -65,6 +65,11 @@ void ReplayBuffer::push(Game &game) {
 
     Position pos;
 
+    static int64_t num = 0;
+    if (++num % 100 == 0) {
+        game.writeKifuFile("./learn_kifu/");
+    }
+
     //まずは最終局面まで動かす
     for (auto move : game.moves) {
         pos.doMove(move);
