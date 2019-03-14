@@ -68,20 +68,36 @@ void test() {
 }
 
 void checkGenSpeed() {
-    usi_option.USI_Hash = 1;
-    usi_option.search_limit = 800;
-    usi_option.draw_turn = 100;
+#ifdef USE_LIBTORCH
+    torch::load(nn, MODEL_PATH);
+#else
+    nn->load(MODEL_PATH);
+#endif
 
-    for (int64_t thread_num = 2; thread_num <= 256; thread_num *= 2) {
-        int64_t game_num = thread_num;
-        ReplayBuffer buffer(0, game_num * usi_option.draw_turn, 1.0);
+    usi_option.limit_msec = LLONG_MAX;
+    usi_option.search_limit = 100;
+    usi_option.draw_turn = 512;
+    usi_option.random_turn = 512;
+    usi_option.thread_num = 2;
+    constexpr int64_t limit = 20000;
+
+    for (usi_option.search_batch_size = 32; usi_option.search_batch_size <= 128; usi_option.search_batch_size *= 2) {
+        ReplayBuffer buffer(0, limit, 1.0);
+        usi_option.stop_signal = false;
         auto start = std::chrono::steady_clock::now();
         GameGenerator generator(buffer, nn);
-        generator.genGames(game_num);
+        std::thread t(&GameGenerator::genGames, &generator, (int64_t)1e15);
+        while (buffer.size() < limit) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
         auto end = std::chrono::steady_clock::now();
+        usi_option.stop_signal = true;
+        t.join();
         auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "thread_num = " << std::setw(4) << thread_num << ", elapsed = " << ela.count() << ", speed = "
-                  << (buffer.size() * 1000.0) / ela.count() << " pos / sec" << std::endl;
+        std::cout << "search_batch_size = " << std::setw(4) << usi_option.search_batch_size
+                  << ", elapsed = " << ela.count()
+                  << ", size = " << buffer.size()
+                  << ", speed = " << (buffer.size() * 1000.0) / ela.count() << " pos / sec" << std::endl;
     }
 }
 
