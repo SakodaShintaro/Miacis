@@ -55,7 +55,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
             Q = (MAX_SCORE + MIN_SCORE) / 2;
         } else {
             Q = 0.0;
-            for (int32_t j = std::min((int32_t)(best_wp * BIN_SIZE) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
+            for (int32_t j = std::min(valueToIndex(best_wp) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
                 Q += current_node.W[i][j] / N[i];
             }
         }

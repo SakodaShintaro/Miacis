@@ -74,7 +74,7 @@ Move SearcherForPlay::think(Position& root) {
 #else
         double v = (N[i] > 0 ? current_node.W[i] / N[i] : MIN_SCORE);
 #endif
-        printf("%3d  %4.1f  %4.1f  %+.3f  ", i, nn, p, v);
+        printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn, p, v);
         current_node.moves[i].print();
     }
 
@@ -86,11 +86,7 @@ Move SearcherForPlay::think(Position& root) {
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    double best_wp = 0.0;
-    for (int32_t i = 0; i < BIN_SIZE; i++) {
-        double v = current_node.W[best_index][i] / N[best_index];
-        best_wp += VALUE_WIDTH * (0.5 + i) * v;
-    }
+    double best_wp = expOfValueDist(current_node.W[best_index]) / N[best_index];
 #else
     auto best_wp = current_node.W[best_index] / N[best_index];
 #endif

@@ -36,8 +36,6 @@ void test() {
 
     auto start = std::chrono::steady_clock::now();
     while (true) {
-        pos.print(true);
-
         Move best_move = searcher.think(pos);
 
         if (best_move == NULL_MOVE) {
