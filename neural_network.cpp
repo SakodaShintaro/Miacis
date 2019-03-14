@@ -107,14 +107,14 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
     torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
 #else
     torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
-    torch::Tensor value = y.second.view(y.second.size(0));
+    torch::Tensor value = y.second.view(-1);
 #ifdef USE_SIGMOID
     Var value_loss = -value_t * F::log(value) -(1 - value_t) * F::log(1 - value);
 #else
-    torch::Tensor value_loss = (value - value_t) * (value - value_t);
+    torch::Tensor value_loss = torch::mse_loss(value, value_t);
 #endif
 #endif
-    return { torch::mean(policy_loss), torch::mean(value_loss) };
+    return { policy_loss, value_loss };
 }
 
 void NeuralNetworkImpl::setGPU(int16_t gpu_id) {

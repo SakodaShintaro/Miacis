@@ -61,6 +61,8 @@ void USI::loop() {
             checkSearchSpeed();
         } else if (input == "checkGenSpeed") {
             checkGenSpeed();
+        } else if (input == "checkVal") {
+            checkVal();
         } else {
             std::cout << "Illegal input" << std::endl;
         }
