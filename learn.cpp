@@ -44,10 +44,17 @@ getBatch(const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64
     return std::make_tuple(inputs, policy_teachers, value_teachers);
 }
 
+#ifdef USE_CATEGORICAL
+std::array<float, 3> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data) {
+#else
 std::array<float, 2> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data) {
+#endif
     static constexpr int32_t batch_size = 4096;
     int32_t num = 0;
     float policy_loss = 0.0, value_loss = 0.0;
+#ifdef USE_CATEGORICAL
+    float value_loss2 = 0.0;
+#endif
     Position pos;
     while (num < validation_data.size()) {
         std::vector<float> inputs;
@@ -71,6 +78,16 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
         //計算
         auto val_loss = nn->loss(inputs, policy_teachers, value_teachers);
 
+#ifdef USE_CATEGORICAL
+        auto y = nn->policyAndValueBatch(inputs);
+        const auto& values = y.second;
+        for (int32_t i = 0; i < values.size(); i++) {
+            auto e = expOfValueDist(values[i]);
+            auto vt = (value_teachers[i] == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
+            value_loss2 += (e - vt) * (e - vt);
+        }
+#endif
+
         //平均化されて返ってくるのでバッチサイズをかけて総和に戻す
         //一番最後はbatch_sizeピッタリになるとは限らないのでちゃんとサイズを見てかける値を決める
         auto curr_size = policy_teachers.size();
@@ -85,7 +102,12 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
     policy_loss /= validation_data.size();
     value_loss /= validation_data.size();
 
+#ifdef USE_CATEGORICAL
+    value_loss2 /= validation_data.size();
+    return { policy_loss, value_loss, value_loss2 };
+#else
     return { policy_loss, value_loss };
+#endif
 }
 
 std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& file_path) {

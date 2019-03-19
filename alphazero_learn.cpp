@@ -147,8 +147,7 @@ void alphaZero() {
         auto sum_loss = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
         if (step_num == 1) {
             double h = elapsedHours(start_time);
-            double s = h * 3600;
-            std::cout << settings.get<int64_t>("first_wait") / s << " pos / sec" << std::endl;
+            std::cout << settings.get<int64_t>("first_wait") / (h * 3600) << " pos / sec" << std::endl;
         }
         if (step_num % (validation_interval / 10) == 0) {
             auto p_loss = loss.first.item<float>();
@@ -200,12 +199,21 @@ void alphaZero() {
 #endif
 
             auto val_loss = validation(validation_data);
+#ifdef USE_CATEGORICAL
+            std::cout      << step_num << "\t" << elapsedHours(start_time) << "\t"
+                           << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
+                           << val_loss[0] << "\t" << val_loss[1] << "\t" << val_loss[2] << std::endl;
+            validation_log << step_num << "\t" << elapsedHours(start_time) << "\t"
+                           << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
+                           << val_loss[0] << "\t" << val_loss[1] << "\t" << val_loss[2] << std::endl;
+#else
             std::cout      << step_num << "\t" << elapsedHours(start_time) << "\t"
                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
                            << val_loss[0] << "\t" << val_loss[1] << std::endl;
             validation_log << step_num << "\t" << elapsedHours(start_time) << "\t"
                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
                            << val_loss[0] << "\t" << val_loss[1] << std::endl;
+#endif
         }
 
         generators.front()->gpu_mutex.unlock();

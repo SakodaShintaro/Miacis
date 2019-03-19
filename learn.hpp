@@ -17,7 +17,11 @@ std::tuple<std::vector<float>, std::vector<PolicyTeacherType>, std::vector<Value
 getBatch(const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64_t index, int64_t batch_size);
 
 //validationを行う関数
+#ifdef USE_CATEGORICAL
+std::array<float, 3> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data);
+#else
 std::array<float, 2> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data);
+#endif
 
 //棋譜からの教師あり学習
 void supervisedLearn();
