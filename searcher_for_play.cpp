@@ -179,6 +179,9 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         //評価要求をGPUで計算
         if (!index_queue.empty()) {
             lock_expand_.lock();
+#ifdef USE_LIBTORCH
+            torch::NoGradGuard no_grad_guard;
+#endif
             auto y = evaluator_->policyAndValueBatch(input_queue);
             lock_expand_.unlock();
 

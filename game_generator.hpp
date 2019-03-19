@@ -14,7 +14,11 @@ class GameGenerator {
 public:
 #ifdef USE_LIBTORCH
     GameGenerator(ReplayBuffer& rb, NeuralNetwork nn) :
-            rb_(rb), evaluator_(std::move(nn)) {};
+            rb_(rb), evaluator_(std::move(nn)) {
+#ifdef USE_LIBTORCH
+        evaluator_->eval();
+#endif
+    };
 #else
     GameGenerator(ReplayBuffer& rb, std::shared_ptr<NeuralNetwork<Tensor>> nn) :
             rb_(rb), evaluator_(std::move(nn)) {};

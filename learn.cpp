@@ -55,6 +55,9 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
 #ifdef USE_CATEGORICAL
     float value_loss2 = 0.0;
 #endif
+#ifdef USE_LIBTORCH
+    torch::NoGradGuard no_grad_guard;
+#endif
     Position pos;
     while (num < validation_data.size()) {
         std::vector<float> inputs;

@@ -19,6 +19,9 @@ public:
         route_queues_.resize(thread_num);
         action_queues_.resize(thread_num);
         redundancy_num_.resize(thread_num);
+#ifdef USE_LIBTORCH
+        evaluator_->eval();
+#endif
     }
 #else
     SearcherForPlay(int64_t hash_size, uint64_t thread_num, uint64_t search_batch_size, std::shared_ptr<NeuralNetwork<Tensor>> nn) :
