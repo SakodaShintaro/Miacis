@@ -131,11 +131,7 @@ void SearcherForPlay::printUSIInfo() const {
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    double best_wp = 0.0;
-    for (int32_t i = 0; i < BIN_SIZE; i++) {
-        double v = curr_node.W[selected_index][i] / curr_node.N[selected_index];
-        best_wp += VALUE_WIDTH * (0.5 + i) * v;
-    }
+    double best_wp = expOfValueDist(curr_node.W[selected_index]) / curr_node.N[selected_index];
 #else
     auto best_wp = (curr_node.N[selected_index] == 0 ? 0.0 : curr_node.W[selected_index] / curr_node.N[selected_index]);
 #endif
