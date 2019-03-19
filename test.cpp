@@ -24,11 +24,7 @@ void test() {
     usi_option.search_batch_size = 1;
     usi_option.random_turn = 512;
     usi_option.draw_turn = 512;
-#ifdef USE_LIBTORCH
     torch::load(nn, MODEL_PATH);
-#else
-    nn->load(MODEL_PATH);
-#endif
     SearcherForPlay searcher(usi_option.search_limit, usi_option.thread_num, usi_option.search_batch_size, nn);
 
     Position pos;
@@ -66,11 +62,7 @@ void test() {
 }
 
 void checkGenSpeed() {
-#ifdef USE_LIBTORCH
     torch::load(nn, MODEL_PATH);
-#else
-    nn->load(MODEL_PATH);
-#endif
 
     usi_option.limit_msec = LLONG_MAX;
     usi_option.search_limit = 100;

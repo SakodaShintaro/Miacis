@@ -39,12 +39,7 @@ void USI::loop() {
         } else if (input == "gameover") {
             gameover();
         } else if (input == "prepareForLearn") {
-#ifdef USE_LIBTORCH
             torch::save(nn, MODEL_PATH);
-#else
-            nn->init();
-            nn->save(MODEL_PATH);
-#endif
             std::cout << "初期化したパラメータを出力" << std::endl;
         } else if (input == "cleanGame") {
             std::cout << "棋譜のあるフォルダへのパス : ";
@@ -70,18 +65,10 @@ void USI::loop() {
 }
 
 void USI::usi() {
-#ifdef USE_LIBTORCH
 #ifdef USE_CATEGORICAL
     printf("id name TorchCa\n");
 #else
     printf("id name TorchSa\n");
-#endif
-#else
-#ifdef USE_CATEGORICAL
-    printf("id name Miacis_cv\n");
-#else
-    printf("id name Miacis_sv\n");
-#endif
 #endif
     printf("id author Sakoda Shintaro\n");
 	printf("option name byoyomi_margin type spin default 0 min 0 max 1000\n");
@@ -104,11 +91,7 @@ void USI::usi() {
 }
 
 void USI::isready() {
-#ifdef USE_LIBTORCH
     torch::load(nn, MODEL_PATH);
-#else
-    nn->load(MODEL_PATH);
-#endif
     printf("readyok\n");
 }
 

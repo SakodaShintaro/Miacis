@@ -77,7 +77,6 @@ void alphaZero() {
     validation_data.shrink_to_fit();
 
     //モデル読み込み
-#ifdef USE_LIBTORCH
     NeuralNetwork learning_model;
     learning_model->setGPU(0);
     torch::load(learning_model, MODEL_PATH);
@@ -89,37 +88,16 @@ void alphaZero() {
     sgd_option.momentum(settings.get<float>("momentum"));
     sgd_option.weight_decay(1e-4);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
-#else
-    NeuralNetwork<Node> learning_model;
-    learning_model.load(MODEL_PATH);
-    learning_model.save(MODEL_PREFIX + "_before_alphazero.model");
-    nn->load(MODEL_PATH);
-
-    O::MomentumSGD optimizer(settings.get<float>("learn_rate"));
-    optimizer.set_weight_decay(1e-4);
-    optimizer.add(learning_model);
-
-    Graph g;
-    Graph::set_default(g);
-#endif
 
     //時間計測開始
     auto start_time = std::chrono::steady_clock::now();
 
     //自己対局スレッドを立てる
-#ifdef USE_LIBTORCH
     auto gpu_num = torch::getNumGPUs();
     std::vector<NeuralNetwork> additional_nn(gpu_num - 1);
     for (uint64_t i = 0; i < gpu_num - 1; i++) {
         additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
     }
-#else
-    uint64_t gpu_num = 1;
-    std::vector<std::shared_ptr<NeuralNetwork<Tensor>>> additional_nn(gpu_num - 1);
-    for (uint64_t i = 0; i < gpu_num - 1; i++) {
-        additional_nn[i] = std::make_shared<NeuralNetwork<Tensor>>();
-    }
-#endif
 
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     for (uint64_t i = 0; i < gpu_num; i++) {
@@ -141,7 +119,6 @@ void alphaZero() {
         replay_buffer.makeBatch(batch_size, inputs, policy_teachers, value_teachers);
 
         generators.front()->gpu_mutex.lock();
-#ifdef USE_LIBTORCH
         optimizer.zero_grad();
         auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
         auto sum_loss = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
@@ -161,30 +138,8 @@ void alphaZero() {
         sum_loss.backward();
         optimizer.step();
         torch::save(learning_model, MODEL_PATH);
-#else
-        g.clear();
-        auto loss = learning_model.loss(inputs, policy_teachers, value_teachers);
-        optimizer.reset_gradients();
-        loss.first.backward();
-        loss.second.backward();
-        optimizer.update();
-
-        //学習情報の表示
-        if (step_num % (settings.get<int64_t>("validation_interval") / 10) == 0) {
-            float p_loss = loss.first.to_float();
-            float v_loss = loss.second.to_float();
-            float sum_loss = policy_loss_coeff * p_loss + value_loss_coeff * v_loss;
-            std::cout << elapsedTime(start_time)  << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
-            learn_log << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss << "\t" << p_loss << "\t" << v_loss << std::endl;
-        }
-
-        //書き出し
-        learning_model.save(MODEL_PATH);
-        nn->load(MODEL_PATH);
-#endif
         if (step_num % validation_interval == 0) {
             //モデルの保存,読み込みなど
-#ifdef USE_LIBTORCH
             torch::load(nn, MODEL_PATH);
             for (uint64_t i = 0; i < gpu_num - 1; i++) {
                 generators[i + 1]->gpu_mutex.lock();
@@ -194,9 +149,6 @@ void alphaZero() {
             }
 
             torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
-#else
-            learning_model.save(MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
-#endif
 
             auto val_loss = validation(validation_data);
 #ifdef USE_CATEGORICAL
