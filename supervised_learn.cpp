@@ -97,10 +97,18 @@ void supervisedLearn() {
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
         for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size(); step++) {
+            Position pos;
             std::vector<float> inputs;
             std::vector<PolicyTeacherType> policy_teachers;
             std::vector<ValueTeacherType> value_teachers;
-            std::tie(inputs, policy_teachers, value_teachers) = getBatch(data_buffer, step * batch_size, batch_size);
+            for (int32_t b = 0; b < batch_size; b++) {
+                const auto& datum = data_buffer[step * batch_size + b];
+                pos.loadSFEN(datum.first);
+                const auto feature = pos.makeFeature();
+                inputs.insert(inputs.end(), feature.begin(), feature.end());
+                policy_teachers.push_back(datum.second.policy);
+                value_teachers.push_back(datum.second.value);
+            }
 
             optimizer.zero_grad();
             auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);

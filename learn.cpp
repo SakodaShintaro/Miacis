@@ -27,23 +27,6 @@ double elapsedHours(const std::chrono::steady_clock::time_point& start) {
     return seconds / 3600.0;
 }
 
-std::tuple<std::vector<float>, std::vector<PolicyTeacherType>, std::vector<ValueTeacherType>>
-getBatch(const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64_t index, int64_t batch_size) {
-    Position pos;
-    std::vector<float> inputs;
-    std::vector<PolicyTeacherType> policy_teachers;
-    std::vector<ValueTeacherType> value_teachers;
-    for (int32_t b = 0; b < batch_size; b++) {
-        const auto& datum = data_buf[index + b];
-        pos.loadSFEN(datum.first);
-        const auto feature = pos.makeFeature();
-        inputs.insert(inputs.end(), feature.begin(), feature.end());
-        policy_teachers.push_back(datum.second.policy);
-        value_teachers.push_back(datum.second.value);
-    }
-    return std::make_tuple(inputs, policy_teachers, value_teachers);
-}
-
 #ifdef USE_CATEGORICAL
 std::array<float, 3> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data) {
 #else
