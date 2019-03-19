@@ -63,7 +63,7 @@ void supervisedLearn() {
         validation_data.push_back(data_buffer.back());
         data_buffer.pop_back();
     }
-    std::cout << "learn_data_size = " << data_buffer.size() << ", validation_data_size" << validation_size << std::endl;
+    std::cout << "learn_data_size = " << data_buffer.size() << ", validation_data_size = " << validation_size << std::endl;
 
     //validation用の変数宣言
     float min_loss = 1e10;
