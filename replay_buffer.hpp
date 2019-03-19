@@ -3,10 +3,26 @@
 #include"neural_network.hpp"
 #include"game.hpp"
 #include<mutex>
+#include<experimental/filesystem>
+#ifdef _MSC_VER
+#include<direct.h>
+#elif __GNUC__
+#include<sys/stat.h>
+#endif
 
 class ReplayBuffer{
 public:
-    ReplayBuffer(int64_t first_wait, int64_t max_size, float lambda) : first_wait_(first_wait), max_size_(max_size), lambda_(lambda) {}
+    ReplayBuffer(int64_t first_wait, int64_t max_size, float lambda) : first_wait_(first_wait), max_size_(max_size), lambda_(lambda) {
+        //棋譜を保存するディレクトリの削除
+        std::experimental::filesystem::remove_all("./learn_kifu");
+
+        //棋譜を保存するディレクトリの作成
+#ifdef _MSC_VER
+        _mkdir("./learn_kifu");
+#elif __GNUC__
+        mkdir("./learn_kifu", ACCESSPERMS);
+#endif
+    }
 
     //ミニバッチを作って返す関数
     void makeBatch(int64_t batch_size, std::vector<float>& inputs, std::vector<PolicyTeacherType>& policy_teachers,
