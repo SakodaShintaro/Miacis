@@ -145,19 +145,18 @@ void alphaZero() {
         optimizer.zero_grad();
         auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
         auto sum_loss = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
-        if (step_num < (validation_interval / 10)) {
-            //最初の方は標準出力にだけ出す
-            auto p_loss = loss.first.item<float>();
-            auto v_loss = loss.second.item<float>();
-            std::cout << elapsedTime(start_time) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
-                      << "\t" << v_loss << std::endl;
+        if (step_num == 1) {
+            double h = elapsedHours(start_time);
+            double s = h * 3600;
+            std::cout << settings.get<int64_t>("first_wait") / s << " pos / sec" << std::endl;
         }
         if (step_num % (validation_interval / 10) == 0) {
             auto p_loss = loss.first.item<float>();
             auto v_loss = loss.second.item<float>();
-            std::cout << elapsedTime(start_time)  << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
+            auto s_loss = sum_loss.item<float>();
+            std::cout << elapsedTime(start_time)  << "\t" << step_num << "\t" << s_loss << "\t" << p_loss
                       << "\t" << v_loss << std::endl;
-            learn_log << elapsedHours(start_time) << "\t" << step_num << "\t" << sum_loss.item<float>() << "\t" << p_loss
+            learn_log << elapsedHours(start_time) << "\t" << step_num << "\t" << s_loss << "\t" << p_loss
                       << "\t" << v_loss << std::endl;
         }
         sum_loss.backward();
