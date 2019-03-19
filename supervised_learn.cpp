@@ -18,7 +18,6 @@ void supervisedLearn() {
 
     //後で読み込みの成功を確認するために不適当な値で初期化
     std::string kifu_path;
-    int64_t game_num = -1;
     int64_t batch_size = -1;
     float learn_rate = -1;
     float momentum = -1;
@@ -29,8 +28,6 @@ void supervisedLearn() {
     while (ifs >> name) {
         if (name == "kifu_path") {
             ifs >> kifu_path;
-        } else if (name == "game_num") {
-            ifs >> game_num;
         } else if (name == "batch_size") {
             ifs >> batch_size;
         } else if (name == "learn_rate") {
@@ -45,7 +42,6 @@ void supervisedLearn() {
     }
 
     //読み込みの確認
-    assert(game_num > 0);
     assert(batch_size > 0);
     assert(learn_rate >= 0);
     assert(momentum >= 0);
