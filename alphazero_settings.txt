@@ -1,4 +1,4 @@
-learn_rate           0.2
+learn_rate           0.02
 learn_rate_decay     0.9999
 momentum             0.9
 policy_loss_coeff    1.0
