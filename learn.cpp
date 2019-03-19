@@ -100,7 +100,6 @@ std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& fil
             TeacherType teacher;
             teacher.policy = (uint32_t) move.toLabel();
 #ifdef USE_CATEGORICAL
-            assert(false);
             teacher.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
 #else
             teacher.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);

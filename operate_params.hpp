@@ -3,7 +3,7 @@
 
 #ifdef USE_CATEGORICAL
 inline int32_t valueToIndex(double value) {
-    return std::min((int32_t)((value - MIN_SCORE) * BIN_SIZE), BIN_SIZE - 1);
+    return std::min((int32_t)((value - MIN_SCORE) / VALUE_WIDTH), BIN_SIZE - 1);
 }
 
 inline ValueType onehotDist(double value) {
