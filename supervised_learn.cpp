@@ -114,8 +114,7 @@ void supervisedLearn() {
                 std::cout << elapsedTime(start_time)  << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
                 learn_log << elapsedHours(start_time) << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
             }
-            auto sum_loss = loss.first + loss.second;
-            sum_loss.backward();
+            (loss.first + loss.second).backward();
             optimizer.step();
         }
 
