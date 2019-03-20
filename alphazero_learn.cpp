@@ -64,7 +64,7 @@ void alphaZero() {
     learn_log << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
     std::cout << "time\tstep\tloss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
     std::ofstream validation_log("alphazero_validation_log.txt");
-    validation_log << "step_num\telapsed_hours\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
+    validation_log << "time\tstep\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
     //データを取得
     std::vector<std::pair<std::string, TeacherType>> validation_data = loadData(settings.get<std::string>("validation_kifu_path"));

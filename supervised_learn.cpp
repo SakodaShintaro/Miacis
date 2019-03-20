@@ -72,7 +72,7 @@ void supervisedLearn() {
 
     //validation結果のログファイル
     std::ofstream validation_log("supervised_learn_validation_log.txt");
-    validation_log << "epoch\ttime\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
+    validation_log << "time\tepoch\tsum_loss\tpolicy_loss\tvalue_loss\tpatience\tlearning_rate" << std::fixed << std::endl;
 
     //評価関数読み込み,optimizerの準備
     NeuralNetwork learning_model;
