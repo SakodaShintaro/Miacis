@@ -21,7 +21,6 @@ void supervisedLearn() {
     int64_t batch_size = -1;
     float learn_rate = -1;
     float momentum = -1;
-    float weight_decay = -1;
     int64_t patience_limit = -1;
 
     std::string name;
@@ -34,8 +33,6 @@ void supervisedLearn() {
             ifs >> learn_rate;
         } else if (name == "momentum") {
             ifs >> momentum;
-        } else if (name == "weight_decay") {
-            ifs >> weight_decay;
         } else if (name == "patience") {
             ifs >> patience_limit;
         }
@@ -45,7 +42,6 @@ void supervisedLearn() {
     assert(batch_size > 0);
     assert(learn_rate >= 0);
     assert(momentum >= 0);
-    assert(weight_decay >= 0);
     assert(patience_limit > 0);
 
     //学習データを取得
@@ -84,7 +80,6 @@ void supervisedLearn() {
     torch::save(learning_model, MODEL_PREFIX + "_before_learn.model");
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
-    sgd_option.weight_decay(weight_decay);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
     //学習開始

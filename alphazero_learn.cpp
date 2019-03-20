@@ -86,7 +86,6 @@ void alphaZero() {
     //Optimizerの準備
     torch::optim::SGDOptions sgd_option(settings.get<float>("learn_rate"));
     sgd_option.momentum(settings.get<float>("momentum"));
-    sgd_option.weight_decay(1e-4);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
     //時間計測開始
