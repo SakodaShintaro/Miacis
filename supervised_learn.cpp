@@ -119,18 +119,20 @@ void supervisedLearn() {
         auto val_loss = validation(validation_data);
         float sum_loss = val_loss[0] + val_loss[1];
 
-        std::cout      << epoch << "\t" << elapsedTime(start_time)  << "\t" << sum_loss << "\t" << val_loss[0] << "\t" << val_loss[1] << std::endl;
-        validation_log << epoch << "\t" << elapsedHours(start_time) << "\t" << sum_loss << "\t" << val_loss[0] << "\t" << val_loss[1] << std::endl;
+        std::cout      << elapsedTime(start_time)  << "\t" << epoch << "\t" << sum_loss << "\t" << val_loss[0] << "\t" << val_loss[1] << "\t";
+        validation_log << elapsedHours(start_time) << "\t" << epoch << "\t" << sum_loss << "\t" << val_loss[0] << "\t" << val_loss[1] << std::endl;
 
         if (sum_loss < min_loss) {
             min_loss = sum_loss;
             patience = 0;
             torch::save(learning_model, MODEL_PREFIX + "_supervised_best.model");
         } else if (++patience >= patience_limit) {
+            std::cout << std::endl;
             break;
         } else {
             optimizer.options.learning_rate_ /= 2;
         }
+        std::cout << patience << "\t" << optimizer.options.learning_rate_ << std::endl;
     }
 
     std::cout << "finish SupervisedLearn" << std::endl;
