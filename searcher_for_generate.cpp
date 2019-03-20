@@ -108,7 +108,6 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
     current_node.sum_N = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
-    //TODO:正しく初期化できているか確認すること
     current_node.W.assign(current_node.moves.size(), std::array<float, BIN_SIZE>{});
     current_node.value = std::array<float, BIN_SIZE>{};
 #else
