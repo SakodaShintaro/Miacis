@@ -126,13 +126,11 @@ void alphaZero() {
             std::cout << settings.get<int64_t>("first_wait") / (h * 3600) << " pos / sec" << std::endl;
         }
         if (step_num % (validation_interval / 10) == 0) {
-            auto p_loss = loss.first.item<float>();
-            auto v_loss = loss.second.item<float>();
-            auto s_loss = sum_loss.item<float>();
-            std::cout << elapsedTime(start_time)  << "\t" << step_num << "\t" << s_loss << "\t" << p_loss
-                      << "\t" << v_loss << std::endl;
-            learn_log << elapsedHours(start_time) << "\t" << step_num << "\t" << s_loss << "\t" << p_loss
-                      << "\t" << v_loss << std::endl;
+            dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
+                                       << step_num << "\t"
+                                       << sum_loss.item<float>() << "\t"
+                                       << loss.first.item<float>() << "\t"
+                                       << loss.second.item<float>() << std::endl;
         }
         sum_loss.backward();
         optimizer.step();
@@ -146,24 +144,20 @@ void alphaZero() {
                 additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
                 generators[i + 1]->gpu_mutex.unlock();
             }
-
             torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
 
+            //validation
             auto val_loss = validation(validation_data);
+            dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
+                                            << step_num << "\t"
+                                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
+                                            << val_loss[0] << "\t"
 #ifdef USE_CATEGORICAL
-            std::cout      << step_num << "\t" << elapsedHours(start_time) << "\t"
-                           << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
-                           << val_loss[0] << "\t" << val_loss[1] << "\t" << val_loss[2] << std::endl;
-            validation_log << step_num << "\t" << elapsedHours(start_time) << "\t"
-                           << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
-                           << val_loss[0] << "\t" << val_loss[1] << "\t" << val_loss[2] << std::endl;
+                                            //Categoricalのときは3つ目の損失(期待値を取って二乗誤差)がある
+                                            << val_loss[1] << "\t"
+                                            << val_loss[2] << std::endl;
 #else
-            std::cout      << step_num << "\t" << elapsedHours(start_time) << "\t"
-                           << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
-                           << val_loss[0] << "\t" << val_loss[1] << std::endl;
-            validation_log << step_num << "\t" << elapsedHours(start_time) << "\t"
-                           << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
-                           << val_loss[0] << "\t" << val_loss[1] << std::endl;
+                                            << val_loss[1] << std::endl;
 #endif
         }
 

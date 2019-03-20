@@ -104,10 +104,11 @@ void supervisedLearn() {
             optimizer.zero_grad();
             auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
             if (step % (data_buffer.size() / batch_size / 10) == 0) {
-                auto p_loss = loss.first.item<float>();
-                auto v_loss = loss.second.item<float>();
-                std::cout << elapsedTime(start_time)  << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
-                learn_log << elapsedHours(start_time) << "\t" << epoch << "\t" << step << "\t" << p_loss << "\t" << v_loss << std::endl;
+                dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
+                                           << epoch << "\t"
+                                           << step << "\t"
+                                           << loss.first.item<float>() << "\t"
+                                           << loss.second.item<float>() << std::endl;
             }
             (loss.first + loss.second).backward();
             optimizer.step();
@@ -119,20 +120,22 @@ void supervisedLearn() {
         auto val_loss = validation(validation_data);
         float sum_loss = val_loss[0] + val_loss[1];
 
-        std::cout      << elapsedTime(start_time)  << "\t" << epoch << "\t" << sum_loss << "\t" << val_loss[0] << "\t" << val_loss[1] << "\t";
-        validation_log << elapsedHours(start_time) << "\t" << epoch << "\t" << sum_loss << "\t" << val_loss[0] << "\t" << val_loss[1] << std::endl;
-
+        dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
+                                        << epoch << "\t"
+                                        << sum_loss << "\t"
+                                        << val_loss[0] << "\t"
+                                        << val_loss[1] << "\t"
+                                        << patience << "\t"
+                                        << optimizer.options.learning_rate_ << std::endl;
         if (sum_loss < min_loss) {
             min_loss = sum_loss;
             patience = 0;
             torch::save(learning_model, MODEL_PREFIX + "_supervised_best.model");
         } else if (++patience >= patience_limit) {
-            std::cout << std::endl;
             break;
         } else {
             optimizer.options.learning_rate_ /= 2;
         }
-        std::cout << patience << "\t" << optimizer.options.learning_rate_ << std::endl;
     }
 
     std::cout << "finish SupervisedLearn" << std::endl;
