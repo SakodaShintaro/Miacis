@@ -107,10 +107,10 @@ void supervisedLearn() {
 
             optimizer.zero_grad();
             auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
-            if (step % (data_buffer.size() / batch_size / 10) == 0) {
+            if ((step + 1) % (data_buffer.size() / batch_size / 10) == 0) {
                 dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                            << epoch << "\t"
-                                           << step << "\t"
+                                           << step + 1 << "\t"
                                            << loss.first.item<float>() << "\t"
                                            << loss.second.item<float>() << std::endl;
             }
