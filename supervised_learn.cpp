@@ -72,7 +72,11 @@ void supervisedLearn() {
 
     //validation結果のログファイル
     std::ofstream validation_log("supervised_learn_validation_log.txt");
+#ifdef USE_CATEGORICAL
+    validation_log << "time\tepoch\tsum_loss\tpolicy_loss\tvalue_loss\tvalue_sme\tpatience\tlearning_rate" << std::fixed << std::endl;
+#else
     validation_log << "time\tepoch\tsum_loss\tpolicy_loss\tvalue_loss\tpatience\tlearning_rate" << std::fixed << std::endl;
+#endif
 
     //評価関数読み込み,optimizerの準備
     NeuralNetwork learning_model;
@@ -125,6 +129,9 @@ void supervisedLearn() {
                                         << sum_loss << "\t"
                                         << val_loss[0] << "\t"
                                         << val_loss[1] << "\t"
+#ifdef USE_CATEGORICAL
+                                        << val_loss[2] << "\t"
+#endif
                                         << patience << "\t"
                                         << optimizer.options.learning_rate_ << std::endl;
         if (sum_loss < min_loss) {
