@@ -45,15 +45,9 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
         auto feature = pos.makeFeature();
         std::copy(feature.begin(), feature.end(), inputs.begin() + i * INPUT_CHANNEL_NUM * SQUARE_NUM);
 
-        //policyの教師
+        //教師データ
         policy_teachers[i] = policy_label;
-
-        //valueの教師
-#ifdef USE_CATEGORICAL
-        value_teachers[i] = valueToIndex(value);
-#else
         value_teachers[i] = value;
-#endif
     }
 
     //ロックの解放
