@@ -132,9 +132,9 @@ void Searcher::mateSearch(Position pos, int32_t depth_limit) {
                 curr_node.N[i]  += usi_option.search_limit;
                 curr_node.sum_N += usi_option.search_limit;
 #ifdef USE_CATEGORICAL
-                curr_node.value[BIN_SIZE - 1] += usi_option.search_limit;
+                curr_node.W[i][BIN_SIZE - 1] += usi_option.search_limit;
 #else
-                curr_node.value += MAX_SCORE * usi_option.search_limit;
+                curr_node.W[i] += MAX_SCORE * usi_option.search_limit;
 #endif
                 return;
             }
