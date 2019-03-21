@@ -8,13 +8,8 @@ inline int32_t valueToIndex(double value) {
 
 inline ValueType onehotDist(double value) {
     //valueForBlackのところだけ1.0, 他は0.0とした分布を返す
-    //valueForBlack / (1.0 / BIN_SIZE) = valueForBlack * BIN_SIZE のところだけ1.0
-    //valueForBlack = 1.0だとちょうどBIN_SIZEになってしまうからminを取る
-    int32_t index = valueToIndex(value);
-    ValueType result;
-    for (int32_t i = 0; i < BIN_SIZE; i++) {
-        result[i] = (CalcType)(i == index ? 1.0 : 0.0);
-    }
+    ValueType result{};
+    result[valueToIndex(value)] = 1.0;
     return result;
 }
 

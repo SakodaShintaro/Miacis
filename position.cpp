@@ -149,7 +149,7 @@ void Position::print(bool with_score) const {
 
         CalcType value = 0.0;
         for (int32_t i = 0; i < BIN_SIZE; i++) {
-            //printf("p[%f] = %f\n", MIN_SCORE + VALUE_WIDTH * (0.5 + i), categorical[i]);
+            printf("p[%+f] = %+f\n", MIN_SCORE + VALUE_WIDTH * (0.5 + i), categorical[i]);
             value += (CalcType)((MIN_SCORE + VALUE_WIDTH * (0.5 + i)) * categorical[i]);
         }
         printf("value = %f\n", value);
