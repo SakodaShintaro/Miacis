@@ -12,7 +12,7 @@ struct UctHashEntry {
     std::vector<Move> moves;
     std::vector<Index> child_indices;
     std::vector<int32_t> N;
-    std::vector<ValueType> W;
+    std::vector<ValueType> Q;
     std::vector<CalcType> nn_policy;
     ValueType value;
     bool evaled;

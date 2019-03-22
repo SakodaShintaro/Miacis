@@ -65,14 +65,14 @@ Move SearcherForPlay::think(Position& root) {
     const auto& N = current_node.N;
 
     printUSIInfo();
-    root.print(true);
+    root.print(false);
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
         double nn = 100.0 * current_node.nn_policy[i];
         double p  = 100.0 * N[i] / current_node.sum_N;
 #ifdef USE_CATEGORICAL
-        double v = (N[i] > 0 ? expOfValueDist(current_node.W[i]) / N[i] : MIN_SCORE);
+        double v = (N[i] > 0 ? expOfValueDist(current_node.Q[i]) : MIN_SCORE);
 #else
-        double v = (N[i] > 0 ? current_node.W[i] / N[i] : MIN_SCORE);
+        double v = (N[i] > 0 ? current_node.Q[i] : MIN_SCORE);
 #endif
         printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn, p, v);
         current_node.moves[i].print();
@@ -86,9 +86,9 @@ Move SearcherForPlay::think(Position& root) {
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    double best_wp = expOfValueDist(current_node.W[best_index]) / N[best_index];
+    auto best_wp = expOfValueDist(current_node.Q[best_index]);
 #else
-    auto best_wp = current_node.W[best_index] / N[best_index];
+    auto best_wp = current_node.Q[best_index];
 #endif
 
     //訪問回数に基づいた分布を得る
@@ -131,9 +131,9 @@ void SearcherForPlay::printUSIInfo() const {
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    double best_wp = expOfValueDist(curr_node.W[selected_index]) / curr_node.N[selected_index];
+    auto best_wp = expOfValueDist(curr_node.Q[selected_index]);
 #else
-    auto best_wp = (curr_node.N[selected_index] == 0 ? 0.0 : curr_node.W[selected_index] / curr_node.N[selected_index]);
+    auto best_wp = curr_node.Q[selected_index];
 #endif
 
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
@@ -314,10 +314,10 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     current_node.sum_N = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
-    current_node.W.assign(current_node.moves.size(), {});
+    current_node.Q.assign(current_node.moves.size(), {});
     current_node.value = std::array<float, BIN_SIZE>{};
 #else
-    current_node.W.assign(current_node.moves.size(), 0.0);
+    current_node.Q.assign(current_node.moves.size(), 0.0);
     current_node.value = 0.0;
 #endif
 
@@ -364,6 +364,7 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
     auto leaf = indices.top();
     indices.pop();
     auto value = hash_table_[leaf].value;
+    static constexpr float LAMBDA = 1.0;
 
     //バックアップ
     while (!actions.empty()) {
@@ -381,10 +382,18 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
 #endif
         // 探索結果の反映
         lock_node_[index].lock();
-        hash_table_[index].W[action] += value;
         hash_table_[index].N[action] += add_num;
         hash_table_[index].sum_N     += add_num;
-        assert(!hash_table_[index].moves.empty());
+
+        if (hash_table_[index].N[action] == 1) {
+            hash_table_[index].Q[action] = value;
+        } else {
+            //auto curr_v = *std::max_element(hash_table_[index].Q.begin(), hash_table_[index].Q.end());
+            auto curr_v = hash_table_[index].Q[action];
+            hash_table_[index].Q[action] += 1.0 / hash_table_[index].N[action] * (value - curr_v);
+            value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
+        }
+
         lock_node_[index].unlock();
     }
 }

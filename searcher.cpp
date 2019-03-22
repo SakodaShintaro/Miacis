@@ -34,11 +34,10 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
 
 #ifdef USE_CATEGORICAL
     int32_t selected_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
-    double best_wp = expOfValueDist(current_node.W[selected_index]) / N[selected_index];
+    double best_wp = expOfValueDist(current_node.Q[selected_index]) / N[selected_index];
 #endif
 
     // ucb = Q(s, a) + U(s, a)
-    // Q(s, a) = W(s, a) / N(s, a)
     // U(s, a) = C_PUCT * P(s, a) * sqrt(sum_b(B(s, b)) / (1 + N(s, a))
     //constexpr double C_PUCT = 1.0;
 
@@ -56,11 +55,11 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
         } else {
             Q = 0.0;
             for (int32_t j = std::min(valueToIndex(best_wp) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-                Q += current_node.W[i][j] / N[i];
+                Q += current_node.Q[i][j] / N[i];
             }
         }
 #else
-        double Q = (N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.W[i] / N[i]);
+        double Q = (N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.Q[i]);
 #endif
         double U = std::sqrt(current_node.sum_N + 1) / (N[i] + 1);
         //double ucb = Q + C_PUCT * current_node.nn_policy[i] * U;
@@ -132,9 +131,9 @@ void Searcher::mateSearch(Position pos, int32_t depth_limit) {
                 curr_node.N[i]  += usi_option.search_limit;
                 curr_node.sum_N += usi_option.search_limit;
 #ifdef USE_CATEGORICAL
-                curr_node.W[i][BIN_SIZE - 1] += usi_option.search_limit;
+                curr_node.Q[i][BIN_SIZE - 1] += 1;
 #else
-                curr_node.W[i] += MAX_SCORE * usi_option.search_limit;
+                curr_node.Q[i] += MAX_SCORE;
 #endif
                 return;
             }

@@ -108,11 +108,11 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
     current_node.sum_N = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
-    current_node.W.assign(current_node.moves.size(), std::array<float, BIN_SIZE>{});
+    current_node.Q.assign(current_node.moves.size(), std::array<float, BIN_SIZE>{});
     current_node.value = std::array<float, BIN_SIZE>{};
 #else
     current_node.value = 0.0;
-    current_node.W.assign(current_node.moves.size(), 0.0);
+    current_node.Q.assign(current_node.moves.size(), 0.0);
 #endif
 
     // ノードを評価
@@ -179,7 +179,7 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
 #endif
 
         // 探索結果の反映
-        hash_table_[index].W[action] += value;
+        hash_table_[index].Q[action] += value;
         hash_table_[index].N[action]++;
         hash_table_[index].sum_N++;
         assert(!hash_table_[index].moves.empty());
@@ -197,9 +197,9 @@ std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& roo
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    auto best_wp = expOfValueDist(current_node.W[best_index]) / N[best_index];
+    auto best_wp = expOfValueDist(current_node.Q[best_index]);
 #else
-    auto best_wp = (N[best_index] == 0 ? MIN_SCORE : current_node.W[best_index] / N[best_index]);
+    auto best_wp = current_node.Q[best_index];
 #endif
 
     //教師データを作成
