@@ -22,10 +22,10 @@ Move SearcherForPlay::think(Position& root) {
     std::stack<Index> dummy;
     std::stack<int32_t> dummy2;
     current_root_index_ = expand(root, dummy, dummy2, 0);
-    auto& current_node = hash_table_[current_root_index_];
+    auto& curr_node = hash_table_[current_root_index_];
 
     //合法手が0だったら投了
-    if (current_node.moves.empty()) {
+    if (curr_node.moves.empty()) {
         return NULL_MOVE;
     }
 
@@ -39,13 +39,13 @@ Move SearcherForPlay::think(Position& root) {
     auto y = evaluator_->policyAndValueBatch(input_queues_[0]);
 
     //ルートノードへ書き込み
-    current_node.nn_policy.resize(current_node.moves.size());
-    for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        current_node.nn_policy[i] = y.first[0][current_node.moves[i].toLabel()];
+    curr_node.nn_policy.resize(curr_node.moves.size());
+    for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+        curr_node.nn_policy[i] = y.first[0][curr_node.moves[i].toLabel()];
     }
-    current_node.nn_policy = softmax(current_node.nn_policy);
+    curr_node.nn_policy = softmax(curr_node.nn_policy);
     //valueは使わないはずだけど気分で
-    current_node.value = y.second[0];
+    curr_node.value = y.second[0];
 
     //詰み探索立ち上げ
     std::thread mate_thread(&SearcherForPlay::mateSearch, this, root, usi_option.draw_turn);
@@ -62,20 +62,20 @@ Move SearcherForPlay::think(Position& root) {
         t.join();
     }
 
-    const auto& N = current_node.N;
+    const auto& N = curr_node.N;
 
     printUSIInfo();
-    root.print(true);
-    for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        double nn = 100.0 * current_node.nn_policy[i];
-        double p  = 100.0 * N[i] / current_node.sum_N;
+    root.print(false);
+    for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+        double nn = 100.0 * curr_node.nn_policy[i];
+        double p  = 100.0 * N[i] / curr_node.sum_N;
 #ifdef USE_CATEGORICAL
-        double v = (N[i] > 0 ? expOfValueDist(current_node.W[i]) / N[i] : MIN_SCORE);
+        double v = (N[i] > 0 ? expOfValueDist(curr_node.W[i]) / N[i] : MIN_SCORE);
 #else
-        double v = (N[i] > 0 ? current_node.W[i] / N[i] : MIN_SCORE);
+        double v = (N[i] > 0 ? curr_node.W[i] / N[i] : MIN_SCORE);
 #endif
         printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn, p, v);
-        current_node.moves[i].print();
+        curr_node.moves[i].print();
     }
 
     //探索回数最大の手を選択する
@@ -86,22 +86,22 @@ Move SearcherForPlay::think(Position& root) {
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    double best_wp = expOfValueDist(current_node.W[best_index]) / N[best_index];
+    auto best_wp = expOfValueDist(curr_node.W[best_index]) / N[best_index];
 #else
-    auto best_wp = current_node.W[best_index] / N[best_index];
+    auto best_wp = curr_node.W[best_index] / N[best_index];
 #endif
 
     //訪問回数に基づいた分布を得る
-    std::vector<CalcType> distribution(current_node.moves.size());
-    for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        distribution[i] = (CalcType)N[i] / current_node.sum_N;
+    std::vector<CalcType> distribution(curr_node.moves.size());
+    for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+        distribution[i] = (CalcType)N[i] / curr_node.sum_N;
         assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
     }
 
     //最善手
     Move best_move = (root.turn_number() < usi_option.random_turn ?
-                      current_node.moves[randomChoose(distribution)] :
-                      current_node.moves[best_index]);
+                      curr_node.moves[randomChoose(distribution)] :
+                      curr_node.moves[best_index]);
 
     best_move.score = (Score)(best_wp);
 
