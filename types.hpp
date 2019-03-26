@@ -30,6 +30,14 @@ inline std::array<T, SIZE> operator+(std::array<T, SIZE> lhs, std::array<T, SIZE
 }
 
 template<class T, size_t SIZE>
+inline std::array<T, SIZE> operator-(std::array<T, SIZE> lhs, std::array<T, SIZE> rhs) {
+    for (size_t i = 0; i < SIZE; i++) {
+        lhs[i] -= rhs[i];
+    }
+    return lhs;
+}
+
+template<class T, size_t SIZE>
 inline std::array<T, SIZE>& operator+=(std::array<T, SIZE>& lhs, std::array<T, SIZE> rhs) {
     for (size_t i = 0; i < SIZE; i++) {
         lhs[i] += rhs[i];
@@ -51,6 +59,14 @@ inline std::array<T, SIZE>& operator/=(std::array<T, SIZE>& lhs, U rhs) {
         lhs[i] /= rhs;
     }
     return lhs;
+}
+
+template<class T, class U, size_t SIZE>
+inline std::array<T, SIZE> operator*(U lhs, std::array<T, SIZE> rhs) {
+    for (size_t i = 0; i < SIZE; i++) {
+        rhs[i] *= lhs;
+    }
+    return rhs;
 }
 
 #endif // !TYPES_HPP
