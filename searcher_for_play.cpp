@@ -68,7 +68,7 @@ Move SearcherForPlay::think(Position& root) {
     root.print(false);
     for (int32_t i = 0; i < curr_node.moves.size(); i++) {
         double nn = 100.0 * curr_node.nn_policy[i];
-        double p  = 100.0 * N[i] / curr_node.sum_N;
+        double p = 100.0 * N[i] / curr_node.sum_N;
 #ifdef USE_CATEGORICAL
         double v = (N[i] > 0 ? expOfValueDist(curr_node.Q[i]) : MIN_SCORE);
 #else
@@ -79,7 +79,7 @@ Move SearcherForPlay::think(Position& root) {
     }
 
     //探索回数最大の手を選択する
-    int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
+    int32_t best_index = (int32_t) (std::max_element(N.begin(), N.end()) - N.begin());
 
     //選択した手の探索回数は少なくとも1以上であることを前提とする
     assert(N[best_index] != 0);
@@ -94,7 +94,7 @@ Move SearcherForPlay::think(Position& root) {
     //訪問回数に基づいた分布を得る
     std::vector<CalcType> distribution(curr_node.moves.size());
     for (int32_t i = 0; i < curr_node.moves.size(); i++) {
-        distribution[i] = (CalcType)N[i] / curr_node.sum_N;
+        distribution[i] = (CalcType) N[i] / curr_node.sum_N;
         assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
     }
 
@@ -103,16 +103,17 @@ Move SearcherForPlay::think(Position& root) {
                       curr_node.moves[randomChoose(distribution)] :
                       curr_node.moves[best_index]);
 
-    best_move.score = (Score)(best_wp);
+    best_move.score = (Score) (best_wp);
 
     return best_move;
 }
 
 std::vector<Move> SearcherForPlay::getPV() const {
     std::vector<Move> pv;
-    for (Index curr_node_index = current_root_index_; curr_node_index != UctHashTable::NOT_EXPANDED && !hash_table_[curr_node_index].moves.empty(); ) {
+    for (Index curr_node_index = current_root_index_;
+         curr_node_index != UctHashTable::NOT_EXPANDED && !hash_table_[curr_node_index].moves.empty();) {
         const auto& N = hash_table_[curr_node_index].N;
-        Index next_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
+        Index next_index = (int32_t) (std::max_element(N.begin(), N.end()) - N.begin());
         pv.push_back(hash_table_[curr_node_index].moves[next_index]);
         curr_node_index = hash_table_[curr_node_index].child_indices[next_index];
     }
@@ -127,7 +128,7 @@ void SearcherForPlay::printUSIInfo() const {
     auto finish_time = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - start_);
 
-    auto selected_index = (int32_t)(std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
+    auto selected_index = (int32_t) (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
@@ -137,11 +138,11 @@ void SearcherForPlay::printUSIInfo() const {
 #endif
 
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
-           (int32_t)(curr_node.sum_N * 1000 / std::max(elapsed.count(), 1L)),
-           (int32_t)(elapsed.count()),
+           (int32_t) (curr_node.sum_N * 1000 / std::max(elapsed.count(), 1L)),
+           (int32_t) (elapsed.count()),
            curr_node.sum_N,
-           (int32_t)(hash_table_.getUsageRate() * 1000),
-           (int32_t)(best_wp * 1000));
+           (int32_t) (hash_table_.getUsageRate() * 1000),
+           (int32_t) (best_wp * 1000));
 
     auto pv = getPV();
     for (auto m : pv) {
@@ -209,7 +210,7 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
     assert(!hash_table_[index].moves.empty());
 
     //未展開の局面に至るまで遷移を繰り返す
-    while(index != UctHashTable::NOT_EXPANDED) {
+    while (index != UctHashTable::NOT_EXPANDED) {
         std::unique_lock<std::mutex> lock(lock_node_[index]);
 
         if (hash_table_[index].moves.empty()) {
@@ -240,7 +241,7 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
 
         //VIRTUAL_LOSSの追加
         hash_table_[index].N[action] += VIRTUAL_LOSS;
-        hash_table_[index].sum_N     += VIRTUAL_LOSS;
+        hash_table_[index].sum_N += VIRTUAL_LOSS;
 
         //遷移
         pos.doMove(hash_table_[index].moves[action]);
@@ -383,16 +384,12 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
         // 探索結果の反映
         lock_node_[index].lock();
         hash_table_[index].N[action] += add_num;
-        hash_table_[index].sum_N     += add_num;
+        hash_table_[index].sum_N += add_num;
 
-        if (hash_table_[index].N[action] == 1) {
-            hash_table_[index].Q[action] = value;
-        } else {
-            //auto curr_v = *std::max_element(hash_table_[index].Q.begin(), hash_table_[index].Q.end());
-            auto curr_v = hash_table_[index].Q[action];
-            hash_table_[index].Q[action] += 1.0 / hash_table_[index].N[action] * (value - curr_v);
-            value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
-        }
+        auto curr_v = hash_table_[index].Q[action];
+        float alpha = 1.0f / hash_table_[index].N[action];
+        hash_table_[index].Q[action] += alpha * (value - curr_v);
+        value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
 
         lock_node_[index].unlock();
     }
