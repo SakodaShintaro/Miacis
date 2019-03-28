@@ -161,6 +161,10 @@ void alphaZero() {
 #endif
         }
 
+        if (step_num == max_step_num / 2) {
+            optimizer.options.learning_rate_ /= 10;
+        }
+
         generators.front()->gpu_mutex.unlock();
         std::this_thread::sleep_for(std::chrono::milliseconds(sleep_msec));
     }
