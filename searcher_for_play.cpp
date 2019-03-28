@@ -137,7 +137,7 @@ void SearcherForPlay::printUSIInfo() const {
 #endif
 
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
-           (int32_t)(curr_node.sum_N * 1000 / std::max(elapsed.count(), 1L)),
+           (int32_t)(curr_node.sum_N * 1000LL / std::max(elapsed.count(), 1L)),
            (int32_t)(elapsed.count()),
            curr_node.sum_N,
            (int32_t)(hash_table_.getUsageRate() * 1000),
