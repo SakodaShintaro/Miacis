@@ -123,9 +123,7 @@ void alphaZero() {
 
         //replay_bufferのpriorityを更新
         auto sum_loss = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
-        auto sum_loss_cpu = sum_loss.cpu();
-        std::vector<float> loss_vec(batch_size);
-        std::copy(sum_loss_cpu.data<float>(), sum_loss_cpu.data<float>() + batch_size, loss_vec.begin());
+        std::vector<float> loss_vec(batch_size, sum_loss.item<float>());
         replay_buffer.update(loss_vec);
 
         if (step_num == 1) {

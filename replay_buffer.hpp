@@ -15,7 +15,7 @@
 class ReplayBuffer{
 public:
     ReplayBuffer(int64_t first_wait, int64_t max_size, float lambda) : first_wait_(first_wait), max_size_(max_size),
-    lambda_(lambda), segment_tree_(max_size), priority_time_bonus_(0.0), data_(max_size) {
+    lambda_(lambda), segment_tree_(max_size), data_(max_size) {
         std::experimental::filesystem::remove_all("./learn_kifu");
 
         //棋譜を保存するディレクトリの作成
@@ -102,8 +102,6 @@ private:
         std::vector<float> sum_, min_;
     };
     SegmentTree segment_tree_;
-
-    float priority_time_bonus_;
 
     //最初に待つ量
     int64_t first_wait_;

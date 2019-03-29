@@ -71,6 +71,8 @@ void ReplayBuffer::push(Game &game) {
         pos.doMove(e.move);
     }
 
+    std::cout << "push" << std::endl;
+
     assert(Game::RESULT_WHITE_WIN <= game.result && game.result <= Game::RESULT_BLACK_WIN);
 
     //先手から見た勝率,分布.指数移動平均で動かしていく.最初は結果によって初期化
@@ -108,7 +110,7 @@ void ReplayBuffer::push(Game &game) {
         float priority = 0.0;
         assert(false);
 #else
-        float priority = -std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f) + priority_time_bonus_ + 10.0f;
+        float priority = (-std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f)) * 2.5f;
 #endif
         //segment_treeのpriorityを更新
         segment_tree_.update(min_index, priority);
@@ -117,8 +119,6 @@ void ReplayBuffer::push(Game &game) {
             first_wait_--;
         }
     }
-
-    priority_time_bonus_ += 1e-8;
 
     mutex_.unlock();
 }
