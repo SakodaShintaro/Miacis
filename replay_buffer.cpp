@@ -108,7 +108,7 @@ void ReplayBuffer::push(Game &game) {
         float priority = 0.0;
         assert(false);
 #else
-        float priority = -std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f) + priority_time_bonus_;
+        float priority = -std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f) + priority_time_bonus_ + 10.0f;
 #endif
         //segment_treeのpriorityを更新
         segment_tree_.update(min_index, priority);
