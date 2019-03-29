@@ -4,11 +4,26 @@
 #include"game.hpp"
 #include<mutex>
 #include<queue>
+#include<experimental/filesystem>
+#ifdef _MSC_VER
+#include<direct.h>
+#elif __GNUC__
+#include<sys/stat.h>
+#endif
+
 
 class ReplayBuffer{
 public:
     ReplayBuffer(int64_t first_wait, int64_t max_size, float lambda) : first_wait_(first_wait), max_size_(max_size),
     lambda_(lambda), segment_tree_(max_size), priority_time_bonus_(0.0), data_(max_size) {
+        std::experimental::filesystem::remove_all("./learn_kifu");
+
+        //棋譜を保存するディレクトリの作成
+#ifdef _MSC_VER
+        _mkdir("./learn_kifu");
+#elif __GNUC__
+        mkdir("./learn_kifu", ACCESSPERMS);
+#endif
     }
 
     //ミニバッチを作って返す関数

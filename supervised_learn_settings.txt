@@ -1,5 +1,4 @@
 kifu_path /home/sakoda/Downloads/2016
-game_num 1000000
 batch_size 4096
 learn_rate 0.2
 momentum 0.9

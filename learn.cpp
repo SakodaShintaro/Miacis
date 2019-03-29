@@ -27,27 +27,18 @@ double elapsedHours(const std::chrono::steady_clock::time_point& start) {
     return seconds / 3600.0;
 }
 
-std::tuple<std::vector<float>, std::vector<PolicyTeacherType>, std::vector<ValueTeacherType>>
-getBatch(const std::vector<std::pair<std::string, TeacherType>>& data_buf, int64_t index, int64_t batch_size) {
-    Position pos;
-    std::vector<float> inputs;
-    std::vector<PolicyTeacherType> policy_teachers;
-    std::vector<ValueTeacherType> value_teachers;
-    for (int32_t b = 0; b < batch_size; b++) {
-        const auto& datum = data_buf[index + b];
-        pos.loadSFEN(datum.first);
-        const auto feature = pos.makeFeature();
-        inputs.insert(inputs.end(), feature.begin(), feature.end());
-        policy_teachers.push_back(datum.second.policy);
-        value_teachers.push_back(datum.second.value);
-    }
-    return std::make_tuple(inputs, policy_teachers, value_teachers);
-}
-
+#ifdef USE_CATEGORICAL
+std::array<float, 3> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data) {
+#else
 std::array<float, 2> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data) {
+#endif
     static constexpr int32_t batch_size = 4096;
     int32_t num = 0;
     float policy_loss = 0.0, value_loss = 0.0;
+#ifdef USE_CATEGORICAL
+    float value_loss2 = 0.0;
+#endif
+    torch::NoGradGuard no_grad_guard;
     Position pos;
     while (num < validation_data.size()) {
         std::vector<float> inputs;
@@ -71,23 +62,31 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
         //計算
         auto loss = nn->loss(inputs, policy_teachers, value_teachers);
 
+#ifdef USE_CATEGORICAL
+        auto y = nn->policyAndValueBatch(inputs);
+        const auto& values = y.second;
+        for (int32_t i = 0; i < values.size(); i++) {
+            auto e = expOfValueDist(values[i]);
+            auto vt = (value_teachers[i] == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
+            value_loss2 += (e - vt) * (e - vt);
+        }
+#endif
+
         //平均化されて返ってくるのでバッチサイズをかけて総和に戻す
         //一番最後はbatch_sizeピッタリになるとは限らないのでちゃんとサイズを見てかける値を決める
         auto curr_size = policy_teachers.size();
-#ifdef USE_LIBTORCH
-        auto p_loss = torch::mean(loss.first);
-        auto v_loss = torch::mean(loss.second);
-        policy_loss += p_loss.item<float>() * curr_size;
-        value_loss  += v_loss.item<float>() * curr_size;
-#else
-        policy_loss += loss.first.to_float() * curr_size;
-        value_loss  += loss.second.to_float() * curr_size;
-#endif
+        policy_loss += loss.first.item<float>() * curr_size;
+        value_loss  += loss.second.item<float>() * curr_size;
     }
     policy_loss /= validation_data.size();
     value_loss /= validation_data.size();
 
+#ifdef USE_CATEGORICAL
+    value_loss2 /= validation_data.size();
+    return { policy_loss, value_loss, value_loss2 };
+#else
     return { policy_loss, value_loss };
+#endif
 }
 
 std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& file_path) {
@@ -103,7 +102,6 @@ std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& fil
             TeacherType teacher;
             teacher.policy = (uint32_t) move.toLabel();
 #ifdef USE_CATEGORICAL
-            assert(false);
             teacher.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
 #else
             teacher.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);

@@ -12,13 +12,10 @@
 
 class GameGenerator {
 public:
-#ifdef USE_LIBTORCH
     GameGenerator(ReplayBuffer& rb, NeuralNetwork nn) :
-            rb_(rb), evaluator_(std::move(nn)) {};
-#else
-    GameGenerator(ReplayBuffer& rb, std::shared_ptr<NeuralNetwork<Tensor>> nn) :
-            rb_(rb), evaluator_(std::move(nn)) {};
-#endif
+            rb_(rb), evaluator_(std::move(nn)) {
+        evaluator_->eval();
+    };
 
     //決まったゲーム数生成する関数
     void genGames(int64_t game_num);
@@ -37,11 +34,7 @@ private:
     ReplayBuffer& rb_;
 
     //局面評価に用いるネットワーク
-#ifdef USE_LIBTORCH
     NeuralNetwork evaluator_;
-#else
-    std::shared_ptr<NeuralNetwork<Tensor>> evaluator_;
-#endif
 };
 
 #endif //MIACIS_GAME_GENERATOR_HPP

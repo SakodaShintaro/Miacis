@@ -40,7 +40,10 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
     // ucb = Q(s, a) + U(s, a)
     // Q(s, a) = W(s, a) / N(s, a)
     // U(s, a) = C_PUCT * P(s, a) * sqrt(sum_b(B(s, b)) / (1 + N(s, a))
-    constexpr double C_PUCT = 1.0;
+    //constexpr double C_PUCT = 1.0;
+
+    constexpr double C_base = 19652.0;
+    constexpr double C_init = 1.25;
 
     int32_t max_index = -1;
     double max_value = MIN_SCORE - 1;
@@ -52,7 +55,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
             Q = (MAX_SCORE + MIN_SCORE) / 2;
         } else {
             Q = 0.0;
-            for (int32_t j = std::min((int32_t)(best_wp * BIN_SIZE) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
+            for (int32_t j = std::min(valueToIndex(best_wp) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
                 Q += current_node.W[i][j] / N[i];
             }
         }
@@ -60,7 +63,10 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
         double Q = (N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.W[i] / N[i]);
 #endif
         double U = std::sqrt(current_node.sum_N + 1) / (N[i] + 1);
-        double ucb = Q + C_PUCT * current_node.nn_policy[i] * U;
+        //double ucb = Q + C_PUCT * current_node.nn_policy[i] * U;
+
+        double C = (std::log((current_node.sum_N + C_base + 1) / C_base) + C_init);
+        double ucb = Q + C * current_node.nn_policy[i] * U;
 
         if (ucb > max_value) {
             max_value = ucb;
@@ -115,20 +121,20 @@ bool Searcher::mateSearchForEvader(Position& pos, int32_t depth) {
 
 void Searcher::mateSearch(Position pos, int32_t depth_limit) {
     auto& curr_node = hash_table_[current_root_index_];
-    for (int32_t depth = 1; depth <= depth_limit && !shouldStop(); depth += 2) {
+    for (int32_t depth = 1; !shouldStop() && depth <= depth_limit; depth += 2) {
         for (int32_t i = 0; i < curr_node.moves.size(); i++) {
             pos.doMove(curr_node.moves[i]);
             bool result = mateSearchForEvader(pos, depth - 1);
             pos.undo();
             if (result) {
                 //この手に書き込み
-                //playout_limitだけ足せば必ずこの手が選ばれるようになる
+                //search_limitだけ足せば必ずこの手が選ばれるようになる
                 curr_node.N[i]  += usi_option.search_limit;
                 curr_node.sum_N += usi_option.search_limit;
 #ifdef USE_CATEGORICAL
-                curr_node.value[BIN_SIZE - 1] += usi_option.search_limit;
+                curr_node.W[i][BIN_SIZE - 1] += usi_option.search_limit;
 #else
-                curr_node.value += usi_option.search_limit * MAX_SCORE;
+                curr_node.W[i] += MAX_SCORE * usi_option.search_limit;
 #endif
                 return;
             }

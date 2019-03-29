@@ -25,6 +25,12 @@ void GameGenerator::genSlave(int64_t id) {
     std::vector<std::stack<int32_t>> actions;
     std::vector<int32_t> ids;
 
+    //容量の確保
+    features.reserve(usi_option.search_batch_size * INPUT_CHANNEL_NUM * SQUARE_NUM);
+    hash_indices.reserve(usi_option.search_batch_size);
+    actions.reserve(usi_option.search_batch_size);
+    ids.reserve(usi_option.search_batch_size);
+
     //このスレッドが管理するデータら
     std::vector<Game> games(usi_option.search_batch_size);
     std::vector<Position> positions(usi_option.search_batch_size);
@@ -45,6 +51,7 @@ void GameGenerator::genSlave(int64_t id) {
     //GPUで評価する関数
     auto evalWithGPU = [&](){
         gpu_mutex.lock();
+        torch::NoGradGuard no_grad_guard;
         auto result = evaluator_->policyAndValueBatch(features);
         gpu_mutex.unlock();
         auto policies = result.first;
@@ -76,6 +83,7 @@ void GameGenerator::genSlave(int64_t id) {
     evalWithGPU();
 
     while (true) {
+        //キューのリセット
         features.clear();
         hash_indices.clear();
         actions.clear();

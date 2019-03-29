@@ -22,10 +22,10 @@ Move SearcherForPlay::think(Position& root) {
     std::stack<Index> dummy;
     std::stack<int32_t> dummy2;
     current_root_index_ = expand(root, dummy, dummy2, 0);
-    auto& current_node = hash_table_[current_root_index_];
+    auto& curr_node = hash_table_[current_root_index_];
 
     //合法手が0だったら投了
-    if (current_node.moves.empty()) {
+    if (curr_node.moves.empty()) {
         return NULL_MOVE;
     }
 
@@ -39,13 +39,13 @@ Move SearcherForPlay::think(Position& root) {
     auto y = evaluator_->policyAndValueBatch(input_queues_[0]);
 
     //ルートノードへ書き込み
-    current_node.nn_policy.resize(current_node.moves.size());
-    for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        current_node.nn_policy[i] = y.first[0][current_node.moves[i].toLabel()];
+    curr_node.nn_policy.resize(curr_node.moves.size());
+    for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+        curr_node.nn_policy[i] = y.first[0][curr_node.moves[i].toLabel()];
     }
-    current_node.nn_policy = softmax(current_node.nn_policy);
+    curr_node.nn_policy = softmax(curr_node.nn_policy);
     //valueは使わないはずだけど気分で
-    current_node.value = y.second[0];
+    curr_node.value = y.second[0];
 
     //詰み探索立ち上げ
     std::thread mate_thread(&SearcherForPlay::mateSearch, this, root, usi_option.draw_turn);
@@ -62,21 +62,21 @@ Move SearcherForPlay::think(Position& root) {
         t.join();
     }
 
-    const auto& N = current_node.N;
+    const auto& N = curr_node.N;
 
     printUSIInfo();
-//    root.print(true);
-//    for (int32_t i = 0; i < current_node.moves.size(); i++) {
-//        double nn = 100.0 * current_node.nn_policy[i];
-//        double p  = 100.0 * N[i] / current_node.sum_N;
-//#ifdef USE_CATEGORICAL
-//        double v = (N[i] > 0 ? expOfValueDist(current_node.W[i]) / N[i] : MIN_SCORE);
-//#else
-//        double v = (N[i] > 0 ? current_node.W[i] / N[i] : MIN_SCORE);
-//#endif
-//        printf("%3d  %4.1f  %4.1f  %+.3f  ", i, nn, p, v);
-//        current_node.moves[i].print();
-//    }
+    root.print(false);
+    for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+        double nn = 100.0 * curr_node.nn_policy[i];
+        double p  = 100.0 * N[i] / curr_node.sum_N;
+#ifdef USE_CATEGORICAL
+        double v = (N[i] > 0 ? expOfValueDist(curr_node.W[i]) / N[i] : MIN_SCORE);
+#else
+        double v = (N[i] > 0 ? curr_node.W[i] / N[i] : MIN_SCORE);
+#endif
+        printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn, p, v);
+        curr_node.moves[i].print();
+    }
 
     //探索回数最大の手を選択する
     int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
@@ -86,26 +86,22 @@ Move SearcherForPlay::think(Position& root) {
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    double best_wp = 0.0;
-    for (int32_t i = 0; i < BIN_SIZE; i++) {
-        double v = current_node.W[best_index][i] / N[best_index];
-        best_wp += VALUE_WIDTH * (0.5 + i) * v;
-    }
+    auto best_wp = expOfValueDist(curr_node.W[best_index]) / N[best_index];
 #else
-    auto best_wp = current_node.W[best_index] / N[best_index];
+    auto best_wp = curr_node.W[best_index] / N[best_index];
 #endif
 
     //訪問回数に基づいた分布を得る
-    std::vector<CalcType> distribution(current_node.moves.size());
-    for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        distribution[i] = (CalcType)N[i] / current_node.sum_N;
+    std::vector<CalcType> distribution(curr_node.moves.size());
+    for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+        distribution[i] = (CalcType)N[i] / curr_node.sum_N;
         assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
     }
 
     //最善手
     Move best_move = (root.turn_number() < usi_option.random_turn ?
-                      current_node.moves[randomChoose(distribution)] :
-                      current_node.moves[best_index]);
+                      curr_node.moves[randomChoose(distribution)] :
+                      curr_node.moves[best_index]);
 
     best_move.score = (Score)(best_wp);
 
@@ -135,17 +131,13 @@ void SearcherForPlay::printUSIInfo() const {
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    double best_wp = 0.0;
-    for (int32_t i = 0; i < BIN_SIZE; i++) {
-        double v = curr_node.W[selected_index][i] / curr_node.N[selected_index];
-        best_wp += VALUE_WIDTH * (0.5 + i) * v;
-    }
+    double best_wp = expOfValueDist(curr_node.W[selected_index]) / curr_node.N[selected_index];
 #else
     auto best_wp = (curr_node.N[selected_index] == 0 ? 0.0 : curr_node.W[selected_index] / curr_node.N[selected_index]);
 #endif
 
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
-           (int32_t)(curr_node.sum_N * 1000 / std::max(elapsed.count(), 1L)),
+           (int32_t)(curr_node.sum_N * 1000LL / std::max(elapsed.count(), 1L)),
            (int32_t)(elapsed.count()),
            curr_node.sum_N,
            (int32_t)(hash_table_.getUsageRate() * 1000),
@@ -183,6 +175,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         //評価要求をGPUで計算
         if (!index_queue.empty()) {
             lock_expand_.lock();
+            torch::NoGradGuard no_grad_guard;
             auto y = evaluator_->policyAndValueBatch(input_queue);
             lock_expand_.unlock();
 
@@ -321,19 +314,11 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     current_node.sum_N = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
-    //TODO:正しく初期化できているか確認すること
-    current_node.W.assign(static_cast<unsigned long>(current_node.moves.size()), std::array<float, BIN_SIZE>{});
+    current_node.W.assign(current_node.moves.size(), {});
     current_node.value = std::array<float, BIN_SIZE>{};
-    for (int32_t i = 0; i < BIN_SIZE; i++) {
-        //current_node.value[i] = 0.0;
-        std::cout << current_node.value[i] << std::endl;
-        for (int32_t j = 0; j < current_node.moves.size(); j++) {
-            current_node.W[j][i] = 0.0;
-        }
-    }
 #else
-    current_node.value = 0.0;
     current_node.W.assign(current_node.moves.size(), 0.0);
+    current_node.value = 0.0;
 #endif
 
     // ノードを評価

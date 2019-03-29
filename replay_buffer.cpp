@@ -28,7 +28,7 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
     policy_teachers.clear();
     value_teachers.clear();
     pre_indices_.clear();
-    inputs.reserve(INPUT_CHANNEL_NUM * SQUARE_NUM * batch_size);
+    inputs.resize(INPUT_CHANNEL_NUM * SQUARE_NUM * batch_size);
     policy_teachers.reserve(batch_size);
     value_teachers.reserve(batch_size);
     pre_indices_.reserve(batch_size);
@@ -45,17 +45,11 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
         //入力特徴量の確保
         pos.loadSFEN(sfen);
         auto feature = pos.makeFeature();
-        inputs.insert(inputs.end(), feature.begin(), feature.end());
+        std::copy(feature.begin(), feature.end(), inputs.begin() + i * INPUT_CHANNEL_NUM * SQUARE_NUM);
 
-        //policyの教師
+        //教師
         policy_teachers.push_back(teacher.policy);
-
-        //valueの教師
-#ifdef USE_CATEGORICAL
-        value_teachers.push_back(valueToIndex(teacher.value));
-#else
         value_teachers.push_back(teacher.value);
-#endif
     }
 
     //ロックの解放
@@ -66,6 +60,11 @@ void ReplayBuffer::push(Game &game) {
     mutex_.lock();
 
     Position pos;
+
+    static int64_t num = 0;
+    if (++num % 100 == 0) {
+        game.writeKifuFile("./learn_kifu/");
+    }
 
     //まずは最終局面まで動かす
     for (const auto& e : game.elements) {

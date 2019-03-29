@@ -10,7 +10,6 @@
 
 class SearcherForPlay : public Searcher {
 public:
-#ifdef USE_LIBTORCH
     SearcherForPlay(int64_t hash_size, uint64_t thread_num, uint64_t search_batch_size, NeuralNetwork nn) :
     Searcher(hash_size), thread_num_(thread_num), search_batch_size_(search_batch_size), evaluator_(std::move(nn)) {
         lock_node_ = std::vector<std::mutex>(hash_table_.size());
@@ -20,17 +19,6 @@ public:
         action_queues_.resize(thread_num);
         redundancy_num_.resize(thread_num);
     }
-#else
-    SearcherForPlay(int64_t hash_size, uint64_t thread_num, uint64_t search_batch_size, std::shared_ptr<NeuralNetwork<Tensor>> nn) :
-    Searcher(hash_size), thread_num_(thread_num), search_batch_size_(search_batch_size), evaluator_(std::move(nn)) {
-        lock_node_ = std::vector<std::mutex>(hash_table_.size());
-        input_queues_.resize(thread_num);
-        index_queues_.resize(thread_num);
-        route_queues_.resize(thread_num);
-        action_queues_.resize(thread_num);
-        redundancy_num_.resize(thread_num);
-    }
-#endif
 
     //探索を行って一番良い指し手を返す関数
     Move think(Position& root);
@@ -61,11 +49,7 @@ private:
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t add_num);
 
     //局面評価に用いるネットワーク
-#ifdef USE_LIBTORCH
     NeuralNetwork evaluator_;
-#else
-    std::shared_ptr<NeuralNetwork<Tensor>> evaluator_;
-#endif
 
     //mutex
     std::vector<std::mutex> lock_node_;

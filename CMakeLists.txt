@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-list(APPEND CMAKE_PREFIX_PATH ~/pytorch)
 find_package(Torch REQUIRED)
 
 #使用するソースも共通なので変数でまとめる
@@ -31,16 +30,9 @@ set(SRCS bitboard.cpp
          searcher_for_generate.cpp
          hyperparameter_manager.cpp)
 
-add_executable(Miacis_sv ${SRCS})
-add_executable(Miacis_cv ${SRCS})
 add_executable(TorchSa ${SRCS})
 add_executable(TorchCa ${SRCS})
-target_compile_definitions(Miacis_cv PUBLIC USE_CATEGORICAL)
-target_compile_definitions(TorchSa PUBLIC USE_LIBTORCH)
-target_compile_definitions(TorchCa PUBLIC USE_LIBTORCH USE_CATEGORICAL)
+target_compile_definitions(TorchCa PUBLIC USE_CATEGORICAL)
 
-target_link_libraries(Miacis_sv pthread stdc++fs primitiv)
-target_link_libraries(Miacis_cv pthread stdc++fs primitiv)
 target_link_libraries(TorchSa pthread stdc++fs "${TORCH_LIBRARIES}")
 target_link_libraries(TorchCa pthread stdc++fs "${TORCH_LIBRARIES}")
-
