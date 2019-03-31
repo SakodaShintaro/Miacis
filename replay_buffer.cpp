@@ -71,8 +71,6 @@ void ReplayBuffer::push(Game &game) {
         pos.doMove(e.move);
     }
 
-    std::cout << "push" << std::endl;
-
     assert(Game::RESULT_WHITE_WIN <= game.result && game.result <= Game::RESULT_BLACK_WIN);
 
     //先手から見た勝率,分布.指数移動平均で動かしていく.最初は結果によって初期化
