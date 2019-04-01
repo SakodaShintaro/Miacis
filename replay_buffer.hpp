@@ -50,8 +50,8 @@ private:
     public:
         explicit SegmentTree(uint64_t n) {
             n_ = 1ull << MSB64(n);
-            sum_.resize(2 * n_ - 1);
-            min_.resize(2 * n_ - 1);
+            sum_.resize(2 * n_ - 1, 0);
+            min_.resize(2 * n_ - 1, 0);
         }
 
         void update(uint64_t x, float v) {
