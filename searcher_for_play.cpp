@@ -65,17 +65,19 @@ Move SearcherForPlay::think(Position& root) {
     const auto& N = curr_node.N;
 
     printUSIInfo();
-    root.print(false);
-    for (int32_t i = 0; i < curr_node.moves.size(); i++) {
-        double nn = 100.0 * curr_node.nn_policy[i];
-        double p  = 100.0 * N[i] / curr_node.sum_N;
+    if (usi_option.print_debug_info) {
+        root.print(false);
+        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+            double nn = 100.0 * curr_node.nn_policy[i];
+            double p = 100.0 * N[i] / curr_node.sum_N;
 #ifdef USE_CATEGORICAL
-        double v = (N[i] > 0 ? expOfValueDist(curr_node.W[i]) / N[i] : MIN_SCORE);
+            double v = (N[i] > 0 ? expOfValueDist(curr_node.W[i]) / N[i] : MIN_SCORE);
 #else
-        double v = (N[i] > 0 ? curr_node.W[i] / N[i] : MIN_SCORE);
+            double v = (N[i] > 0 ? curr_node.W[i] / N[i] : MIN_SCORE);
 #endif
-        printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn, p, v);
-        curr_node.moves[i].print();
+            printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn, p, v);
+            curr_node.moves[i].print();
+        }
     }
 
     //探索回数最大の手を選択する

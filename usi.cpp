@@ -81,6 +81,8 @@ void USI::usi() {
     usi_option.search_batch_size = 1;
     printf("option name draw_turn type spin default 256 min 0 max 4096\n");
     usi_option.draw_turn = 256;
+    printf("option name print_debug_info type check default false\n");
+    usi_option.print_debug_info = false;
 
     auto d = (unsigned long long)1e9;
     printf("option name search_limit type spin default %llu min 1 max %llu\n", d, d);
@@ -133,6 +135,11 @@ void USI::setoption() {
             } else if (input == "search_limit") {
                 std::cin >> input;
                 std::cin >> usi_option.search_limit;
+                return;
+            } else if (input == "print_debug_info") {
+                std::cin >> input;
+                std::cin >> input;
+                usi_option.print_debug_info = (input == "true");
                 return;
             }
         }
