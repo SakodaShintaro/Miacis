@@ -66,10 +66,10 @@ Move SearcherForPlay::think(Position& root) {
 
     printUSIInfo();
     if (usi_option.print_debug_info) {
-        root.print(false);
+        root.print(true);
         for (int32_t i = 0; i < curr_node.moves.size(); i++) {
             double nn = 100.0 * curr_node.nn_policy[i];
-            double p = 100.0 * N[i] / curr_node.sum_N;
+            double p  = 100.0 * N[i] / curr_node.sum_N;
 #ifdef USE_CATEGORICAL
             double v = (N[i] > 0 ? expOfValueDist(curr_node.W[i]) / N[i] : MIN_SCORE);
 #else
