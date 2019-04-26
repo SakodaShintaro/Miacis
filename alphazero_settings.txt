@@ -17,3 +17,4 @@ search_batch_size    32
 validation_interval  4000
 validation_size      409600
 validation_kifu_path /home/sakoda/Downloads/2016
+do_validation        0
