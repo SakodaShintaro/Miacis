@@ -60,7 +60,7 @@ void ReplayBuffer::push(Game &game) {
     Position pos;
 
     static int64_t num = 0;
-    if (++num % 100 == 0) {
+    if (++num % 500 == 0) {
         game.writeKifuFile("./learn_kifu/");
     }
 
