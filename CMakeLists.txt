@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
+list(APPEND CMAKE_PREFIX_PATH ~/libtorch)
 find_package(Torch REQUIRED)
 
 #使用するソースも共通なので変数でまとめる
