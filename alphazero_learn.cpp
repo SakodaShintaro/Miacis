@@ -28,6 +28,7 @@ void alphaZero() {
     settings.add("validation_interval", 1, (int64_t)1e10);
     settings.add("validation_size",     0, (int64_t)1e10);
     settings.add("validation_kifu_path");
+    settings.add("do_validation",       0, (int64_t)1);
 
     //設定をファイルからロード
     settings.load("alphazero_settings.txt");
@@ -58,6 +59,7 @@ void alphaZero() {
     int64_t sleep_msec          = settings.get<int64_t>("sleep_msec");
     float policy_loss_coeff     = settings.get<float>("policy_loss_coeff");
     float value_loss_coeff      = settings.get<float>("value_loss_coeff");
+    bool do_validation          = bool(settings.get<int64_t>("do_validation"));
 
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");
@@ -67,14 +69,17 @@ void alphaZero() {
     validation_log << "time\tstep\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
     //データを取得
-    std::vector<std::pair<std::string, TeacherType>> validation_data = loadData(settings.get<std::string>("validation_kifu_path"));
-    assert(validation_data.size() >= settings.get<int64_t>("validation_size"));
+    std::vector<std::pair<std::string, TeacherType>> validation_data;
+    if (do_validation) {
+        validation_data = loadData(settings.get<std::string>("validation_kifu_path"));
+        assert(validation_data.size() >= settings.get<int64_t>("validation_size"));
 
-    //データをシャッフルして必要量以外を削除
-    std::default_random_engine engine(0);
-    std::shuffle(validation_data.begin(), validation_data.end(), engine);
-    validation_data.erase(validation_data.begin() + settings.get<int64_t>("validation_size"), validation_data.end());
-    validation_data.shrink_to_fit();
+        //データをシャッフルして必要量以外を削除
+        std::default_random_engine engine(0);
+        std::shuffle(validation_data.begin(), validation_data.end(), engine);
+        validation_data.erase(validation_data.begin() + settings.get<int64_t>("validation_size"), validation_data.end());
+        validation_data.shrink_to_fit();
+    }
 
     //モデル読み込み
     NeuralNetwork learning_model;
@@ -147,18 +152,21 @@ void alphaZero() {
             torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
 
             //validation
-            auto val_loss = validation(validation_data);
-            dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
-                                            << step_num << "\t"
-                                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
-                                            << val_loss[0] << "\t"
-#ifdef USE_CATEGORICAL
-                                            //Categoricalのときは3つ目の損失(期待値を取って二乗誤差)がある
-                                            << val_loss[1] << "\t"
-                                            << val_loss[2] << std::endl;
+            if (do_validation) {
+                auto val_loss = validation(validation_data);
+                dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
+                                                << step_num << "\t"
+                                                << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1]
+                                                << "\t"
+                                                << val_loss[0] << "\t"
+                                                #ifdef USE_CATEGORICAL
+                                                //Categoricalのときは3つ目の損失(期待値を取って二乗誤差)がある
+                                                << val_loss[1] << "\t"
+                                                << val_loss[2] << std::endl;
 #else
-                                            << val_loss[1] << std::endl;
+                << val_loss[1] << std::endl;
 #endif
+            }
         }
 
         if (step_num == max_step_num / 2) {
