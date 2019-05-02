@@ -198,10 +198,12 @@ void USI::go() {
         std::cin >> input; //input == "wtime" となるはず
         std::cin >> input;
         int64_t wtime = stoll(input);
+        int64_t time = (root_.color() == BLACK ? btime : wtime);
+        int64_t curr_time = time / ((usi_option.draw_turn - root_.turn_number()) / 2);
         std::cin >> input; //input == "byoyomi" or "binc"となるはず
         if (input == "byoyomi") {
             std::cin >> input;
-            usi_option.limit_msec = stoll(input);
+            usi_option.limit_msec = stoll(input) + curr_time;
         } else {
             int64_t binc, winc;
             std::cin >> input;
@@ -209,7 +211,7 @@ void USI::go() {
             std::cin >> input; //input == "winc" となるはず
             std::cin >> input;
             winc = stoll(input);
-            usi_option.limit_msec = binc;
+            usi_option.limit_msec = binc + curr_time;
         }
     } else if (input == "infinite") {
         //stop来るまで思考し続ける

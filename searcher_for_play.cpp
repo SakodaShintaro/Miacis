@@ -8,7 +8,7 @@ Move SearcherForPlay::think(Position& root) {
     start_ = std::chrono::steady_clock::now();
 
     //古いハッシュを削除
-    hash_table_.deleteOldHash(root, false);
+    hash_table_.deleteOldHash(root, true);
 
     //キューの初期化
     for (int32_t i = 0; i < thread_num_; i++) {
@@ -90,7 +90,7 @@ Move SearcherForPlay::think(Position& root) {
             p += curr_node.W[best_index][i * 3 + j] / N[best_index];
         }
         printf("[%6.2f:%6.2f]:", MIN_SCORE + VALUE_WIDTH * (3 * i + 1.5), p * 100);
-        for (int64_t j = 0; j < p * 30; j++) {
+        for (int64_t j = 0; j < p * 50; j++) {
             printf("*");
         }
         printf("\n");
