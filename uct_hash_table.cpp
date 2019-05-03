@@ -65,11 +65,15 @@ void UctHashTable::deleteOldHash(Position& root, bool leave_root) {
 
     used_num_ = 0;
     age_++;
-    //for (int i = 0; i < size_; i++) {
-    //    table_[i].flag = false;
-    //}
 
-    if (leave_root && root_index != table_.size()) { //見つかったということ
+    if (root_index != table_.size()) { //見つかったということ
         saveUsedHash(root, root_index);
+
+        if (!leave_root) {
+            //root_indexのところは初期化
+            table_[root_index].age = age_ - 1;
+            used_num_--;
+        }
     }
+
 }
