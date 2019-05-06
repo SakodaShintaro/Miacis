@@ -31,9 +31,9 @@ set(SRCS bitboard.cpp
          searcher_for_generate.cpp
          hyperparameter_manager.cpp)
 
-add_executable(TorchSa ${SRCS})
-add_executable(TorchCa ${SRCS})
-target_compile_definitions(TorchCa PUBLIC USE_CATEGORICAL)
+add_executable(Miacis_scalar      ${SRCS})
+add_executable(Miacis_categorical ${SRCS})
+target_compile_definitions(Miacis_categorical PUBLIC USE_CATEGORICAL)
 
-target_link_libraries(TorchSa pthread stdc++fs "${TORCH_LIBRARIES}")
-target_link_libraries(TorchCa pthread stdc++fs "${TORCH_LIBRARIES}")
+target_link_libraries(Miacis_scalar      pthread stdc++fs "${TORCH_LIBRARIES}")
+target_link_libraries(Miacis_categorical pthread stdc++fs "${TORCH_LIBRARIES}")
