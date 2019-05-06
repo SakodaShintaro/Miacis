@@ -84,12 +84,13 @@ Move SearcherForPlay::think(Position& root) {
     int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
 #ifdef USE_CATEGORICAL
     //分布の表示
-    for (int64_t i = 0; i < 17; i++) {
+    constexpr int64_t gather_num = 3;
+    for (int64_t i = 0; i < BIN_SIZE / gather_num; i++) {
         double p = 0.0;
-        for (int64_t j = 0; j < 3; j++) {
-            p += curr_node.W[best_index][i * 3 + j] / N[best_index];
+        for (int64_t j = 0; j < gather_num; j++) {
+            p += curr_node.W[best_index][i * gather_num + j] / N[best_index];
         }
-        printf("[%6.2f:%6.2f]:", MIN_SCORE + VALUE_WIDTH * (3 * i + 1.5), p * 100);
+        printf("info string [%6.2f:%6.2f%%]:", MIN_SCORE + VALUE_WIDTH * (gather_num * i + 1.5), p * 100);
         for (int64_t j = 0; j < p * 50; j++) {
             printf("*");
         }
