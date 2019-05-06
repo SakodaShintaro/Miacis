@@ -9,26 +9,28 @@
 
 void alphaZero() {
     HyperparameterManager settings;
-    settings.add("learn_rate",          0.0f, 100.0f);
-    settings.add("learn_rate_decay",    0.0f, 1.0f);
-    settings.add("momentum",            0.0f, 1.0f);
-    settings.add("policy_loss_coeff",   0.0f, 1e10f);
-    settings.add("value_loss_coeff",    0.0f, 1e10f);
-    settings.add("lambda",              0.0f, 1.0f);
-    settings.add("draw_turn",           0, (int64_t)1024);
-    settings.add("random_turn",         0, (int64_t)1024);
-    settings.add("batch_size",          1, (int64_t)1e10);
-    settings.add("thread_num",          1, (int64_t)std::thread::hardware_concurrency());
-    settings.add("max_step_num",        1, (int64_t)1e10);
-    settings.add("sleep_msec",          0, (int64_t)1e10);
-    settings.add("max_stack_size",      1, (int64_t)1e10);
-    settings.add("first_wait",          0, (int64_t)1e10);
-    settings.add("search_limit",        1, (int64_t)1e10);
-    settings.add("search_batch_size",   1, (int64_t)1e10);
-    settings.add("validation_interval", 1, (int64_t)1e10);
-    settings.add("validation_size",     0, (int64_t)1e10);
+    settings.add("learn_rate",             0.0f, 100.0f);
+    settings.add("momentum",               0.0f, 1.0f);
+    settings.add("policy_loss_coeff",      0.0f, 1e10f);
+    settings.add("value_loss_coeff",       0.0f, 1e10f);
+    settings.add("lambda",                 0.0f, 1.0f);
+    settings.add("learn_rate_decay_step1", 0, (int64_t)1e10);
+    settings.add("learn_rate_decay_step2", 0, (int64_t)1e10);
+    settings.add("learn_rate_decay_step3", 0, (int64_t)1e10);
+    settings.add("draw_turn",              0, (int64_t)1024);
+    settings.add("random_turn",            0, (int64_t)1024);
+    settings.add("batch_size",             1, (int64_t)1e10);
+    settings.add("thread_num",             1, (int64_t)std::thread::hardware_concurrency());
+    settings.add("max_step_num",           1, (int64_t)1e10);
+    settings.add("sleep_msec",             0, (int64_t)1e10);
+    settings.add("max_stack_size",         1, (int64_t)1e10);
+    settings.add("first_wait",             0, (int64_t)1e10);
+    settings.add("search_limit",           1, (int64_t)1e10);
+    settings.add("search_batch_size",      1, (int64_t)1e10);
+    settings.add("do_validation",          0, (int64_t)1);
+    settings.add("validation_interval",    1, (int64_t)1e10);
+    settings.add("validation_size",        0, (int64_t)1e10);
     settings.add("validation_kifu_path");
-    settings.add("do_validation",       0, (int64_t)1);
 
     //設定をファイルからロード
     settings.load("alphazero_settings.txt");
@@ -53,13 +55,16 @@ void alphaZero() {
 
     //学習ループ中で複数回参照するオプションは変数として確保する
     //速度的な問題はほぼないと思うが,学習始まってからtypoで中断が入るのも嫌なので
-    uint64_t batch_size         = static_cast<uint64_t>(settings.get<int64_t>("batch_size"));
-    int64_t max_step_num        = settings.get<int64_t>("max_step_num");
-    int64_t validation_interval = settings.get<int64_t>("validation_interval");
-    int64_t sleep_msec          = settings.get<int64_t>("sleep_msec");
-    float policy_loss_coeff     = settings.get<float>("policy_loss_coeff");
-    float value_loss_coeff      = settings.get<float>("value_loss_coeff");
-    bool do_validation          = bool(settings.get<int64_t>("do_validation"));
+    uint64_t batch_size            = static_cast<uint64_t>(settings.get<int64_t>("batch_size"));
+    int64_t max_step_num           = settings.get<int64_t>("max_step_num");
+    int64_t learn_rate_decay_step1 = settings.get<int64_t>("learn_rate_decay_step1");
+    int64_t learn_rate_decay_step2 = settings.get<int64_t>("learn_rate_decay_step2");
+    int64_t learn_rate_decay_step3 = settings.get<int64_t>("learn_rate_decay_step3");
+    int64_t validation_interval    = settings.get<int64_t>("validation_interval");
+    int64_t sleep_msec             = settings.get<int64_t>("sleep_msec");
+    float policy_loss_coeff        = settings.get<float>("policy_loss_coeff");
+    float value_loss_coeff         = settings.get<float>("value_loss_coeff");
+    bool do_validation             = bool(settings.get<int64_t>("do_validation"));
 
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");
@@ -156,20 +161,21 @@ void alphaZero() {
                 auto val_loss = validation(validation_data);
                 dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
                                                 << step_num << "\t"
-                                                << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1]
-                                                << "\t"
+                                                << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
                                                 << val_loss[0] << "\t"
                                                 #ifdef USE_CATEGORICAL
                                                 //Categoricalのときは3つ目の損失(期待値を取って二乗誤差)がある
                                                 << val_loss[1] << "\t"
                                                 << val_loss[2] << std::endl;
 #else
-                << val_loss[1] << std::endl;
+                                                << val_loss[1] << std::endl;
 #endif
             }
         }
 
-        if (step_num == max_step_num / 2) {
+        if (step_num == learn_rate_decay_step1
+         || step_num == learn_rate_decay_step2
+         || step_num == learn_rate_decay_step3) {
             optimizer.options.learning_rate_ /= 10;
         }
 
