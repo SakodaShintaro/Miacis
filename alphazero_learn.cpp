@@ -22,6 +22,8 @@ void alphaZero() {
     settings.add("batch_size",             1, (int64_t)1e10);
     settings.add("thread_num",             1, (int64_t)std::thread::hardware_concurrency());
     settings.add("max_step_num",           1, (int64_t)1e10);
+    settings.add("update_interval",        1, (int64_t)1e10);
+    settings.add("save_interval",          1, (int64_t)1e10);
     settings.add("sleep_msec",             0, (int64_t)1e10);
     settings.add("max_stack_size",         1, (int64_t)1e10);
     settings.add("first_wait",             0, (int64_t)1e10);
@@ -61,10 +63,14 @@ void alphaZero() {
     int64_t learn_rate_decay_step2 = settings.get<int64_t>("learn_rate_decay_step2");
     int64_t learn_rate_decay_step3 = settings.get<int64_t>("learn_rate_decay_step3");
     int64_t validation_interval    = settings.get<int64_t>("validation_interval");
+    int64_t update_interval        = settings.get<int64_t>("update_interval");
+    int64_t save_interval          = settings.get<int64_t>("save_interval");
     int64_t sleep_msec             = settings.get<int64_t>("sleep_msec");
     float policy_loss_coeff        = settings.get<float>("policy_loss_coeff");
     float value_loss_coeff         = settings.get<float>("value_loss_coeff");
     bool do_validation             = bool(settings.get<int64_t>("do_validation"));
+
+    assert(validation_interval % update_interval == 0);
 
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");
@@ -145,7 +151,8 @@ void alphaZero() {
         sum_loss.backward();
         optimizer.step();
         torch::save(learning_model, MODEL_PATH);
-        if (step_num % validation_interval == 0) {
+
+        if (step_num % update_interval == 0) {
             //モデルの保存,読み込みなど
             torch::load(nn, MODEL_PATH);
             for (uint64_t i = 0; i < gpu_num - 1; i++) {
@@ -154,23 +161,26 @@ void alphaZero() {
                 additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
                 generators[i + 1]->gpu_mutex.unlock();
             }
-            torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
+        }
 
-            //validation
-            if (do_validation) {
-                auto val_loss = validation(validation_data);
-                dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
-                                                << step_num << "\t"
-                                                << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
-                                                << val_loss[0] << "\t"
-                                                #ifdef USE_CATEGORICAL
-                                                //Categoricalのときは3つ目の損失(期待値を取って二乗誤差)がある
-                                                << val_loss[1] << "\t"
-                                                << val_loss[2] << std::endl;
+        if (step_num % save_interval) {
+            torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
+        }
+
+        //validation
+        if (do_validation && step_num % validation_interval == 0) {
+            auto val_loss = validation(validation_data);
+            dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
+                                            << step_num << "\t"
+                                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
+                                            << val_loss[0] << "\t"
+#ifdef USE_CATEGORICAL
+                                            //Categoricalのときは3つ目の損失(期待値を取って二乗誤差)がある
+                                            << val_loss[1] << "\t"
+                                            << val_loss[2] << std::endl;
 #else
-                                                << val_loss[1] << std::endl;
+                                            << val_loss[1] << std::endl;
 #endif
-            }
         }
 
         if (step_num == learn_rate_decay_step1

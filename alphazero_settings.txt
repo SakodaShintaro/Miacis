@@ -11,6 +11,8 @@ max_step_num           100000
 learn_rate_decay_step1 100000
 learn_rate_decay_step2 100000
 learn_rate_decay_step3 100000
+update_interval        4000
+save_interval          4000
 sleep_msec             1000
 max_stack_size         1048576
 first_wait             524288
