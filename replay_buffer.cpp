@@ -95,21 +95,20 @@ void ReplayBuffer::push(Game &game) {
         e.teacher.value = (CalcType) (teacher_signal);
 #endif
 
-        //priorityが最小のものを取る
-        auto min_index = segment_tree_.getMinIndex();
+        //このデータを入れる位置を取得
+        int64_t change_index = segment_tree_.getIndexToPush();
 
         //そこのデータを入れ替える
-        data_[min_index] = std::make_tuple(pos.toSFEN(), e.teacher);
+        data_[change_index] = std::make_tuple(pos.toSFEN(), e.teacher);
 
         //priorityを計算
 #ifdef USE_CATEGORICAL
-        float priority = 0.0;
-        assert(false);
+        float priority = (-std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) - std::log(e.nn_output_value[e.teacher.value] + 1e-10f)) * 2.5f;
 #else
         float priority = (-std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f)) * 2.5f;
 #endif
         //segment_treeのpriorityを更新
-        segment_tree_.update(min_index, priority);
+        segment_tree_.update(change_index, priority);
 
         if (first_wait_ > 0) {
             first_wait_--;
@@ -128,9 +127,11 @@ void ReplayBuffer::clear() {
 
 void ReplayBuffer::update(const std::vector<float>& loss) {
     mutex_.lock();
+
     assert(loss.size() == pre_indices_.size());
     for (uint64_t i = 0; i < loss.size(); i++) {
         segment_tree_.update(pre_indices_[i], loss[i]);
     }
+
     mutex_.unlock();
 }

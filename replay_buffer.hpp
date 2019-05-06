@@ -48,7 +48,7 @@ private:
     //1点更新,区間和
     class SegmentTree {
     public:
-        explicit SegmentTree(uint64_t n) {
+        explicit SegmentTree(uint64_t n) : next_push_index_(-1) {
             n_ = 1ull << MSB64(n);
             sum_.resize(2 * n_ - 1, 0);
             min_.resize(2 * n_ - 1, 0);
@@ -74,12 +74,15 @@ private:
             return (value <= sum_[k] ? getIndex(value, 2 * k + 1) : getIndex(value - sum_[k], 2 * k + 2));
         }
 
-        uint64_t getMinIndex(uint64_t k = 0) {
+        uint64_t getIndexToPush(uint64_t k = 0) {
+            return (++next_push_index_) %= n_;
+
+            //最も小さいpriorityを持つもの
             if (k >= n_ - 1) {
                 //最下段まで来ていたらindexを返す
                 return k - (n_ - 1);
             }
-            return (min_[2 * k + 1] <= min_[2 * k + 2] ? getMinIndex(2 * k + 1) : getMinIndex(2 * k + 2));
+            return (min_[2 * k + 1] <= min_[2 * k + 2] ? getIndexToPush(2 * k + 1) : getIndexToPush(2 * k + 2));
         }
 
         float getSum() {
@@ -92,14 +95,19 @@ private:
 
         void print() {
             for (uint64_t i = 0; i < n_; i++) {
-                std::cout << sum_[i + n_ - 1] << " \n"[i == n_ - 1];
+                printf("%4.1f%c", sum_[i + n_ - 1], " \n"[i == n_ - 1]);
             }
         }
 
     private:
-        //2のべき乗
+        //最下段,要素の数:2のべき乗
         uint64_t n_;
+
+        //実際に保持している情報:2 * n_ - 1個の配列
         std::vector<float> sum_, min_;
+
+        //次に入れる場所
+        int64_t next_push_index_;
     };
     SegmentTree segment_tree_;
 

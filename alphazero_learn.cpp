@@ -138,8 +138,8 @@ void alphaZero() {
         auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
 
         //replay_bufferのpriorityを更新
-        auto sum_loss = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
-        std::vector<float> loss_vec(batch_size, sum_loss.item<float>());
+        torch::Tensor sum_loss = (policy_loss_coeff * loss.first + value_loss_coeff * loss.second).cpu();
+        std::vector<float> loss_vec(sum_loss.data<float>(), sum_loss.data<float>() + batch_size);
         replay_buffer.update(loss_vec);
 
         if (step_num == 1) {
