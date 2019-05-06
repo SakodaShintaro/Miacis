@@ -14,7 +14,7 @@ learn_rate_decay_step3 100000
 sleep_msec             1000
 max_stack_size         1048576
 first_wait             524288
-search_limit           2
+search_limit           800
 search_batch_size      32
 do_validation          0
 validation_interval    4000
