@@ -9,6 +9,7 @@ public:
     int64_t draw_turn;
 	uint64_t thread_num;
 	uint64_t search_batch_size;
+	bool print_debug_info;
 
 	//探索中に参照するものら
 	int64_t limit_msec;

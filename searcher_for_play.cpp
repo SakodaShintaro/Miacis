@@ -8,7 +8,7 @@ Move SearcherForPlay::think(Position& root) {
     start_ = std::chrono::steady_clock::now();
 
     //古いハッシュを削除
-    hash_table_.deleteOldHash(root, false);
+    hash_table_.deleteOldHash(root, true);
 
     //キューの初期化
     for (int32_t i = 0; i < thread_num_; i++) {
@@ -65,21 +65,38 @@ Move SearcherForPlay::think(Position& root) {
     const auto& N = curr_node.N;
 
     printUSIInfo();
-    root.print(false);
-    for (int32_t i = 0; i < curr_node.moves.size(); i++) {
-        double nn = 100.0 * curr_node.nn_policy[i];
-        double p  = 100.0 * N[i] / curr_node.sum_N;
+    if (usi_option.print_debug_info) {
+        root.print(false);
+        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+            double nn_policy     = 100.0 * curr_node.nn_policy[i];
+            double search_policy = 100.0 * N[i] / curr_node.sum_N;
 #ifdef USE_CATEGORICAL
-        double v = (N[i] > 0 ? expOfValueDist(curr_node.W[i]) / N[i] : MIN_SCORE);
+            double v = (N[i] > 0 ? expOfValueDist(curr_node.W[i]) / N[i] : MIN_SCORE);
 #else
-        double v = (N[i] > 0 ? curr_node.W[i] / N[i] : MIN_SCORE);
+            double v = (N[i] > 0 ? curr_node.W[i] / N[i] : MIN_SCORE);
 #endif
-        printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn, p, v);
-        curr_node.moves[i].print();
+            printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
+            curr_node.moves[i].print();
+        }
     }
 
     //探索回数最大の手を選択する
     int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
+#ifdef USE_CATEGORICAL
+    //分布の表示
+    constexpr int64_t gather_num = 3;
+    for (int64_t i = 0; i < BIN_SIZE / gather_num; i++) {
+        double p = 0.0;
+        for (int64_t j = 0; j < gather_num; j++) {
+            p += curr_node.W[best_index][i * gather_num + j] / N[best_index];
+        }
+        printf("info string [%6.2f:%6.2f%%]:", MIN_SCORE + VALUE_WIDTH * (gather_num * i + 1.5), p * 100);
+        for (int64_t j = 0; j < p * 50; j++) {
+            printf("*");
+        }
+        printf("\n");
+    }
+#endif
 
     //選択した手の探索回数は少なくとも1以上であることを前提とする
     assert(N[best_index] != 0);
