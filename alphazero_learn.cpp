@@ -149,7 +149,7 @@ void alphaZero() {
         if (step_num % (validation_interval / 10) == 0) {
             dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                        << step_num << "\t"
-                                       << sum_loss.item<float>() << "\t"
+                                       << torch::mean(sum_loss).item<float>() << "\t"
                                        << loss.first.item<float>() << "\t"
                                        << loss.second.item<float>() << std::endl;
         }
