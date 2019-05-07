@@ -66,9 +66,9 @@ void USI::loop() {
 
 void USI::usi() {
 #ifdef USE_CATEGORICAL
-    printf("id name TorchCa\n");
+    printf("id name Miacis_categorical\n");
 #else
-    printf("id name TorchSa\n");
+    printf("id name Miacis_scalar\n");
 #endif
     printf("id author Sakoda Shintaro\n");
 	printf("option name byoyomi_margin type spin default 0 min 0 max 1000\n");

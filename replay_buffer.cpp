@@ -11,7 +11,8 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
 
     while (first_wait_ > 0) {
         mutex_.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds(first_wait_ / 100));
+        std::cout << "wait_remain = " << first_wait_ << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(first_wait_ / 100 + 10));
         mutex_.lock();
     }
     

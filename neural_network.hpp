@@ -2,7 +2,7 @@
 #define MIACIS_NEURAL_NETWORK_HPP
 
 #include"position.hpp"
-#include<vector>
+#include<torch/torch.h>
 
 //ネットワークの設定
 constexpr int32_t POLICY_CHANNEL_NUM = 27;
@@ -11,14 +11,11 @@ constexpr int32_t KERNEL_SIZE = 3;
 constexpr int32_t CHANNEL_NUM = 64;
 constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
-//LibTorchを使う
-#include<torch/torch.h>
-
 //評価パラメータを読み書きするファイルのprefix
 #ifdef USE_CATEGORICAL
-const std::string MODEL_PREFIX = "torch_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+const std::string MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 #else
-const std::string MODEL_PREFIX = "torch_sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+const std::string MODEL_PREFIX = "sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 #endif
 //デフォルトで読み書きするファイル名
 const std::string MODEL_PATH = MODEL_PREFIX + ".model";
