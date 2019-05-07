@@ -151,8 +151,8 @@ void alphaZero() {
             dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                        << step_num << "\t"
                                        << sum_loss.item<float>() << "\t"
-                                       << loss.first.item<float>() << "\t"
-                                       << loss.second.item<float>() << std::endl;
+                                       << loss.first.mean().item<float>() << "\t"
+                                       << loss.second.mean().item<float>() << std::endl;
         }
         sum_loss.backward();
         optimizer.step();

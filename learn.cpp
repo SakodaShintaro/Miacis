@@ -75,8 +75,8 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
         //平均化されて返ってくるのでバッチサイズをかけて総和に戻す
         //一番最後はbatch_sizeピッタリになるとは限らないのでちゃんとサイズを見てかける値を決める
         auto curr_size = policy_teachers.size();
-        policy_loss += loss.first.item<float>() * curr_size;
-        value_loss  += loss.second.item<float>() * curr_size;
+        policy_loss += loss.first.mean().item<float>() * curr_size;
+        value_loss  += loss.second.mean().item<float>() * curr_size;
     }
     policy_loss /= validation_data.size();
     value_loss /= validation_data.size();
