@@ -1155,7 +1155,7 @@ std::vector<float> Position::makeFeature() const {
         }
     }
 
-    //持ち駒の特徴量:正規化すると性能が激しく劣化
+    //持ち駒の特徴量:最大枚数で割って正規化する
     static constexpr std::array<Color, ColorNum> colors[2] = { { BLACK, WHITE }, { WHITE, BLACK} };
     static constexpr int32_t HAND_PIECE_NUM = 7;
     static constexpr std::array<Piece, HAND_PIECE_NUM> HAND_PIECES = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
