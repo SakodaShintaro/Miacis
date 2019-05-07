@@ -56,6 +56,8 @@ void USI::loop() {
             checkSearchSpeed();
         } else if (input == "checkGenSpeed") {
             checkGenSpeed();
+        } else if (input == "checkPredictSpeed") {
+            checkPredictSpeed();
         } else if (input == "checkVal") {
             checkVal();
         } else {
