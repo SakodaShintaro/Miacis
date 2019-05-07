@@ -122,3 +122,21 @@ void checkVal() {
         printf("%5d回目 : %f\t%f\n", i, v[0], v[1]);
     }
 }
+
+void checkPredictSpeed() {
+    Position pos;
+    constexpr int64_t time = 1000;
+    for (int64_t j = 0; j < 10; j++) {
+        auto start = std::chrono::steady_clock::now();
+        for (int64_t i = 0; i < time; i++) {
+            torch::NoGradGuard no_grad_guard;
+            nn->policyAndValueBatch(pos.makeFeature());
+        }
+        auto end = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        std::cout << "elapsed = " << elapsed.count() << std::endl;
+
+        auto moves = pos.generateAllMoves();
+        pos.doMove(moves[j]);
+    }
+}
