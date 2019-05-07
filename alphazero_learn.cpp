@@ -141,6 +141,7 @@ void alphaZero() {
         torch::Tensor sum_loss = (policy_loss_coeff * loss.first + value_loss_coeff * loss.second).cpu();
         std::vector<float> loss_vec(sum_loss.data<float>(), sum_loss.data<float>() + batch_size);
         replay_buffer.update(loss_vec);
+        sum_loss = sum_loss.mean();
 
         if (step_num == 1) {
             double h = elapsedHours(start_time);
@@ -149,7 +150,7 @@ void alphaZero() {
         if (step_num % (validation_interval / 10) == 0) {
             dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                        << step_num << "\t"
-                                       << torch::mean(sum_loss).item<float>() << "\t"
+                                       << sum_loss.item<float>() << "\t"
                                        << loss.first.item<float>() << "\t"
                                        << loss.second.item<float>() << std::endl;
         }
