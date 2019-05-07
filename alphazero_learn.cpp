@@ -168,7 +168,7 @@ void alphaZero() {
             }
         }
 
-        if (step_num % save_interval) {
+        if (step_num % save_interval == 0) {
             torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
         }
 
