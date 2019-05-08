@@ -1,72 +1,57 @@
 #include"learn.hpp"
 #include"game.hpp"
 #include"operate_params.hpp"
+#include"hyperparameter_manager.hpp"
 #include<fstream>
 #include<iostream>
 #include<cassert>
 
 void supervisedLearn() {
-    //学習開始時間の設定
-    auto start_time = std::chrono::steady_clock::now();
+    HyperparameterManager settings;
+    settings.add("learn_rate",             0.0f, 100.0f);
+    settings.add("momentum",               0.0f, 1.0f);
+    settings.add("learn_rate_decay",       0.0f, 1.0f);
+    settings.add("policy_loss_coeff",      0.0f, 1e10f);
+    settings.add("value_loss_coeff",       0.0f, 1e10f);
+    settings.add("batch_size",             1, (int64_t)1e10);
+    settings.add("patience_limit",         1, (int64_t)1e10);
+    settings.add("kifu_path");
 
-    //設定ファイルの読み込み
-    std::ifstream ifs("supervised_learn_settings.txt");
-    if (!ifs) {
-        std::cerr << "fail to open supervised_learn_settings.txt" << std::endl;
-        assert(false);
+    //設定をファイルからロード
+    settings.load("supervised_learn_settings.txt");
+    if (!settings.check()) {
+        exit(1);
     }
 
-    //後で読み込みの成功を確認するために不適当な値で初期化
-    std::string kifu_path;
-    int64_t batch_size = -1;
-    float learn_rate = -1;
-    float momentum = -1;
-    int64_t patience_limit = -1;
-
-    std::string name;
-    while (ifs >> name) {
-        if (name == "kifu_path") {
-            ifs >> kifu_path;
-        } else if (name == "batch_size") {
-            ifs >> batch_size;
-        } else if (name == "learn_rate") {
-            ifs >> learn_rate;
-        } else if (name == "momentum") {
-            ifs >> momentum;
-        } else if (name == "patience") {
-            ifs >> patience_limit;
-        }
-    }
-
-    //読み込みの確認
-    assert(batch_size > 0);
-    assert(learn_rate >= 0);
-    assert(momentum >= 0);
-    assert(patience_limit > 0);
+    //値の取得
+    float learn_rate        = settings.get<float>("learn_rate");
+    float momentum          = settings.get<float>("momentum");
+    float learn_rate_decay  = settings.get<float>("learn_rate_decay");
+    float policy_loss_coeff = settings.get<float>("policy_loss_coeff");
+    float value_loss_coeff  = settings.get<float>("value_loss_coeff");
+    int64_t batch_size      = settings.get<int64_t>("batch_size");
+    int64_t patience_limit  = settings.get<int64_t>("patience_limit");
+    std::string kifu_path   = settings.get<std::string>("kifu_path");
 
     //学習データを取得
     std::vector<std::pair<std::string, TeacherType>> data_buffer = loadData(kifu_path);
 
     //データをシャッフル
-    std::default_random_engine engine(0);
+    std::mt19937_64 engine(0);
     std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
     //validationデータを確保
-    std::vector<std::pair<std::string, TeacherType>> validation_data;
     auto validation_size = (int32_t)(data_buffer.size() * 0.1) / batch_size * batch_size;
-    assert(validation_size != 0);
-    for (int32_t i = 0; i < validation_size; i++) {
-        validation_data.push_back(data_buffer.back());
-        data_buffer.pop_back();
-    }
+    std::vector<std::pair<std::string, TeacherType>> validation_data(data_buffer.end() - validation_size, data_buffer.end());
+    data_buffer.erase(data_buffer.end() - validation_size, data_buffer.end());
     std::cout << "learn_data_size = " << data_buffer.size() << ", validation_data_size = " << validation_size << std::endl;
 
-    //validation用の変数宣言
-    float min_loss = 1e10;
+    //早期終了用の変数宣言
+    float min_loss = INT_MAX;
     int32_t patience = 0;
 
     //学習推移のログファイル
-    std::ofstream learn_log("supervised_learn_log.txt", std::ios::out);
+    std::ofstream learn_log("supervised_learn_log.txt");
     learn_log << "time\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
     std::cout << "time\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
@@ -74,20 +59,28 @@ void supervisedLearn() {
     std::ofstream validation_log("supervised_learn_validation_log.txt");
     validation_log << "time\tepoch\tsum_loss\tpolicy_loss\tvalue_loss\tpatience\tlearning_rate" << std::fixed << std::endl;
 
-    //評価関数読み込み,optimizerの準備
+    //評価関数読み込み
     NeuralNetwork learning_model;
     torch::load(learning_model, MODEL_PATH);
+
+    //学習前のパラメータを出力
     torch::save(learning_model, MODEL_PREFIX + "_before_learn.model");
+
+    //optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
+    //学習開始時間の設定
+    auto start_time = std::chrono::steady_clock::now();
+
     //学習開始
-    for (int32_t epoch = 1; epoch <= 1000; epoch++) {
+    for (int32_t epoch = 1; patience < patience_limit; epoch++) {
         //データをシャッフル
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
         for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size(); step++) {
+            //バッチサイズ分データを確保
             Position pos;
             std::vector<float> inputs;
             std::vector<PolicyTeacherType> policy_teachers;
@@ -101,8 +94,14 @@ void supervisedLearn() {
                 value_teachers.push_back(datum.second.value);
             }
 
+            //学習
             optimizer.zero_grad();
             auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
+            auto loss_sum = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
+            loss_sum.backward();
+            optimizer.step();
+
+            //1エポックにつき10回出力
             if ((step + 1) % (data_buffer.size() / batch_size / 10) == 0) {
                 dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                            << epoch << "\t"
@@ -110,15 +109,25 @@ void supervisedLearn() {
                                            << loss.first.item<float>() << "\t"
                                            << loss.second.item<float>() << std::endl;
             }
-            (loss.first + loss.second).backward();
-            optimizer.step();
         }
 
         //学習中のパラメータを書き出して推論用のモデルで読み込む
         torch::save(learning_model, MODEL_PATH);
         torch::load(nn, MODEL_PATH);
+
+        //validation_lossを計算
         auto val_loss = validation(validation_data);
-        float sum_loss = val_loss[0] + val_loss[1];
+        float sum_loss = policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1];
+
+        //validation_lossからpatience等を更新
+        if (sum_loss < min_loss) {
+            min_loss = sum_loss;
+            patience = 0;
+            torch::save(learning_model, MODEL_PREFIX + "_supervised_best.model");
+        } else {
+            patience++;
+            optimizer.options.learning_rate_ *= learn_rate_decay;
+        }
 
         dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
                                         << epoch << "\t"
@@ -127,15 +136,6 @@ void supervisedLearn() {
                                         << val_loss[1] << "\t"
                                         << patience << "\t"
                                         << optimizer.options.learning_rate_ << std::endl;
-        if (sum_loss < min_loss) {
-            min_loss = sum_loss;
-            patience = 0;
-            torch::save(learning_model, MODEL_PREFIX + "_supervised_best.model");
-        } else if (++patience >= patience_limit) {
-            break;
-        } else {
-            optimizer.options.learning_rate_ /= 2;
-        }
     }
 
     std::cout << "finish supervisedLearn" << std::endl;
