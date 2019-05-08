@@ -67,7 +67,7 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
         }
 #else
         //scalarモデルのときはそのまま損失を加える
-        value_loss  += val_loss.second.sum().item<float>();
+        value_loss += loss.second.sum().item<float>();
 #endif
     }
 
