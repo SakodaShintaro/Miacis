@@ -199,5 +199,5 @@ void alphaZero() {
         th.join();
     }
 
-    std::cout << "finish alphaZero()" << std::endl;
+    std::cout << "finish alphaZero" << std::endl;
 }
