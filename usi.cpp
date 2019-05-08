@@ -77,10 +77,10 @@ void USI::usi() {
     usi_option.byoyomi_margin = 0;
 	printf("option name random_turn type spin default 0 min 0 max 1000\n");
     usi_option.random_turn = 0;
-    printf("option name thread_num type spin default 1 min 1 max 2048\n");
-    usi_option.thread_num = 1;
-    printf("option name search_batch_size type spin default 1 min 1 max 2048\n");
-    usi_option.search_batch_size = 1;
+    printf("option name thread_num type spin default 2 min 1 max 2048\n");
+    usi_option.thread_num = 2;
+    printf("option name search_batch_size type spin default 128 min 1 max 2048\n");
+    usi_option.search_batch_size = 128;
     printf("option name draw_turn type spin default 256 min 0 max 4096\n");
     usi_option.draw_turn = 256;
     printf("option name print_debug_info type check default false\n");
