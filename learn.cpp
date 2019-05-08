@@ -27,20 +27,13 @@ double elapsedHours(const std::chrono::steady_clock::time_point& start) {
     return seconds / 3600.0;
 }
 
-#ifdef USE_CATEGORICAL
-std::array<float, 3> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data) {
-#else
 std::array<float, 2> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data) {
-#endif
     static constexpr int32_t batch_size = 4096;
-    int32_t num = 0;
+    int32_t index = 0;
     float policy_loss = 0.0, value_loss = 0.0;
-#ifdef USE_CATEGORICAL
-    float value_loss2 = 0.0;
-#endif
     torch::NoGradGuard no_grad_guard;
     Position pos;
-    while (num < validation_data.size()) {
+    while (index < validation_data.size()) {
         std::vector<float> inputs;
         std::vector<PolicyTeacherType> policy_teachers;
         std::vector<ValueTeacherType> value_teachers;
@@ -48,10 +41,9 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
         policy_teachers.reserve(batch_size);
         value_teachers.reserve(batch_size);
 
-        //ミニバッチ分貯める
-        //一番最後ではミニバッチ数ピッタリにならないかもしれないのでカウントする
-        while (num < validation_data.size() && policy_teachers.size() < batch_size) {
-            const auto& datum = validation_data[num++];
+        //バッチサイズ分データを確保
+        while (index < validation_data.size() && policy_teachers.size() < batch_size) {
+            const auto& datum = validation_data[index++];
             pos.loadSFEN(datum.first);
             const auto feature = pos.makeFeature();
             inputs.insert(inputs.end(), feature.begin(), feature.end());
@@ -62,31 +54,28 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
         //計算
         auto loss = nn->loss(inputs, policy_teachers, value_teachers);
 
+        policy_loss += loss.first.sum().item<float>();
+
 #ifdef USE_CATEGORICAL
+        //categoricalモデルのときは冗長だがもう一度順伝播を行って損失を手動で計算
         auto y = nn->policyAndValueBatch(inputs);
         const auto& values = y.second;
         for (int32_t i = 0; i < values.size(); i++) {
             auto e = expOfValueDist(values[i]);
             auto vt = (value_teachers[i] == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
-            value_loss2 += (e - vt) * (e - vt);
+            value_loss += (e - vt) * (e - vt);
         }
+#else
+        //scalarモデルのときはそのまま損失を加える
+        value_loss  += val_loss.second.sum().item<float>();
 #endif
-
-        //平均化されて返ってくるのでバッチサイズをかけて総和に戻す
-        //一番最後はbatch_sizeピッタリになるとは限らないのでちゃんとサイズを見てかける値を決める
-        auto curr_size = policy_teachers.size();
-        policy_loss += loss.first.mean().item<float>() * curr_size;
-        value_loss  += loss.second.mean().item<float>() * curr_size;
     }
+
+    //平均を求める
     policy_loss /= validation_data.size();
     value_loss /= validation_data.size();
 
-#ifdef USE_CATEGORICAL
-    value_loss2 /= validation_data.size();
-    return { policy_loss, value_loss, value_loss2 };
-#else
     return { policy_loss, value_loss };
-#endif
 }
 
 std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& file_path) {

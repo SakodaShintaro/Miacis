@@ -23,13 +23,11 @@ void alphaZero() {
     settings.add("thread_num",             1, (int64_t)std::thread::hardware_concurrency());
     settings.add("max_step_num",           1, (int64_t)1e10);
     settings.add("update_interval",        1, (int64_t)1e10);
-    settings.add("save_interval",          1, (int64_t)1e10);
     settings.add("sleep_msec",             0, (int64_t)1e10);
     settings.add("max_stack_size",         1, (int64_t)1e10);
     settings.add("first_wait",             0, (int64_t)1e10);
     settings.add("search_limit",           1, (int64_t)1e10);
     settings.add("search_batch_size",      1, (int64_t)1e10);
-    settings.add("do_validation",          0, (int64_t)1);
     settings.add("validation_interval",    1, (int64_t)1e10);
     settings.add("validation_size",        0, (int64_t)1e10);
     settings.add("validation_kifu_path");
@@ -64,11 +62,9 @@ void alphaZero() {
     int64_t learn_rate_decay_step3 = settings.get<int64_t>("learn_rate_decay_step3");
     int64_t validation_interval    = settings.get<int64_t>("validation_interval");
     int64_t update_interval        = settings.get<int64_t>("update_interval");
-    int64_t save_interval          = settings.get<int64_t>("save_interval");
     int64_t sleep_msec             = settings.get<int64_t>("sleep_msec");
     float policy_loss_coeff        = settings.get<float>("policy_loss_coeff");
     float value_loss_coeff         = settings.get<float>("value_loss_coeff");
-    bool do_validation             = bool(settings.get<int64_t>("do_validation"));
 
     assert(validation_interval % update_interval == 0);
 
@@ -81,23 +77,23 @@ void alphaZero() {
 
     //データを取得
     std::vector<std::pair<std::string, TeacherType>> validation_data;
-    if (do_validation) {
-        validation_data = loadData(settings.get<std::string>("validation_kifu_path"));
-        assert(validation_data.size() >= settings.get<int64_t>("validation_size"));
+    validation_data = loadData(settings.get<std::string>("validation_kifu_path"));
+    assert(validation_data.size() >= settings.get<int64_t>("validation_size"));
 
-        //データをシャッフルして必要量以外を削除
-        std::default_random_engine engine(0);
-        std::shuffle(validation_data.begin(), validation_data.end(), engine);
-        validation_data.erase(validation_data.begin() + settings.get<int64_t>("validation_size"), validation_data.end());
-        validation_data.shrink_to_fit();
-    }
+    //データをシャッフルして必要量以外を削除
+    std::mt19937_64 engine(0);
+    std::shuffle(validation_data.begin(), validation_data.end(), engine);
+    validation_data.erase(validation_data.begin() + settings.get<int64_t>("validation_size"), validation_data.end());
+    validation_data.shrink_to_fit();
 
     //モデル読み込み
     NeuralNetwork learning_model;
     learning_model->setGPU(0);
     torch::load(learning_model, MODEL_PATH);
-    torch::save(learning_model, MODEL_PREFIX + "_before_alphazero.model");
     torch::load(nn, MODEL_PATH);
+
+    //学習前のパラメータを保存
+    torch::save(learning_model, MODEL_PREFIX + "_before_alphazero.model");
 
     //Optimizerの準備
     torch::optim::SGDOptions sgd_option(settings.get<float>("learn_rate"));
@@ -107,18 +103,20 @@ void alphaZero() {
     //時間計測開始
     auto start_time = std::chrono::steady_clock::now();
 
-    //自己対局スレッドを立てる
+    //GPUの数だけネットワークを生成
     auto gpu_num = torch::getNumGPUs();
     std::vector<NeuralNetwork> additional_nn(gpu_num - 1);
     for (uint64_t i = 0; i < gpu_num - 1; i++) {
         additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
     }
 
+    //自己対局スレッドを生成.0番目のものはnnを使い、それ以外は上で生成したネットワークを使う
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     for (uint64_t i = 0; i < gpu_num; i++) {
         generators[i] = std::make_unique<GameGenerator>(replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
     }
 
+    //生成開始.10^15個の(つまり無限に)棋譜を生成させる
     std::vector<std::thread> gen_threads;
     for (uint64_t i = 0; i < gpu_num; i++) {
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames((int64_t)(1e15)); });
@@ -130,36 +128,46 @@ void alphaZero() {
     std::vector<ValueTeacherType> value_teachers(batch_size);
 
     for (int32_t step_num = 1; step_num <= max_step_num; step_num++) {
-        //バッチサイズだけデータを選択
+        //バッチサイズ分データを選択
         replay_buffer.makeBatch(batch_size, inputs, policy_teachers, value_teachers);
 
-        generators.front()->gpu_mutex.lock();
-        optimizer.zero_grad();
-        auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
-
-        //replay_bufferのpriorityを更新
-        torch::Tensor sum_loss = (policy_loss_coeff * loss.first + value_loss_coeff * loss.second).cpu();
-        std::vector<float> loss_vec(sum_loss.data<float>(), sum_loss.data<float>() + batch_size);
-        replay_buffer.update(loss_vec);
-        sum_loss = sum_loss.mean();
-
+        //1回目はmakeBatch内で十分棋譜が貯まるまで待ち時間が発生する.その生成速度を計算
         if (step_num == 1) {
             double h = elapsedHours(start_time);
             std::cout << settings.get<int64_t>("first_wait") / (h * 3600) << " pos / sec" << std::endl;
         }
-        if (step_num % (validation_interval / 10) == 0) {
-            dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
-                                       << step_num << "\t"
-                                       << sum_loss.item<float>() << "\t"
-                                       << loss.first.mean().item<float>() << "\t"
-                                       << loss.second.mean().item<float>() << std::endl;
-        }
-        sum_loss.backward();
+
+        //先頭のネットワークとはGPUを共有しているのでロックをかける
+        generators.front()->gpu_mutex.lock();
+
+        //損失計算
+        optimizer.zero_grad();
+        auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
+        auto loss_sum = (policy_loss_coeff * loss.first + value_loss_coeff * loss.second).cpu();
+
+        //replay_bufferのpriorityを更新
+        std::vector<float> loss_vec(loss_sum.data<float>(), loss_sum.data<float>() + batch_size);
+        replay_buffer.update(loss_vec);
+
+        //損失をバッチについて平均を取ったものに修正
+        loss_sum = loss_sum.mean();
+
+        //学習
+        loss_sum.backward();
         optimizer.step();
         torch::save(learning_model, MODEL_PATH);
 
+        //1回のvalidationまで10回表示
+        if (step_num % (validation_interval / 10) == 0) {
+            dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
+                                       << step_num << "\t"
+                                       << loss_sum.item<float>() << "\t"
+                                       << loss.first.mean().item<float>() << "\t"
+                                       << loss.second.mean().item<float>() << std::endl;
+        }
+
+        //一定間隔でモデルの読み込んでActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
-            //モデルの保存,読み込みなど
             torch::load(nn, MODEL_PATH);
             for (uint64_t i = 0; i < gpu_num - 1; i++) {
                 generators[i + 1]->gpu_mutex.lock();
@@ -169,40 +177,38 @@ void alphaZero() {
             }
         }
 
-        if (step_num % save_interval == 0) {
-            torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
-        }
-
         //validation
-        if (do_validation && step_num % validation_interval == 0) {
+        if (step_num % validation_interval == 0) {
+            //パラメータをステップ付きで保存
+            torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
+
             auto val_loss = validation(validation_data);
             dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
                                             << step_num << "\t"
                                             << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
                                             << val_loss[0] << "\t"
-#ifdef USE_CATEGORICAL
-                                            //Categoricalのときは3つ目の損失(期待値を取って二乗誤差)がある
-                                            << val_loss[1] << "\t"
-                                            << val_loss[2] << std::endl;
-#else
                                             << val_loss[1] << std::endl;
-#endif
         }
 
+        //学習率の減衰.AlphaZeroを意識して3回まで設定可能
         if (step_num == learn_rate_decay_step1
          || step_num == learn_rate_decay_step2
          || step_num == learn_rate_decay_step3) {
             optimizer.options.learning_rate_ /= 10;
         }
 
+        //GPUを解放
         generators.front()->gpu_mutex.unlock();
+
+        //学習スレッドを眠らせることで擬似的にActorの数を増やす
         std::this_thread::sleep_for(std::chrono::milliseconds(sleep_msec));
     }
 
+    //生成スレッドを止める
     usi_option.stop_signal = true;
     for (auto& th : gen_threads) {
         th.join();
     }
 
-    std::cout << "finish alphaZero()" << std::endl;
+    std::cout << "finish alphaZero" << std::endl;
 }
