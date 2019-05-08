@@ -81,7 +81,7 @@ void alphaZero() {
     assert(validation_data.size() >= settings.get<int64_t>("validation_size"));
 
     //データをシャッフルして必要量以外を削除
-    std::default_random_engine engine(0);
+    std::mt19937_64 engine(0);
     std::shuffle(validation_data.begin(), validation_data.end(), engine);
     validation_data.erase(validation_data.begin() + settings.get<int64_t>("validation_size"), validation_data.end());
     validation_data.shrink_to_fit();
@@ -90,8 +90,10 @@ void alphaZero() {
     NeuralNetwork learning_model;
     learning_model->setGPU(0);
     torch::load(learning_model, MODEL_PATH);
-    torch::save(learning_model, MODEL_PREFIX + "_before_alphazero.model");
     torch::load(nn, MODEL_PATH);
+
+    //学習前のパラメータを保存
+    torch::save(learning_model, MODEL_PREFIX + "_before_alphazero.model");
 
     //Optimizerの準備
     torch::optim::SGDOptions sgd_option(settings.get<float>("learn_rate"));
@@ -101,18 +103,20 @@ void alphaZero() {
     //時間計測開始
     auto start_time = std::chrono::steady_clock::now();
 
-    //自己対局スレッドを立てる
+    //GPUの数だけネットワークを生成
     auto gpu_num = torch::getNumGPUs();
     std::vector<NeuralNetwork> additional_nn(gpu_num - 1);
     for (uint64_t i = 0; i < gpu_num - 1; i++) {
         additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
     }
 
+    //自己対局スレッドを生成.0番目のものはnnを使い、それ以外は上で生成したネットワークを使う
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     for (uint64_t i = 0; i < gpu_num; i++) {
         generators[i] = std::make_unique<GameGenerator>(replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
     }
 
+    //生成開始.10^15個の(つまり無限に)棋譜を生成させる
     std::vector<std::thread> gen_threads;
     for (uint64_t i = 0; i < gpu_num; i++) {
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames((int64_t)(1e15)); });
@@ -124,25 +128,30 @@ void alphaZero() {
     std::vector<ValueTeacherType> value_teachers(batch_size);
 
     for (int32_t step_num = 1; step_num <= max_step_num; step_num++) {
-        //バッチサイズだけデータを選択
+        //バッチサイズ分データを選択
         replay_buffer.makeBatch(batch_size, inputs, policy_teachers, value_teachers);
 
-        generators.front()->gpu_mutex.lock();
-        optimizer.zero_grad();
-        auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
-        auto sum_loss = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
+        //1回目はmakeBatch内で十分棋譜が貯まるまで待ち時間が発生する.その生成速度を計算
         if (step_num == 1) {
             double h = elapsedHours(start_time);
             std::cout << settings.get<int64_t>("first_wait") / (h * 3600) << " pos / sec" << std::endl;
         }
+
+        //先頭のネットワークとはGPUを共有しているのでロックをかける
+        generators.front()->gpu_mutex.lock();
+
+        //学習
+        optimizer.zero_grad();
+        auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
+        auto loss_sum = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
         if (step_num % (validation_interval / 10) == 0) {
             dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                        << step_num << "\t"
-                                       << sum_loss.item<float>() << "\t"
+                                       << loss_sum.item<float>() << "\t"
                                        << loss.first.item<float>() << "\t"
                                        << loss.second.item<float>() << std::endl;
         }
-        sum_loss.backward();
+        loss_sum.backward();
         optimizer.step();
         torch::save(learning_model, MODEL_PATH);
 
@@ -176,16 +185,21 @@ void alphaZero() {
 #endif
         }
 
+        //学習率の減衰.AlphaZeroを意識して3回まで設定可能
         if (step_num == learn_rate_decay_step1
          || step_num == learn_rate_decay_step2
          || step_num == learn_rate_decay_step3) {
             optimizer.options.learning_rate_ /= 10;
         }
 
+        //GPUを解放
         generators.front()->gpu_mutex.unlock();
+
+        //学習スレッドを眠らせることで擬似的にActorの数を増やす
         std::this_thread::sleep_for(std::chrono::milliseconds(sleep_msec));
     }
 
+    //生成スレッドを止める
     usi_option.stop_signal = true;
     for (auto& th : gen_threads) {
         th.join();
