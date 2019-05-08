@@ -176,13 +176,7 @@ void alphaZero() {
                                             << step_num << "\t"
                                             << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
                                             << val_loss[0] << "\t"
-#ifdef USE_CATEGORICAL
-                                            //Categoricalのときは3つ目の損失(期待値を取って二乗誤差)がある
-                                            << val_loss[1] << "\t"
-                                            << val_loss[2] << std::endl;
-#else
                                             << val_loss[1] << std::endl;
-#endif
         }
 
         //学習率の減衰.AlphaZeroを意識して3回まで設定可能

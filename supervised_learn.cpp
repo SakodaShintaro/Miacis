@@ -129,9 +129,6 @@ void supervisedLearn() {
                                         << sum_loss << "\t"
                                         << val_loss[0] << "\t"
                                         << val_loss[1] << "\t"
-#ifdef USE_CATEGORICAL
-                                        << val_loss[2] << "\t"
-#endif
                                         << patience << "\t"
                                         << optimizer.options.learning_rate_ << std::endl;
         if (sum_loss < min_loss) {
