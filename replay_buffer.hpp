@@ -2,6 +2,7 @@
 #define MIACIS_REPLAY_BUFFER_HPP
 #include"neural_network.hpp"
 #include"game.hpp"
+#include"segment_tree.hpp"
 #include<mutex>
 #include<queue>
 #include<experimental/filesystem>
@@ -45,70 +46,6 @@ private:
     std::vector<std::tuple<std::string, TeacherType>> data_;
 
     //対応するpriorityを持ったセグメント木
-    //1点更新,区間和
-    class SegmentTree {
-    public:
-        explicit SegmentTree(uint64_t n) : next_push_index_(-1) {
-            n_ = 1ull << MSB64(n);
-            sum_.resize(2 * n_ - 1, 0);
-            min_.resize(2 * n_ - 1, 0);
-        }
-
-        void update(uint64_t x, float v) {
-            sum_[x + n_ - 1] = v;
-            min_[x + n_ - 1] = v;
-            for (uint64_t i = (x + n_ - 2) / 2; ; i = (i - 1) / 2) {
-                sum_[i] = sum_[2 * i + 1] + sum_[2 * i + 2];
-                min_[i] = std::min(min_[2 * i + 1], min_[2 * i + 2]);
-                if (i == 0) {
-                    break;
-                }
-            }
-        }
-
-        uint64_t getIndex(float value, uint64_t k = 0) {
-            if (k >= n_ - 1) {
-                //最下段まで来ていたらindexを返す
-                return k - (n_ - 1);
-            }
-            return (value <= sum_[k] ? getIndex(value, 2 * k + 1) : getIndex(value - sum_[k], 2 * k + 2));
-        }
-
-        uint64_t getIndexToPush(uint64_t k = 0) {
-            return (++next_push_index_) %= n_;
-
-            //最も小さいpriorityを持つもの
-            if (k >= n_ - 1) {
-                //最下段まで来ていたらindexを返す
-                return k - (n_ - 1);
-            }
-            return (min_[2 * k + 1] <= min_[2 * k + 2] ? getIndexToPush(2 * k + 1) : getIndexToPush(2 * k + 2));
-        }
-
-        float getSum() {
-            return sum_.front();
-        }
-
-        float operator[](uint64_t i) {
-            return sum_[i + n_ - 1];
-        }
-
-        void print() {
-            for (uint64_t i = 0; i < n_; i++) {
-                printf("%4.1f%c", sum_[i + n_ - 1], " \n"[i == n_ - 1]);
-            }
-        }
-
-    private:
-        //最下段,要素の数:2のべき乗
-        uint64_t n_;
-
-        //実際に保持している情報:2 * n_ - 1個の配列
-        std::vector<float> sum_, min_;
-
-        //次に入れる場所
-        int64_t next_push_index_;
-    };
     SegmentTree segment_tree_;
 
     //最初に待つ量

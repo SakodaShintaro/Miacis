@@ -60,6 +60,8 @@ void USI::loop() {
             checkPredictSpeed();
         } else if (input == "checkVal") {
             checkVal();
+        } else if (input == "checkSegmentTree") {
+            checkSegmentTree();
         } else {
             std::cout << "Illegal input" << std::endl;
         }
