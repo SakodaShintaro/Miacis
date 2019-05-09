@@ -127,6 +127,7 @@ void checkPredictSpeed() {
     Position pos;
     constexpr int64_t REPEAT_NUM = 1000;
     std::cout << std::fixed;
+    std::mt19937_64 engine(0);
 
     for (int64_t batch_size = 1; batch_size <= 4096; batch_size *= 2) {
         //バッチサイズ分入力を取得
@@ -134,7 +135,17 @@ void checkPredictSpeed() {
         for (int64_t k = 0; k < batch_size; k++) {
             auto f = pos.makeFeature();
             input.insert(input.end(), f.begin(), f.end());
+
+            auto moves = pos.generateAllMoves();
+            if (moves.empty()) {
+                pos.init();
+            } else {
+                std::uniform_int_distribution<> dist(0, moves.size() - 1);
+                pos.doMove(moves[dist(engine)]);
+            }
         }
+
+        std::cout << input.size() << std::endl;
 
         long double time = 0.0;
         for (int64_t i = 0; i < REPEAT_NUM; i++) {
