@@ -26,7 +26,7 @@ void HyperparameterManager::load(const std::string& file_path) {
     //オプションをファイルから読み込む
     std::ifstream ifs(file_path);
     if (!ifs) {
-        std::cerr << "fail to open alphazero_settings.txt" << std::endl;
+        std::cerr << "fail to open " << file_path << std::endl;
         assert(false);
     }
     std::string name;
