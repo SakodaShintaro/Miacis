@@ -125,18 +125,27 @@ void checkVal() {
 
 void checkPredictSpeed() {
     Position pos;
-    constexpr int64_t time = 1000;
-    for (int64_t j = 0; j < 10; j++) {
-        auto start = std::chrono::steady_clock::now();
-        for (int64_t i = 0; i < time; i++) {
+    constexpr int64_t REPEAT_NUM = 1000;
+    std::cout << std::fixed;
+
+    for (int64_t batch_size = 1; batch_size <= 4096; batch_size *= 2) {
+        //バッチサイズ分入力を取得
+        std::vector<float> input;
+        for (int64_t k = 0; k < batch_size; k++) {
+            auto f = pos.makeFeature();
+            input.insert(input.end(), f.begin(), f.end());
+        }
+
+        long double time = 0.0;
+        for (int64_t i = 0; i < REPEAT_NUM; i++) {
+            auto start = std::chrono::steady_clock::now();
             torch::NoGradGuard no_grad_guard;
             nn->policyAndValueBatch(pos.makeFeature());
+            auto end = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+            time += elapsed.count();
         }
-        auto end = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-        std::cout << "elapsed = " << elapsed.count() << std::endl;
 
-        auto moves = pos.generateAllMoves();
-        pos.doMove(moves[j]);
+        std::cout << "batch_size = " << std::setw(5) << batch_size << ", " << time / REPEAT_NUM << " microsec / batch" << std::endl;
     }
 }
