@@ -146,83 +146,62 @@ void searchLearningRate() {
     data_buffer.erase(data_buffer.end() - validation_size, data_buffer.end());
     std::cout << "learn_data_size = " << data_buffer.size() << ", validation_data_size = " << validation_size << std::endl;
 
-    constexpr int64_t MAX_POW = 13;
-
     //学習率推移
-    std::vector<float> lrs(MAX_POW);
+    std::vector<float> lrs;
 
-    //各バッチサイズに対する損失推移
-    std::vector<std::vector<float>> losses;
+    //損失推移
+    std::vector<double> losses;
 
-    constexpr int64_t times = 10;
+    constexpr int64_t times = 50;
 
     for (int64_t k = 0; k < times; k++) {
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
-        for (int64_t i = 0; i < MAX_POW; i++) {
-            batch_size = 1 << i;
+        //評価関数準備
+        NeuralNetwork learning_model;
+        torch::load(learning_model, MODEL_PATH);
 
-            //評価関数準備
-            NeuralNetwork learning_model;
-            torch::load(learning_model, MODEL_PATH);
+        //optimizerの準備.学習率を小さい値から開始
+        torch::optim::SGDOptions sgd_option(1e-6);
+        sgd_option.momentum(momentum);
+        torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
-            //optimizerの準備.学習率を小さい値から開始
-            torch::optim::SGDOptions sgd_option(1e-6);
-            sgd_option.momentum(momentum);
-            torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
-
-            losses.emplace_back();
-
-            int64_t j = 0;
-
-            for (int32_t step = 0;
-                 (step + 1) * batch_size <= data_buffer.size() && optimizer.options.learning_rate_ <= 1; step++, j++) {
-                //バッチサイズ分データを確保
-                Position pos;
-                std::vector<float> inputs;
-                std::vector<PolicyTeacherType> policy_teachers;
-                std::vector<ValueTeacherType> value_teachers;
-                for (int32_t b = 0; b < batch_size; b++) {
-                    const auto& datum = data_buffer[step * batch_size + b];
-                    pos.loadSFEN(datum.first);
-                    const auto feature = pos.makeFeature();
-                    inputs.insert(inputs.end(), feature.begin(), feature.end());
-                    policy_teachers.push_back(datum.second.policy);
-                    value_teachers.push_back(datum.second.value);
-                }
-
-                //学習
-                optimizer.zero_grad();
-                auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
-                auto loss_sum = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
-                loss_sum.backward();
-                optimizer.step();
-
-                if (k == 0) {
-                    if (i == 0) {
-                        lrs.push_back(optimizer.options.learning_rate_);
-                    }
-                    losses[i].push_back(loss_sum.item<float>());
-                } else {
-                    losses[i][j] += loss_sum.item<float>();
-                }
-
-                optimizer.options.learning_rate_ *= 1.25;
+        for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size() && optimizer.options.learning_rate_ <= 1; step++) {
+            //バッチサイズ分データを確保
+            Position pos;
+            std::vector<float> inputs;
+            std::vector<PolicyTeacherType> policy_teachers;
+            std::vector<ValueTeacherType> value_teachers;
+            for (int32_t b = 0; b < batch_size; b++) {
+                const auto& datum = data_buffer[step * batch_size + b];
+                pos.loadSFEN(datum.first);
+                const auto feature = pos.makeFeature();
+                inputs.insert(inputs.end(), feature.begin(), feature.end());
+                policy_teachers.push_back(datum.second.policy);
+                value_teachers.push_back(datum.second.value);
             }
+
+            //学習
+            optimizer.zero_grad();
+            auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
+            auto loss_sum = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
+            loss_sum.backward();
+            optimizer.step();
+
+            if (k == 0) {
+                lrs.push_back(optimizer.options.learning_rate_);
+                losses.push_back(loss_sum.item<float>());
+            } else {
+                losses[step] += loss_sum.item<float>();
+            }
+
+            optimizer.options.learning_rate_ *= 1.1;
+
         }
     }
 
-    std::cout << "学習率";
-    for (int64_t i = 0; i < MAX_POW; i++) {
-        std::cout << "\t" << (1 << i);
-    }
-    std::cout << std::endl;
-
+    std::cout << "学習率\t損失" << std::endl;
     for (int64_t i = 0; i < lrs.size(); i++) {
-        std::cout << lrs[i];
-        for (int64_t j = 0; j < MAX_POW; j++) {
-            std::cout << "\t" << losses[j][i] / times;
-        }
-        std::cout << std::endl;
+        std::cout << lrs[i] << "\t" << losses[i] / times << std::endl;
     }
 }
