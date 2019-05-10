@@ -140,11 +140,7 @@ void searchLearningRate() {
     std::mt19937_64 engine(0);
     std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
-    //validationデータを確保
-    auto validation_size = (int32_t)(data_buffer.size() * 0.1) / batch_size * batch_size;
-    std::vector<std::pair<std::string, TeacherType>> validation_data(data_buffer.end() - validation_size, data_buffer.end());
-    data_buffer.erase(data_buffer.end() - validation_size, data_buffer.end());
-    std::cout << "learn_data_size = " << data_buffer.size() << ", validation_data_size = " << validation_size << std::endl;
+    std::cout << "learn_data_size = " << data_buffer.size() << std::endl;
 
     //学習率推移
     std::vector<float> lrs;
@@ -152,7 +148,7 @@ void searchLearningRate() {
     //損失推移
     std::vector<double> losses;
 
-    constexpr int64_t times = 50;
+    constexpr int64_t times = 10;
 
     for (int64_t k = 0; k < times; k++) {
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
@@ -196,12 +192,15 @@ void searchLearningRate() {
             }
 
             optimizer.options.learning_rate_ *= 1.1;
-
         }
+
+        std::cout << k + 1 << " / " << times << " 回終了" << std::endl;
     }
 
     std::cout << "学習率\t損失" << std::endl;
     for (int64_t i = 0; i < lrs.size(); i++) {
         std::cout << lrs[i] << "\t" << losses[i] / times << std::endl;
     }
+
+    std::cout << "最適学習率 = " << lrs[std::min_element(losses.begin(), losses.end()) - losses.begin()] << std::endl;
 }
