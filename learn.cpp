@@ -164,6 +164,9 @@ void searchLearningRate() {
     sgd_option.momentum(momentum);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
+    //ラベルの表示
+    std::cout << "学習率\t損失和\tPolicy損失\tValue損失" << std::endl;
+
     for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size() || stop; step++) {
         //バッチサイズ分データを確保
         Position pos;
@@ -186,12 +189,10 @@ void searchLearningRate() {
         loss_sum.backward();
         optimizer.step();
 
-        std::cout << elapsedTime(start_time) << "\t"
-                  << step + 1 << "\t"
+        std::cout << optimizer.options.learning_rate_ << "\t"
                   << loss_sum.item<float>() << "\t"
                   << loss.first.item<float>() << "\t"
-                  << loss.second.item<float>() << "\t"
-                  << optimizer.options.learning_rate_ << std::endl;
+                  << loss.second.item<float>() << std::endl;
 
         if (step != 0) {
             //初回以外は前回とのdiffを計算
@@ -206,7 +207,7 @@ void searchLearningRate() {
         }
 
         pre_loss = loss_sum.item<float>();
-        optimizer.options.learning_rate_ *= 2.0;
+        optimizer.options.learning_rate_ *= 1.25;
     }
 
     std::cout << "best_learning_rate = " << best_lr << std::endl;
