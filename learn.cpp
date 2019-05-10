@@ -150,7 +150,6 @@ void searchLearningRate() {
     float max_diff = INT_MIN;
     float pre_loss;
     float best_lr = learn_rate;
-    bool stop = false;
 
     //学習開始時間の設定
     auto start_time = std::chrono::steady_clock::now();
@@ -167,7 +166,7 @@ void searchLearningRate() {
     //ラベルの表示
     std::cout << "学習率\t損失和\tPolicy損失\tValue損失" << std::endl;
 
-    for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size() || stop; step++) {
+    for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size() || optimizer.options.learning_rate_ <= 1; step++) {
         //バッチサイズ分データを確保
         Position pos;
         std::vector<float> inputs;
@@ -200,9 +199,6 @@ void searchLearningRate() {
             if (diff > max_diff) {
                 max_diff = diff;
                 best_lr = optimizer.options.learning_rate_;
-            }
-            if (diff < 0) {
-                stop = true;
             }
         }
 
