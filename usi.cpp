@@ -46,6 +46,8 @@ void USI::loop() {
             std::string file_path;
             std::cin >> file_path;
             cleanGames(file_path);
+        } else if (input == "searchLearningRate") {
+            searchLearningRate();
         } else if (input == "supervisedLearn") {
             supervisedLearn();
         } else if (input == "alphaZero") {

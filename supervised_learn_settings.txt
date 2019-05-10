@@ -5,4 +5,4 @@ policy_loss_coeff 1.0
 value_loss_coeff  1.0
 batch_size        4096
 patience_limit    6
-kifu_path         /home/sakoda/Downloads/2016
+kifu_path         /home/sakoda/floodgate_all
