@@ -148,7 +148,13 @@ void searchLearningRate() {
     //損失推移
     std::vector<double> losses;
 
-    constexpr int64_t times = 10;
+    int64_t times;
+    std::cout << "試行回数:";
+    std::cin >> times;
+
+    double scale;
+    std::cout << "倍率:";
+    std::cin >> scale;
 
     for (int64_t k = 0; k < times; k++) {
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
@@ -158,7 +164,7 @@ void searchLearningRate() {
         torch::load(learning_model, MODEL_PATH);
 
         //optimizerの準備.学習率を小さい値から開始
-        torch::optim::SGDOptions sgd_option(1e-6);
+        torch::optim::SGDOptions sgd_option(1e-5);
         sgd_option.momentum(momentum);
         torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
@@ -191,10 +197,10 @@ void searchLearningRate() {
                 losses[step] += loss_sum.item<float>();
             }
 
-            optimizer.options.learning_rate_ *= 1.1;
+            optimizer.options.learning_rate_ *= scale;
         }
 
-        std::cout << k + 1 << " / " << times << " 回終了" << std::endl;
+        std::cout << std::setw(4) << k + 1 << " / " << times << " 回終了" << std::endl;
     }
 
     std::cout << "学習率\t損失" << std::endl;
