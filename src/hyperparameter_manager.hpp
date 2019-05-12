@@ -1,6 +1,7 @@
 ﻿#ifndef MIACIS_HYPERPARAMETER_MANAGER_HPP
 #define MIACIS_HYPERPARAMETER_MANAGER_HPP
 
+#include<array>
 #include<string>
 #include<unordered_map>
 

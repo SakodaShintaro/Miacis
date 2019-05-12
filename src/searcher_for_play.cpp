@@ -153,9 +153,10 @@ void SearcherForPlay::printUSIInfo() const {
     auto best_wp = (curr_node.N[selected_index] == 0 ? 0.0 : curr_node.W[selected_index] / curr_node.N[selected_index]);
 #endif
 
+    int64_t ela = elapsed.count();
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
-           (int32_t)(curr_node.sum_N * 1000LL / std::max(elapsed.count(), 1L)),
-           (int32_t)(elapsed.count()),
+           (int32_t)(curr_node.sum_N * 1000LL / std::max(ela, (int64_t)1)),
+           (int32_t)(ela),
            curr_node.sum_N,
            (int32_t)(hash_table_.getUsageRate() * 1000),
            (int32_t)(best_wp * 1000));
