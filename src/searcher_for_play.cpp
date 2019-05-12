@@ -90,7 +90,7 @@ Move SearcherForPlay::think(Position& root) {
         for (int64_t j = 0; j < gather_num; j++) {
             p += curr_node.W[best_index][i * gather_num + j] / N[best_index];
         }
-        printf("info string [%6.2f:%6.2f%%]:", MIN_SCORE + VALUE_WIDTH * (gather_num * i + 1.5), p * 100);
+        printf("info string [%+6.2f:%06.2f%%]:", MIN_SCORE + VALUE_WIDTH * (gather_num * i + 1.5), p * 100);
         for (int64_t j = 0; j < p * 50; j++) {
             printf("*");
         }
