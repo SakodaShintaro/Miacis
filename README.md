@@ -18,8 +18,8 @@ unzip libtorch-shared-with-deps-latest.zip
 
 #Miacisの取得、コンパイル
 git clone https://github.com/SakodaShintaro/Miacis
-mkdir Miacis/build
-cd Miacis/build
+mkdir Miacis/src/build
+cd Miacis/src/build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j4
 ```
