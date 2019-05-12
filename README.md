@@ -1,15 +1,13 @@
 # Miacis
 MiacisはUSIプロトコルに対応した将棋用思考エンジンです。[将棋所](http://shogidokoro.starfree.jp/)、[将棋GUI](http://shogigui.siganus.com/)などを用いて対局、検討を行うことができます。
 
-内部で深層学習フレームワークとしてPyTorchを利用しています。PyTorchのライセンス規約はNOTICEに、Miacis自身のライセンスはLICENSEに記載しています。
+深層学習フレームワークとしてPyTorchを利用しています。PyTorchのライセンス規約はNOTICEに、Miacis自身のライセンスはLICENSEに記載しています。
 
 ## コンパイル方法
-cmake,g++によるコンパイルが可能です。Ubuntu18.04, CUDA10.0, cuDNN7.1の環境で動作することは確認できています。WindosでもVisual Studioに
-cmake拡張を導入するなどの方法でコンパイルが可能なのではないかと思われます。
-
 コンパイル時にはPyTorchのC++APIである[LibTorch](https://pytorch.org/get-started/locally/)を必要とします。CMakeLists.txt9行目におけるlibtorchへのパスを適切に設定してください。
 
-以下にLinuxでコンパイルする手順例を示します。
+###Ubuntu
+Ubuntu18.04, CUDA10.0, cuDNN7.1, libtorch1.1(for CUDA10.0 nightly)の環境においてcmake3.10.2, g++7.4.0でビルドできることが確認できています。以下にLinuxでコンパイルする手順例を示します。
 
 ```
 #libtorchの取得
@@ -25,6 +23,21 @@ make -j4
 ```
 
 正常にコンパイルが進むとbuild以下にMiacis_scalarとMiacis_categoricalの二つプログラムが得られます。前者は状態価値(評価値)をスカラとして一つ出力するモデルであり、AlphaZeroとほぼ同等のアーキテクチャとなります。後者は状態価値(評価値)の確率分布を出力するモデルとなります。
+
+###Windows
+Windows10, CUDA9.0, cuDNN7.0.5, libtorch1.1(for CUDA9.0 stable)の環境においてVisual Studio2017にCMake拡張を入れたものでビルドできることが確認できています。CMakeLists.txtの以下の2行を次のように書き換えてください。
+
+書き換え前
+```
+target_link_libraries(Miacis_scalar      pthread stdc++fs "${TORCH_LIBRARIES}")
+target_link_libraries(Miacis_categorical pthread stdc++fs "${TORCH_LIBRARIES}")
+```
+
+書き換え後
+```
+target_link_libraries(Miacis_scalar      "${TORCH_LIBRARIES}")
+target_link_libraries(Miacis_categorical "${TORCH_LIBRARIES}")
+```
 
 ## 対局方法
 実行プログラムと同ディレクトリに評価関数パラメータを配置すると思考エンジンとして利用することができます。Miacis_scalarは```sca_bl10_ch64.model```というファイル、Miacis_categoricalは```cat_bl10_ch64.model```というファイルにPyTorchの定める形式でパラメータが格納されている必要があります。bl10はブロック数が10であること、ch64はチャネル数が64であることを示しています。
