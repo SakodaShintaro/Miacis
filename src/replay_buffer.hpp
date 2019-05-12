@@ -1,4 +1,4 @@
-#ifndef MIACIS_REPLAY_BUFFER_HPP
+﻿#ifndef MIACIS_REPLAY_BUFFER_HPP
 #define MIACIS_REPLAY_BUFFER_HPP
 #include"neural_network.hpp"
 #include"game.hpp"

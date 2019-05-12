@@ -1,4 +1,4 @@
-#ifndef MIACIS_GAME_GENERATOR_HPP
+﻿#ifndef MIACIS_GAME_GENERATOR_HPP
 #define MIACIS_GAME_GENERATOR_HPP
 
 #include "replay_buffer.hpp"

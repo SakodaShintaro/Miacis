@@ -1,4 +1,4 @@
-#include "game_generator.hpp"
+﻿#include "game_generator.hpp"
 #include "usi_options.hpp"
 #include <thread>
 

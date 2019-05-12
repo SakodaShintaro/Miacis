@@ -1,4 +1,4 @@
-#include "searcher.hpp"
+﻿#include "searcher.hpp"
 #include "usi_options.hpp"
 #include "operate_params.hpp"
 

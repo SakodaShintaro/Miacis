@@ -1,4 +1,4 @@
-#ifndef MIACIS_SEARCHER_HPP
+﻿#ifndef MIACIS_SEARCHER_HPP
 #define MIACIS_SEARCHER_HPP
 
 #include"uct_hash_table.hpp"

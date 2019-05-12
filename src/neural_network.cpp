@@ -1,4 +1,4 @@
-#include"neural_network.hpp"
+﻿#include"neural_network.hpp"
 
 //遅くなるのでオフ
 //#define USE_HALF_FLOAT

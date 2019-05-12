@@ -1,4 +1,4 @@
-#include "searcher_for_generate.hpp"
+﻿#include "searcher_for_generate.hpp"
 #include "usi_options.hpp"
 #include "operate_params.hpp"
 

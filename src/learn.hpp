@@ -1,4 +1,4 @@
-#ifndef MIACIS_LEARN_HPP
+﻿#ifndef MIACIS_LEARN_HPP
 #define MIACIS_LEARN_HPP
 
 #include"neural_network.hpp"
