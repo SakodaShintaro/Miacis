@@ -11,25 +11,25 @@ find_package(Torch REQUIRED)
 
 #使用するソースも共通なので変数でまとめる
 set(SRCS bitboard.cpp
-         game.cpp
-         main.cpp
-         move.cpp
-         piece.cpp
-         position.cpp
-         square.cpp
-         test.cpp
-         uct_hash_table.cpp
-         usi.cpp
-         replay_buffer.cpp
-         game_generator.cpp
-         neural_network.cpp
-         supervised_learn.cpp
-         learn.cpp
-         alphazero_learn.cpp
-         searcher.cpp
-         searcher_for_play.cpp
-         searcher_for_generate.cpp
-         hyperparameter_manager.cpp)
+        game.cpp
+        main.cpp
+        move.cpp
+        piece.cpp
+        position.cpp
+        square.cpp
+        test.cpp
+        uct_hash_table.cpp
+        usi.cpp
+        replay_buffer.cpp
+        game_generator.cpp
+        neural_network.cpp
+        supervised_learn.cpp
+        learn.cpp
+        alphazero_learn.cpp
+        searcher.cpp
+        searcher_for_play.cpp
+        searcher_for_generate.cpp
+        hyperparameter_manager.cpp)
 
 add_executable(Miacis_scalar      ${SRCS})
 add_executable(Miacis_categorical ${SRCS})

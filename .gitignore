@@ -1,5 +1,1 @@
-*
-!.gitignore
-!*.txt
-!*.hpp
-!*.cpp
+.idea/
