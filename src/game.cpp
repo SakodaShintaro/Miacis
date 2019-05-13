@@ -65,7 +65,7 @@ Game loadGameFromCSA(sys::path p) {
 	return game;
 }
 
-std::vector<Game> loadGames(std::string path, int64_t num) {
+std::vector<Game> loadGames(const std::string& path, int64_t num) {
     const sys::path dir(path);
 	std::vector<Game> games;
     for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
@@ -81,106 +81,69 @@ void cleanGames() {
     std::cout << "棋譜のあるフォルダへのパス : ";
     std::string path;
     std::cin >> path;
+
+    constexpr double rate_threshold = 2800;
+    constexpr int32_t move_threshold = 50;
+
     const sys::path dir(path);
 	for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
 		std::ifstream ifs(p->path());
 		std::string buf;
-		int move_counter = 0;
-        double black_rate = 0, white_rate = 0;
+		int32_t move_count = 0;
+        bool should_remove = false;
 		while (getline(ifs, buf)) {
-			//名前読み込み
-			//if (buf[0] == 'N') {
-			//	if (buf[1] == '+') {
-			//		std::cout << "先手名前:" << buf.substr(2) << std::endl;
-			//		continue;
-			//	} else if (buf[1] == '-') {
-			//		std::cout << "後手名前:" << buf.substr(2) << std::endl;
-			//		continue;
-			//	} else {
-			//		assert(false);
-			//	}
-			//}
-
 			//レート読み込み
-			//2800より小さかったら削除
-			if (buf.find("'black_rate") < buf.size()) {
-				//std::cout << "先手レート:" << buf.substr(buf.rfind(':') + 1) << std::endl;
-				black_rate = std::stod(buf.substr(buf.rfind(':') + 1));
-                continue;
-			} else if (buf.find("'white_rate") < buf.size()) {
-				//std::cout << "後手レート:" << buf.substr(buf.rfind(':') + 1) << std::endl;
-				white_rate = std::stod(buf.substr(buf.rfind(':') + 1));
+			if (buf.find("'black_rate") < buf.size() || buf.find("'white_rate") < buf.size()) {
+				double rate = std::stod(buf.substr(buf.rfind(':') + 1));
+				if (rate < rate_threshold) {
+				    should_remove = true;
+				    break;
+				}
 				continue;
 			}
 
 			//summaryが投了以外のものは削除
 			if (buf.find("summary") < buf.size()) {
 				if (buf.find("toryo") > buf.size()) {
-					ifs.close();
-					std::cout << p->path().string().c_str() << " ";
-					if (remove(p->path().string().c_str()) == 0) {
-						std::cout << "削除成功" << std::endl;
-					} else {
-						std::cout << "失敗" << std::endl;
-					}
-					goto END;
+                    should_remove = true;
+                    break;
 				}
 				continue;
 			}
 
-			//std::cout << buf << std::endl;
-			if (buf[0] == '\'') continue;
-			if (buf[0] != '+' && buf[0] != '-') continue;
-			if (buf.size() == 1) continue;
-			move_counter++;
-		}
-
-        //printf("black_rate = %f, white_rate = %f\n", black_rate, white_rate);
-        if (black_rate < 2800) {
-            ifs.close();
-            std::cout << p->path().string().c_str() << " ";
-            if (remove(p->path().string().c_str()) == 0) {
-                std::cout << "削除成功" << std::endl;
-            } else {
-                std::cout << "失敗" << std::endl;
-            }
-            continue;
-        }
-        if (white_rate < 2800) {
-            ifs.close();
-            std::cout << p->path().string().c_str() << " ";
-            if (remove(p->path().string().c_str()) == 0) {
-                std::cout << "削除成功" << std::endl;
-            } else {
-                std::cout << "失敗" << std::endl;
-            }
-            continue;
-        }
-
-		//手数が50より小さいものはおかしい気がするので削除
-		if (move_counter < 50) {
-			ifs.close();
-			std::cout << p->path().string().c_str() << " ";
-			if (remove(p->path().string().c_str()) == 0) {
-				std::cout << "削除成功" << std::endl;
-			} else {
-				std::cout << "失敗" << std::endl;
+			//指し手じゃないものはスキップ
+			if (buf[0] == '\''
+			|| (buf[0] != '+' && buf[0] != '-')
+			|| buf.size() == 1) {
+			    continue;
 			}
-            continue;
+
+			//手数を増やす
+			move_count++;
 		}
 
-	END:;
+		//上で削除すべきと判断されたもの及び手数が短すぎるものを削除
+        if (should_remove || move_count < move_threshold) {
+            ifs.close();
+            std::cout << p->path().c_str() << " ";
+            if (remove(p->path().c_str()) == 0) {
+                std::cout << "削除成功" << std::endl;
+            } else {
+                std::cout << "失敗" << std::endl;
+            }
+
+        }
 	}
     std::cout << "finish cleanGames" << std::endl;
 }
 
-void Game::writeKifuFile(std::string dir_path) const {
+void Game::writeKifuFile(const std::string& dir_path) const {
     static std::atomic<int64_t> id;
     std::string file_name = dir_path + std::to_string(id++) + ".kif";
     std::ofstream ofs(file_name);
     if (!ofs) {
-        std::cout << "cannot open " << dir_path << std::endl;
-        assert(false);
+        std::cerr << "cannot open " << dir_path << std::endl;
+        exit(1);
     }
     ofs << std::fixed;
 
