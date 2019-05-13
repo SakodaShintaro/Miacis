@@ -3,6 +3,11 @@
 #include "operate_params.hpp"
 
 bool Searcher::shouldStop() {
+    //シグナルのチェック
+    if (usi_option.stop_signal) {
+        return true;
+    }
+
     //時間のチェック
     auto now_time = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_);
@@ -10,6 +15,7 @@ bool Searcher::shouldStop() {
         return true;
     }
 
+    //ハッシュテーブルの容量チェック
     if (!hash_table_.hasEnoughSize()) {
         return true;
     }

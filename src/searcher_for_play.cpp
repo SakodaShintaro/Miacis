@@ -85,21 +85,6 @@ Move SearcherForPlay::think(Position& root) {
 
     //探索回数最大の手を選択する
     int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
-#ifdef USE_CATEGORICAL
-    //分布の表示
-    constexpr int64_t gather_num = 3;
-    for (int64_t i = 0; i < BIN_SIZE / gather_num; i++) {
-        double p = 0.0;
-        for (int64_t j = 0; j < gather_num; j++) {
-            p += curr_node.W[best_index][i * gather_num + j] / N[best_index];
-        }
-        printf("info string [%+6.2f:%06.2f%%]:", MIN_SCORE + VALUE_WIDTH * (gather_num * i + 1.5), p * 100);
-        for (int64_t j = 0; j < p * 50; j++) {
-            printf("*");
-        }
-        printf("\n");
-    }
-#endif
 
     //選択した手の探索回数は少なくとも1以上であることを前提とする
     assert(N[best_index] != 0);
@@ -156,6 +141,22 @@ void SearcherForPlay::printUSIInfo() const {
     auto best_wp = (curr_node.N[selected_index] == 0 ? 0.0 : curr_node.W[selected_index] / curr_node.N[selected_index]);
 #endif
 
+#ifdef USE_CATEGORICAL
+    //分布の表示
+    constexpr int64_t gather_num = 3;
+    for (int64_t i = 0; i < BIN_SIZE / gather_num; i++) {
+        double p = 0.0;
+        for (int64_t j = 0; j < gather_num; j++) {
+            p += curr_node.W[selected_index][i * gather_num + j] / curr_node.N[selected_index];
+        }
+        printf("info string [%+6.2f:%06.2f%%]:", MIN_SCORE + VALUE_WIDTH * (gather_num * i + 1.5), p * 100);
+        for (int64_t j = 0; j < p * 50; j++) {
+            printf("*");
+        }
+        printf("\n");
+    }
+#endif
+
     int64_t ela = elapsed.count();
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
            (int32_t)(curr_node.sum_N * 1000LL / std::max(ela, (int64_t)1)),
@@ -189,6 +190,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         redundancy_num.clear();
 
         if (hash_table_[current_root_index_].sum_N >= next_print_node_num_) {
+            std::cout << "stop_signal = " << usi_option.stop_signal << std::endl;
             printUSIInfo();
             next_print_node_num_ += usi_option.print_interval;
         }
