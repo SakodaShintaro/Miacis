@@ -9,37 +9,38 @@
 
 namespace sys = std::experimental::filesystem;
 
-static std::unordered_map<std::string, Piece> CSAstringToPiece = {
-	{ "FU", PAWN },
-	{ "KY", LANCE },
-	{ "KE", KNIGHT },
-	{ "GI", SILVER },
-	{ "KI", GOLD },
-	{ "KA", BISHOP },
-	{ "HI", ROOK },
-	{ "OU", KING },
-	{ "TO", PAWN_PROMOTE },
-	{ "NY", LANCE_PROMOTE },
-	{ "NK", KNIGHT_PROMOTE },
-	{ "NG", SILVER_PROMOTE },
-	{ "UM", BISHOP_PROMOTE },
-	{ "RY", ROOK_PROMOTE },
-};
+Game loadGameFromCSA(const sys::path& p) {
+    //対応関係をunordered_mapで引けるようにしておく
+    static std::unordered_map<std::string, Piece> CSAstringToPiece = {
+            { "FU", PAWN },
+            { "KY", LANCE },
+            { "KE", KNIGHT },
+            { "GI", SILVER },
+            { "KI", GOLD },
+            { "KA", BISHOP },
+            { "HI", ROOK },
+            { "OU", KING },
+            { "TO", PAWN_PROMOTE },
+            { "NY", LANCE_PROMOTE },
+            { "NK", KNIGHT_PROMOTE },
+            { "NG", SILVER_PROMOTE },
+            { "UM", BISHOP_PROMOTE },
+            { "RY", ROOK_PROMOTE },
+    };
 
-Game loadGameFromCSA(sys::path p) {
     Position pos;
 	Game game;
 	std::ifstream ifs(p);
 	std::string buf;
 	while (getline(ifs, buf)) {
-		if (buf[0] == '\'' || (buf[0] != '+' && buf[0] != '-') || buf.size() == 1) {
+        //指し手じゃないものはスキップ
+        if (buf[0] == '\'' || (buf[0] != '+' && buf[0] != '-') || buf.size() == 1) {
             continue;
         }
 
-		//上の分岐によりMoveだけ残る
+        //指し手の情報を取得
 		Square from = FRToSquare[buf[1] - '0'][buf[2] - '0'];
 		Square to   = FRToSquare[buf[3] - '0'][buf[4] - '0'];
-        //移動駒の種類
 		Piece subject = CSAstringToPiece[buf.substr(5, 2)];
         //手番を設定
         subject = (pos.color() == BLACK ? toBlack(subject) : toWhite(subject));
@@ -50,13 +51,15 @@ Game loadGameFromCSA(sys::path p) {
         if (isPromote) {
             subject = (Piece)(subject & ~PROMOTE);
         }
+
+        //Moveを生成し、Positionの情報を使って完全なものとする
         Move move(to, from, isDrop, isPromote, subject);
         move = pos.transformValidMove(move);
 
         if (!pos.isLegalMove(move)) {
+            std::cerr << "There is a illegal move in " << p << std::endl;
             move.printWithNewLine();
-            std::cout << p << std::endl;
-            assert(false);
+            exit(1);
         }
 		game.moves.push_back(move);
         pos.doMove(move);
@@ -112,11 +115,9 @@ void cleanGames() {
 			}
 
 			//指し手じゃないものはスキップ
-			if (buf[0] == '\''
-			|| (buf[0] != '+' && buf[0] != '-')
-			|| buf.size() == 1) {
-			    continue;
-			}
+            if (buf[0] == '\'' || (buf[0] != '+' && buf[0] != '-') || buf.size() == 1) {
+                continue;
+            }
 
 			//手数を増やす
 			move_count++;
