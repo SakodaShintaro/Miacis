@@ -7,6 +7,7 @@ public:
 	int64_t random_turn;
     int64_t USI_Hash;
     int64_t draw_turn;
+    int64_t print_interval;
 	uint64_t thread_num;
 	uint64_t search_batch_size;
 	bool print_debug_info;

@@ -87,6 +87,8 @@ void USI::usi() {
     usi_option.draw_turn = 256;
     printf("option name print_debug_info type check default false\n");
     usi_option.print_debug_info = false;
+    printf("option name print_interval type spin default 10000 min 1 max 100000000\n");
+    usi_option.print_interval = 10000;
 
     auto d = (unsigned long long)1e9;
     printf("option name search_limit type spin default %llu min 1 max %llu\n", d, d);
@@ -145,6 +147,9 @@ void USI::setoption() {
                 std::cin >> input;
                 usi_option.print_debug_info = (input == "true");
                 return;
+            } else if (input == "print_interval") {
+                std::cin >> input;
+                std::cin >> usi_option.print_interval;
             }
         }
     }

@@ -61,6 +61,9 @@ private:
     //各スレッドが1回GPUを使うまでに探索する数
     uint64_t search_batch_size_;
 
+    //表示間隔.厳密には取れないので
+    int64_t next_print_node_num_;
+
     //キュー
     std::vector<std::vector<float>> input_queues_;
     std::vector<std::vector<Index>> index_queues_;

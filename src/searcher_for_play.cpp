@@ -10,6 +10,9 @@ Move SearcherForPlay::think(Position& root) {
     //古いハッシュを削除
     hash_table_.deleteOldHash(root, true);
 
+    //次に表示するノード数を初期化
+    next_print_node_num_ = usi_option.print_interval;
+
     //キューの初期化
     for (int32_t i = 0; i < thread_num_; i++) {
         input_queues_[i].clear();
@@ -184,6 +187,11 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         route_queue.clear();
         action_queue.clear();
         redundancy_num.clear();
+
+        if (hash_table_[current_root_index_].sum_N >= next_print_node_num_) {
+            printUSIInfo();
+            next_print_node_num_ += usi_option.print_interval;
+        }
 
         //評価要求を貯める
         for (uint64_t i = 0; i < search_batch_size_ && !shouldStop(); i++) {
