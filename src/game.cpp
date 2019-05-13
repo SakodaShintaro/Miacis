@@ -77,8 +77,10 @@ std::vector<Game> loadGames(std::string path, int64_t num) {
 	return games;
 }
 
-void cleanGames(std::string path) {
-    std::cout << "start cleanGames" << std::endl;
+void cleanGames() {
+    std::cout << "棋譜のあるフォルダへのパス : ";
+    std::string path;
+    std::cin >> path;
     const sys::path dir(path);
 	for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
 		std::ifstream ifs(p->path());

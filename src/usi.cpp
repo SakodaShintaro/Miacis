@@ -15,53 +15,40 @@
 
 USIOption usi_option;
 
+USI::USI() {
+    //メンバ関数
+    command_["usi"]        = std::bind(&USI::usi, this);
+    command_["isready"]    = std::bind(&USI::isready, this);
+    command_["setoption"]  = std::bind(&USI::setoption, this);
+    command_["usinewgame"] = std::bind(&USI::usinewgame, this);
+    command_["position"]   = std::bind(&USI::position, this);
+    command_["go"]         = std::bind(&USI::go, this);
+    command_["stop"]       = std::bind(&USI::stop, this);
+    command_["ponderhit"]  = std::bind(&USI::ponderhit, this);
+    command_["quit"]       = std::bind(&USI::quit, this);
+    command_["gameover"]   = std::bind(&USI::gameover, this);
+
+    //メンバ関数以外
+    command_["prepareForLearn"] = []() {
+        torch::save(nn, MODEL_PATH);
+        std::cout << "初期化したパラメータを" << MODEL_PATH << "に出力" << std::endl;
+    };
+    command_["cleanGame"] = cleanGames;
+    command_["searchLearningRate"] = searchLearningRate;
+    command_["supervisedLearn"] = supervisedLearn;
+    command_["alphaZero"] = alphaZero;
+    command_["test"] = test;
+    command_["checkSearchSpeed"] = checkSearchSpeed;
+    command_["checkGenSpeed"] = checkGenSpeed;
+    command_["checkPredictSpeed"] = checkPredictSpeed;
+    command_["checkVal"] = checkVal;
+}
+
 void USI::loop() {
     std::string input;
     while (std::cin >> input) {
-        if (input == "usi") {
-            usi();
-        } else if (input == "isready") {
-            isready();
-        } else if (input == "setoption") {
-            setoption();
-        } else if (input == "usinewgame") {
-            usinewgame();
-        } else if (input == "position") {
-            position();
-        } else if (input == "go") {
-            go();
-        } else if (input == "stop") {
-            stop();
-        } else if (input == "ponderhit") {
-            ponderhit();
-        } else if (input == "quit") {
-            quit();
-        } else if (input == "gameover") {
-            gameover();
-        } else if (input == "prepareForLearn") {
-            torch::save(nn, MODEL_PATH);
-            std::cout << "初期化したパラメータを出力" << std::endl;
-        } else if (input == "cleanGame") {
-            std::cout << "棋譜のあるフォルダへのパス : ";
-            std::string file_path;
-            std::cin >> file_path;
-            cleanGames(file_path);
-        } else if (input == "searchLearningRate") {
-            searchLearningRate();
-        } else if (input == "supervisedLearn") {
-            supervisedLearn();
-        } else if (input == "alphaZero") {
-            alphaZero();
-        } else if (input == "test") {
-            test();
-        } else if (input == "checkSearchSpeed") {
-            checkSearchSpeed();
-        } else if (input == "checkGenSpeed") {
-            checkGenSpeed();
-        } else if (input == "checkPredictSpeed") {
-            checkPredictSpeed();
-        } else if (input == "checkVal") {
-            checkVal();
+        if (command_.count(input)) {
+            command_[input]();
         } else {
             std::cout << "Illegal input" << std::endl;
         }
