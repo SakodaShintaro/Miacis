@@ -245,9 +245,7 @@ void USI::go() {
 
 void USI::stop() {
     usi_option.stop_signal = true;
-    if (thread_.joinable()) {
-        thread_.join();
-    }
+    thread_.join();
 }
 
 void USI::ponderhit() {
