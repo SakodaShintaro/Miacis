@@ -4,6 +4,7 @@
 #include"square.hpp"
 #include"common.hpp"
 #include<bitset>
+#include<functional>
 
 class Bitboard {
 public:
@@ -227,45 +228,36 @@ inline Bitboard dragonControl(const Square sq, const Bitboard& occupied) {
     return rookControl(sq, occupied) | kingControl(sq, occupied);
 }
 
-static Bitboard (* controlFunc[])(const Square sq, const Bitboard& occupied) = {
-    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //0~9
-    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //10~19
-    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //20~29
-    nullptr, nullptr, nullptr, //30~32
-    blackPawnControl,  //33
-    blackLanceControl, //34
-    blackNightControl, //35
-    blackSilverControl,//36
-    blackGoldControl,  //37
-    bishopControl,     //38
-    rookControl,       //39
-    kingControl,       //40
-    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //40~48
-    blackGoldControl,  //49 と
-    blackGoldControl,  //50 成香
-    blackGoldControl,  //51 成桂
-    blackGoldControl,  //52 成銀
-    nullptr,           //53 成金などない
-    horseControl,      //54 馬
-    dragonControl,     //55 竜
-    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //56~64
-    whitePawnControl,  //65
-    whiteLanceControl, //66
-    whiteNightControl, //67
-    whiteSilverControl,//68
-    whiteGoldControl,  //69
-    bishopControl,     //70
-    rookControl,       //71
-    kingControl,       //72
-    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //73~80
-    whiteGoldControl,  //81 と
-    whiteGoldControl,  //82 成香
-    whiteGoldControl,  //83 成桂
-    whiteGoldControl,  //84 成銀
-    nullptr,           //85 成金などない
-    horseControl,      //86 馬
-    dragonControl,     //87 竜
-};
+static ArrayMap<std::function<Bitboard(Square, const Bitboard&)>, PieceNum> controlFunc({
+    {BLACK_PAWN,   blackPawnControl},
+    {BLACK_LANCE,  blackLanceControl},
+    {BLACK_KNIGHT, blackNightControl},
+    {BLACK_SILVER, blackSilverControl},
+    {BLACK_GOLD,   blackGoldControl},
+    {BLACK_BISHOP, bishopControl},
+    {BLACK_ROOK,   rookControl},
+    {BLACK_KING,   kingControl},
+    {BLACK_PAWN_PROMOTE,   blackGoldControl},
+    {BLACK_LANCE_PROMOTE,  blackGoldControl},
+    {BLACK_KNIGHT_PROMOTE, blackGoldControl},
+    {BLACK_SILVER_PROMOTE, blackGoldControl},
+    {BLACK_BISHOP_PROMOTE, horseControl},
+    {BLACK_ROOK_PROMOTE,   dragonControl},
+    {WHITE_PAWN,   whitePawnControl},
+    {WHITE_LANCE,  whiteLanceControl},
+    {WHITE_KNIGHT, whiteNightControl},
+    {WHITE_SILVER, whiteSilverControl},
+    {WHITE_GOLD,   whiteGoldControl},
+    {WHITE_BISHOP, bishopControl},
+    {WHITE_ROOK,   rookControl},
+    {WHITE_KING,   kingControl},
+    {WHITE_PAWN_PROMOTE,   whiteGoldControl},
+    {WHITE_LANCE_PROMOTE,  whiteGoldControl},
+    {WHITE_KNIGHT_PROMOTE, whiteGoldControl},
+    {WHITE_SILVER_PROMOTE, whiteGoldControl},
+    {WHITE_BISHOP_PROMOTE, horseControl},
+    {WHITE_ROOK_PROMOTE,   dragonControl},
+});
 
 inline Bitboard controlBB(const Square sq, const Piece p, const Bitboard& occupied) {
     return controlFunc[p](sq, occupied);
