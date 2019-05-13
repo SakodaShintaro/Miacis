@@ -24,7 +24,7 @@ struct Game {
     void writeKifuFile(const std::string& dir_path) const;
 };
 
-Game loadGameFromCSA(stdconst ::experimental::filesystem::path p)&;
+Game loadGameFromCSA(const std::experimental::filesystem::path& p);
 std::vector<Game> loadGames(const std::string& path, int64_t num);
 void cleanGames();
 
