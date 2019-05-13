@@ -3,6 +3,8 @@
 #include<thread>
 #include<iomanip>
 
+const std::string ReplayBuffer::save_dir = "./learn_kifu";
+
 void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
                              std::vector<PolicyTeacherType>& policy_teachers,
                              std::vector<ValueTeacherType>& value_teachers) {
@@ -61,7 +63,7 @@ void ReplayBuffer::push(Game &game) {
 
     static int64_t num = 0;
     if (++num % 500 == 0) {
-        game.writeKifuFile("./learn_kifu/");
+        game.writeKifuFile(save_dir);
     }
 
     //まずは最終局面まで動かす
@@ -95,12 +97,5 @@ void ReplayBuffer::push(Game &game) {
         //スタックに詰める
         data_.emplace_back(pos.toSFEN(), game.teachers[i].policy, game.teachers[i].value);
     }
-    mutex_.unlock();
-}
-
-void ReplayBuffer::clear() {
-    mutex_.lock();
-    data_.clear();
-    data_.shrink_to_fit();
     mutex_.unlock();
 }

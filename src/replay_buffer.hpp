@@ -14,13 +14,13 @@ class ReplayBuffer{
 public:
     ReplayBuffer(int64_t first_wait, int64_t max_size, float lambda) : first_wait_(first_wait), max_size_(max_size), lambda_(lambda) {
         //棋譜を保存するディレクトリの削除
-        std::experimental::filesystem::remove_all("./learn_kifu");
+        std::experimental::filesystem::remove_all(save_dir);
 
         //棋譜を保存するディレクトリの作成
 #ifdef _MSC_VER
-        _mkdir("./learn_kifu");
+        _mkdir(save_dir.c_str());
 #elif __GNUC__
-        mkdir("./learn_kifu", ACCESSPERMS);
+        mkdir(save_dir.c_str(), ACCESSPERMS);
 #endif
     }
 
@@ -32,7 +32,6 @@ public:
     void push(Game& game);
 
     //checkGenSpeedで使うもの
-    void clear();
     int64_t size() { return data_.size(); }
 
 private:
@@ -50,6 +49,9 @@ private:
 
     //排他制御用
     std::mutex mutex_;
+
+    //学習に用いた棋譜を保存するディレクトリへのパス
+    static const std::string save_dir;
 };
 
 #endif //MIACIS_REPLAY_BUFFER_HPP
