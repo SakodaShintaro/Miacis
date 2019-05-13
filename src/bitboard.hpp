@@ -98,8 +98,7 @@ public:
         return (sq > SQ79 ? 1 : 0);
     }
 
-    //bitレイアウトはboard_[0]に1筋から7筋まで、board_[1]に残りの8,9筋を入れたい
-    //64bit目は不使用？
+    //bitレイアウトはboard_[0]に1筋から7筋まで、board_[1]に残りの8,9筋
 
     /*
 	union {

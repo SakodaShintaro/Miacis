@@ -21,7 +21,7 @@ Bitboard RookRankEffect[FileNum][128];
 
 Bitboard KING_CONTROL_BB[SquareNum];
 
-int Slide[] = {
+int32_t Slide[] = {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1,  1,  1,  1,  1,  1,  1,  1,  1,  1, -1,
     -1, 10, 10, 10, 10, 10, 10, 10, 10, 10, -1,

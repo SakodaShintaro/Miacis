@@ -27,7 +27,7 @@ void HyperparameterManager::load(const std::string& file_path) {
     std::ifstream ifs(file_path);
     if (!ifs) {
         std::cerr << "fail to open " << file_path << std::endl;
-        assert(false);
+        exit(1);
     }
     std::string name;
     while (ifs >> name) {
@@ -38,8 +38,8 @@ void HyperparameterManager::load(const std::string& file_path) {
         } else if (string_map.count(name)) {
             ifs >> string_map[name];
         } else {
-            std::cerr << "There is not such parameter : " << name << std::endl;
-            assert(false);
+            std::cerr << "There is not such a parameter : " << name << std::endl;
+            exit(1);
         }
     }
 }
@@ -71,7 +71,7 @@ int64_t HyperparameterManager::get(const std::string& name){
     if (int_map.count(name)) {
         return int_map[name][VALUE];
     } else {
-        std::cerr << "There is not such key : " << name << std::endl;
+        std::cerr << "There is not such a key : " << name << std::endl;
         return -1;
     }
 }
@@ -81,7 +81,7 @@ float HyperparameterManager::get(const std::string& name){
     if (float_map.count(name)) {
         return float_map[name][VALUE];
     } else {
-        std::cerr << "There is not such key : " << name << std::endl;
+        std::cerr << "There is not such a key : " << name << std::endl;
         return -1;
     }
 }
@@ -91,7 +91,7 @@ std::string HyperparameterManager::get(const std::string& name){
     if (string_map.count(name)) {
         return string_map[name];
     } else {
-        std::cerr << "There is not such key : " << name << std::endl;
+        std::cerr << "There is not such a key : " << name << std::endl;
         return "";
     }
 }

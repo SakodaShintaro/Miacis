@@ -161,7 +161,7 @@ inline static int operator<<(Square sq, int32_t shift) {
     return (int32_t)sq << shift;
 }
 
-extern const std::array<Square, 81> SquareList;
+extern const std::array<Square, SQUARE_NUM> SquareList;
 extern const int SquareToNum[];
 extern const Square InvSquare[];
 

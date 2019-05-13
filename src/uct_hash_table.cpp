@@ -75,5 +75,4 @@ void UctHashTable::deleteOldHash(Position& root, bool leave_root) {
             used_num_--;
         }
     }
-
 }

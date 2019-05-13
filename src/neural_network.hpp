@@ -95,7 +95,6 @@ inline double expOfValueDist(ValueType dist) {
     }
     return exp;
 }
-
 #endif
 
 #endif //MIACIS_NEURAL_NETWORK_HPP

@@ -41,10 +41,6 @@ public:
     constexpr size_t size() const {
         return (size_t)Size;
     }
-
-    void clear() {
-        std::memset(&array_[0], 0, sizeof(Type) * Size);
-    }
 private:
     Type array_[Size];
 };

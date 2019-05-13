@@ -1,7 +1,7 @@
 ﻿#include"square.hpp"
 #include<array>
 
-const std::array<Square, 81> SquareList = {
+const std::array<Square, SQUARE_NUM> SquareList = {
     SQ11, SQ12, SQ13, SQ14, SQ15, SQ16, SQ17, SQ18, SQ19,
     SQ21, SQ22, SQ23, SQ24, SQ25, SQ26, SQ27, SQ28, SQ29,
     SQ31, SQ32, SQ33, SQ34, SQ35, SQ36, SQ37, SQ38, SQ39,
@@ -13,7 +13,7 @@ const std::array<Square, 81> SquareList = {
     SQ91, SQ92, SQ93, SQ94, SQ95, SQ96, SQ97, SQ98, SQ99
 };
 
-const int SquareToNum[] = {
+const int32_t SquareToNum[] = {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1,  0,  1,  2,  3,  4,  5,  6,  7,  8, -1,
     -1,  9, 10, 11, 12, 13, 14, 15, 16, 17, -1,

@@ -12,8 +12,7 @@
 
 class GameGenerator {
 public:
-    GameGenerator(ReplayBuffer& rb, NeuralNetwork nn) :
-            rb_(rb), evaluator_(std::move(nn)) {
+    GameGenerator(ReplayBuffer& rb, NeuralNetwork evaluator) : rb_(rb), evaluator_(std::move(evaluator)) {
         evaluator_->eval();
     };
 
