@@ -1,6 +1,5 @@
 ﻿#include "searcher_for_play.hpp"
 #include "usi_options.hpp"
-#include "operate_params.hpp"
 #include <thread>
 
 Move SearcherForPlay::think(Position& root) {

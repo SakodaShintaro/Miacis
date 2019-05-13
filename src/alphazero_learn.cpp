@@ -2,7 +2,6 @@
 #include"replay_buffer.hpp"
 #include"usi_options.hpp"
 #include"game_generator.hpp"
-#include"operate_params.hpp"
 #include"hyperparameter_manager.hpp"
 #include<thread>
 #include<climits>

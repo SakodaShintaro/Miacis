@@ -5,9 +5,8 @@
 #include"game.hpp"
 #include"test.hpp"
 #include"neural_network.hpp"
-#include"operate_params.hpp"
 #include"learn.hpp"
-#include "searcher_for_play.hpp"
+#include"searcher_for_play.hpp"
 #include<iostream>
 #include<string>
 #include<climits>

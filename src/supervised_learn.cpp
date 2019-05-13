@@ -1,6 +1,5 @@
 ﻿#include"learn.hpp"
 #include"game.hpp"
-#include"operate_params.hpp"
 #include"hyperparameter_manager.hpp"
 #include<fstream>
 #include<iostream>

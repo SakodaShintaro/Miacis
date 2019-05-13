@@ -1,6 +1,5 @@
 ﻿#include "searcher.hpp"
 #include "usi_options.hpp"
-#include "operate_params.hpp"
 
 bool Searcher::shouldStop() {
     //シグナルのチェック
