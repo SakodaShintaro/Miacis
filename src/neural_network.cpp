@@ -140,7 +140,7 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
 }
 
 void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
-    device_ = torch::Device(torch::kCUDA, gpu_id);
+    device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
 #ifdef USE_HALF_FLOAT
     to(device_, torch::kHalf);
 #else
