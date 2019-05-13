@@ -203,7 +203,7 @@ void searchLearningRate() {
         std::cout << std::setw(4) << k + 1 << " / " << times << " 回終了" << std::endl;
     }
 
-    std::cout << "学習率\t損失" << std::endl;
+    std::cout << "学習率\t損失" << std::fixed << std::endl;
     for (int64_t i = 0; i < lrs.size(); i++) {
         std::cout << lrs[i] << "\t" << losses[i] / times << std::endl;
     }
