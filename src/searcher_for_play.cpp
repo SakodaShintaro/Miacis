@@ -79,7 +79,7 @@ Move SearcherForPlay::think(Position& root) {
             double v = (N[i] > 0 ? curr_node.W[i] / N[i] : MIN_SCORE);
 #endif
             printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
-            curr_node.moves[i].print();
+            curr_node.moves[i].printWithNewLine();
         }
     }
 

@@ -66,7 +66,7 @@ public:
     bool isChecked() { return isChecked_; }
 private:
     //--------------------
-	//    内部メソッド
+    //    内部メソッド
     //--------------------
     //合法手生成で用いる関数
     bool canPromote(Move move) const;

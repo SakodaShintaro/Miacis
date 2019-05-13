@@ -25,7 +25,7 @@ enum Piece{
     BISHOP = 6,                                         //0000 0110
     ROOK   = 7,                                         //0000 0111
     KING   = 8,                                         //0000 1000
-	PIECE_KIND_MASK = 15,                               //0000 1111
+    PIECE_KIND_MASK = 15,                               //0000 1111
     PROMOTE = 1 << (PROMOTE_BIT - 1),                   //0001 0000  16
     PAWN_PROMOTE   = PAWN + PROMOTE,                    //0001 0001  17
     LANCE_PROMOTE  = LANCE + PROMOTE,                   //0001 0010  18
@@ -63,7 +63,7 @@ enum Piece{
     WHITE_SILVER_PROMOTE = SILVER_PROMOTE + WHITE_FLAG, //0101 0100  84
     WHITE_BISHOP_PROMOTE = BISHOP_PROMOTE + WHITE_FLAG, //0101 0110  86
     WHITE_ROOK_PROMOTE   = ROOK_PROMOTE   + WHITE_FLAG, //0101 0111  87
-	PieceNum,
+    PieceNum,
     WALL = 1 << (WALL_BIT),                             //1000 0000
 };
 

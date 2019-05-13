@@ -62,9 +62,9 @@ void USI::usi() {
     printf("id name Miacis_scalar\n");
 #endif
     printf("id author Sakoda Shintaro\n");
-	printf("option name byoyomi_margin type spin default 0 min 0 max 1000\n");
+    printf("option name byoyomi_margin type spin default 0 min 0 max 1000\n");
     usi_option.byoyomi_margin = 0;
-	printf("option name random_turn type spin default 0 min 0 max 1000\n");
+    printf("option name random_turn type spin default 0 min 0 max 1000\n");
     usi_option.random_turn = 0;
     printf("option name thread_num type spin default 2 min 1 max 2048\n");
     usi_option.thread_num = 2;
@@ -82,7 +82,7 @@ void USI::usi() {
     usi_option.search_limit = (int64_t)d;
 
     usi_option.USI_Hash = 256;
-	printf("usiok\n");
+    printf("usiok\n");
 }
 
 void USI::isready() {
@@ -258,6 +258,6 @@ void USI::gameover() {
         //負け
     } else if (input == "draw") {
         //引き分け
-		return;
-	}
+        return;
+    }
 }

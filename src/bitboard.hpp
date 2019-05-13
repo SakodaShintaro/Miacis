@@ -7,13 +7,13 @@
 
 class Bitboard {
 public:
-	//引数なしコンストラクタは空でいいかな
-	Bitboard() = default;
+    //引数なしコンストラクタは空でいいかな
+    Bitboard() = default;
 
-	//値を直接引数に持つコンストラクタ
-    Bitboard(uint64_t b0, uint64_t b1) : board_{ b0, b1 } {}
+    //値を直接引数に持つコンストラクタ
+    Bitboard(uint64_t b0, uint64_t b1) : board_{b0, b1} {}
 
-	//Squareを指定してそこだけを立てるコンストラクタ
+    //Squareを指定してそこだけを立てるコンストラクタ
     explicit Bitboard(Square sq);
 
     explicit operator bool() const {
@@ -52,35 +52,42 @@ public:
         }
     }
 
-	//演算子類
-	Bitboard operator ~() const {
+    //演算子類
+    Bitboard operator~() const {
         return Bitboard(~board_[0], ~board_[1]);
     }
-	Bitboard operator |(const Bitboard& bb) const {
-		return Bitboard(board_[0] | bb.board_[0], board_[1] | bb.board_[1]);
-	}
-	Bitboard operator |(const Square sq) {
-		return *this | Bitboard(sq);
-	}
-    Bitboard operator &(const Bitboard& bb) const {
+
+    Bitboard operator|(const Bitboard& bb) const {
+        return Bitboard(board_[0] | bb.board_[0], board_[1] | bb.board_[1]);
+    }
+
+    Bitboard operator|(const Square sq) {
+        return *this | Bitboard(sq);
+    }
+
+    Bitboard operator&(const Bitboard& bb) const {
         return Bitboard(board_[0] & bb.board_[0], board_[1] & bb.board_[1]);
     }
+
     Bitboard& operator|=(const Bitboard& rhs) {
         board_[0] |= rhs.board_[0];
         board_[1] |= rhs.board_[1];
         return *this;
     }
+
     Bitboard& operator&=(const Bitboard& rhs) {
         board_[0] &= rhs.board_[0];
         board_[1] &= rhs.board_[1];
         return *this;
     }
-    Bitboard& operator <<= (const int shift) {
+
+    Bitboard& operator<<=(const int shift) {
         board_[0] <<= shift;
         board_[1] <<= shift;
         return *this;
     }
-    Bitboard operator << (const int shift) {
+
+    Bitboard operator<<(const int shift) {
         return Bitboard(*this) <<= shift;
     }
 
@@ -90,8 +97,8 @@ public:
         return (sq > SQ79 ? 1 : 0);
     }
 
-	//bitレイアウトはboard_[0]に1筋から7筋まで、board_[1]に残りの8,9筋を入れたい
-	//64bit目は不使用？
+    //bitレイアウトはboard_[0]に1筋から7筋まで、board_[1]に残りの8,9筋を入れたい
+    //64bit目は不使用？
 
     /*
 	union {
@@ -125,13 +132,13 @@ extern Bitboard KING_CONTROL_BB[SquareNum];
 
 extern int Slide[];
 
-std::ostream& operator << (std::ostream& os, const Bitboard& rhs);
+std::ostream& operator<<(std::ostream& os, const Bitboard& rhs);
 
-inline Bitboard blackPawnControl(const Square sq, const Bitboard &occ) {
+inline Bitboard blackPawnControl(const Square sq, const Bitboard& occ) {
     return PAWN_CONTROL_BB[BLACK][sq];
 }
 
-inline Bitboard whitePawnControl(const Square sq, const Bitboard &occ) {
+inline Bitboard whitePawnControl(const Square sq, const Bitboard& occ) {
     return PAWN_CONTROL_BB[WHITE][sq];
 }
 
@@ -181,14 +188,14 @@ inline Bitboard rookFileControl(const Square sq, const Bitboard& occupied) {
     const auto index = (occupied.board_[Bitboard::part(sq)] >> Slide[sq]) & 0x7f;
     const File f = SquareToFile[sq];
     return (f <= File7) ?
-        Bitboard(RookFileEffect[SquareToRank[sq]][index] << (9 * (f - File1)), 0) :
-        Bitboard(0, RookFileEffect[SquareToRank[sq]][index] << (9 * (f - File8)));
+           Bitboard(RookFileEffect[SquareToRank[sq]][index] << (9 * (f - File1)), 0) :
+           Bitboard(0, RookFileEffect[SquareToRank[sq]][index] << (9 * (f - File8)));
 }
 
 inline Bitboard rookRankControl(const Square sq, const Bitboard& occupied) {
     int r = SquareToRank[sq];
     uint64_t u = (occupied.board_[1] << 6 * 9) + (occupied.board_[0] >> 9);
-    uint64_t index = PEXT64(u, (uint64_t)(0b1000000001000000001000000001000000001000000001000000001 << (r - Rank1)));
+    uint64_t index = PEXT64(u, (uint64_t) (0b1000000001000000001000000001000000001000000001000000001 << (r - Rank1)));
     return RookRankEffect[SquareToFile[sq]][index] << (r - Rank1);
 }
 
@@ -220,7 +227,7 @@ inline Bitboard dragonControl(const Square sq, const Bitboard& occupied) {
     return rookControl(sq, occupied) | kingControl(sq, occupied);
 }
 
-static Bitboard(*controlFunc[])(const Square sq, const Bitboard& occupied) = {
+static Bitboard (* controlFunc[])(const Square sq, const Bitboard& occupied) = {
     nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //0~9
     nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //10~19
     nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, //20~29
