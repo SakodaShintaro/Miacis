@@ -36,7 +36,7 @@ public:
 
 private:
     //実際のデータ
-    std::vector<std::tuple<std::string, uint32_t, ValueTeacherType>> data_;
+    std::vector<std::tuple<std::string, PolicyTeacherType, ValueTeacherType>> data_;
 
     //最初に待つ量
     int64_t first_wait_;

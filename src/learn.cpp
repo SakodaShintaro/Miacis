@@ -91,7 +91,7 @@ std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& fil
         Position pos;
         for (const auto& move : game.moves) {
             TeacherType teacher;
-            teacher.policy = (uint32_t) move.toLabel();
+            teacher.policy.push_back({move.toLabel(), 1.0});
 #ifdef USE_CATEGORICAL
             teacher.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
 #else
