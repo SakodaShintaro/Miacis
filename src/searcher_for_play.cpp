@@ -189,7 +189,6 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         redundancy_num.clear();
 
         if (hash_table_[current_root_index_].sum_N >= next_print_node_num_) {
-            std::cout << "stop_signal = " << usi_option.stop_signal << std::endl;
             printUSIInfo();
             next_print_node_num_ += usi_option.print_interval;
         }
