@@ -1,0 +1,8 @@
+learn_rate        0.2
+momentum          0.9
+learn_rate_decay  0.9
+policy_loss_coeff 1.0
+value_loss_coeff  1.0
+batch_size        4096
+patience_limit    6
+kifu_path         /home/sakoda/floodgate_all
