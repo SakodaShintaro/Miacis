@@ -123,7 +123,11 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
         }
     }
 
+#ifdef USE_HALF_FLOAT
+    torch::Tensor policy_target = torch::tensor(policy_dist).to(device_, torch::kHalf).view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
+#else
     torch::Tensor policy_target = torch::tensor(policy_dist).to(device_).view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
+#endif
     torch::Tensor policy_loss = torch::mean(torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false));
 
 #ifdef USE_CATEGORICAL
