@@ -93,7 +93,8 @@ void checkGenSpeed() {
 
 void checkSearchSpeed() {
     usi_option.limit_msec = 10000;
-    usi_option.search_limit = static_cast<int64_t>(1e10);
+    usi_option.search_limit = LLONG_MAX;
+    usi_option.print_interval = LLONG_MAX;
     Position pos;
     for (uint64_t search_batch_size = 64; search_batch_size <= 512; search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_batch_size << std::endl;
