@@ -116,8 +116,15 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
     auto y = forward(input);
     auto logits = y.first.view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
 
-    torch::Tensor policy_target = torch::tensor(policy_teachers).to(device_);
-    torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(logits, 1), policy_target);
+    std::vector<float> policy_dist(policy_teachers.size() * SQUARE_NUM * POLICY_CHANNEL_NUM, 0.0);
+    for (int64_t i = 0; i < policy_teachers.size(); i++) {
+        for (const auto& e : policy_teachers[i]) {
+            policy_dist[i * SQUARE_NUM * POLICY_CHANNEL_NUM + e.first] = e.second;
+        }
+    }
+
+    torch::Tensor policy_target = torch::tensor(policy_dist).to(device_).view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
+    torch::Tensor policy_loss = torch::mean(torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false));
 
 #ifdef USE_CATEGORICAL
     torch::Tensor categorical_target = torch::tensor(value_teachers).to(device_);

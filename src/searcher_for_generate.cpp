@@ -218,6 +218,7 @@ std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& roo
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
         distribution[i] = (CalcType)N[i] / current_node.sum_N;
         assert(0 <= N[i] && N[i] <= current_node.sum_N);
+        teacher.policy.push_back({current_node.moves[i].toLabel(), distribution[i]});
     }
 
     //最善手
@@ -225,7 +226,6 @@ std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& roo
                       current_node.moves[randomChoose(distribution)] :
                       current_node.moves[best_index]);
     best_move.score = (Score)(best_wp);
-    teacher.policy = best_move.toLabel();
 
     return { best_move, teacher };
 }

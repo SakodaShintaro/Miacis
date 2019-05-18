@@ -37,9 +37,9 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
     for (int32_t i = 0; i < batch_size; i++) {
         //データの取り出し
         std::string sfen;
-        uint32_t policy_label;
+        PolicyTeacherType policy;
         ValueTeacherType value;
-        std::tie(sfen, policy_label, value) = data_[dist(engine)];
+        std::tie(sfen, policy, value) = data_[dist(engine)];
 
         //入力特徴量の確保
         pos.loadSFEN(sfen);
@@ -47,7 +47,7 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
         std::copy(feature.begin(), feature.end(), inputs.begin() + i * INPUT_CHANNEL_NUM * SQUARE_NUM);
 
         //教師データ
-        policy_teachers[i] = policy_label;
+        policy_teachers[i] = policy;
         value_teachers[i] = value;
     }
 

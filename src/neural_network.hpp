@@ -33,7 +33,7 @@ constexpr int32_t BIN_SIZE = 1;
 using ValueType = float;
 using ValueTeacherType = float;
 #endif
-using PolicyTeacherType = int64_t;
+using PolicyTeacherType = std::vector<std::pair<int32_t, float>>;
 
 //教師データの型
 struct TeacherType {
