@@ -20,13 +20,11 @@ bool Searcher::shouldStop() {
     }
 
     //探索回数のチェック
-    auto max_num = *std::max_element(hash_table_[current_root_index_].N.begin(), hash_table_[current_root_index_].N.end());
-    return max_num >= usi_option.search_limit;
+    int32_t search_num = hash_table_[current_root_index_].sum_N + hash_table_[current_root_index_].virtual_sum_N;
+    return search_num >= usi_option.search_limit;
 }
 
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
-    const auto& N = current_node.N;
-
 #ifdef USE_CATEGORICAL
     int32_t selected_index = -1, max_num = -1;
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
@@ -66,7 +64,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
             }
         }
 #else
-        double Q = (N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.Q[i]);
+        double Q = (visit_num == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.Q[i]);
 #endif
         double U = std::sqrt(sum + 1) / (visit_num + 1);
         double C = (std::log((sum + C_base + 1) / C_base) + C_init);

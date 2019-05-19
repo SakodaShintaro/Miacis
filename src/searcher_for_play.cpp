@@ -69,6 +69,8 @@ Move SearcherForPlay::think(Position& root) {
     printUSIInfo();
     if (usi_option.print_debug_info) {
         root.print(false);
+        std::cout << "sum_N = " << curr_node.sum_N << std::endl;
+        std::cout << "v_sum_N = " << curr_node.virtual_sum_N << std::endl;
         for (int32_t i = 0; i < curr_node.moves.size(); i++) {
             double nn_policy = 100.0 * curr_node.nn_policy[i];
             double search_policy = 100.0 * N[i] / curr_node.sum_N;
@@ -413,8 +415,8 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
         lock_node_[index].lock();
         hash_table_[index].N[action]++;
         hash_table_[index].sum_N++;
+        hash_table_[index].virtual_sum_N -= hash_table_[index].virtual_N[action];
         hash_table_[index].virtual_N[action] = 0;
-        hash_table_[index].virtual_sum_N = 0;
 
         auto curr_v = hash_table_[index].Q[action];
         float alpha = 1.0f / hash_table_[index].N[action];
