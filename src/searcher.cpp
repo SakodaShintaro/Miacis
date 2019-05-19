@@ -20,8 +20,7 @@ bool Searcher::shouldStop() {
     }
 
     //探索回数のチェック
-    auto max_num = *std::max_element(hash_table_[current_root_index_].N.begin(), hash_table_[current_root_index_].N.end());
-    return max_num >= usi_option.search_limit;
+    return hash_table_[current_root_index_].sum_N >= usi_option.search_limit;
 }
 
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
