@@ -28,8 +28,15 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
     const auto& N = current_node.N;
 
 #ifdef USE_CATEGORICAL
-    int32_t selected_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
-    double best_wp = expOfValueDist(current_node.Q[selected_index]) / N[selected_index];
+    int32_t selected_index = -1, max_num = -1;
+    for (int32_t i = 0; i < current_node.moves.size(); i++) {
+        int32_t num = current_node.N[i] + current_node.virtual_N[i];
+        if (num > max_num) {
+            selected_index = i;
+            max_num = num;
+        }
+    }
+    double best_wp = expOfValueDist(current_node.Q[selected_index]) / max_num;
 #endif
 
     // ucb = Q(s, a) + U(s, a)
@@ -41,23 +48,28 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
 
     int32_t max_index = -1;
     double max_value = MIN_SCORE - 1;
+
+    const int32_t sum = current_node.sum_N + current_node.virtual_sum_N;
+
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
+        auto visit_num = current_node.N[i] + current_node.virtual_N[i];
+
 #ifdef USE_CATEGORICAL
         double Q;
-        if (N[i] == 0) {
+        if (visit_num == 0) {
             //中間を初期値とする
             Q = (MAX_SCORE + MIN_SCORE) / 2;
         } else {
             Q = 0.0;
             for (int32_t j = std::min(valueToIndex(best_wp) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-                Q += current_node.Q[i][j] / N[i];
+                Q += current_node.Q[i][j] / visit_num;
             }
         }
 #else
         double Q = (N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.Q[i]);
 #endif
-        double U = std::sqrt(current_node.sum_N + 1) / (N[i] + 1);
-        double C = (std::log((current_node.sum_N + C_base + 1) / C_base) + C_init);
+        double U = std::sqrt(sum + 1) / (visit_num + 1);
+        double C = (std::log((sum + C_base + 1) / C_base) + C_init);
         double ucb = Q + C * current_node.nn_policy[i] * U;
 
         if (ucb > max_value) {

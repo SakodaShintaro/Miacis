@@ -266,8 +266,8 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
         curr_actions.push(action);
 
         //VIRTUAL_LOSSの追加
-        hash_table_[index].N[action] += VIRTUAL_LOSS;
-        hash_table_[index].sum_N += VIRTUAL_LOSS;
+        hash_table_[index].virtual_N[action] += VIRTUAL_LOSS;
+        hash_table_[index].virtual_sum_N += VIRTUAL_LOSS;
 
         //遷移
         pos.doMove(hash_table_[index].moves[action]);
@@ -338,7 +338,9 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     current_node.moves = pos.generateAllMoves();
     current_node.child_indices.assign(current_node.moves.size(), UctHashTable::NOT_EXPANDED);
     current_node.N.assign(current_node.moves.size(), 0);
+    current_node.virtual_N.assign(current_node.moves.size(), 0);
     current_node.sum_N = 0;
+    current_node.virtual_sum_N = 0;
     current_node.evaled = false;
 #ifdef USE_CATEGORICAL
     current_node.Q.assign(current_node.moves.size(), {});
@@ -409,8 +411,10 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
 #endif
         // 探索結果の反映
         lock_node_[index].lock();
-        hash_table_[index].N[action] += add_num;
-        hash_table_[index].sum_N += add_num;
+        hash_table_[index].N[action]++;
+        hash_table_[index].sum_N++;
+        hash_table_[index].virtual_N[action] = 0;
+        hash_table_[index].virtual_sum_N = 0;
 
         auto curr_v = hash_table_[index].Q[action];
         float alpha = 1.0f / hash_table_[index].N[action];
