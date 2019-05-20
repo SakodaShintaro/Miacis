@@ -1,5 +1,4 @@
 ﻿#include "searcher_for_generate.hpp"
-#include "usi_options.hpp"
 
 bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     //古いハッシュを削除
@@ -221,10 +220,8 @@ std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& roo
         teacher.policy.push_back({current_node.moves[i].toLabel(), distribution[i]});
     }
 
-    //最善手
-    Move best_move = (root.turn_number() < usi_option.random_turn ?
-                      current_node.moves[randomChoose(distribution)] :
-                      current_node.moves[best_index]);
+    //分布に従って行動選択
+    Move best_move = current_node.moves[randomChoose(distribution)];
     best_move.score = (Score)(best_wp);
 
     return { best_move, teacher };
