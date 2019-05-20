@@ -8,14 +8,10 @@ public:
     int64_t USI_Hash;
     int64_t draw_turn;
     int64_t print_interval;
-    uint64_t thread_num;
-    uint64_t search_batch_size;
-    bool print_debug_info;
-
-    //探索中に参照するものら
-    int64_t limit_msec;
-
+    int64_t thread_num;
+    int64_t search_batch_size;
     int64_t search_limit;
+    bool print_debug_info;
 };
 
 #endif

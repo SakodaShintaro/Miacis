@@ -89,53 +89,40 @@ void USI::isready() {
 
 void USI::setoption() {
     std::string input;
-    while (true) {
+    std::cin >> input;
+    assert(input == "name");
+    std::cin >> input;
+    if (input == "byoyomi_margin") {
+        std::cin >> input; //input == "value"となるなず
+        std::cin >> usi_option_.byoyomi_margin;
+    } else if (input == "random_turn") {
+        std::cin >> input; //input == "value"となるなず
+        std::cin >> usi_option_.random_turn;
+    } else if (input == "USI_Hash") {
+        std::cin >> input; //input == "value"となるはず
+        std::cin >> usi_option_.USI_Hash;
+    } else if (input == "USI_Ponder") {
+        std::cin >> input; //input == "value"となるなず
+        std::cin >> input; //特になにもしていない
+    } else if (input == "thread_num") {
+        std::cin >> input; //input == "value"となるはず
+        std::cin >> usi_option_.thread_num;
+    } else if (input == "search_batch_size") {
+        std::cin >> input; //input == "value"となるはず
+        std::cin >> usi_option_.search_batch_size;
+    } else if (input == "draw_turn") {
+        std::cin >> input; //input == "value"となるはず
+        std::cin >> usi_option_.draw_turn;
+    } else if (input == "search_limit") {
         std::cin >> input;
-        if (input == "name") {
-            std::cin >> input;
-            //ここで処理
-            if (input == "byoyomi_margin") {
-                std::cin >> input; //input == "value"となるなず
-                std::cin >> usi_option_.byoyomi_margin;
-                return;
-            } else if (input == "random_turn") {
-                std::cin >> input; //input == "value"となるなず
-                std::cin >> usi_option_.random_turn;
-                return;
-            } else if (input == "USI_Hash") {
-                std::cin >> input; //input == "value"となるはず
-                std::cin >> usi_option_.USI_Hash;
-                return;
-            } else if (input == "USI_Ponder") {
-                std::cin >> input; //input == "value"となるなず
-                std::cin >> input; //特になにもしていない
-                return;
-            } else if (input == "thread_num") {
-                std::cin >> input; //input == "value"となるはず
-                std::cin >> usi_option_.thread_num;
-                return;
-            } else if (input == "search_batch_size") {
-                std::cin >> input; //input == "value"となるはず
-                std::cin >> usi_option_.search_batch_size;
-                return;
-            } else if (input == "draw_turn") {
-                std::cin >> input; //input == "value"となるはず
-                std::cin >> usi_option_.draw_turn;
-                return;
-            } else if (input == "search_limit") {
-                std::cin >> input;
-                std::cin >> usi_option_.search_limit;
-                return;
-            } else if (input == "print_debug_info") {
-                std::cin >> input;
-                std::cin >> input;
-                usi_option_.print_debug_info = (input == "true");
-                return;
-            } else if (input == "print_interval") {
-                std::cin >> input;
-                std::cin >> usi_option_.print_interval;
-            }
-        }
+        std::cin >> usi_option_.search_limit;
+    } else if (input == "print_debug_info") {
+        std::cin >> input;
+        std::cin >> input;
+        usi_option_.print_debug_info = (input == "true");
+    } else if (input == "print_interval") {
+        std::cin >> input;
+        std::cin >> usi_option_.print_interval;
     }
 }
 
@@ -182,6 +169,8 @@ void USI::position() {
 
 void USI::go() {
     Searcher::stop_signal = false;
+
+    int64_t time_limit;
     std::string input;
     std::cin >> input;
     if (input == "ponder") {
@@ -198,19 +187,18 @@ void USI::go() {
         std::cin >> input; //input == "byoyomi" or "binc"となるはず
         if (input == "byoyomi") {
             std::cin >> input;
-            usi_option_.limit_msec = stoll(input) + curr_time;
+            time_limit = stoll(input) + curr_time;
         } else {
             std::cin >> input;
             int64_t binc = stoll(input);
             std::cin >> input; //input == "winc" となるはず
             std::cin >> input;
             int64_t winc = stoll(input);
-            usi_option_.limit_msec = binc + curr_time;
+            time_limit = binc + curr_time;
         }
     } else if (input == "infinite") {
-        //stop来るまで思考し続ける
         //思考時間をほぼ無限に
-        usi_option_.limit_msec = LLONG_MAX;
+        time_limit = LLONG_MAX;
         
         //random_turnをなくす
         usi_option_.random_turn = 0;
@@ -223,7 +211,7 @@ void USI::go() {
     //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので別スレッドに投げる
     thread_ = std::thread([&]() {
         auto best_move = searcher_->think(root_,
-                                          usi_option_.limit_msec - usi_option_.byoyomi_margin,
+                                          time_limit - usi_option_.byoyomi_margin,
                                           usi_option_.search_limit, usi_option_.random_turn,
                                           usi_option_.print_interval,
                                           usi_option_.print_debug_info);
