@@ -109,7 +109,7 @@ void Position::init() {
     isChecked_ = false;
 }
 
-void Position::print(bool with_score) const {
+void Position::print() const {
     //盤上
     std::printf("９８７６５４３２１\n");
     std::printf("------------------\n");
@@ -139,24 +139,6 @@ void Position::print(bool with_score) const {
     if (!kifu_.empty()) {
         printf("最後の手:");
         lastMove().printWithNewLine();
-    }
-
-    //評価値
-    if (with_score) {
-#ifdef USE_CATEGORICAL
-        auto y = nn->policyAndValueBatch(makeFeature());
-        auto categorical = y.second.front();
-
-        CalcType value = 0.0;
-        for (int32_t i = 0; i < BIN_SIZE; i++) {
-            printf("p[%+f] = %+f\n", MIN_SCORE + VALUE_WIDTH * (0.5 + i), categorical[i]);
-            value += (CalcType)((MIN_SCORE + VALUE_WIDTH * (0.5 + i)) * categorical[i]);
-        }
-        printf("value = %f\n", value);
-#else
-        auto y = nn->policyAndValueBatch(makeFeature());
-        std::cout << "value = " << y.second.front() << std::endl;
-#endif
     }
 
     printf("ハッシュ値:%llx\n", (unsigned long long)hash_value_);
