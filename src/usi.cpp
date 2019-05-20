@@ -14,7 +14,7 @@
 
 USIOption usi_option;
 
-USI::USI() {
+USI::USI() : searcher_(nullptr) {
     //メンバ関数
     command_["usi"]        = std::bind(&USI::usi, this);
     command_["isready"]    = std::bind(&USI::isready, this);
@@ -142,6 +142,8 @@ void USI::setoption() {
 }
 
 void USI::usinewgame() {
+    searcher_ = std::make_unique<SearcherForPlay>(usi_option.USI_Hash * 1024 * 1024 / sizeof(UctHashEntry) / 200,
+                                                  usi_option.thread_num, usi_option.search_batch_size, nn);
 }
 
 void USI::position() {
@@ -201,12 +203,11 @@ void USI::go() {
             std::cin >> input;
             usi_option.limit_msec = stoll(input) + curr_time;
         } else {
-            int64_t binc, winc;
             std::cin >> input;
-            binc = stoll(input);
+            int64_t binc = stoll(input);
             std::cin >> input; //input == "winc" となるはず
             std::cin >> input;
-            winc = stoll(input);
+            int64_t winc = stoll(input);
             usi_option.limit_msec = binc + curr_time;
         }
     } else if (input == "infinite") {
@@ -225,8 +226,8 @@ void USI::go() {
     //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので
     //別スレッドに投げる
     thread_ = std::thread([&]() {
-        SearcherForPlay searcher(usi_option.USI_Hash * 1024 * 1024 / sizeof(UctHashEntry), usi_option.thread_num, usi_option.search_batch_size, nn);
-        auto best_move = searcher.think(root_);
+//        SearcherForPlay searcher(usi_option.USI_Hash * 1024 * 1024 / sizeof(UctHashEntry), usi_option.thread_num, usi_option.search_batch_size, nn);
+        auto best_move = searcher_->think(root_);
         if (best_move == NULL_MOVE) {
             std::cout << "bestmove resign" << std::endl;
         } else {
@@ -245,7 +246,6 @@ void USI::ponderhit() {
 }
 
 void USI::quit() {
-    stop();
     exit(0);
 }
 

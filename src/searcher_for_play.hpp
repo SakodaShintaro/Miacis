@@ -1,6 +1,4 @@
-﻿#include <utility>
-
-#ifndef MIACIS_SEARCHER_FOR_PLAY_HPP
+﻿#ifndef MIACIS_SEARCHER_FOR_PLAY_HPP
 #define MIACIS_SEARCHER_FOR_PLAY_HPP
 
 #include"searcher.hpp"
