@@ -10,7 +10,7 @@ public:
     static bool stop_signal;
 
 protected:
-    explicit Searcher(int64_t hash_size) : hash_table_(hash_size) {}
+    explicit Searcher(int64_t hash_size) : hash_table_(hash_size), time_limit_(LLONG_MAX), node_limit_(LLONG_MAX) {}
 
     //時間制限含め探索を続けるかどうかを判定する関数
     bool shouldStop();
@@ -31,6 +31,10 @@ protected:
 
     //ルート局面のインデックス
     Index current_root_index_;
+
+    //時間制限(msec),ノード数制限
+    int64_t time_limit_;
+    int64_t node_limit_;
 };
 
 #endif //MIACIS_SEARCHER_HPP

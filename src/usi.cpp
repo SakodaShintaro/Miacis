@@ -222,10 +222,9 @@ void USI::go() {
     }
 
     //思考開始
-    //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので
-    //別スレッドに投げる
+    //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので別スレッドに投げる
     thread_ = std::thread([&]() {
-        auto best_move = searcher_->think(root_);
+        auto best_move = searcher_->think(root_, usi_option.limit_msec - usi_option.byoyomi_margin, usi_option.search_limit);
         if (best_move == NULL_MOVE) {
             std::cout << "bestmove resign" << std::endl;
         } else {

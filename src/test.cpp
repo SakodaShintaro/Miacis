@@ -32,7 +32,7 @@ void test() {
 
     auto start = std::chrono::steady_clock::now();
     while (true) {
-        Move best_move = searcher.think(pos);
+        Move best_move = searcher.think(pos, LLONG_MAX, 800);
 
         if (best_move == NULL_MOVE) {
             //投了
@@ -100,7 +100,7 @@ void checkSearchSpeed() {
         std::cout << "search_batch_size = " << search_batch_size << std::endl;
         for (uint64_t thread_num = 1; thread_num <= 3; thread_num++) {
             SearcherForPlay searcher(1000000, thread_num, search_batch_size, nn);
-            searcher.think(pos);
+            searcher.think(pos, 10000, LLONG_MAX);
         }
     }
 }

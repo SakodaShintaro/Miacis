@@ -19,7 +19,7 @@ public:
     }
 
     //探索を行って一番良い指し手を返す関数
-    Move think(Position& root);
+    Move think(Position& root, int64_t time_limit, int64_t node_limit);
 
 private:
     //--------------------------

@@ -2,9 +2,13 @@
 #include "usi_options.hpp"
 #include <thread>
 
-Move SearcherForPlay::think(Position& root) {
+Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_limit) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
+
+    //制限の設定
+    time_limit_ = time_limit;
+    node_limit_ = node_limit;
 
     //古いハッシュを削除
     hash_table_.deleteOldHash(root, true);
