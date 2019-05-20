@@ -251,7 +251,6 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
 
         if (hash_table_[index].nn_policy.size() != hash_table_[index].moves.size()) {
             //policyが展開されていなかったら抜ける
-            assert(false);
             break;
         }
 
@@ -328,23 +327,27 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     // 空のインデックスを探す
     index = hash_table_.searchEmptyIndex(pos);
 
+    if (index == hash_table_.size()) {
+        //置換表がいっぱいだったということ。どうしよう
+    }
+
     //経路として記録
     indices.push(index);
 
-    auto& current_node = hash_table_[index];
+    auto& curr_node = hash_table_[index];
 
     // 候補手の展開
-    current_node.moves = pos.generateAllMoves();
-    current_node.child_indices.assign(current_node.moves.size(), UctHashTable::NOT_EXPANDED);
-    current_node.N.assign(current_node.moves.size(), 0);
-    current_node.sum_N = 0;
-    current_node.evaled = false;
+    curr_node.moves = pos.generateAllMoves();
+    curr_node.child_indices.assign(curr_node.moves.size(), UctHashTable::NOT_EXPANDED);
+    curr_node.N.assign(curr_node.moves.size(), 0);
+    curr_node.sum_N = 0;
+    curr_node.evaled = false;
 #ifdef USE_CATEGORICAL
-    current_node.W.assign(current_node.moves.size(), {});
-    current_node.value = std::array<float, BIN_SIZE>{};
+    curr_node.W.assign(curr_node.moves.size(), {});
+    curr_node.value = std::array<float, BIN_SIZE>{};
 #else
-    current_node.W.assign(current_node.moves.size(), 0.0);
-    current_node.value = 0.0;
+    curr_node.W.assign(curr_node.moves.size(), 0.0);
+    curr_node.value = 0.0;
 #endif
 
     // ノードを評価
@@ -352,23 +355,23 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     if (pos.isRepeating(repeat_score)) {
         //繰り返し
 #ifdef USE_CATEGORICAL
-        current_node.value = onehotDist(repeat_score);
+        curr_node.value = onehotDist(repeat_score);
 #else
-        current_node.value = repeat_score;
+        curr_node.value = repeat_score;
 #endif
-        current_node.evaled = true;
+        curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
         backup(indices, actions, 1 - VIRTUAL_LOSS);
-    } else if (current_node.moves.empty()) {
+    } else if (curr_node.moves.empty()) {
         //打ち歩詰めなら勝ち,そうでないなら負け
         auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
 
 #ifdef USE_CATEGORICAL
-        current_node.value = onehotDist(v);
+        curr_node.value = onehotDist(v);
 #else
-        current_node.value = v;
+        curr_node.value = v;
 #endif
-        current_node.evaled = true;
+        curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
         backup(indices, actions, 1 - VIRTUAL_LOSS);
     } else {
