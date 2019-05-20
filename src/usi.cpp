@@ -183,7 +183,7 @@ void USI::position() {
 }
 
 void USI::go() {
-    usi_option.stop_signal = false;
+    Searcher::stop_signal = false;
     std::string input;
     std::cin >> input;
     if (input == "ponder") {
@@ -235,7 +235,7 @@ void USI::go() {
 }
 
 void USI::stop() {
-    usi_option.stop_signal = true;
+    Searcher::stop_signal = true;
     thread_.join();
 }
 

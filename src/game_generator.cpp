@@ -96,7 +96,7 @@ void GameGenerator::genSlave(int64_t id) {
             }
 
             if (searchers[i].shouldStop()) {
-                if (usi_option.stop_signal) {
+                if (Searcher::stop_signal) {
                     return;
                 }
                 //探索結果を取得して次の局面へ遷移

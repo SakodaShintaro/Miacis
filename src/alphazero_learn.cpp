@@ -49,7 +49,7 @@ void alphaZero() {
 
     //その他オプションを学習用に設定
     usi_option.limit_msec = LLONG_MAX;
-    usi_option.stop_signal = false;
+    Searcher::stop_signal = false;
     usi_option.byoyomi_margin = 0LL;
 
     //学習ループ中で複数回参照するオプションは変数として確保する
@@ -193,7 +193,7 @@ void alphaZero() {
     }
 
     //生成スレッドを止める
-    usi_option.stop_signal = true;
+    Searcher::stop_signal = true;
     for (auto& th : gen_threads) {
         th.join();
     }

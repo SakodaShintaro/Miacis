@@ -73,7 +73,7 @@ void checkGenSpeed() {
 
     for (usi_option.search_batch_size = 32; usi_option.search_batch_size <= 128; usi_option.search_batch_size *= 2) {
         ReplayBuffer buffer(0, limit, 1.0);
-        usi_option.stop_signal = false;
+        Searcher::stop_signal = false;
         auto start = std::chrono::steady_clock::now();
         GameGenerator generator(buffer, nn);
         std::thread t(&GameGenerator::genGames, &generator, (int64_t)1e15);
@@ -81,7 +81,7 @@ void checkGenSpeed() {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         auto end = std::chrono::steady_clock::now();
-        usi_option.stop_signal = true;
+        Searcher::stop_signal = true;
         t.join();
         auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         std::cout << "search_batch_size = " << std::setw(4) << usi_option.search_batch_size

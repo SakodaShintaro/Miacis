@@ -1,9 +1,11 @@
 ﻿#include "searcher.hpp"
 #include "usi_options.hpp"
 
+bool Searcher::stop_signal = false;
+
 bool Searcher::shouldStop() {
     //シグナルのチェック
-    if (usi_option.stop_signal) {
+    if (Searcher::stop_signal) {
         return true;
     }
 

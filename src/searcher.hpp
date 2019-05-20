@@ -7,6 +7,8 @@
 
 class Searcher {
 public:
+    static bool stop_signal;
+
 protected:
     explicit Searcher(int64_t hash_size) : hash_table_(hash_size) {}
 
