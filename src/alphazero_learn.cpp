@@ -1,6 +1,5 @@
 ﻿#include"learn.hpp"
 #include"replay_buffer.hpp"
-#include"usi_options.hpp"
 #include"game_generator.hpp"
 #include"hyperparameter_manager.hpp"
 #include<thread>
@@ -17,7 +16,6 @@ void alphaZero() {
     settings.add("learn_rate_decay_step2", 0, (int64_t)1e10);
     settings.add("learn_rate_decay_step3", 0, (int64_t)1e10);
     settings.add("draw_turn",              0, (int64_t)1024);
-    settings.add("random_turn",            0, (int64_t)1024);
     settings.add("batch_size",             1, (int64_t)1e10);
     settings.add("thread_num",             1, (int64_t)std::thread::hardware_concurrency());
     settings.add("max_step_num",           1, (int64_t)1e10);
@@ -41,16 +39,13 @@ void alphaZero() {
     ReplayBuffer replay_buffer(settings.get<int64_t>("first_wait"), settings.get<int64_t>("max_stack_size"), settings.get<float>("lambda"));
 
     //usi_optionの設定
-    usi_option.random_turn       = settings.get<int64_t>("random_turn");
-    usi_option.draw_turn         = settings.get<int64_t>("draw_turn");
-    usi_option.thread_num        = settings.get<int64_t>("thread_num");
-    usi_option.search_batch_size = settings.get<int64_t>("search_batch_size");
-    usi_option.search_limit      = settings.get<int64_t>("search_limit");
+    int64_t draw_turn         = settings.get<int64_t>("draw_turn");
+    int64_t thread_num        = settings.get<int64_t>("thread_num");
+    int64_t search_batch_size = settings.get<int64_t>("search_batch_size");
+    int64_t search_limit      = settings.get<int64_t>("search_limit");
 
-    //その他オプションを学習用に設定
-    usi_option.limit_msec = LLONG_MAX;
+    //探索のシグナルをオフにしておく
     Searcher::stop_signal = false;
-    usi_option.byoyomi_margin = 0LL;
 
     //学習ループ中で複数回参照するオプションは変数として確保する
     //速度的な問題はほぼないと思うが,学習始まってからtypoで中断が入るのも嫌なので
@@ -112,7 +107,8 @@ void alphaZero() {
     //自己対局スレッドを生成.0番目のものはnnを使い、それ以外は上で生成したネットワークを使う
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     for (uint64_t i = 0; i < gpu_num; i++) {
-        generators[i] = std::make_unique<GameGenerator>(replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
+        generators[i] = std::make_unique<GameGenerator>(search_limit, draw_turn, thread_num, search_batch_size,
+                                                        replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
     }
 
     //生成開始.10^15個の(つまり無限に)棋譜を生成させる
