@@ -138,7 +138,7 @@ void Position::print(bool with_score) const {
     //最後の手
     if (!kifu_.empty()) {
         printf("最後の手:");
-        lastMove().printWithScore();
+        lastMove().printWithNewLine();
     }
 
     //評価値
