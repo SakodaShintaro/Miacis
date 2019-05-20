@@ -60,26 +60,26 @@ void test() {
 void checkGenSpeed() {
     torch::load(nn, MODEL_PATH);
 
-//    constexpr int64_t buffer_size = 20000;
-//
-//    for (usi_option.search_batch_size = 32; usi_option.search_batch_size <= 128; usi_option.search_batch_size *= 2) {
-//        ReplayBuffer buffer(0, buffer_size, 1.0);
-//        Searcher::stop_signal = false;
-//        auto start = std::chrono::steady_clock::now();
-//        GameGenerator generator(buffer, nn);
-//        std::thread t(&GameGenerator::genGames, &generator, (int64_t)1e15);
-//        while (buffer.size() < buffer_size) {
-//            std::this_thread::sleep_for(std::chrono::seconds(1));
-//        }
-//        auto end = std::chrono::steady_clock::now();
-//        Searcher::stop_signal = true;
-//        t.join();
-//        auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-//        std::cout << "search_batch_size = " << std::setw(4) << usi_option.search_batch_size
-//                  << ", elapsed = " << ela.count()
-//                  << ", size = " << buffer.size()
-//                  << ", speed = " << (buffer.size() * 1000.0) / ela.count() << " pos / sec" << std::endl;
-//    }
+    constexpr int64_t buffer_size = 20000;
+
+    for (int64_t search_batch_size = 32; search_batch_size <= 128; search_batch_size *= 2) {
+        ReplayBuffer buffer(0, buffer_size, 1.0);
+        Searcher::stop_signal = false;
+        auto start = std::chrono::steady_clock::now();
+        GameGenerator generator(800, 256, 2, search_batch_size,buffer, nn);
+        std::thread t(&GameGenerator::genGames, &generator, (int64_t)1e15);
+        while (buffer.size() < buffer_size) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+        auto end = std::chrono::steady_clock::now();
+        Searcher::stop_signal = true;
+        t.join();
+        auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        std::cout << "search_batch_size = " << std::setw(4) << search_batch_size
+                  << ", elapsed = " << ela.count()
+                  << ", size = " << buffer.size()
+                  << ", speed = " << (buffer.size() * 1000.0) / ela.count() << " pos / sec" << std::endl;
+    }
 }
 
 void checkSearchSpeed() {

@@ -18,6 +18,4 @@ public:
     int64_t search_limit;
 };
 
-extern USIOption usi_option;
-
 #endif
