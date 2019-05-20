@@ -142,7 +142,7 @@ void USI::setoption() {
 }
 
 void USI::usinewgame() {
-    searcher_ = std::make_unique<SearcherForPlay>(usi_option.USI_Hash * 1024 * 1024 / sizeof(UctHashEntry) / 200,
+    searcher_ = std::make_unique<SearcherForPlay>(usi_option.USI_Hash * 1024 * 1024 / 30000,
                                                   usi_option.thread_num, usi_option.search_batch_size, nn);
 }
 
@@ -226,7 +226,6 @@ void USI::go() {
     //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので
     //別スレッドに投げる
     thread_ = std::thread([&]() {
-//        SearcherForPlay searcher(usi_option.USI_Hash * 1024 * 1024 / sizeof(UctHashEntry), usi_option.thread_num, usi_option.search_batch_size, nn);
         auto best_move = searcher_->think(root_);
         if (best_move == NULL_MOVE) {
             std::cout << "bestmove resign" << std::endl;
