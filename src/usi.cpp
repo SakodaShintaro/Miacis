@@ -151,9 +151,7 @@ void USI::position() {
         thread_.join();
     }
 
-    //rootを初期化
-    root_.init();
-
+    //局面の構築
     std::string input, sfen;
     std::cin >> input;
     if (input == "startpos") {
@@ -165,6 +163,7 @@ void USI::position() {
             sfen += " ";
         }
     }
+    root_.init();
     root_.loadSFEN(sfen);
 
     std::cin >> input;  //input == "moves" or "go"となる
