@@ -245,7 +245,6 @@ void USI::ponderhit() {
 }
 
 void USI::quit() {
-    stop();
     exit(0);
 }
 
