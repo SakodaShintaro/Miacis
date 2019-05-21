@@ -215,11 +215,7 @@ void USI::go() {
                                           usi_option_.search_limit, usi_option_.random_turn,
                                           usi_option_.print_interval,
                                           usi_option_.print_debug_info);
-        if (best_move == NULL_MOVE) {
-            std::cout << "bestmove resign" << std::endl;
-        } else {
-            std::cout << "bestmove " << best_move << std::endl;
-        }
+        std::cout << "bestmove " << best_move << std::endl;
     });
 }
 
