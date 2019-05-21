@@ -26,11 +26,8 @@ USI::USI() : searcher_(nullptr) {
     command_["gameover"]   = std::bind(&USI::gameover, this);
 
     //メンバ関数以外
-    command_["prepareForLearn"] = []() {
-        torch::save(nn, MODEL_PATH);
-        std::cout << "初期化したパラメータを" << MODEL_PATH << "に出力" << std::endl;
-    };
-    command_["cleanGame"] = cleanGames;
+    command_["initParams"] = initParams;
+    command_["cleanGames"] = cleanGames;
     command_["searchLearningRate"] = searchLearningRate;
     command_["supervisedLearn"] = supervisedLearn;
     command_["alphaZero"] = alphaZero;
