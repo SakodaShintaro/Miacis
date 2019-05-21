@@ -342,8 +342,11 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 
     // 候補手の展開
     curr_node.moves = pos.generateAllMoves();
+    curr_node.moves.shrink_to_fit();
     curr_node.child_indices.assign(curr_node.moves.size(), UctHashTable::NOT_EXPANDED);
+    curr_node.child_indices.shrink_to_fit();
     curr_node.N.assign(curr_node.moves.size(), 0);
+    curr_node.N.shrink_to_fit();
     curr_node.sum_N = 0;
     curr_node.evaled = false;
 #ifdef USE_CATEGORICAL
@@ -353,6 +356,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     curr_node.W.assign(curr_node.moves.size(), 0.0);
     curr_node.value = 0.0;
 #endif
+    curr_node.W.shrink_to_fit();
 
     // ノードを評価
     Score repeat_score;
