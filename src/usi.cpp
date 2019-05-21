@@ -209,7 +209,7 @@ void USI::go() {
 
     //思考開始
     //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので別スレッドに投げる
-    thread_ = std::thread([&]() {
+    thread_ = std::thread([this, time_limit]() {
         auto best_move = searcher_->think(root_,
                                           time_limit - usi_option_.byoyomi_margin,
                                           usi_option_.search_limit, usi_option_.random_turn,
