@@ -138,12 +138,19 @@ void Searcher::mateSearch(Position pos, int32_t depth_limit) {
                 //search_limitだけ足せば必ずこの手が選ばれるようになる
                 curr_node.N[i]  += node_limit_;
                 curr_node.sum_N += node_limit_;
+
+                if (curr_node.child_indices[i] != UctHashTable::NOT_EXPANDED) {
 #ifdef USE_CATEGORICAL
-                //普通の探索結果と混ざるとダメかもしれない
-                hash_table_[curr_node.child_indices[i]].value[0] = 1;
+                    //普通の探索結果と値が混ざってしまいそうだが
+                    //タイミングによっては問題が起こるかもしれない
+                    hash_table_[curr_node.child_indices[i]].value[0] = 1;
+                    for (int32_t j = 1; j < BIN_SIZE; j++) {
+                        hash_table_[curr_node.child_indices[i]].value[j] = 0;
+                    }
 #else
-                hash_table_[curr_node.child_indices[i]].value = MIN_SCORE;
+                    hash_table_[curr_node.child_indices[i]].value = MIN_SCORE;
 #endif
+                }
                 return;
             }
         }

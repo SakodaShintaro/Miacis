@@ -204,10 +204,13 @@ std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& roo
     int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
 
     //選択した着手の勝率の算出
+    //詰みのときは未展開であることに注意する
 #ifdef USE_CATEGORICAL
-    auto best_wp = expOfValueDist(QfromNextValue(current_node, best_index));
+    auto best_wp = (current_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
+                    expOfValueDist(QfromNextValue(current_node, best_index)));
 #else
-    auto best_wp = QfromNextValue(current_node, best_index);
+    auto best_wp = (current_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
+                    QfromNextValue(current_node, best_index));
 #endif
 
     //教師データを作成
