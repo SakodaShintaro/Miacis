@@ -19,7 +19,8 @@ public:
     }
 
     //探索を行って一番良い指し手を返す関数
-    Move think(Position& root);
+    Move think(Position& root, int64_t time_limit, int64_t node_limit, int64_t random_turn,
+               int64_t print_interval, bool print_policy);
 
 private:
     //--------------------------
@@ -60,6 +61,7 @@ private:
     uint64_t search_batch_size_;
 
     //表示間隔.厳密には取れないので適当な間隔で表示する
+    int64_t print_interval_;
     int64_t next_print_node_num_;
 
     //キュー

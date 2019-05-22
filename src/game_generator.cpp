@@ -1,5 +1,4 @@
 ﻿#include "game_generator.hpp"
-#include "usi_options.hpp"
 #include <thread>
 
 void GameGenerator::genGames(int64_t game_num) {
@@ -8,7 +7,7 @@ void GameGenerator::genGames(int64_t game_num) {
 
     //生成スレッドを生成
     std::vector<std::thread> threads;
-    for (int64_t i = 0; i < usi_option.thread_num; i++) {
+    for (int64_t i = 0; i < thread_num_; i++) {
         threads.emplace_back(&GameGenerator::genSlave, this, i);
     }
 
@@ -26,25 +25,25 @@ void GameGenerator::genSlave(int64_t id) {
     std::vector<int32_t> ids;
 
     //容量の確保
-    features.reserve(usi_option.search_batch_size * INPUT_CHANNEL_NUM * SQUARE_NUM);
-    hash_indices.reserve(usi_option.search_batch_size);
-    actions.reserve(usi_option.search_batch_size);
-    ids.reserve(usi_option.search_batch_size);
+    features.reserve(search_batch_size_ * INPUT_CHANNEL_NUM * SQUARE_NUM);
+    hash_indices.reserve(search_batch_size_);
+    actions.reserve(search_batch_size_);
+    ids.reserve(search_batch_size_);
 
     //このスレッドが管理するデータら
-    std::vector<Game> games(usi_option.search_batch_size);
-    std::vector<Position> positions(usi_option.search_batch_size);
+    std::vector<Game> games(search_batch_size_);
+    std::vector<Position> positions(search_batch_size_);
 
     //探索クラスの生成,初期局面を探索する準備
     std::vector<SearcherForGenerate> searchers;
-    for (int32_t i = 0; i < usi_option.search_batch_size; i++) {
-        searchers.emplace_back(usi_option.search_limit, i, features, hash_indices, actions, ids);
+    for (int32_t i = 0; i < search_batch_size_; i++) {
+        searchers.emplace_back(search_limit_, i, features, hash_indices, actions, ids);
         searchers[i].prepareForCurrPos(positions[i]);
     }
 
     //今からi番目のものが担当する番号を初期化
-    std::vector<int64_t> nums(usi_option.search_batch_size);
-    for (int32_t i = 0; i < usi_option.search_batch_size; i++) {
+    std::vector<int64_t> nums(search_batch_size_);
+    for (int32_t i = 0; i < search_batch_size_; i++) {
         nums[i] = game_num_--;
     }
 
@@ -89,14 +88,14 @@ void GameGenerator::genSlave(int64_t id) {
         actions.clear();
         ids.clear();
 
-        for (int32_t i = 0; i < usi_option.search_batch_size; i++) {
+        for (int32_t i = 0; i < search_batch_size_; i++) {
             if (nums[i] <= 0) {
                 //担当するゲームのidが0以下だったらスキップ
                 continue;
             }
 
             if (searchers[i].shouldStop()) {
-                if (usi_option.stop_signal) {
+                if (Searcher::stop_signal) {
                     return;
                 }
                 //探索結果を取得して次の局面へ遷移
@@ -106,7 +105,7 @@ void GameGenerator::genSlave(int64_t id) {
                 games[i].teachers.push_back(result.second);
 
                 bool curr_game_finish = false;
-                if (positions[i].turn_number() >= usi_option.draw_turn) {
+                if (positions[i].turn_number() >= draw_turn_) {
                     //長手数による引き分け
                     games[i].result = (MAX_SCORE + MIN_SCORE) / 2;
                     curr_game_finish = true;

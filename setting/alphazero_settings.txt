@@ -4,7 +4,6 @@ policy_loss_coeff      1.0
 value_loss_coeff       1.0
 lambda                 1.0
 draw_turn              512
-random_turn            512
 batch_size             64
 thread_num             2
 max_step_num           100000

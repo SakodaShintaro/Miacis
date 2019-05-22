@@ -1,16 +1,17 @@
 ﻿#include "searcher.hpp"
-#include "usi_options.hpp"
+
+bool Searcher::stop_signal = false;
 
 bool Searcher::shouldStop() {
     //シグナルのチェック
-    if (usi_option.stop_signal) {
+    if (Searcher::stop_signal) {
         return true;
     }
 
     //時間のチェック
     auto now_time = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_);
-    if (elapsed.count() >= usi_option.limit_msec - usi_option.byoyomi_margin) {
+    if (elapsed.count() >= time_limit_) {
         return true;
     }
 
@@ -21,7 +22,7 @@ bool Searcher::shouldStop() {
 
     //探索回数のチェック
     int32_t search_num = hash_table_[current_root_index_].sum_N + hash_table_[current_root_index_].virtual_sum_N;
-    return search_num >= usi_option.search_limit;
+    return search_num >= node_limit_;
 }
 
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
@@ -130,8 +131,8 @@ void Searcher::mateSearch(Position pos, int32_t depth_limit) {
             if (result) {
                 //この手に書き込み
                 //search_limitだけ足せば必ずこの手が選ばれるようになる
-                curr_node.N[i]  += usi_option.search_limit;
-                curr_node.sum_N += usi_option.search_limit;
+                curr_node.N[i]  += node_limit_;
+                curr_node.sum_N += node_limit_;
 #ifdef USE_CATEGORICAL
                 curr_node.Q[i][BIN_SIZE - 1] += 1;
 #else

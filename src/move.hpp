@@ -82,11 +82,6 @@ public:
         std::cout << std::endl;
     }
 
-    void printWithScore() const {
-        print();
-        std::cout << "\tscore:" << score << std::endl;
-    }
-
     //要素を取り出す関数ら
     inline Square to() const { return static_cast<Square>(move & MOVE_TO_MASK); }
     inline Square from() const { return static_cast<Square>((move & MOVE_FROM_MASK) >> MOVE_FROM_SHIFT); }

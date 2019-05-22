@@ -209,3 +209,8 @@ void searchLearningRate() {
 
     std::cout << "最適学習率 = " << lrs[std::min_element(losses.begin(), losses.end()) - losses.begin()] << std::endl;
 }
+
+void initParams() {
+    torch::save(nn, MODEL_PATH);
+    std::cout << "初期化したパラメータを" << MODEL_PATH << "に出力" << std::endl;
+}

@@ -1,16 +1,21 @@
 ﻿#include "searcher_for_play.hpp"
-#include "usi_options.hpp"
 #include <thread>
 
-Move SearcherForPlay::think(Position& root) {
+Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_limit, int64_t random_turn,
+                            int64_t print_interval, bool print_policy) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
+
+    //制限の設定
+    time_limit_ = time_limit;
+    node_limit_ = node_limit;
 
     //古いハッシュを削除
     hash_table_.deleteOldHash(root, true);
 
-    //次に表示するノード数を初期化
-    next_print_node_num_ = usi_option.print_interval;
+    //表示間隔の設定
+    print_interval_ = print_interval;
+    next_print_node_num_ = print_interval;
 
     //キューの初期化
     for (int32_t i = 0; i < thread_num_; i++) {
@@ -50,7 +55,7 @@ Move SearcherForPlay::think(Position& root) {
     curr_node.value = y.second[0];
 
     //詰み探索立ち上げ
-    std::thread mate_thread(&SearcherForPlay::mateSearch, this, root, usi_option.draw_turn);
+    std::thread mate_thread(&SearcherForPlay::mateSearch, this, root, LLONG_MAX);
 
     //workerを立ち上げ
     std::vector<std::thread> threads(thread_num_);
@@ -67,8 +72,7 @@ Move SearcherForPlay::think(Position& root) {
     const auto& N = curr_node.N;
 
     printUSIInfo();
-    if (usi_option.print_debug_info) {
-        root.print(false);
+    if (print_policy) {
         for (int32_t i = 0; i < curr_node.moves.size(); i++) {
             double nn_policy = 100.0 * curr_node.nn_policy[i];
             double search_policy = 100.0 * N[i] / curr_node.sum_N;
@@ -103,7 +107,7 @@ Move SearcherForPlay::think(Position& root) {
     }
 
     //最善手
-    Move best_move = (root.turn_number() < usi_option.random_turn ?
+    Move best_move = (root.turn_number() < random_turn ?
                       curr_node.moves[randomChoose(distribution)] :
                       curr_node.moves[best_index]);
 
@@ -181,7 +185,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
     auto& redundancy_num = redundancy_num_[id];
 
     //限界に達するまで探索を繰り返す
-    while (hash_table_[current_root_index_].sum_N < usi_option.search_limit && !shouldStop()) {
+    while (!shouldStop()) {
         //キューをクリア
         input_queue.clear();
         index_queue.clear();
@@ -190,8 +194,8 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         redundancy_num.clear();
 
         if (hash_table_[current_root_index_].sum_N >= next_print_node_num_) {
+            next_print_node_num_ += print_interval_;
             printUSIInfo();
-            next_print_node_num_ += usi_option.print_interval;
         }
 
         //評価要求を貯める
@@ -339,9 +343,13 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 
     // 候補手の展開
     curr_node.moves = pos.generateAllMoves();
+    curr_node.moves.shrink_to_fit();
     curr_node.child_indices.assign(curr_node.moves.size(), UctHashTable::NOT_EXPANDED);
+    curr_node.child_indices.shrink_to_fit();
     curr_node.N.assign(curr_node.moves.size(), 0);
+    curr_node.N.shrink_to_fit();
     curr_node.virtual_N.assign(curr_node.moves.size(), 0);
+    curr_node.virtual_N.shrink_to_fit();
     curr_node.sum_N = 0;
     curr_node.virtual_sum_N = 0;
     curr_node.evaled = false;
@@ -352,6 +360,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     curr_node.Q.assign(curr_node.moves.size(), 0.0);
     curr_node.value = 0.0;
 #endif
+    curr_node.Q.shrink_to_fit();
 
     // ノードを評価
     Score repeat_score;
