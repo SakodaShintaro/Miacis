@@ -161,6 +161,7 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
     auto leaf = indices.top();
     indices.pop();
     auto value = hash_table_[leaf].value;
+    static constexpr float LAMBDA = 1.0;
 
     //バックアップ
     while (!actions.empty()) {
@@ -178,12 +179,14 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
 #endif
 
         // 探索結果の反映
-        auto curr_v = hash_table_[index].value;
-        float alpha = 1.0f / hash_table_[index].sum_N;
-        hash_table_[index].value += alpha * (value - curr_v);
-
         hash_table_[index].N[action]++;
         hash_table_[index].sum_N++;
+
+        auto curr_v = hash_table_[index].value;
+        float alpha = 1.0f / (hash_table_[index].sum_N + 1);
+        hash_table_[index].value += alpha * (value - curr_v);
+        value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
+
         assert(!hash_table_[index].moves.empty());
     }
 }
