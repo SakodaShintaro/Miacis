@@ -16,7 +16,10 @@ protected:
     bool shouldStop();
 
     //今のノードから遷移するべきノードを選択する関数
-    static int32_t selectMaxUcbChild(const UctHashEntry& current_node);
+    int32_t selectMaxUcbChild(const UctHashEntry& current_node);
+
+    //node局面におけるi番目の指し手の行動価値を返す関数
+    ValueType Q(const UctHashEntry& node, int32_t i) const;
 
     //詰み探索
     void mateSearch(Position pos, int32_t depth_limit);

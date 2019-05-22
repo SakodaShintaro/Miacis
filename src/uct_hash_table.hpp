@@ -14,7 +14,6 @@ struct UctHashEntry {
     std::vector<Index> child_indices;
     std::vector<int32_t> N;
     std::vector<int32_t> virtual_N;
-    std::vector<ValueType> Q;
     std::vector<CalcType> nn_policy;
     ValueType value;
     bool evaled;
@@ -39,9 +38,7 @@ struct UctHashEntry {
 
 class UctHashTable {
 public:
-    explicit UctHashTable(int64_t hash_size) : used_num_(0), age_(1), table_(1ull << (MSB64(hash_size) + 1)) {
-        std::cout << "table_.size() = " << table_.size() << std::endl;
-    }
+    explicit UctHashTable(int64_t hash_size) : used_num_(0), age_(1), table_(1ull << (MSB64(hash_size) + 1)) {}
 
     UctHashEntry& operator[](Index i) {
         return table_[i];

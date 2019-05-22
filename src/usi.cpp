@@ -124,7 +124,7 @@ void USI::setoption() {
 }
 
 void USI::usinewgame() {
-    searcher_ = std::make_unique<SearcherForPlay>(usi_option_.USI_Hash * 1024 * 1024 / 40000,
+    searcher_ = std::make_unique<SearcherForPlay>(usi_option_.USI_Hash * 1024 * 1024 / 20000,
                                                   usi_option_.thread_num, usi_option_.search_batch_size, nn);
 }
 

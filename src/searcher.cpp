@@ -35,7 +35,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
             max_num = num;
         }
     }
-    double best_wp = expOfValueDist(current_node.Q[selected_index]) / max_num;
+    double best_wp = (current_node.child_indices[selected_index] == -1 ? MIN_SCORE : expOfValueDist(Q(current_node, selected_index)) / max_num);
 #endif
 
     // ucb = Q(s, a) + U(s, a)
@@ -59,8 +59,13 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
             Q = (MAX_SCORE + MIN_SCORE) / 2;
         } else {
             Q = 0.0;
+            ValueType Q_dist{};
+            if (current_node.child_indices[i] != UctHashTable::NOT_EXPANDED) {
+                Q_dist = hash_table_[current_node.child_indices[i]].value;
+            }
+            std::reverse(Q_dist.begin(), Q_dist.end());
             for (int32_t j = std::min(valueToIndex(best_wp) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-                Q += current_node.Q[i][j] * current_node.N[i] / visit_num;
+                Q += Q_dist[j] * current_node.N[i] / visit_num;
             }
         }
 #else
@@ -134,12 +139,24 @@ void Searcher::mateSearch(Position pos, int32_t depth_limit) {
                 curr_node.N[i]  += node_limit_;
                 curr_node.sum_N += node_limit_;
 #ifdef USE_CATEGORICAL
-                curr_node.Q[i][BIN_SIZE - 1] += 1;
+                //普通の探索結果と混ざるとダメかもしれない
+                hash_table_[curr_node.child_indices[i]].value[0] = 1;
 #else
-                curr_node.Q[i] += MAX_SCORE;
+                hash_table_[curr_node.child_indices[i]].value = MIN_SCORE;
 #endif
                 return;
             }
         }
     }
+}
+
+ValueType Searcher::Q(const UctHashEntry& node, int32_t i) const {
+    assert(node.child_indices[i] != UctHashTable::NOT_EXPANDED);
+#ifdef USE_CATEGORICAL
+    auto v = hash_table_[node.child_indices[i]].value;
+    std::reverse(v.begin(), v.end());
+    return v;
+#else
+    return -hash_table_[node.child_indices[i]].value;
+#endif
 }
