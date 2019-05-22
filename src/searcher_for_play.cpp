@@ -151,7 +151,7 @@ void SearcherForPlay::printUSIInfo() const {
     for (int64_t i = 0; i < BIN_SIZE / gather_num; i++) {
         double p = 0.0;
         for (int64_t j = 0; j < gather_num; j++) {
-            p += Q(curr_node, selected_index)[i * gather_num + j];
+            p += QfromNextValue(curr_node, selected_index)[i * gather_num + j];
         }
         printf("info string [%+6.2f:%06.2f%%]:", MIN_SCORE + VALUE_WIDTH * (gather_num * i + 1.5), p * 100);
         for (int64_t j = 0; j < p * 50; j++) {
