@@ -106,7 +106,10 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
     curr_node.child_indices.shrink_to_fit();
     curr_node.N.assign(curr_node.moves.size(), 0);
     curr_node.N.shrink_to_fit();
+    curr_node.virtual_N.assign(curr_node.moves.size(), 0);
+    curr_node.virtual_N.shrink_to_fit();
     curr_node.sum_N = 0;
+    curr_node.virtual_sum_N = 0;
     curr_node.evaled = false;
 #ifdef USE_CATEGORICAL
     curr_node.value = std::array<float, BIN_SIZE>{};
