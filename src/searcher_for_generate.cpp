@@ -202,9 +202,9 @@ std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& roo
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    auto best_wp = expOfValueDist(Q(current_node, best_index));
+    auto best_wp = expOfValueDist(QfromNextValue(current_node, best_index));
 #else
-    auto best_wp = Q(current_node, best_index);
+    auto best_wp = QfromNextValue(current_node, best_index);
 #endif
 
     //教師データを作成

@@ -69,7 +69,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
             }
         }
 #else
-        double Q = (visit_num == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.Q[i] * current_node.N[i] / visit_num);
+        double Q = (visit_num == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(current_node, i) * current_node.N[i] / visit_num);
 #endif
         double U = std::sqrt(sum + 1) / (visit_num + 1);
         double C = (std::log((sum + C_base + 1) / C_base) + C_init);
@@ -150,7 +150,7 @@ void Searcher::mateSearch(Position pos, int32_t depth_limit) {
     }
 }
 
-ValueType Searcher::Q(const UctHashEntry& node, int32_t i) const {
+ValueType Searcher::QfromNextValue(const UctHashEntry& node, int32_t i) const {
     assert(node.child_indices[i] != UctHashTable::NOT_EXPANDED);
 #ifdef USE_CATEGORICAL
     auto v = hash_table_[node.child_indices[i]].value;

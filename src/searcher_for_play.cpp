@@ -77,9 +77,9 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
             double nn_policy = 100.0 * curr_node.nn_policy[i];
             double search_policy = 100.0 * N[i] / curr_node.sum_N;
 #ifdef USE_CATEGORICAL
-            double v = (N[i] > 0 ? expOfValueDist(Q(curr_node, i)) : MIN_SCORE);
+            double v = (N[i] > 0 ? expOfValueDist(QfromNextValue(curr_node, i)) : MIN_SCORE);
 #else
-            double v = (N[i] > 0 ? Q(curr_node, i) : MIN_SCORE);
+            double v = (N[i] > 0 ? QfromNextValue(curr_node, i) : MIN_SCORE);
 #endif
             printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
             curr_node.moves[i].printWithNewLine();
@@ -94,9 +94,9 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    auto best_wp = expOfValueDist(Q(curr_node, best_index));
+    auto best_wp = expOfValueDist(QfromNextValue(curr_node, best_index));
 #else
-    auto best_wp = Q(curr_node, best_index);
+    auto best_wp = QfromNextValue(curr_node, best_index);
 #endif
 
     //訪問回数に基づいた分布を得る
@@ -140,9 +140,9 @@ void SearcherForPlay::printUSIInfo() const {
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    auto best_wp = expOfValueDist(Q(curr_node, selected_index));
+    auto best_wp = expOfValueDist(QfromNextValue(curr_node, selected_index));
 #else
-    auto best_wp = Q(curr_node, selected_index);
+    auto best_wp = QfromNextValue(curr_node, selected_index);
 #endif
 
 #ifdef USE_CATEGORICAL
