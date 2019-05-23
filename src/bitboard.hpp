@@ -30,12 +30,7 @@ public:
     }
 
     Square pop() {
-        Square sq;
-        if (board_[0] != 0) {
-            sq = SquareList[pop_lsb(board_[0])];
-        } else {
-            sq = SquareList[pop_lsb(board_[1]) + 63];
-        }
+        Square sq = (board_[0] != 0 ? SquareList[pop_lsb(board_[0])] : SquareList[pop_lsb(board_[1]) + 63]);
         assert(isOnBoard(sq));
         return sq;
     }
@@ -48,8 +43,7 @@ public:
     void forEach(Function f) const {
         Bitboard copy = *this;
         while (copy) {
-            Square sq = copy.pop();
-            f(sq);
+            f(copy.pop());
         }
     }
 
