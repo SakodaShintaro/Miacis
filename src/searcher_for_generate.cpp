@@ -7,7 +7,7 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     //ルートノードの展開
     std::stack<int32_t> indices;
     std::stack<int32_t> actions;
-    current_root_index_ = expand(root, indices, actions);
+    root_index_ = expand(root, indices, actions);
 
     if (root.turn_number() >= 50) {
         //5手詰めまで探索
@@ -15,14 +15,14 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     }
 
     //合法手が0かどうかを判定して返す
-    return !hash_table_[current_root_index_].moves.empty();
+    return !hash_table_[root_index_].moves.empty();
 }
 
 void SearcherForGenerate::select(Position& pos) {
-    if (hash_table_[current_root_index_].sum_N == 0) {
+    if (hash_table_[root_index_].sum_N == 0) {
         //初回の探索をする前にノイズを加える
         //Alpha Zeroの論文と同じディリクレノイズ
-        auto& root_node = hash_table_[current_root_index_];
+        auto& root_node = hash_table_[root_index_];
         constexpr double epsilon = 0.25;
         auto dirichlet = dirichletDistribution(root_node.moves.size(), 0.15);
         for (int32_t i = 0; i < root_node.moves.size(); i++) {
@@ -33,7 +33,7 @@ void SearcherForGenerate::select(Position& pos) {
     std::stack<Index> curr_indices;
     std::stack<int32_t> curr_actions;
 
-    auto index = current_root_index_;
+    auto index = root_index_;
     //ルートでは合法手が一つはあるはず
     assert(!hash_table_[index].moves.empty());
 
@@ -45,7 +45,7 @@ void SearcherForGenerate::select(Position& pos) {
         }
 
 //        Score repeat_score;
-//        if (index != current_root_index_ && pos.isRepeating(repeat_score)) {
+//        if (index != root_index_ && pos.isRepeating(repeat_score)) {
 //            //繰り返しが発生している場合も抜ける
 //            break;
 //        }
@@ -195,7 +195,7 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
 }
 
 std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& root) {
-    const auto& current_node = hash_table_[current_root_index_];
+    const auto& current_node = hash_table_[root_index_];
     assert(!current_node.moves.empty());
     assert(current_node.sum_N != 0);
     const auto& N = current_node.N;

@@ -21,7 +21,7 @@ bool Searcher::shouldStop() {
     }
 
     //探索回数のチェック
-    int32_t search_num = hash_table_[current_root_index_].sum_N + hash_table_[current_root_index_].virtual_sum_N;
+    int32_t search_num = hash_table_[root_index_].sum_N + hash_table_[root_index_].virtual_sum_N;
     return search_num >= node_limit_;
 }
 
@@ -127,7 +127,7 @@ bool Searcher::mateSearchForEvader(Position& pos, int32_t depth) {
 }
 
 void Searcher::mateSearch(Position pos, int32_t depth_limit) {
-    auto& curr_node = hash_table_[current_root_index_];
+    auto& curr_node = hash_table_[root_index_];
     for (int32_t depth = 1; !shouldStop() && depth <= depth_limit; depth += 2) {
         for (int32_t i = 0; i < curr_node.moves.size(); i++) {
             pos.doMove(curr_node.moves[i]);

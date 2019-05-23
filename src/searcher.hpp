@@ -33,7 +33,7 @@ protected:
     std::chrono::steady_clock::time_point start_;
 
     //ルート局面のインデックス
-    Index current_root_index_;
+    Index root_index_;
 
     //時間制限(msec),ノード数制限
     int64_t time_limit_;
