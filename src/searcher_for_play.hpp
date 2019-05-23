@@ -15,7 +15,6 @@ public:
         index_queues_.resize(thread_num);
         route_queues_.resize(thread_num);
         action_queues_.resize(thread_num);
-        redundancy_num_.resize(thread_num);
     }
 
     //探索を行って一番良い指し手を返す関数
@@ -69,7 +68,6 @@ private:
     std::vector<std::vector<Index>> index_queues_;
     std::vector<std::vector<std::stack<Index>>> route_queues_;
     std::vector<std::vector<std::stack<int32_t>>> action_queues_;
-    std::vector<std::vector<int32_t>> redundancy_num_;
 };
 
 #endif //MIACIS_SEARCHER_FOR_PLAY_HPP

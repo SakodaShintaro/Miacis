@@ -182,7 +182,6 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
     auto& index_queue = index_queues_[id];
     auto& route_queue = route_queues_[id];
     auto& action_queue = action_queues_[id];
-    auto& redundancy_num = redundancy_num_[id];
 
     //限界に達するまで探索を繰り返す
     while (!shouldStop()) {
@@ -191,7 +190,6 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         index_queue.clear();
         route_queue.clear();
         action_queue.clear();
-        redundancy_num.clear();
 
         if (hash_table_[current_root_index_].sum_N >= next_print_node_num_) {
             next_print_node_num_ += print_interval_;
@@ -320,10 +318,6 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
                 //同じものがなかったならばバックアップ要求を追加
                 route_queues_[id].push_back(indices);
                 action_queues_[id].push_back(actions);
-                redundancy_num_[id].push_back(1);
-            } else {
-                //同じものがあったならば重複数を増やして終わり
-                redundancy_num_[id][itr - route_queues_[id].begin()]++;
             }
         }
         return index;
@@ -391,7 +385,6 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
         //バックアップ要求も投げる
         route_queues_[id].push_back(indices);
         action_queues_[id].push_back(actions);
-        redundancy_num_[id].push_back(1);
     }
 
     return index;
