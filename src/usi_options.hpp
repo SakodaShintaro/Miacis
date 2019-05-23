@@ -11,7 +11,7 @@ public:
     int64_t thread_num;
     int64_t search_batch_size;
     int64_t search_limit;
-    bool print_debug_info;
+    bool print_policy;
 };
 
 #endif

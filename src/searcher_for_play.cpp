@@ -70,20 +70,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
 
     const auto& N = curr_node.N;
 
-    printUSIInfo();
-    if (print_policy) {
-        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
-            double nn_policy = 100.0 * curr_node.nn_policy[i];
-            double search_policy = 100.0 * N[i] / curr_node.sum_N;
-#ifdef USE_CATEGORICAL
-            double v = (N[i] > 0 ? expOfValueDist(QfromNextValue(curr_node, i)) : MIN_SCORE);
-#else
-            double v = (N[i] > 0 ? QfromNextValue(curr_node, i) : MIN_SCORE);
-#endif
-            printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
-            curr_node.moves[i].printWithNewLine();
-        }
-    }
+    printUSIInfo(print_policy);
 
     //探索回数最大の手を選択する
     int32_t best_index = (int32_t) (std::max_element(N.begin(), N.end()) - N.begin());
@@ -125,7 +112,7 @@ std::vector<Move> SearcherForPlay::getPV() const {
     return pv;
 }
 
-void SearcherForPlay::printUSIInfo() const {
+void SearcherForPlay::printUSIInfo(bool print_policy) const {
     const auto& curr_node = hash_table_[root_index_];
 
     int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
@@ -168,6 +155,20 @@ void SearcherForPlay::printUSIInfo() const {
         std::cout << move << " ";
     }
     std::cout << std::endl;
+
+    if (print_policy) {
+        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+            double nn_policy = 100.0 * curr_node.nn_policy[i];
+            double search_policy = 100.0 * curr_node.N[i] / curr_node.sum_N;
+#ifdef USE_CATEGORICAL
+            double v = (curr_node.N[i] > 0 ? expOfValueDist(QfromNextValue(curr_node, i)) : MIN_SCORE);
+#else
+            double v = (curr_node.N[i] > 0 ? QfromNextValue(curr_node, i) : MIN_SCORE);
+#endif
+            printf("info string %3d  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
+            curr_node.moves[i].printWithNewLine();
+        }
+    }
 }
 
 void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
@@ -187,7 +188,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
 
         if (hash_table_[root_index_].sum_N >= next_print_node_num_) {
             next_print_node_num_ += print_interval_;
-            printUSIInfo();
+            printUSIInfo(false);
         }
 
         //評価要求を貯める

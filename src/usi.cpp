@@ -66,8 +66,8 @@ void USI::usi() {
     usi_option_.search_batch_size = 128;
     printf("option name draw_turn type spin default 256 min 0 max 4096\n");
     usi_option_.draw_turn = 256;
-    printf("option name print_debug_info type check default false\n");
-    usi_option_.print_debug_info = false;
+    printf("option name print_policy type check default false\n");
+    usi_option_.print_policy = false;
     printf("option name print_interval type spin default 10000 min 1 max 100000000\n");
     usi_option_.print_interval = 10000;
 
@@ -113,10 +113,10 @@ void USI::setoption() {
     } else if (input == "search_limit") {
         std::cin >> input;
         std::cin >> usi_option_.search_limit;
-    } else if (input == "print_debug_info") {
+    } else if (input == "print_policy") {
         std::cin >> input;
         std::cin >> input;
-        usi_option_.print_debug_info = (input == "true");
+        usi_option_.print_policy = (input == "true");
     } else if (input == "print_interval") {
         std::cin >> input;
         std::cin >> usi_option_.print_interval;
@@ -211,7 +211,7 @@ void USI::go() {
                                           time_limit - usi_option_.byoyomi_margin,
                                           usi_option_.search_limit, usi_option_.random_turn,
                                           usi_option_.print_interval,
-                                          usi_option_.print_debug_info);
+                                          usi_option_.print_policy);
         std::cout << "bestmove " << best_move << std::endl;
     });
 }

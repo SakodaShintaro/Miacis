@@ -32,7 +32,7 @@ private:
     std::vector<Move> getPV() const;
 
     //情報をUSIプロトコルに従って標準出力に出す関数
-    void printUSIInfo() const;
+    void printUSIInfo(bool print_policy) const;
 
     //各スレッドに割り当てられる探索関数
     void parallelUctSearch(Position root, int32_t id);
