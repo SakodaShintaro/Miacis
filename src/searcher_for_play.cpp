@@ -226,7 +226,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
 
         //バックアップ
         for (int32_t i = 0; i < route_queue.size(); i++) {
-            backup(route_queue[i], action_queue[i], 1 - VIRTUAL_LOSS * redundancy_num[i]);
+            backup(route_queue[i], action_queue[i]);
         }
     }
 }
@@ -311,7 +311,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
             //評価済みならば,前回までのループでここへ違う経路で到達していたか,終端状態であるかのいずれか
             //どちらの場合でもバックアップして良い,と思う
             //GPUに送らないのでこのタイミングでバックアップを行う
-            backup(indices, actions, 1 - VIRTUAL_LOSS);
+            backup(indices, actions);
         } else {
             //評価済みではないけどここへ到達したならば,同じループの中で同じ局面へ到達があったということ
             //全く同じ経路のものがあるかどうか確認
@@ -370,7 +370,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
-        backup(indices, actions, 1 - VIRTUAL_LOSS);
+        backup(indices, actions);
     } else if (curr_node.moves.empty()) {
         //打ち歩詰めなら勝ち,そうでないなら負け
         auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
@@ -382,7 +382,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
-        backup(indices, actions, 1 - VIRTUAL_LOSS);
+        backup(indices, actions);
     } else {
         //GPUへ計算要求を投げる
         auto this_feature = pos.makeFeature();
@@ -397,7 +397,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     return index;
 }
 
-void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t add_num) {
+void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
     assert(indices.size() == actions.size() + 1);
     auto leaf = indices.top();
     indices.pop();
