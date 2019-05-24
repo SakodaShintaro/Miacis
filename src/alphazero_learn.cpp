@@ -50,7 +50,7 @@ void alphaZero() {
     int64_t max_step_num             = settings.get<int64_t>("max_step_num");
     int64_t update_interval          = settings.get<int64_t>("update_interval");
     int64_t sleep_msec               = settings.get<int64_t>("sleep_msec");
-    int64_t maX_stack_size           = settings.get<int64_t>("max_stack_size");
+    int64_t max_stack_size           = settings.get<int64_t>("max_stack_size");
     int64_t first_wait               = settings.get<int64_t>("first_wait");
     int64_t search_limit             = settings.get<int64_t>("search_limit");
     int64_t search_batch_size        = settings.get<int64_t>("search_batch_size");
@@ -65,7 +65,7 @@ void alphaZero() {
     Searcher::stop_signal = false;
 
     //リプレイバッファ
-    ReplayBuffer replay_buffer(first_wait, maX_stack_size, lambda);
+    ReplayBuffer replay_buffer(first_wait, max_stack_size, lambda);
 
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");
