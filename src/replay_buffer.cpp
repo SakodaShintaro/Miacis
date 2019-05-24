@@ -12,10 +12,10 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
 
     //一番最初だけ十分量に達するまで待つ
     while (data_.size() < first_wait_) {
-        double percentage = 100.0 * data_.size() / first_wait_;
-        std::cout << "replay_buffer.size() = " << data_.size() << " (" << percentage << "%)" << std::endl;
+        int64_t remainder = first_wait_ - data_.size();
+        std::cout << "remainder = " << remainder << std::endl;
         mutex_.unlock();
-        std::this_thread::sleep_for(std::chrono::seconds((uint64_t)((100 - percentage) * 2 + 10)));
+        std::this_thread::sleep_for(std::chrono::seconds((uint64_t)(remainder / 100 + 10)));
         mutex_.lock();
     }
 
