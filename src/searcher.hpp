@@ -16,7 +16,7 @@ protected:
     bool shouldStop();
 
     //今のノードから遷移するべきノードを選択する関数
-    int32_t selectMaxUcbChild(const UctHashEntry& current_node);
+    int32_t selectMaxUcbChild(const UctHashEntry& node);
 
     //node局面におけるi番目の指し手の行動価値を返す関数
     ValueType QfromNextValue(const UctHashEntry& node, int32_t i) const;

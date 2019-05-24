@@ -25,17 +25,17 @@ bool Searcher::shouldStop() {
     return search_num >= node_limit_;
 }
 
-int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
+int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
 #ifdef USE_CATEGORICAL
     int32_t best_index = -1, max_num = -1;
-    for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        int32_t num = current_node.N[i] + current_node.virtual_N[i];
+    for (int32_t i = 0; i < node.moves.size(); i++) {
+        int32_t num = node.N[i] + node.virtual_N[i];
         if (num > max_num) {
             best_index = i;
             max_num = num;
         }
     }
-    double best_wp = (current_node.child_indices[best_index] == -1 ? MIN_SCORE : expOfValueDist(QfromNextValue(current_node, best_index)));
+    double best_wp = (node.child_indices[best_index] == -1 ? MIN_SCORE : expOfValueDist(QfromNextValue(node, best_index)));
 #endif
 
     constexpr double C_PUCT = 5.0;
@@ -43,9 +43,9 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
     int32_t max_index = -1;
     double max_value = MIN_SCORE - 1;
 
-    const int32_t sum = current_node.sum_N + current_node.virtual_sum_N;
-    for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        const int32_t visit_num = current_node.N[i] + current_node.virtual_N[i];
+    const int32_t sum = node.sum_N + node.virtual_sum_N;
+    for (int32_t i = 0; i < node.moves.size(); i++) {
+        const int32_t visit_num = node.N[i] + node.virtual_N[i];
 
 #ifdef USE_CATEGORICAL
         double Q;
@@ -55,8 +55,8 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
         } else {
             Q = 0.0;
             ValueType Q_dist{};
-            if (current_node.child_indices[i] != UctHashTable::NOT_EXPANDED) {
-                Q_dist = hash_table_[current_node.child_indices[i]].value;
+            if (node.child_indices[i] != UctHashTable::NOT_EXPANDED) {
+                Q_dist = hash_table_[node.child_indices[i]].value;
             }
             std::reverse(Q_dist.begin(), Q_dist.end());
             for (int32_t j = std::min(valueToIndex(best_wp) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
@@ -64,17 +64,17 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
             }
         }
 #else
-        double Q = (visit_num == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(current_node, i));
+        double Q = (visit_num == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(node, i));
 #endif
         double U = std::sqrt(sum + 1) / (visit_num + 1);
-        double ucb = Q + C_PUCT * current_node.nn_policy[i] * U;
+        double ucb = Q + C_PUCT * node.nn_policy[i] * U;
 
         if (ucb > max_value) {
             max_value = ucb;
             max_index = i;
         }
     }
-    assert(0 <= max_index && max_index < (int32_t)current_node.moves.size());
+    assert(0 <= max_index && max_index < (int32_t)node.moves.size());
     return max_index;
 }
 

@@ -195,10 +195,10 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
 }
 
 std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& root) {
-    const auto& current_node = hash_table_[root_index_];
-    assert(!current_node.moves.empty());
-    assert(current_node.sum_N != 0);
-    const auto& N = current_node.N;
+    const auto& root_node = hash_table_[root_index_];
+    assert(!root_node.moves.empty());
+    assert(root_node.sum_N != 0);
+    const auto& N = root_node.N;
 
     //探索回数最大の手を選択する
     int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
@@ -206,11 +206,11 @@ std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& roo
     //選択した着手の勝率の算出
     //詰みのときは未展開であることに注意する
 #ifdef USE_CATEGORICAL
-    auto best_wp = (current_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
-                    expOfValueDist(QfromNextValue(current_node, best_index)));
+    auto best_wp = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
+                    expOfValueDist(QfromNextValue(root_node, best_index)));
 #else
-    auto best_wp = (current_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
-                    QfromNextValue(current_node, best_index));
+    auto best_wp = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
+                    QfromNextValue(root_node, best_index));
 #endif
 
     //教師データを作成
@@ -225,16 +225,16 @@ std::pair<Move, TeacherType> SearcherForGenerate::resultForCurrPos(Position& roo
 
     //policyのセット
     //訪問回数に基づいた分布を得る
-    std::vector<CalcType> distribution(current_node.moves.size());
-    assert(current_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
-    for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        distribution[i] = (CalcType)N[i] / current_node.sum_N;
-        assert(0 <= N[i] && N[i] <= current_node.sum_N);
-        teacher.policy.push_back({current_node.moves[i].toLabel(), distribution[i]});
+    std::vector<CalcType> distribution(root_node.moves.size());
+    assert(root_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
+    for (int32_t i = 0; i < root_node.moves.size(); i++) {
+        distribution[i] = (CalcType)N[i] / root_node.sum_N;
+        assert(0 <= N[i] && N[i] <= root_node.sum_N);
+        teacher.policy.push_back({root_node.moves[i].toLabel(), distribution[i]});
     }
 
     //分布に従って行動選択
-    Move best_move = current_node.moves[randomChoose(distribution)];
+    Move best_move = root_node.moves[randomChoose(distribution)];
     best_move.score = (Score)(best_wp);
 
     return { best_move, teacher };
