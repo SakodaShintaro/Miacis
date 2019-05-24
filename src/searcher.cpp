@@ -1,16 +1,17 @@
 ﻿#include "searcher.hpp"
-#include "usi_options.hpp"
+
+bool Searcher::stop_signal = false;
 
 bool Searcher::shouldStop() {
     //シグナルのチェック
-    if (usi_option.stop_signal) {
+    if (Searcher::stop_signal) {
         return true;
     }
 
     //時間のチェック
     auto now_time = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_);
-    if (elapsed.count() >= usi_option.limit_msec - usi_option.byoyomi_margin) {
+    if (elapsed.count() >= time_limit_) {
         return true;
     }
 
@@ -19,56 +20,54 @@ bool Searcher::shouldStop() {
         return true;
     }
 
-    //探索回数が最も多い手と2番目に多い手を求める
-    int32_t max1 = 0, max2 = 0;
-    for (const int32_t& e : hash_table_[current_root_index_].N) {
-        if (e > max1) {
-            max2 = max1;
-            max1 = e;
-        } else if (e > max2) {
-            max2 = e;
-        }
-    }
-
-    // 残りの探索を全て次善手に費やしても最善手を超えられない場合は探索を打ち切る
-    return (max1 - max2) >= (usi_option.search_limit - hash_table_[current_root_index_].sum_N);
+    //探索回数のチェック
+    int32_t search_num = hash_table_[root_index_].sum_N + hash_table_[root_index_].virtual_sum_N;
+    return search_num >= node_limit_;
 }
 
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
-    const auto& N = current_node.N;
-
 #ifdef USE_CATEGORICAL
-    int32_t selected_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
-    double best_wp = expOfValueDist(current_node.W[selected_index]) / N[selected_index];
+    int32_t best_index = -1, max_num = -1;
+    for (int32_t i = 0; i < current_node.moves.size(); i++) {
+        int32_t num = current_node.N[i] + current_node.virtual_N[i];
+        if (num > max_num) {
+            best_index = i;
+            max_num = num;
+        }
+    }
+    double best_wp = (current_node.child_indices[best_index] == -1 ? MIN_SCORE : expOfValueDist(QfromNextValue(current_node, best_index)));
 #endif
 
-    // ucb = Q(s, a) + U(s, a)
-    // Q(s, a) = W(s, a) / N(s, a)
-    // U(s, a) = C * P(s, a) * sqrt(sum_b(B(s, b)) / (1 + N(s, a))
-
-    constexpr double C_base = 19652.0;
-    constexpr double C_init = 1.25;
+    constexpr double C_PUCT = 5.0;
 
     int32_t max_index = -1;
     double max_value = MIN_SCORE - 1;
+
+    const int32_t sum = current_node.sum_N + current_node.virtual_sum_N;
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
+        const int32_t visit_num = current_node.N[i] + current_node.virtual_N[i];
+
 #ifdef USE_CATEGORICAL
         double Q;
-        if (N[i] == 0) {
+        if (visit_num == 0) {
             //中間を初期値とする
             Q = (MAX_SCORE + MIN_SCORE) / 2;
         } else {
             Q = 0.0;
+            ValueType Q_dist{};
+            if (current_node.child_indices[i] != UctHashTable::NOT_EXPANDED) {
+                Q_dist = hash_table_[current_node.child_indices[i]].value;
+            }
+            std::reverse(Q_dist.begin(), Q_dist.end());
             for (int32_t j = std::min(valueToIndex(best_wp) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-                Q += current_node.W[i][j] / N[i];
+                Q += Q_dist[j];
             }
         }
 #else
-        double Q = (N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : current_node.W[i] / N[i]);
+        double Q = (visit_num == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(current_node, i));
 #endif
-        double U = std::sqrt(current_node.sum_N + 1) / (N[i] + 1);
-        double C = (std::log((current_node.sum_N + C_base + 1) / C_base) + C_init);
-        double ucb = Q + C * current_node.nn_policy[i] * U;
+        double U = std::sqrt(sum + 1) / (visit_num + 1);
+        double ucb = Q + C_PUCT * current_node.nn_policy[i] * U;
 
         if (ucb > max_value) {
             max_value = ucb;
@@ -122,7 +121,7 @@ bool Searcher::mateSearchForEvader(Position& pos, int32_t depth) {
 }
 
 void Searcher::mateSearch(Position pos, int32_t depth_limit) {
-    auto& curr_node = hash_table_[current_root_index_];
+    auto& curr_node = hash_table_[root_index_];
     for (int32_t depth = 1; !shouldStop() && depth <= depth_limit; depth += 2) {
         for (int32_t i = 0; i < curr_node.moves.size(); i++) {
             pos.doMove(curr_node.moves[i]);
@@ -131,15 +130,34 @@ void Searcher::mateSearch(Position pos, int32_t depth_limit) {
             if (result) {
                 //この手に書き込み
                 //search_limitだけ足せば必ずこの手が選ばれるようになる
-                curr_node.N[i]  += usi_option.search_limit;
-                curr_node.sum_N += usi_option.search_limit;
+                curr_node.N[i]  += node_limit_;
+                curr_node.sum_N += node_limit_;
+
+                if (curr_node.child_indices[i] != UctHashTable::NOT_EXPANDED) {
 #ifdef USE_CATEGORICAL
-                curr_node.W[i][BIN_SIZE - 1] += usi_option.search_limit;
+                    //普通の探索結果と値が混ざってしまいそう
+                    //タイミングによっては問題が起こるかもしれない
+                    hash_table_[curr_node.child_indices[i]].value[0] = 1;
+                    for (int32_t j = 1; j < BIN_SIZE; j++) {
+                        hash_table_[curr_node.child_indices[i]].value[j] = 0;
+                    }
 #else
-                curr_node.W[i] += MAX_SCORE * usi_option.search_limit;
+                    hash_table_[curr_node.child_indices[i]].value = MIN_SCORE;
 #endif
+                }
                 return;
             }
         }
     }
+}
+
+ValueType Searcher::QfromNextValue(const UctHashEntry& node, int32_t i) const {
+    assert(node.child_indices[i] != UctHashTable::NOT_EXPANDED);
+#ifdef USE_CATEGORICAL
+    auto v = hash_table_[node.child_indices[i]].value;
+    std::reverse(v.begin(), v.end());
+    return v;
+#else
+    return -hash_table_[node.child_indices[i]].value;
+#endif
 }

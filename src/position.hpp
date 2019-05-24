@@ -17,7 +17,7 @@ public:
     void init();
 
     //内部の状態等を表示する関数
-    void print(bool with_score = true) const;
+    void print() const;
 
     //一手進める・戻す関数
     void doMove(Move move);

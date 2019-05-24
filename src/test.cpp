@@ -6,7 +6,6 @@
 #include"hand.hpp"
 #include"game.hpp"
 #include"neural_network.hpp"
-#include"usi_options.hpp"
 #include"replay_buffer.hpp"
 #include"game_generator.hpp"
 #include"searcher_for_play.hpp"
@@ -17,22 +16,19 @@
 #include<iomanip>
 
 void test() {
-    usi_option.search_limit = 800;
-    usi_option.limit_msec = LLONG_MAX;
-    usi_option.USI_Hash = 1;
-    usi_option.thread_num = 1;
-    usi_option.search_batch_size = 1;
-    usi_option.random_turn = 512;
-    usi_option.draw_turn = 512;
+    constexpr int64_t node_limit = 800;
+    constexpr int64_t thread_num = 1;
+    constexpr int64_t search_batch_size = 1;
+    constexpr int64_t draw_turn = 256;
     torch::load(nn, MODEL_PATH);
-    SearcherForPlay searcher(usi_option.search_limit, usi_option.thread_num, usi_option.search_batch_size, nn);
+    SearcherForPlay searcher(node_limit, thread_num, search_batch_size, nn);
 
     Position pos;
     Game game;
 
     auto start = std::chrono::steady_clock::now();
     while (true) {
-        Move best_move = searcher.think(pos);
+        Move best_move = searcher.think(pos, LLONG_MAX, 800, 0, LLONG_MAX, false);
 
         if (best_move == NULL_MOVE) {
             //投了
@@ -44,7 +40,7 @@ void test() {
             //千日手
             game.result = Game::RESULT_DRAW_REPEAT;
             break;
-        } else if (pos.turn_number() >= usi_option.draw_turn) {
+        } else if (pos.turn_number() >= draw_turn) {
             //長手数
             game.result = Game::RESULT_DRAW_OVER_LIMIT;
             break;
@@ -66,27 +62,22 @@ void test() {
 void checkGenSpeed() {
     torch::load(nn, MODEL_PATH);
 
-    usi_option.limit_msec = LLONG_MAX;
-    usi_option.search_limit = 100;
-    usi_option.draw_turn = 512;
-    usi_option.random_turn = 512;
-    usi_option.thread_num = 2;
-    constexpr int64_t limit = 20000;
+    constexpr int64_t buffer_size = 20000;
 
-    for (usi_option.search_batch_size = 32; usi_option.search_batch_size <= 128; usi_option.search_batch_size *= 2) {
-        ReplayBuffer buffer(0, limit, 1.0);
-        usi_option.stop_signal = false;
+    for (int64_t search_batch_size = 32; search_batch_size <= 128; search_batch_size *= 2) {
+        ReplayBuffer buffer(0, buffer_size, 1.0);
+        Searcher::stop_signal = false;
         auto start = std::chrono::steady_clock::now();
-        GameGenerator generator(buffer, nn);
+        GameGenerator generator(800, 256, 2, search_batch_size,buffer, nn);
         std::thread t(&GameGenerator::genGames, &generator, (int64_t)1e15);
-        while (buffer.size() < limit) {
+        while (buffer.size() < buffer_size) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         auto end = std::chrono::steady_clock::now();
-        usi_option.stop_signal = true;
+        Searcher::stop_signal = true;
         t.join();
         auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "search_batch_size = " << std::setw(4) << usi_option.search_batch_size
+        std::cout << "search_batch_size = " << std::setw(4) << search_batch_size
                   << ", elapsed = " << ela.count()
                   << ", size = " << buffer.size()
                   << ", speed = " << (buffer.size() * 1000.0) / ela.count() << " pos / sec" << std::endl;
@@ -94,14 +85,14 @@ void checkGenSpeed() {
 }
 
 void checkSearchSpeed() {
-    usi_option.limit_msec = 10000;
-    usi_option.search_limit = static_cast<int64_t>(1e10);
+    constexpr int64_t time_limit = 10000;
+    constexpr int64_t hash_size = 10000000;
     Position pos;
     for (uint64_t search_batch_size = 64; search_batch_size <= 512; search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_batch_size << std::endl;
         for (uint64_t thread_num = 1; thread_num <= 3; thread_num++) {
-            SearcherForPlay searcher(1000000, thread_num, search_batch_size, nn);
-            searcher.think(pos);
+            SearcherForPlay searcher(hash_size, thread_num, search_batch_size, nn);
+            searcher.think(pos, time_limit, LLONG_MAX, 0, LLONG_MAX, false);
         }
     }
 }

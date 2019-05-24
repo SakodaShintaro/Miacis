@@ -89,7 +89,7 @@ std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& fil
         for (const auto& e : game.elements) {
             const auto& move = e.move;
             TeacherType teacher;
-            teacher.policy = (uint32_t) move.toLabel();
+            teacher.policy.push_back({move.toLabel(), 1.0});
 #ifdef USE_CATEGORICAL
             teacher.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
 #else
@@ -206,4 +206,9 @@ void searchLearningRate() {
     }
 
     std::cout << "最適学習率 = " << lrs[std::min_element(losses.begin(), losses.end()) - losses.begin()] << std::endl;
+}
+
+void initParams() {
+    torch::save(nn, MODEL_PATH);
+    std::cout << "初期化したパラメータを" << MODEL_PATH << "に出力" << std::endl;
 }

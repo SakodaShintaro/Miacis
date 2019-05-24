@@ -29,6 +29,9 @@ std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& fil
 //validationを行う関数
 std::array<float, 2> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data);
 
+//パラメータを初期化
+void initParams();
+
 //学習率の自動決定
 void searchLearningRate();
 

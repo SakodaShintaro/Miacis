@@ -12,9 +12,7 @@
 #include<climits>
 #include<thread>
 
-USIOption usi_option;
-
-USI::USI() {
+USI::USI() : searcher_(nullptr) {
     //メンバ関数
     command_["usi"]        = std::bind(&USI::usi, this);
     command_["isready"]    = std::bind(&USI::isready, this);
@@ -28,11 +26,8 @@ USI::USI() {
     command_["gameover"]   = std::bind(&USI::gameover, this);
 
     //メンバ関数以外
-    command_["prepareForLearn"] = []() {
-        torch::save(nn, MODEL_PATH);
-        std::cout << "初期化したパラメータを" << MODEL_PATH << "に出力" << std::endl;
-    };
-    command_["cleanGame"] = cleanGames;
+    command_["initParams"] = initParams;
+    command_["cleanGames"] = cleanGames;
     command_["searchLearningRate"] = searchLearningRate;
     command_["supervisedLearn"] = supervisedLearn;
     command_["alphaZero"] = alphaZero;
@@ -62,25 +57,25 @@ void USI::usi() {
 #endif
     printf("id author Sakoda Shintaro\n");
     printf("option name byoyomi_margin type spin default 0 min 0 max 1000\n");
-    usi_option.byoyomi_margin = 0;
+    usi_option_.byoyomi_margin = 0;
     printf("option name random_turn type spin default 0 min 0 max 1000\n");
-    usi_option.random_turn = 0;
+    usi_option_.random_turn = 0;
     printf("option name thread_num type spin default 2 min 1 max 2048\n");
-    usi_option.thread_num = 2;
+    usi_option_.thread_num = 2;
     printf("option name search_batch_size type spin default 128 min 1 max 2048\n");
-    usi_option.search_batch_size = 128;
+    usi_option_.search_batch_size = 128;
     printf("option name draw_turn type spin default 256 min 0 max 4096\n");
-    usi_option.draw_turn = 256;
-    printf("option name print_debug_info type check default false\n");
-    usi_option.print_debug_info = false;
+    usi_option_.draw_turn = 256;
+    printf("option name print_policy type check default false\n");
+    usi_option_.print_policy = false;
     printf("option name print_interval type spin default 10000 min 1 max 100000000\n");
-    usi_option.print_interval = 10000;
+    usi_option_.print_interval = 10000;
 
     auto d = (unsigned long long)1e9;
     printf("option name search_limit type spin default %llu min 1 max %llu\n", d, d);
-    usi_option.search_limit = (int64_t)d;
+    usi_option_.search_limit = (int64_t)d;
 
-    usi_option.USI_Hash = 256;
+    usi_option_.USI_Hash = 256;
     printf("usiok\n");
 }
 
@@ -91,57 +86,46 @@ void USI::isready() {
 
 void USI::setoption() {
     std::string input;
-    while (true) {
+    std::cin >> input;
+    assert(input == "name");
+    std::cin >> input;
+    if (input == "byoyomi_margin") {
+        std::cin >> input; //input == "value"となるなず
+        std::cin >> usi_option_.byoyomi_margin;
+    } else if (input == "random_turn") {
+        std::cin >> input; //input == "value"となるなず
+        std::cin >> usi_option_.random_turn;
+    } else if (input == "USI_Hash") {
+        std::cin >> input; //input == "value"となるはず
+        std::cin >> usi_option_.USI_Hash;
+    } else if (input == "USI_Ponder") {
+        std::cin >> input; //input == "value"となるなず
+        std::cin >> input; //特になにもしていない
+    } else if (input == "thread_num") {
+        std::cin >> input; //input == "value"となるはず
+        std::cin >> usi_option_.thread_num;
+    } else if (input == "search_batch_size") {
+        std::cin >> input; //input == "value"となるはず
+        std::cin >> usi_option_.search_batch_size;
+    } else if (input == "draw_turn") {
+        std::cin >> input; //input == "value"となるはず
+        std::cin >> usi_option_.draw_turn;
+    } else if (input == "search_limit") {
         std::cin >> input;
-        if (input == "name") {
-            std::cin >> input;
-            //ここで処理
-            if (input == "byoyomi_margin") {
-                std::cin >> input; //input == "value"となるなず
-                std::cin >> usi_option.byoyomi_margin;
-                return;
-            } else if (input == "random_turn") {
-                std::cin >> input; //input == "value"となるなず
-                std::cin >> usi_option.random_turn;
-                return;
-            } else if (input == "USI_Hash") {
-                std::cin >> input; //input == "value"となるはず
-                std::cin >> usi_option.USI_Hash;
-                return;
-            } else if (input == "USI_Ponder") {
-                std::cin >> input; //input == "value"となるなず
-                std::cin >> input; //特になにもしていない
-                return;
-            } else if (input == "thread_num") {
-                std::cin >> input; //input == "value"となるはず
-                std::cin >> usi_option.thread_num;
-                return;
-            } else if (input == "search_batch_size") {
-                std::cin >> input; //input == "value"となるはず
-                std::cin >> usi_option.search_batch_size;
-                return;
-            } else if (input == "draw_turn") {
-                std::cin >> input; //input == "value"となるはず
-                std::cin >> usi_option.draw_turn;
-                return;
-            } else if (input == "search_limit") {
-                std::cin >> input;
-                std::cin >> usi_option.search_limit;
-                return;
-            } else if (input == "print_debug_info") {
-                std::cin >> input;
-                std::cin >> input;
-                usi_option.print_debug_info = (input == "true");
-                return;
-            } else if (input == "print_interval") {
-                std::cin >> input;
-                std::cin >> usi_option.print_interval;
-            }
-        }
+        std::cin >> usi_option_.search_limit;
+    } else if (input == "print_policy") {
+        std::cin >> input;
+        std::cin >> input;
+        usi_option_.print_policy = (input == "true");
+    } else if (input == "print_interval") {
+        std::cin >> input;
+        std::cin >> usi_option_.print_interval;
     }
 }
 
 void USI::usinewgame() {
+    searcher_ = std::make_unique<SearcherForPlay>(usi_option_.USI_Hash * 1024 * 1024 / 20000,
+                                                  usi_option_.thread_num, usi_option_.search_batch_size, nn);
 }
 
 void USI::position() {
@@ -149,9 +133,7 @@ void USI::position() {
         thread_.join();
     }
 
-    //rootを初期化
-    root_.init();
-
+    //局面の構築
     std::string input, sfen;
     std::cin >> input;
     if (input == "startpos") {
@@ -163,6 +145,7 @@ void USI::position() {
             sfen += " ";
         }
     }
+    root_.init();
     root_.loadSFEN(sfen);
 
     std::cin >> input;  //input == "moves" or "go"となる
@@ -182,7 +165,9 @@ void USI::position() {
 }
 
 void USI::go() {
-    usi_option.stop_signal = false;
+    Searcher::stop_signal = false;
+
+    int64_t time_limit;
     std::string input;
     std::cin >> input;
     if (input == "ponder") {
@@ -194,48 +179,45 @@ void USI::go() {
         std::cin >> input;
         int64_t wtime = stoll(input);
         int64_t time = (root_.color() == BLACK ? btime : wtime);
-        int64_t curr_time = time / ((usi_option.draw_turn - root_.turn_number()) / 2);
+        int64_t remained_turn = (usi_option_.draw_turn - root_.turn_number()) / 2;
+        int64_t curr_time = (remained_turn == 0 ? 0 : time / remained_turn);
         std::cin >> input; //input == "byoyomi" or "binc"となるはず
         if (input == "byoyomi") {
             std::cin >> input;
-            usi_option.limit_msec = stoll(input) + curr_time;
+            time_limit = stoll(input) + curr_time;
         } else {
-            int64_t binc, winc;
             std::cin >> input;
-            binc = stoll(input);
+            int64_t binc = stoll(input);
             std::cin >> input; //input == "winc" となるはず
             std::cin >> input;
-            winc = stoll(input);
-            usi_option.limit_msec = binc + curr_time;
+            int64_t winc = stoll(input);
+            time_limit = binc + curr_time;
         }
     } else if (input == "infinite") {
-        //stop来るまで思考し続ける
         //思考時間をほぼ無限に
-        usi_option.limit_msec = LLONG_MAX;
+        time_limit = LLONG_MAX;
         
         //random_turnをなくす
-        usi_option.random_turn = 0;
+        usi_option_.random_turn = 0;
     } else if (input == "mate") {
         //詰み探索(未実装)
         assert(false);
     }
 
     //思考開始
-    //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので
-    //別スレッドに投げる
-    thread_ = std::thread([&]() {
-        SearcherForPlay searcher(usi_option.USI_Hash * 1024 * 1024 / sizeof(UctHashEntry), usi_option.thread_num, usi_option.search_batch_size, nn);
-        auto best_move = searcher.think(root_);
-        if (best_move == NULL_MOVE) {
-            std::cout << "bestmove resign" << std::endl;
-        } else {
-            std::cout << "bestmove " << best_move << std::endl;
-        }
+    //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので別スレッドに投げる
+    thread_ = std::thread([this, time_limit]() {
+        auto best_move = searcher_->think(root_,
+                                          time_limit - usi_option_.byoyomi_margin,
+                                          usi_option_.search_limit, usi_option_.random_turn,
+                                          usi_option_.print_interval,
+                                          usi_option_.print_policy);
+        std::cout << "bestmove " << best_move << std::endl;
     });
 }
 
 void USI::stop() {
-    usi_option.stop_signal = true;
+    Searcher::stop_signal = true;
     thread_.join();
 }
 
@@ -244,7 +226,6 @@ void USI::ponderhit() {
 }
 
 void USI::quit() {
-    stop();
     exit(0);
 }
 

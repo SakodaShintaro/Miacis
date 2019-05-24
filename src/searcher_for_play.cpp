@@ -1,16 +1,21 @@
 ﻿#include "searcher_for_play.hpp"
-#include "usi_options.hpp"
 #include <thread>
 
-Move SearcherForPlay::think(Position& root) {
+Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_limit, int64_t random_turn,
+                            int64_t print_interval, bool print_policy) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
+
+    //制限の設定
+    time_limit_ = time_limit;
+    node_limit_ = node_limit;
 
     //古いハッシュを削除
     hash_table_.deleteOldHash(root, true);
 
-    //次に表示するノード数を初期化
-    next_print_node_num_ = usi_option.print_interval;
+    //表示間隔の設定
+    print_interval_ = print_interval;
+    next_print_node_num_ = print_interval;
 
     //キューの初期化
     for (int32_t i = 0; i < thread_num_; i++) {
@@ -23,8 +28,8 @@ Move SearcherForPlay::think(Position& root) {
     //ルートノードの展開:0番目のキューを使う
     std::stack<Index> dummy;
     std::stack<int32_t> dummy2;
-    current_root_index_ = expand(root, dummy, dummy2, 0);
-    auto& curr_node = hash_table_[current_root_index_];
+    root_index_ = expand(root, dummy, dummy2, 0);
+    auto& curr_node = hash_table_[root_index_];
 
     //合法手が0だったら投了
     if (curr_node.moves.empty()) {
@@ -46,11 +51,10 @@ Move SearcherForPlay::think(Position& root) {
         curr_node.nn_policy[i] = y.first[0][curr_node.moves[i].toLabel()];
     }
     curr_node.nn_policy = softmax(curr_node.nn_policy);
-    //valueは使わないはずだけど気分で
     curr_node.value = y.second[0];
 
     //詰み探索立ち上げ
-    std::thread mate_thread(&SearcherForPlay::mateSearch, this, root, usi_option.draw_turn);
+    std::thread mate_thread(&SearcherForPlay::mateSearch, this, root, LLONG_MAX);
 
     //workerを立ち上げ
     std::vector<std::thread> threads(thread_num_);
@@ -66,57 +70,41 @@ Move SearcherForPlay::think(Position& root) {
 
     const auto& N = curr_node.N;
 
-    printUSIInfo();
-    if (usi_option.print_debug_info) {
-        root.print(false);
-        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
-            double nn_policy     = 100.0 * curr_node.nn_policy[i];
-            double search_policy = 100.0 * N[i] / curr_node.sum_N;
-#ifdef USE_CATEGORICAL
-            double v = (N[i] > 0 ? expOfValueDist(curr_node.W[i]) / N[i] : MIN_SCORE);
-#else
-            double v = (N[i] > 0 ? curr_node.W[i] / N[i] : MIN_SCORE);
-#endif
-            printf("%3d  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
-            curr_node.moves[i].printWithNewLine();
-        }
-    }
+    printUSIInfo(print_policy);
 
     //探索回数最大の手を選択する
-    int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
-
-    //選択した手の探索回数は少なくとも1以上であることを前提とする
+    int32_t best_index = (int32_t) (std::max_element(N.begin(), N.end()) - N.begin());
     assert(N[best_index] != 0);
 
     //選択した着手の勝率の算出
-#ifdef USE_CATEGORICAL
-    auto best_wp = expOfValueDist(curr_node.W[best_index]) / N[best_index];
-#else
-    auto best_wp = curr_node.W[best_index] / N[best_index];
-#endif
-
     //訪問回数に基づいた分布を得る
     std::vector<CalcType> distribution(curr_node.moves.size());
     for (int32_t i = 0; i < curr_node.moves.size(); i++) {
-        distribution[i] = (CalcType)N[i] / curr_node.sum_N;
+        distribution[i] = (CalcType) N[i] / curr_node.sum_N;
         assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
     }
 
     //最善手
-    Move best_move = (root.turn_number() < usi_option.random_turn ?
+    Move best_move = (root.turn_number() < random_turn ?
                       curr_node.moves[randomChoose(distribution)] :
                       curr_node.moves[best_index]);
 
-    best_move.score = (Score)(best_wp);
+    //価値の取得
+#ifdef USE_CATEGORICAL
+    best_move.score = (Score)expOfValueDist(QfromNextValue(curr_node, best_index));
+#else
+    best_move.score = (Score)QfromNextValue(curr_node, best_index);
+#endif
 
     return best_move;
 }
 
 std::vector<Move> SearcherForPlay::getPV() const {
     std::vector<Move> pv;
-    for (Index curr_node_index = current_root_index_; curr_node_index != UctHashTable::NOT_EXPANDED && !hash_table_[curr_node_index].moves.empty(); ) {
+    for (Index curr_node_index = root_index_;
+        curr_node_index != UctHashTable::NOT_EXPANDED && !hash_table_[curr_node_index].moves.empty();) {
         const auto& N = hash_table_[curr_node_index].N;
-        Index next_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
+        Index next_index = (int32_t) (std::max_element(N.begin(), N.end()) - N.begin());
         pv.push_back(hash_table_[curr_node_index].moves[next_index]);
         curr_node_index = hash_table_[curr_node_index].child_indices[next_index];
     }
@@ -124,20 +112,16 @@ std::vector<Move> SearcherForPlay::getPV() const {
     return pv;
 }
 
-void SearcherForPlay::printUSIInfo() const {
-    const auto& curr_node = hash_table_[current_root_index_];
+void SearcherForPlay::printUSIInfo(bool print_policy) const {
+    const auto& curr_node = hash_table_[root_index_];
 
-    //探索にかかった時間を求める
-    auto finish_time = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - start_);
-
-    auto selected_index = (int32_t)(std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
+    int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    double best_wp = expOfValueDist(curr_node.W[selected_index]) / curr_node.N[selected_index];
+    auto best_wp = expOfValueDist(QfromNextValue(curr_node, best_index));
 #else
-    auto best_wp = (curr_node.N[selected_index] == 0 ? 0.0 : curr_node.W[selected_index] / curr_node.N[selected_index]);
+    auto best_wp = QfromNextValue(curr_node, best_index);
 #endif
 
 #ifdef USE_CATEGORICAL
@@ -146,7 +130,7 @@ void SearcherForPlay::printUSIInfo() const {
     for (int64_t i = 0; i < BIN_SIZE / gather_num; i++) {
         double p = 0.0;
         for (int64_t j = 0; j < gather_num; j++) {
-            p += curr_node.W[selected_index][i * gather_num + j] / curr_node.N[selected_index];
+            p += QfromNextValue(curr_node, best_index)[i * gather_num + j];
         }
         printf("info string [%+6.2f:%06.2f%%]:", MIN_SCORE + VALUE_WIDTH * (gather_num * i + 1.5), p * 100);
         for (int64_t j = 0; j < p * 50; j++) {
@@ -155,20 +139,36 @@ void SearcherForPlay::printUSIInfo() const {
         printf("\n");
     }
 #endif
-
+    //探索にかかった時間を求める
+    auto finish_time = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - start_);
     int64_t ela = elapsed.count();
+
     printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
            (int32_t)(curr_node.sum_N * 1000LL / std::max(ela, (int64_t)1)),
            (int32_t)(ela),
            curr_node.sum_N,
-           (int32_t)(hash_table_.getUsageRate() * 1000),
-           (int32_t)(best_wp * 1000));
+           (int32_t) (hash_table_.getUsageRate() * 1000),
+           (int32_t) (best_wp * 1000));
 
-    auto pv = getPV();
-    for (auto m : pv) {
-        std::cout << m << " ";
+    for (Move move : getPV()) {
+        std::cout << move << " ";
     }
     std::cout << std::endl;
+
+    if (print_policy) {
+        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+            double nn_policy = 100.0 * curr_node.nn_policy[i];
+            double search_policy = 100.0 * curr_node.N[i] / curr_node.sum_N;
+#ifdef USE_CATEGORICAL
+            double v = (curr_node.N[i] > 0 ? expOfValueDist(QfromNextValue(curr_node, i)) : MIN_SCORE);
+#else
+            double v = (curr_node.N[i] > 0 ? QfromNextValue(curr_node, i) : MIN_SCORE);
+#endif
+            printf("info string %3d  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
+            curr_node.moves[i].printWithNewLine();
+        }
+    }
 }
 
 void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
@@ -177,20 +177,18 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
     auto& index_queue = index_queues_[id];
     auto& route_queue = route_queues_[id];
     auto& action_queue = action_queues_[id];
-    auto& redundancy_num = redundancy_num_[id];
 
     //限界に達するまで探索を繰り返す
-    while (hash_table_[current_root_index_].sum_N < usi_option.search_limit && !shouldStop()) {
+    while (!shouldStop()) {
         //キューをクリア
         input_queue.clear();
         index_queue.clear();
         route_queue.clear();
         action_queue.clear();
-        redundancy_num.clear();
 
-        if (hash_table_[current_root_index_].sum_N >= next_print_node_num_) {
-            printUSIInfo();
-            next_print_node_num_ += usi_option.print_interval;
+        if (hash_table_[root_index_].sum_N >= next_print_node_num_) {
+            next_print_node_num_ += print_interval_;
+            printUSIInfo(false);
         }
 
         //評価要求を貯める
@@ -221,7 +219,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
 
         //バックアップ
         for (int32_t i = 0; i < route_queue.size(); i++) {
-            backup(route_queue[i], action_queue[i], 1 - VIRTUAL_LOSS * redundancy_num[i]);
+            backup(route_queue[i], action_queue[i]);
         }
     }
 }
@@ -230,12 +228,12 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
     std::stack<Index> curr_indices;
     std::stack<int32_t> curr_actions;
 
-    auto index = current_root_index_;
+    auto index = root_index_;
     //ルートでは合法手が一つはあるはず
     assert(!hash_table_[index].moves.empty());
 
     //未展開の局面に至るまで遷移を繰り返す
-    while(index != UctHashTable::NOT_EXPANDED) {
+    while (index != UctHashTable::NOT_EXPANDED) {
         std::unique_lock<std::mutex> lock(lock_node_[index]);
 
         if (hash_table_[index].moves.empty()) {
@@ -244,14 +242,13 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
         }
 
         Score repeat_score;
-        if (index != current_root_index_ && pos.isRepeating(repeat_score)) {
+        if (index != root_index_ && pos.isRepeating(repeat_score)) {
             //繰り返しが発生している場合も抜ける
             break;
         }
 
         if (hash_table_[index].nn_policy.size() != hash_table_[index].moves.size()) {
             //policyが展開されていなかったら抜ける
-            assert(false);
             break;
         }
 
@@ -265,8 +262,8 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
         curr_actions.push(action);
 
         //VIRTUAL_LOSSの追加
-        hash_table_[index].N[action] += VIRTUAL_LOSS;
-        hash_table_[index].sum_N     += VIRTUAL_LOSS;
+        hash_table_[index].virtual_N[action] += VIRTUAL_LOSS;
+        hash_table_[index].virtual_sum_N += VIRTUAL_LOSS;
 
         //遷移
         pos.doMove(hash_table_[index].moves[action]);
@@ -307,7 +304,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
             //評価済みならば,前回までのループでここへ違う経路で到達していたか,終端状態であるかのいずれか
             //どちらの場合でもバックアップして良い,と思う
             //GPUに送らないのでこのタイミングでバックアップを行う
-            backup(indices, actions, 1 - VIRTUAL_LOSS);
+            backup(indices, actions);
         } else {
             //評価済みではないけどここへ到達したならば,同じループの中で同じ局面へ到達があったということ
             //全く同じ経路のものがあるかどうか確認
@@ -316,10 +313,6 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
                 //同じものがなかったならばバックアップ要求を追加
                 route_queues_[id].push_back(indices);
                 action_queues_[id].push_back(actions);
-                redundancy_num_[id].push_back(1);
-            } else {
-                //同じものがあったならば重複数を増やして終わり
-                redundancy_num_[id][itr - route_queues_[id].begin()]++;
             }
         }
         return index;
@@ -328,23 +321,31 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     // 空のインデックスを探す
     index = hash_table_.searchEmptyIndex(pos);
 
+    if (index == hash_table_.size()) {
+        //置換表がいっぱいだったということ。どうしよう
+    }
+
     //経路として記録
     indices.push(index);
 
-    auto& current_node = hash_table_[index];
+    auto& curr_node = hash_table_[index];
 
     // 候補手の展開
-    current_node.moves = pos.generateAllMoves();
-    current_node.child_indices.assign(current_node.moves.size(), UctHashTable::NOT_EXPANDED);
-    current_node.N.assign(current_node.moves.size(), 0);
-    current_node.sum_N = 0;
-    current_node.evaled = false;
+    curr_node.moves = pos.generateAllMoves();
+    curr_node.moves.shrink_to_fit();
+    curr_node.child_indices.assign(curr_node.moves.size(), UctHashTable::NOT_EXPANDED);
+    curr_node.child_indices.shrink_to_fit();
+    curr_node.N.assign(curr_node.moves.size(), 0);
+    curr_node.N.shrink_to_fit();
+    curr_node.virtual_N.assign(curr_node.moves.size(), 0);
+    curr_node.virtual_N.shrink_to_fit();
+    curr_node.sum_N = 0;
+    curr_node.virtual_sum_N = 0;
+    curr_node.evaled = false;
 #ifdef USE_CATEGORICAL
-    current_node.W.assign(current_node.moves.size(), {});
-    current_node.value = std::array<float, BIN_SIZE>{};
+    curr_node.value = std::array<float, BIN_SIZE>{};
 #else
-    current_node.W.assign(current_node.moves.size(), 0.0);
-    current_node.value = 0.0;
+    curr_node.value = 0.0;
 #endif
 
     // ノードを評価
@@ -352,25 +353,25 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     if (pos.isRepeating(repeat_score)) {
         //繰り返し
 #ifdef USE_CATEGORICAL
-        current_node.value = onehotDist(repeat_score);
+        curr_node.value = onehotDist(repeat_score);
 #else
-        current_node.value = repeat_score;
+        curr_node.value = repeat_score;
 #endif
-        current_node.evaled = true;
+        curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
-        backup(indices, actions, 1 - VIRTUAL_LOSS);
-    } else if (current_node.moves.empty()) {
+        backup(indices, actions);
+    } else if (curr_node.moves.empty()) {
         //打ち歩詰めなら勝ち,そうでないなら負け
         auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
 
 #ifdef USE_CATEGORICAL
-        current_node.value = onehotDist(v);
+        curr_node.value = onehotDist(v);
 #else
-        current_node.value = v;
+        curr_node.value = v;
 #endif
-        current_node.evaled = true;
+        curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
-        backup(indices, actions, 1 - VIRTUAL_LOSS);
+        backup(indices, actions);
     } else {
         //GPUへ計算要求を投げる
         auto this_feature = pos.makeFeature();
@@ -379,17 +380,17 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
         //バックアップ要求も投げる
         route_queues_[id].push_back(indices);
         action_queues_[id].push_back(actions);
-        redundancy_num_[id].push_back(1);
     }
 
     return index;
 }
 
-void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t add_num) {
+void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
     assert(indices.size() == actions.size() + 1);
     auto leaf = indices.top();
     indices.pop();
     auto value = hash_table_[leaf].value;
+    static constexpr float LAMBDA = 1.0;
 
     //バックアップ
     while (!actions.empty()) {
@@ -399,6 +400,8 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
         auto action = actions.top();
         actions.pop();
 
+        UctHashEntry& node = hash_table_[index];
+
         //手番が変わるので反転
 #ifdef USE_CATEGORICAL
         std::reverse(value.begin(), value.end());
@@ -407,10 +410,17 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
 #endif
         // 探索結果の反映
         lock_node_[index].lock();
-        hash_table_[index].W[action] += value;
-        hash_table_[index].N[action] += add_num;
-        hash_table_[index].sum_N     += add_num;
-        assert(!hash_table_[index].moves.empty());
+
+        node.N[action]++;
+        node.sum_N++;
+        node.virtual_sum_N -= node.virtual_N[action];
+        node.virtual_N[action] = 0;
+
+        auto curr_v = node.value;
+        float alpha = 1.0f / (node.sum_N + 1);
+        node.value += alpha * (value - curr_v);
+        value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
+
         lock_node_[index].unlock();
     }
 }

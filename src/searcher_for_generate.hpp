@@ -8,10 +8,13 @@
 class SearcherForGenerate : public Searcher {
 public:
     //コンストラクタ
-    SearcherForGenerate(int64_t hash_size, int32_t id, std::vector<float>& input_queue, std::vector<std::stack<int32_t>>& index_queue,
+    SearcherForGenerate(int64_t node_limit, int32_t id, std::vector<float>& input_queue, std::vector<std::stack<int32_t>>& index_queue,
                         std::vector<std::stack<int32_t>>& action_queue, std::vector<int32_t>& id_queue) :
-            Searcher(hash_size), id_(id), input_queue_(input_queue), index_queue_(index_queue), action_queue_(action_queue),
-            id_queue_(id_queue) {}
+            Searcher(node_limit), id_(id), input_queue_(input_queue), index_queue_(index_queue), action_queue_(action_queue),
+            id_queue_(id_queue) {
+        time_limit_ = LLONG_MAX;
+        node_limit_ = node_limit;
+    }
 
 private:
     //GameGeneratorでしか用いられないので全てprivateに置いてfriend指定をする

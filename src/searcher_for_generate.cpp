@@ -1,5 +1,4 @@
 ﻿#include "searcher_for_generate.hpp"
-#include "usi_options.hpp"
 
 bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     //古いハッシュを削除
@@ -8,7 +7,7 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     //ルートノードの展開
     std::stack<int32_t> indices;
     std::stack<int32_t> actions;
-    current_root_index_ = expand(root, indices, actions);
+    root_index_ = expand(root, indices, actions);
 
     if (root.turn_number() >= 50) {
         //5手詰めまで探索
@@ -16,14 +15,14 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     }
 
     //合法手が0かどうかを判定して返す
-    return !hash_table_[current_root_index_].moves.empty();
+    return !hash_table_[root_index_].moves.empty();
 }
 
 void SearcherForGenerate::select(Position& pos) {
-    if (hash_table_[current_root_index_].sum_N == 0) {
+    if (hash_table_[root_index_].sum_N == 0) {
         //初回の探索をする前にノイズを加える
         //Alpha Zeroの論文と同じディリクレノイズ
-        auto& root_node = hash_table_[current_root_index_];
+        auto& root_node = hash_table_[root_index_];
         constexpr double epsilon = 0.25;
         auto dirichlet = dirichletDistribution(root_node.moves.size(), 0.15);
         for (int32_t i = 0; i < root_node.moves.size(); i++) {
@@ -34,7 +33,7 @@ void SearcherForGenerate::select(Position& pos) {
     std::stack<Index> curr_indices;
     std::stack<int32_t> curr_actions;
 
-    auto index = current_root_index_;
+    auto index = root_index_;
     //ルートでは合法手が一つはあるはず
     assert(!hash_table_[index].moves.empty());
 
@@ -46,7 +45,7 @@ void SearcherForGenerate::select(Position& pos) {
         }
 
 //        Score repeat_score;
-//        if (index != current_root_index_ && pos.isRepeating(repeat_score)) {
+//        if (index != root_index_ && pos.isRepeating(repeat_score)) {
 //            //繰り返しが発生している場合も抜ける
 //            break;
 //        }
@@ -98,20 +97,24 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
     // 空のインデックスを探す
     index = hash_table_.searchEmptyIndex(pos);
 
-    auto& current_node = hash_table_[index];
+    auto& curr_node = hash_table_[index];
 
     // 現在のノードの初期化
-    current_node.moves = pos.generateAllMoves();
-    current_node.child_indices.assign(current_node.moves.size(), UctHashTable::NOT_EXPANDED);
-    current_node.N.assign(current_node.moves.size(), 0);
-    current_node.sum_N = 0;
-    current_node.evaled = false;
+    curr_node.moves = pos.generateAllMoves();
+    curr_node.moves.shrink_to_fit();
+    curr_node.child_indices.assign(curr_node.moves.size(), UctHashTable::NOT_EXPANDED);
+    curr_node.child_indices.shrink_to_fit();
+    curr_node.N.assign(curr_node.moves.size(), 0);
+    curr_node.N.shrink_to_fit();
+    curr_node.virtual_N.assign(curr_node.moves.size(), 0);
+    curr_node.virtual_N.shrink_to_fit();
+    curr_node.sum_N = 0;
+    curr_node.virtual_sum_N = 0;
+    curr_node.evaled = false;
 #ifdef USE_CATEGORICAL
-    current_node.W.assign(current_node.moves.size(), std::array<float, BIN_SIZE>{});
-    current_node.value = std::array<float, BIN_SIZE>{};
+    curr_node.value = std::array<float, BIN_SIZE>{};
 #else
-    current_node.value = 0.0;
-    current_node.W.assign(current_node.moves.size(), 0.0);
+    curr_node.value = 0.0;
 #endif
 
     // ノードを評価
@@ -119,16 +122,29 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
 //    if (pos.isRepeating(repeat_score)) {
 //        //繰り返し
 //#ifdef USE_CATEGORICAL
-//        current_node.value = onehotDist(repeat_score);
+//        curr_node.value = onehotDist(repeat_score);
 //#else
-//        current_node.value = repeat_score;
+//        curr_node.value = repeat_score;
 //#endif
-//        current_node.evaled = true;
+//        curr_node.evaled = true;
 //        //GPUに送らないのでこのタイミングでバックアップを行う
 //        indices.push(index);
 //        backup(indices, actions);
 //    } else
-    if (!current_node.moves.empty()) {
+    if (curr_node.moves.empty()) {
+        //打ち歩詰めなら勝ち,そうでないなら負け
+        auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
+
+#ifdef USE_CATEGORICAL
+        curr_node.value = onehotDist(v);
+#else
+        curr_node.value = v;
+#endif
+        curr_node.evaled = true;
+        //GPUに送らないのでこのタイミングでバックアップを行う
+        indices.push(index);
+        backup(indices, actions);
+    } else {
         //特徴量の追加
         auto this_feature = pos.makeFeature();
         input_queue_.insert(input_queue_.end(), this_feature.begin(), this_feature.end());
@@ -138,19 +154,6 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
         index_queue_.push_back(indices);
         action_queue_.push_back(actions);
         id_queue_.push_back(id_);
-    } else {
-        //打ち歩詰めなら勝ち,そうでないなら負け
-        auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
-
-#ifdef USE_CATEGORICAL
-        current_node.value = onehotDist(v);
-#else
-        current_node.value = v;
-#endif
-        current_node.evaled = true;
-        //GPUに送らないのでこのタイミングでバックアップを行う
-        indices.push(index);
-        backup(indices, actions);
     }
 
     return index;
@@ -161,6 +164,7 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
     auto leaf = indices.top();
     indices.pop();
     auto value = hash_table_[leaf].value;
+    static constexpr float LAMBDA = 1.0;
 
     //バックアップ
     while (!actions.empty()) {
@@ -178,15 +182,20 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
 #endif
 
         // 探索結果の反映
-        hash_table_[index].W[action] += value;
         hash_table_[index].N[action]++;
         hash_table_[index].sum_N++;
+
+        auto curr_v = hash_table_[index].value;
+        float alpha = 1.0f / (hash_table_[index].sum_N + 1);
+        hash_table_[index].value += alpha * (value - curr_v);
+        value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
+
         assert(!hash_table_[index].moves.empty());
     }
 }
 
 OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
-    const auto& current_node = hash_table_[current_root_index_];
+    const auto& current_node = hash_table_[root_index_];
     assert(!current_node.moves.empty());
     assert(current_node.sum_N != 0);
     const auto& N = current_node.N;
@@ -195,10 +204,13 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
 
     //選択した着手の勝率の算出
+    //詰みのときは未展開であることに注意する
 #ifdef USE_CATEGORICAL
-    auto best_wp = expOfValueDist(current_node.W[best_index]) / N[best_index];
+    auto best_wp = (current_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
+                    expOfValueDist(QfromNextValue(current_node, best_index)));
 #else
-    auto best_wp = (N[best_index] == 0 ? MIN_SCORE : current_node.W[best_index] / N[best_index]);
+    auto best_wp = (current_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
+                    QfromNextValue(current_node, best_index));
 #endif
 
     //教師データを作成
@@ -218,15 +230,13 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
         distribution[i] = (CalcType)N[i] / current_node.sum_N;
         assert(0 <= N[i] && N[i] <= current_node.sum_N);
+        element.teacher.policy.push_back({current_node.moves[i].toLabel(), distribution[i]});
     }
 
-    //最善手
-    Move best_move = (root.turn_number() < usi_option.random_turn ?
-                      current_node.moves[randomChoose(distribution)] :
-                      current_node.moves[best_index]);
+    //分布に従って行動選択
+    Move best_move = current_node.moves[randomChoose(distribution)];
     element.move = best_move;
     element.move.score = best_wp;
-    element.teacher.policy = best_move.toLabel();
 
     //priorityとしてpolicyの損失を計算
     element.nn_output_policy.resize(SQUARE_NUM * POLICY_CHANNEL_NUM, 0.0);

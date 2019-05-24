@@ -2,7 +2,7 @@
 #include<thread>
 #include<iomanip>
 
-const std::string ReplayBuffer::save_dir = "./learn_kifu";
+const std::string ReplayBuffer::save_dir = "./learn_kifu/";
 
 void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
                              std::vector<PolicyTeacherType>& policy_teachers,

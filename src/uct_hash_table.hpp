@@ -9,10 +9,11 @@ using Index = int32_t;
 
 struct UctHashEntry {
     int32_t sum_N;
+    int32_t virtual_sum_N;
     std::vector<Move> moves;
     std::vector<Index> child_indices;
     std::vector<int32_t> N;
-    std::vector<ValueType> W;
+    std::vector<int32_t> virtual_N;
     std::vector<CalcType> nn_policy;
     ValueType value;
     bool evaled;
@@ -26,11 +27,11 @@ struct UctHashEntry {
 
 #ifdef USE_CATEGORICAL
     UctHashEntry() :
-        sum_N(0),
+        sum_N(0), virtual_sum_N(0),
         evaled(false), hash(0), turn_number(0), age(0) {}
 #else
     UctHashEntry() :
-        sum_N(0), value(0.0),
+        sum_N(0), virtual_sum_N(0), value(0.0),
         evaled(false), hash(0), turn_number(0), age(0) {}
 #endif
 };
@@ -64,7 +65,7 @@ public:
     }
 
     bool hasEnoughSize() {
-        return used_num_ < table_.size();
+        return used_num_ < table_.size() - 1;
     }
 
     uint64_t size() {

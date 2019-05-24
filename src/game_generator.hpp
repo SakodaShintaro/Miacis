@@ -12,7 +12,10 @@
 
 class GameGenerator {
 public:
-    GameGenerator(ReplayBuffer& rb, NeuralNetwork evaluator) : rb_(rb), evaluator_(std::move(evaluator)) {
+    GameGenerator(int64_t search_limit, int64_t draw_turn, int64_t thread_num, int64_t search_batch_size,
+                  ReplayBuffer& rb, NeuralNetwork evaluator)
+        : search_limit_(search_limit), draw_turn_(draw_turn),thread_num_(thread_num),
+          search_batch_size_(search_batch_size), rb_(rb), evaluator_(std::move(evaluator)) {
         evaluator_->eval();
     };
 
@@ -28,6 +31,18 @@ private:
 
     //生成する局数
     std::atomic<int64_t> game_num_;
+
+    //1局面あたりで行う探索回数
+    int64_t search_limit_;
+
+    //引き分け手数
+    int64_t draw_turn_;
+
+    //1GPUあたりに稼働するCPUのスレッド数
+    int64_t thread_num_;
+
+    //1CPUスレッドが1回GPUへ評価要求を投げるまでまとめて探索する回数
+    int64_t search_batch_size_;
 
     //データを送るReplayBufferへの参照
     ReplayBuffer& rb_;
