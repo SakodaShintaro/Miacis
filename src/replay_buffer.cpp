@@ -110,7 +110,7 @@ void ReplayBuffer::push(Game &game) {
         float priority = (-std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f)) * 2.5f;
 #endif
         //segment_treeのpriorityを更新
-        segment_tree_.update(change_index, priority);
+        segment_tree_.update(change_index, std::pow(priority, alpha_));
 
         if (first_wait_ > 0) {
             first_wait_--;
@@ -125,7 +125,7 @@ void ReplayBuffer::update(const std::vector<float>& loss) {
 
     assert(loss.size() == pre_indices_.size());
     for (uint64_t i = 0; i < loss.size(); i++) {
-        segment_tree_.update(pre_indices_[i], loss[i]);
+        segment_tree_.update(pre_indices_[i], std::pow(loss[i], alpha_));
     }
 
     mutex_.unlock();

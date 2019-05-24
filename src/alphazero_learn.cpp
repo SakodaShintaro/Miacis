@@ -12,6 +12,7 @@ void alphaZero() {
     settings.add("policy_loss_coeff",      0.0f, 1e10f);
     settings.add("value_loss_coeff",       0.0f, 1e10f);
     settings.add("lambda",                 0.0f, 1.0f);
+    settings.add("alpha",                  0.0f, 1e10f);
     settings.add("learn_rate_decay_step1", 0, (int64_t)1e10);
     settings.add("learn_rate_decay_step2", 0, (int64_t)1e10);
     settings.add("learn_rate_decay_step3", 0, (int64_t)1e10);
@@ -41,6 +42,7 @@ void alphaZero() {
     float policy_loss_coeff          = settings.get<float>("policy_loss_coeff");
     float value_loss_coeff           = settings.get<float>("value_loss_coeff");
     float lambda                     = settings.get<float>("lambda");
+    float alpha                      = settings.get<float>("alpha");
     int64_t learn_rate_decay_step1   = settings.get<int64_t>("learn_rate_decay_step1");
     int64_t learn_rate_decay_step2   = settings.get<int64_t>("learn_rate_decay_step2");
     int64_t learn_rate_decay_step3   = settings.get<int64_t>("learn_rate_decay_step3");
@@ -64,8 +66,8 @@ void alphaZero() {
     //探索のシグナルをオフにしておく
     Searcher::stop_signal = false;
 
-    //リプレイバッファ
-    ReplayBuffer replay_buffer(first_wait, max_stack_size, lambda);
+    //リプレイバッファの生成
+    ReplayBuffer replay_buffer(first_wait, max_stack_size, lambda, alpha);
 
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");

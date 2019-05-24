@@ -65,7 +65,7 @@ void checkGenSpeed() {
     constexpr int64_t buffer_size = 20000;
 
     for (int64_t search_batch_size = 32; search_batch_size <= 128; search_batch_size *= 2) {
-        ReplayBuffer buffer(0, buffer_size, 1.0);
+        ReplayBuffer buffer(0, buffer_size, 1.0, 1.0);
         Searcher::stop_signal = false;
         auto start = std::chrono::steady_clock::now();
         GameGenerator generator(800, 256, 2, search_batch_size,buffer, nn);

@@ -3,6 +3,7 @@ momentum               0.9
 policy_loss_coeff      1.0
 value_loss_coeff       1.0
 lambda                 1.0
+alpha                  2.0
 draw_turn              512
 batch_size             64
 thread_num             2

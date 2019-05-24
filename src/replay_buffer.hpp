@@ -15,8 +15,8 @@
 
 class ReplayBuffer{
 public:
-    ReplayBuffer(int64_t first_wait, int64_t max_size, float lambda) : first_wait_(first_wait), max_size_(max_size),
-    lambda_(lambda), segment_tree_(max_size), data_(max_size) {
+    ReplayBuffer(int64_t first_wait, int64_t max_size, double lambda, double alpha) : first_wait_(first_wait), max_size_(max_size),
+    segment_tree_(max_size), data_(max_size), lambda_(lambda),  alpha_(alpha) {
         //棋譜を保存するディレクトリの削除
         std::experimental::filesystem::remove_all(save_dir);
 
@@ -56,6 +56,9 @@ private:
 
     //TD(λ)のパラメータ
     double lambda_;
+
+    //priorityを累乗するパラメータ
+    double alpha_;
 
     //排他制御用
     std::mutex mutex_;
