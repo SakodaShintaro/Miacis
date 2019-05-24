@@ -27,30 +27,25 @@ bool Searcher::shouldStop() {
 
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
 #ifdef USE_CATEGORICAL
-    int32_t selected_index = -1, max_num = -1;
+    int32_t best_index = -1, max_num = -1;
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
         int32_t num = current_node.N[i] + current_node.virtual_N[i];
         if (num > max_num) {
-            selected_index = i;
+            best_index = i;
             max_num = num;
         }
     }
-    double best_wp = (current_node.child_indices[selected_index] == -1 ? MIN_SCORE : expOfValueDist(QfromNextValue(current_node, selected_index)) / max_num);
+    double best_wp = (current_node.child_indices[best_index] == -1 ? MIN_SCORE : expOfValueDist(QfromNextValue(current_node, best_index)));
 #endif
 
-    // ucb = Q(s, a) + U(s, a)
-    // Q(s, a) = W(s, a) / N(s, a)
-    // U(s, a) = C * P(s, a) * sqrt(sum_b(B(s, b)) / (1 + N(s, a))
-
-    constexpr double C_base = 19652.0;
-    constexpr double C_init = 1.25;
+    constexpr double C_PUCT = 5.0;
 
     int32_t max_index = -1;
     double max_value = MIN_SCORE - 1;
 
     const int32_t sum = current_node.sum_N + current_node.virtual_sum_N;
     for (int32_t i = 0; i < current_node.moves.size(); i++) {
-        auto visit_num = current_node.N[i] + current_node.virtual_N[i];
+        const int32_t visit_num = current_node.N[i] + current_node.virtual_N[i];
 
 #ifdef USE_CATEGORICAL
         double Q;
@@ -65,15 +60,14 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& current_node) {
             }
             std::reverse(Q_dist.begin(), Q_dist.end());
             for (int32_t j = std::min(valueToIndex(best_wp) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-                Q += Q_dist[j] * current_node.N[i] / visit_num;
+                Q += Q_dist[j];
             }
         }
 #else
-        double Q = (visit_num == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(current_node, i) * current_node.N[i] / visit_num);
+        double Q = (visit_num == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(current_node, i));
 #endif
         double U = std::sqrt(sum + 1) / (visit_num + 1);
-        double C = (std::log((sum + C_base + 1) / C_base) + C_init);
-        double ucb = Q + C * current_node.nn_policy[i] * U;
+        double ucb = Q + C_PUCT * current_node.nn_policy[i] * U;
 
         if (ucb > max_value) {
             max_value = ucb;
@@ -141,7 +135,7 @@ void Searcher::mateSearch(Position pos, int32_t depth_limit) {
 
                 if (curr_node.child_indices[i] != UctHashTable::NOT_EXPANDED) {
 #ifdef USE_CATEGORICAL
-                    //普通の探索結果と値が混ざってしまいそうだが
+                    //普通の探索結果と値が混ざってしまいそう
                     //タイミングによっては問題が起こるかもしれない
                     hash_table_[curr_node.child_indices[i]].value[0] = 1;
                     for (int32_t j = 1; j < BIN_SIZE; j++) {
