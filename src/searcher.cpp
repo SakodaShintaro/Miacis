@@ -38,7 +38,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
     double best_wp = (node.child_indices[best_index] == -1 ? MIN_SCORE : expOfValueDist(QfromNextValue(node, best_index)));
 #endif
 
-    constexpr double C_PUCT = 5.0;
+    constexpr double C_PUCT = 2.5;
 
     int32_t max_index = -1;
     double max_value = MIN_SCORE - 1;
