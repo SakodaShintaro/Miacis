@@ -64,7 +64,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
             }
         }
 #else
-        double Q = (visit_num == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(node, i));
+        double Q = (node.N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(node, i));
 #endif
         double U = std::sqrt(sum + 1) / (visit_num + 1);
         double ucb = Q + C_PUCT * node.nn_policy[i] * U;
