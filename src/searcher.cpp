@@ -21,6 +21,19 @@ bool Searcher::shouldStop() {
     }
 
     //探索回数のチェック
+//    int32_t max1 = 0, max2 = 0;
+//    for (int32_t i = 0; i < hash_table_[root_index_].moves.size(); i++) {
+//        int32_t num = hash_table_[root_index_].N[i] + hash_table_[root_index_].virtual_N[i];
+//        if (num > max1) {
+//            max2 = max1;
+//            max1 = max2;
+//        } else if (num > max2) {
+//            max2 = num;
+//        }
+//    }
+//    int32_t remainder = node_limit_ - (hash_table_[root_index_].sum_N + hash_table_[root_index_].virtual_sum_N);
+//    return max1 - max2 >= remainder;
+
     int32_t search_num = hash_table_[root_index_].sum_N + hash_table_[root_index_].virtual_sum_N;
     return search_num >= node_limit_;
 }
