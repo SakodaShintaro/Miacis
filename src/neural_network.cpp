@@ -175,6 +175,7 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
         for (int32_t j = 0; j < 2; j++) {
             conv[i][j]->to(device_, torch::kHalf);
             bn[i][j]->to(device_);
+            fc[i][j]->to(device_, torch::kHalf);
         }
     }
     policy_conv->to(device_, torch::kHalf);
