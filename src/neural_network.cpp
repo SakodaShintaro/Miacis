@@ -3,7 +3,10 @@
 //遅くなるのでオフ
 //#define USE_HALF_FLOAT
 
-NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)), bn(BLOCK_NUM, std::vector<torch::nn::BatchNorm>(2, nullptr)) {
+NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
+                                         conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)),
+                                         bn(BLOCK_NUM, std::vector<torch::nn::BatchNorm>(2, nullptr)),
+                                         fc(BLOCK_NUM, std::vector<torch::nn::Linear>(2, nullptr)) {
     first_conv = register_module("first_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
     first_bn = register_module("first_bn", torch::nn::BatchNorm(CHANNEL_NUM));
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
@@ -11,6 +14,8 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), conv(BLOCK_NUM, 
             conv[i][j] = register_module("conv" + std::to_string(i) + "_" + std::to_string(j), torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
             bn[i][j] = register_module("bn" + std::to_string(i) + "_" + std::to_string(j), torch::nn::BatchNorm(CHANNEL_NUM));
         }
+        fc[i][0] = register_module("fc" + std::to_string(i) + "_0", torch::nn::Linear(torch::nn::LinearOptions(CHANNEL_NUM, CHANNEL_NUM / REDUCTION).with_bias(false)));
+        fc[i][1] = register_module("fc" + std::to_string(i) + "_1", torch::nn::Linear(torch::nn::LinearOptions(CHANNEL_NUM / REDUCTION, CHANNEL_NUM).with_bias(false)));
     }
     policy_conv = register_module("policy_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
     value_conv = register_module("value_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, 1).padding(0).with_bias(false)));
@@ -39,6 +44,16 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::ve
 
         x = conv[i][1]->forward(x);
         x = bn[i][1]->forward(x);
+
+        auto y = torch::avg_pool2d(x, {9, 9});
+        y = y.view({-1, CHANNEL_NUM});
+        y = fc[i][0]->forward(y);
+        y = torch::relu(y);
+        y = fc[i][1]->forward(y);
+        y = torch::sigmoid(y);
+        y = y.view({-1, CHANNEL_NUM, 1, 1});
+        x = x * y;
+
         x = torch::relu(x + t);
     }
 
@@ -162,6 +177,7 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
         for (int32_t j = 0; j < 2; j++) {
             conv[i][j]->to(device_, torch::kHalf);
             bn[i][j]->to(device_);
+            fc[i][j]->to(device_, torch::kHalf);
         }
     }
     policy_conv->to(device_, torch::kHalf);

@@ -9,6 +9,7 @@ constexpr int32_t POLICY_CHANNEL_NUM = 27;
 constexpr int32_t BLOCK_NUM = 10;
 constexpr int32_t KERNEL_SIZE = 3;
 constexpr int32_t CHANNEL_NUM = 64;
+constexpr int32_t REDUCTION = 8;
 constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
 //評価パラメータを読み書きするファイルのprefix
@@ -64,6 +65,7 @@ private:
     torch::nn::BatchNorm first_bn{nullptr};
     std::vector<std::vector<torch::nn::Conv2d>> conv;
     std::vector<std::vector<torch::nn::BatchNorm>> bn;
+    std::vector<std::vector<torch::nn::Linear>> fc;
     torch::nn::Conv2d policy_conv{nullptr};
     torch::nn::Conv2d value_conv{nullptr};
     torch::nn::BatchNorm value_bn{nullptr};

@@ -145,13 +145,11 @@ void searchLearningRate() {
     //損失推移
     std::vector<double> losses;
 
-    int64_t times;
-    std::cout << "試行回数:";
-    std::cin >> times;
+    //試行回数
+    constexpr int64_t times = 100;
 
-    double scale;
-    std::cout << "倍率:";
-    std::cin >> scale;
+    //学習率を上げていく倍率
+    constexpr double scale = 1.2;
 
     for (int64_t k = 0; k < times; k++) {
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
