@@ -165,12 +165,17 @@ void Searcher::mateSearch(Position pos, int32_t depth_limit) {
 }
 
 ValueType Searcher::QfromNextValue(const UctHashEntry& node, int32_t i) const {
-    assert(node.child_indices[i] != UctHashTable::NOT_EXPANDED);
 #ifdef USE_CATEGORICAL
+    if (node.child_indices[i] == UctHashTable::NOT_EXPANDED) {
+        return onehotDist(MIN_SCORE);
+    }
     auto v = hash_table_[node.child_indices[i]].value;
     std::reverse(v.begin(), v.end());
     return v;
 #else
-    return -hash_table_[node.child_indices[i]].value;
+    if (node.child_indices[i] == UctHashTable::NOT_EXPANDED) {
+        return MIN_SCORE;
+    }
+    return MAX_SCORE + MIN_SCORE - hash_table_[node.child_indices[i]].value;
 #endif
 }
