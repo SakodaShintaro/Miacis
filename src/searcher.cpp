@@ -40,15 +40,8 @@ bool Searcher::shouldStop() {
 
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
 #ifdef USE_CATEGORICAL
-    int32_t best_index = -1, max_num = -1;
-    for (int32_t i = 0; i < node.moves.size(); i++) {
-        int32_t num = node.N[i] + node.virtual_N[i];
-        if (num > max_num) {
-            best_index = i;
-            max_num = num;
-        }
-    }
-    double best_wp = expOfValueDist(QfromNextValue(node, best_index));
+    int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
+    double best_value = expOfValueDist(QfromNextValue(node, best_index));
 #endif
 
     constexpr double C_PUCT = 2.5;
@@ -61,7 +54,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
 #ifdef USE_CATEGORICAL
         double Q = 0.0;
         ValueType Q_dist = QfromNextValue(node, i);
-        for (int32_t j = std::min(valueToIndex(best_wp) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
+        for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
             Q += Q_dist[j];
         }
 #else

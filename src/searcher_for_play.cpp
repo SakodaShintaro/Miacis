@@ -119,9 +119,9 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    auto best_wp = expOfValueDist(QfromNextValue(curr_node, best_index));
+    auto best_value = expOfValueDist(QfromNextValue(curr_node, best_index));
 #else
-    auto best_wp = QfromNextValue(curr_node, best_index);
+    auto best_value = QfromNextValue(curr_node, best_index);
 #endif
 
 #ifdef USE_CATEGORICAL
@@ -149,7 +149,7 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
            (int32_t)(ela),
            curr_node.sum_N,
            (int32_t) (hash_table_.getUsageRate() * 1000),
-           (int32_t) (best_wp * 1000));
+           (int32_t) (best_value * 1000));
 
     for (Move move : getPV()) {
         std::cout << move << " ";
