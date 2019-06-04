@@ -161,9 +161,9 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
             double nn_policy = 100.0 * curr_node.nn_policy[i];
             double search_policy = 100.0 * curr_node.N[i] / curr_node.sum_N;
 #ifdef USE_CATEGORICAL
-            double v = (curr_node.N[i] > 0 ? expOfValueDist(QfromNextValue(curr_node, i)) : MIN_SCORE);
+            double v = expOfValueDist(QfromNextValue(curr_node, i));
 #else
-            double v = (curr_node.N[i] > 0 ? QfromNextValue(curr_node, i) : MIN_SCORE);
+            double v = QfromNextValue(curr_node, i);
 #endif
             printf("info string %3d  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
             curr_node.moves[i].printWithNewLine();

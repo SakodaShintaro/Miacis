@@ -48,7 +48,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
             max_num = num;
         }
     }
-    double best_wp = (node.child_indices[best_index] == -1 ? MIN_SCORE : expOfValueDist(QfromNextValue(node, best_index)));
+    double best_wp = expOfValueDist(QfromNextValue(node, best_index));
 #endif
 
     constexpr double C_PUCT = 2.5;
@@ -58,28 +58,16 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
     for (int32_t i = 0; i < node.moves.size(); i++) {
-        const int32_t visit_num = node.N[i] + node.virtual_N[i];
-
 #ifdef USE_CATEGORICAL
-        double Q;
-        if (visit_num == 0) {
-            //中間を初期値とする
-            Q = (MAX_SCORE + MIN_SCORE) / 2;
-        } else {
-            Q = 0.0;
-            ValueType Q_dist{};
-            if (node.child_indices[i] != UctHashTable::NOT_EXPANDED) {
-                Q_dist = hash_table_[node.child_indices[i]].value;
-            }
-            std::reverse(Q_dist.begin(), Q_dist.end());
-            for (int32_t j = std::min(valueToIndex(best_wp) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-                Q += Q_dist[j];
-            }
+        double Q = 0.0;
+        ValueType Q_dist = QfromNextValue(node, i);
+        for (int32_t j = std::min(valueToIndex(best_wp) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
+            Q += Q_dist[j];
         }
 #else
         double Q = (node.N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(node, i));
 #endif
-        double U = std::sqrt(sum + 1) / (visit_num + 1);
+        double U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
         double ucb = Q + C_PUCT * node.nn_policy[i] * U;
 
         if (ucb > max_value) {
