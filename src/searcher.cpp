@@ -40,7 +40,14 @@ bool Searcher::shouldStop() {
 
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
 #ifdef USE_CATEGORICAL
-    int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
+    int32_t best_index = -1, max_num = -1;
+    for (int32_t i = 0; i < node.moves.size(); i++) {
+        int32_t num = node.N[i] + node.virtual_N[i];
+        if (num > max_num) {
+            best_index = i;
+            max_num = num;
+        }
+    }
     double best_value = expOfValueDist(QfromNextValue(node, best_index));
 #endif
 
