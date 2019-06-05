@@ -399,8 +399,6 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
         auto action = actions.top();
         actions.pop();
 
-        UctHashEntry& node = hash_table_[index];
-
         //手番が変わるので反転
 #ifdef USE_CATEGORICAL
         std::reverse(value.begin(), value.end());
@@ -410,15 +408,35 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
         // 探索結果の反映
         lock_node_[index].lock();
 
+        UctHashEntry& node = hash_table_[index];
+
+        //探索回数の更新
         node.N[action]++;
         node.sum_N++;
         node.virtual_sum_N -= node.virtual_N[action];
         node.virtual_N[action] = 0;
 
+        //価値の更新
         auto curr_v = node.value;
         float alpha = 1.0f / (node.sum_N + 1);
         node.value += alpha * (value - curr_v);
         value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
+
+        //最大バックアップ
+//#ifdef USE_CATEGORICAL
+//        node.value = onehotDist(MIN_SCORE);
+//        for (int32_t i = 0; i < node.moves.size(); i++) {
+//            auto q = QfromNextValue(node, i);
+//            if (expOfValueDist(q) > expOfValueDist(node.value)) {
+//                node.value = q;
+//            }
+//        }
+//#else
+//        node.value = MIN_SCORE;
+//        for (int32_t i = 0; i < node.moves.size(); i++) {
+//            node.value = std::max(node.value, QfromNextValue(node, i));
+//        }
+//#endif
 
         lock_node_[index].unlock();
     }
