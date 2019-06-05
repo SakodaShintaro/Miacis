@@ -101,12 +101,11 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
 
 std::vector<Move> SearcherForPlay::getPV() const {
     std::vector<Move> pv;
-    for (Index curr_node_index = root_index_;
-        curr_node_index != UctHashTable::NOT_EXPANDED && !hash_table_[curr_node_index].moves.empty();) {
-        const auto& N = hash_table_[curr_node_index].N;
+    for (Index index = root_index_; index != UctHashTable::NOT_EXPANDED && !hash_table_[index].moves.empty();) {
+        const auto& N = hash_table_[index].N;
         Index next_index = (int32_t) (std::max_element(N.begin(), N.end()) - N.begin());
-        pv.push_back(hash_table_[curr_node_index].moves[next_index]);
-        curr_node_index = hash_table_[curr_node_index].child_indices[next_index];
+        pv.push_back(hash_table_[index].moves[next_index]);
+        index = hash_table_[index].child_indices[next_index];
     }
 
     return pv;
@@ -119,9 +118,9 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
 
     //選択した着手の勝率の算出
 #ifdef USE_CATEGORICAL
-    auto best_wp = expOfValueDist(QfromNextValue(curr_node, best_index));
+    auto best_value = expOfValueDist(QfromNextValue(curr_node, best_index));
 #else
-    auto best_wp = QfromNextValue(curr_node, best_index);
+    auto best_value = QfromNextValue(curr_node, best_index);
 #endif
 
 #ifdef USE_CATEGORICAL
@@ -149,7 +148,7 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
            (int32_t)(ela),
            curr_node.sum_N,
            (int32_t) (hash_table_.getUsageRate() * 1000),
-           (int32_t) (best_wp * 1000));
+           (int32_t) (best_value * 1000));
 
     for (Move move : getPV()) {
         std::cout << move << " ";
@@ -161,9 +160,9 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
             double nn_policy = 100.0 * curr_node.nn_policy[i];
             double search_policy = 100.0 * curr_node.N[i] / curr_node.sum_N;
 #ifdef USE_CATEGORICAL
-            double v = (curr_node.N[i] > 0 ? expOfValueDist(QfromNextValue(curr_node, i)) : MIN_SCORE);
+            double v = expOfValueDist(QfromNextValue(curr_node, i));
 #else
-            double v = (curr_node.N[i] > 0 ? QfromNextValue(curr_node, i) : MIN_SCORE);
+            double v = QfromNextValue(curr_node, i);
 #endif
             printf("info string %3d  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
             curr_node.moves[i].printWithNewLine();
@@ -400,8 +399,6 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
         auto action = actions.top();
         actions.pop();
 
-        UctHashEntry& node = hash_table_[index];
-
         //手番が変わるので反転
 #ifdef USE_CATEGORICAL
         std::reverse(value.begin(), value.end());
@@ -411,15 +408,35 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
         // 探索結果の反映
         lock_node_[index].lock();
 
+        UctHashEntry& node = hash_table_[index];
+
+        //探索回数の更新
         node.N[action]++;
         node.sum_N++;
         node.virtual_sum_N -= node.virtual_N[action];
         node.virtual_N[action] = 0;
 
+        //価値の更新
         auto curr_v = node.value;
         float alpha = 1.0f / (node.sum_N + 1);
         node.value += alpha * (value - curr_v);
         value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
+
+        //最大バックアップ
+//#ifdef USE_CATEGORICAL
+//        node.value = onehotDist(MIN_SCORE);
+//        for (int32_t i = 0; i < node.moves.size(); i++) {
+//            auto q = QfromNextValue(node, i);
+//            if (expOfValueDist(q) > expOfValueDist(node.value)) {
+//                node.value = q;
+//            }
+//        }
+//#else
+//        node.value = MIN_SCORE;
+//        for (int32_t i = 0; i < node.moves.size(); i++) {
+//            node.value = std::max(node.value, QfromNextValue(node, i));
+//        }
+//#endif
 
         lock_node_[index].unlock();
     }

@@ -233,6 +233,30 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
         element.teacher.policy.push_back({root_node.moves[i].toLabel(), distribution[i]});
     }
 
+    //policyの教師として行動価値のsoftmaxを取ったものを考慮する
+//    std::vector<CalcType> N_dist(root_node.moves.size());
+//    std::vector<CalcType> Q_dist(root_node.moves.size());
+//    assert(current_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
+//    for (int32_t i = 0; i < root_node.moves.size(); i++) {
+//        N_dist[i] = (CalcType)N[i] / root_node.sum_N;
+//        assert(0 <= N[i] && N[i] <= current_node.sum_N);
+//
+//        //漸進的更新にしてからまだ動かしたことがないのでここが合っているか不安
+//#ifdef USE_CATEGORICAL
+//        Q_dist[i] = (N[i] == 0 ? INT_MIN : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : expOfValueDist(QfromNextValue(root_node, i)));
+//#else
+//        Q_dist[i] = (N[i] == 0 ? INT_MIN : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : QfromNextValue(root_node, i));
+//#endif
+//        teacher.policy.push_back({root_node.moves[i].toLabel(), N_dist[i]});
+//    }
+//    Q_dist = softmax(Q_dist, 1.0f);
+//
+//    constexpr CalcType lambda_NQ = 0.5;
+//    for (int32_t i = 0; i < root_node.moves.size(); i++) {
+//        teacher.policy.push_back({root_node.moves[i].toLabel(),
+//                                  lambda_NQ * N_dist[i] + (1.0f - lambda_NQ) * Q_dist[i]});
+//    }
+
     //分布に従って行動選択
     Move best_move = root_node.moves[randomChoose(distribution)];
     element.move = best_move;
