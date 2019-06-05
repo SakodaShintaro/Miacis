@@ -101,12 +101,11 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
 
 std::vector<Move> SearcherForPlay::getPV() const {
     std::vector<Move> pv;
-    for (Index curr_node_index = root_index_;
-        curr_node_index != UctHashTable::NOT_EXPANDED && !hash_table_[curr_node_index].moves.empty();) {
-        const auto& N = hash_table_[curr_node_index].N;
+    for (Index index = root_index_; index != UctHashTable::NOT_EXPANDED && !hash_table_[index].moves.empty();) {
+        const auto& N = hash_table_[index].N;
         Index next_index = (int32_t) (std::max_element(N.begin(), N.end()) - N.begin());
-        pv.push_back(hash_table_[curr_node_index].moves[next_index]);
-        curr_node_index = hash_table_[curr_node_index].child_indices[next_index];
+        pv.push_back(hash_table_[index].moves[next_index]);
+        index = hash_table_[index].child_indices[next_index];
     }
 
     return pv;
