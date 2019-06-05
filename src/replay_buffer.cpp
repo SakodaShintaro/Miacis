@@ -19,7 +19,7 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
     
     //現時点のpriorityの和を取得し,そこまでの範囲の一様分布生成器を作る
     float sum = segment_tree_.getSum();
-    std::mt19937 engine(0);
+    static std::mt19937 engine(0);
     std::uniform_real_distribution<float> dist(0.0, sum);
 
     //データを入れる
@@ -105,9 +105,9 @@ void ReplayBuffer::push(Game &game) {
 
         //priorityを計算
 #ifdef USE_CATEGORICAL
-        float priority = (-std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) - std::log(e.nn_output_value[e.teacher.value] + 1e-10f)) * 2.5f;
+        float priority = -2 * std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) - std::log(e.nn_output_value[e.teacher.value] + 1e-10f);
 #else
-        float priority = (-std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f)) * 2.5f;
+        float priority = -2 * std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f);
 #endif
         //segment_treeのpriorityを更新
         segment_tree_.update(change_index, std::pow(priority, alpha_));
