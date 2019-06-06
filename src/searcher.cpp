@@ -26,7 +26,7 @@ bool Searcher::shouldStop() {
 //        int32_t num = hash_table_[root_index_].N[i] + hash_table_[root_index_].virtual_N[i];
 //        if (num > max1) {
 //            max2 = max1;
-//            max1 = max2;
+//            max1 = num;
 //        } else if (num > max2) {
 //            max2 = num;
 //        }
@@ -40,14 +40,7 @@ bool Searcher::shouldStop() {
 
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
 #ifdef USE_CATEGORICAL
-    int32_t best_index = -1, max_num = -1;
-    for (int32_t i = 0; i < node.moves.size(); i++) {
-        int32_t num = node.N[i] + node.virtual_N[i];
-        if (num > max_num) {
-            best_index = i;
-            max_num = num;
-        }
-    }
+    int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
     double best_value = expOfValueDist(QfromNextValue(node, best_index));
 #endif
 
