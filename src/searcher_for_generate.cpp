@@ -164,7 +164,7 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
     auto leaf = indices.top();
     indices.pop();
     auto value = hash_table_[leaf].value;
-    static constexpr float LAMBDA = 1.0;
+    static constexpr float LAMBDA = 0.9;
 
     //バックアップ
     while (!actions.empty()) {
