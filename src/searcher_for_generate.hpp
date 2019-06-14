@@ -41,6 +41,9 @@ private:
     //このスレッドのid
     int32_t id_;
 
+    //漸進的に更新されてしまうのでルート局面の生のValue出力を保存しておく
+    ValueType root_raw_value_;
+
     //評価要求を投げる先
     std::vector<float>& input_queue_;
     std::vector<std::stack<int32_t>>& index_queue_;

@@ -28,6 +28,8 @@ void SearcherForGenerate::select(Position& pos) {
         for (int32_t i = 0; i < root_node.moves.size(); i++) {
             root_node.nn_policy[i] = (CalcType) ((1.0 - epsilon) * root_node.nn_policy[i] + epsilon * dirichlet[i]);
         }
+
+        root_raw_value_ = root_node.value;
     }
 
     std::stack<Index> curr_indices;
@@ -262,12 +264,12 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     element.move = best_move;
     element.move.score = best_wp;
 
-    //priorityとしてpolicyの損失を計算
+    //priorityを計算する用にNNの出力をセットする
     element.nn_output_policy.resize(SQUARE_NUM * POLICY_CHANNEL_NUM, 0.0);
     for (uint64_t i = 0; i < root_node.moves.size(); i++) {
         element.nn_output_policy[root_node.moves[i].toLabel()] = root_node.nn_policy[i];
     }
-    element.nn_output_value = root_node.value;
+    element.nn_output_value = root_raw_value_;
 
     return element;
 }

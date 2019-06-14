@@ -104,13 +104,23 @@ void ReplayBuffer::push(Game &game) {
         data_[change_index] = std::make_tuple(pos.toSFEN(), e.teacher);
 
         //priorityを計算
+        float priority = 0.0f;
+
+        //Policy損失
+        for (const auto& p : e.teacher.policy) {
+            priority += -p.second * std::log(e.nn_output_policy[p.first] + 1e-9f);
+        }
+
+        //Value損失
 #ifdef USE_CATEGORICAL
-        float priority = -2 * std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) - std::log(e.nn_output_value[e.teacher.value] + 1e-10f);
+        //float priority = -2 * std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) - std::log(e.nn_output_value[e.teacher.value] + 1e-10f);
+        priority += -std::log(e.nn_output_value[e.teacher.value] + 1e-9f);
 #else
-        float priority = -2 * std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f);
+        //float priority = -2 * std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f);
+        priority += std::pow(e.nn_output_value - e.teacher.value, 2.0f);
 #endif
         //segment_treeのpriorityを更新
-        segment_tree_.update(change_index, std::pow(priority, alpha_));
+        segment_tree_.update(change_index, std::pow(priority * 2, alpha_));
 
         if (first_wait_ > 0) {
             first_wait_--;
