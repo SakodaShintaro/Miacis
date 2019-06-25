@@ -17,10 +17,9 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
         fc[i][0] = register_module("fc" + std::to_string(i) + "_0", torch::nn::Linear(torch::nn::LinearOptions(CHANNEL_NUM, CHANNEL_NUM / REDUCTION).with_bias(false)));
         fc[i][1] = register_module("fc" + std::to_string(i) + "_1", torch::nn::Linear(torch::nn::LinearOptions(CHANNEL_NUM / REDUCTION, CHANNEL_NUM).with_bias(false)));
     }
-    policy_conv = register_module("policy_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
-    value_conv = register_module("value_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, 1).padding(0).with_bias(false)));
-    value_bn = register_module("value_bn", torch::nn::BatchNorm(CHANNEL_NUM));
-    value_fc1 = register_module("value_fc1", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
+    policy_fc = register_module("policy_conv", torch::nn::Linear(CHANNEL_NUM, SQUARE_NUM * POLICY_CHANNEL_NUM));
+    value_fc = register_module("value_conv", torch::nn::Linear(CHANNEL_NUM, VALUE_HIDDEN_NUM));
+    value_fc1 = register_module("value_fc1", torch::nn::Linear(VALUE_HIDDEN_NUM, VALUE_HIDDEN_NUM));
     value_fc2 = register_module("value_fc2", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 }
 
@@ -57,15 +56,15 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::ve
         x = torch::relu(x + t);
     }
 
+    x = torch::avg_pool2d(x, {9, 9}).view({-1, CHANNEL_NUM});
+
     //ここから分岐
     //policy
-    torch::Tensor policy = policy_conv->forward(x);
+    torch::Tensor policy = policy_fc->forward(x);
 
     //value
-    torch::Tensor value = value_conv->forward(x);
-    value = value_bn->forward(value);
+    torch::Tensor value = value_fc->forward(x);
     value = torch::relu(value);
-    value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
     value = value_fc1->forward(value);
     value = torch::relu(value);
     value = value_fc2->forward(value);

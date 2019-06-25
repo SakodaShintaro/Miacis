@@ -66,9 +66,8 @@ private:
     std::vector<std::vector<torch::nn::Conv2d>> conv;
     std::vector<std::vector<torch::nn::BatchNorm>> bn;
     std::vector<std::vector<torch::nn::Linear>> fc;
-    torch::nn::Conv2d policy_conv{nullptr};
-    torch::nn::Conv2d value_conv{nullptr};
-    torch::nn::BatchNorm value_bn{nullptr};
+    torch::nn::Linear policy_fc{nullptr};
+    torch::nn::Linear value_fc{nullptr};
     torch::nn::Linear value_fc1{nullptr};
     torch::nn::Linear value_fc2{nullptr};
 };
