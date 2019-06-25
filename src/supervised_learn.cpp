@@ -94,7 +94,7 @@ void supervisedLearn() {
             optimizer.zero_grad();
             auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
             auto loss_sum = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
-            loss_sum.backward();
+            loss_sum.mean().backward();
             optimizer.step();
 
             //1エポックにつき10回出力
