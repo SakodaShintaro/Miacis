@@ -102,8 +102,8 @@ void supervisedLearn() {
                 dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                            << epoch << "\t"
                                            << step + 1 << "\t"
-                                           << loss.first.item<float>() << "\t"
-                                           << loss.second.item<float>() << std::endl;
+                                           << loss.first.mean().item<float>() << "\t"
+                                           << loss.second.mean().item<float>() << std::endl;
             }
         }
 
