@@ -138,8 +138,8 @@ void alphaZero() {
         if (step_num == 1) {
             std::ofstream ofs("gen_speed.txt");
             double gen_speed = first_wait / (elapsedHours(start_time) * 3600);
-            dout(std::cout, ofs) << gen_speed << " pos / sec" << std::endl;
-            sleep_msec = (int64_t)(batch_size / (batch_size_per_gen * gen_speed));
+            sleep_msec = (int64_t)(batch_size * 1000 / (batch_size_per_gen * gen_speed));
+            dout(std::cout, ofs) << "gen_speed = " << gen_speed << " pos / sec, sleep_msec = " << sleep_msec << std::endl;
         }
 
         //先頭のネットワークとはGPUを共有しているのでロックをかける
