@@ -21,7 +21,7 @@ void alphaZero() {
     settings.add("thread_num",             1, (int64_t)std::thread::hardware_concurrency());
     settings.add("max_step_num",           1, (int64_t)1e10);
     settings.add("update_interval",        1, (int64_t)1e10);
-    settings.add("sleep_msec",             0, (int64_t)1e10);
+    settings.add("batch_size_per_gen",     1, (int64_t)1e10);
     settings.add("max_stack_size",         1, (int64_t)1e10);
     settings.add("first_wait",             0, (int64_t)1e10);
     settings.add("search_limit",           1, (int64_t)1e10);
@@ -51,7 +51,7 @@ void alphaZero() {
     int64_t thread_num               = settings.get<int64_t>("thread_num");
     int64_t max_step_num             = settings.get<int64_t>("max_step_num");
     int64_t update_interval          = settings.get<int64_t>("update_interval");
-    int64_t sleep_msec               = settings.get<int64_t>("sleep_msec");
+    int64_t batch_size_per_gen       = settings.get<int64_t>("batch_size_per_gen");
     int64_t max_stack_size           = settings.get<int64_t>("max_stack_size");
     int64_t first_wait               = settings.get<int64_t>("first_wait");
     int64_t search_limit             = settings.get<int64_t>("search_limit");
@@ -62,6 +62,9 @@ void alphaZero() {
 
     //値同士の制約関係を確認
     assert(validation_interval % update_interval == 0);
+
+    //学習スレッドをスリープさせる時間は生成速度から自動計算するので初期化は不要だが一応
+    int64_t sleep_msec = 1000;
 
     //探索のシグナルをオフにしておく
     Searcher::stop_signal = false;
@@ -134,7 +137,9 @@ void alphaZero() {
         //1回目はmakeBatch内で十分棋譜が貯まるまで待ち時間が発生する.その生成速度を計算
         if (step_num == 1) {
             std::ofstream ofs("gen_speed.txt");
-            dout(std::cout, ofs) << first_wait / (elapsedHours(start_time) * 3600) << " pos / sec" << std::endl;
+            double gen_speed = first_wait / (elapsedHours(start_time) * 3600);
+            dout(std::cout, ofs) << gen_speed << " pos / sec" << std::endl;
+            sleep_msec = (int64_t)(batch_size / (batch_size_per_gen * gen_speed));
         }
 
         //先頭のネットワークとはGPUを共有しているのでロックをかける
