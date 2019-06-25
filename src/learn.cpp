@@ -116,9 +116,6 @@ void searchLearningRate() {
 
     //設定をファイルからロード.教師あり学習のものを流用する
     settings.load("supervised_learn_settings.txt");
-    if (!settings.check()) {
-        exit(1);
-    }
 
     //値の取得
     float learn_rate        = settings.get<float>("learn_rate");

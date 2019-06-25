@@ -32,9 +32,6 @@ void alphaZero() {
 
     //設定をファイルからロード
     settings.load("alphazero_settings.txt");
-    if (!settings.check()) {
-        exit(1);
-    }
 
     //値の取得
     float learn_rate                 = settings.get<float>("learn_rate");

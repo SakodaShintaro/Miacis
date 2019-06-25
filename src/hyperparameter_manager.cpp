@@ -42,6 +42,10 @@ void HyperparameterManager::load(const std::string& file_path) {
             exit(1);
         }
     }
+
+    if (!check()) {
+        exit(1);
+    }
 }
 
 bool HyperparameterManager::check() {

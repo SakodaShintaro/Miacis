@@ -18,9 +18,6 @@ void supervisedLearn() {
 
     //設定をファイルからロード
     settings.load("supervised_learn_settings.txt");
-    if (!settings.check()) {
-        exit(1);
-    }
 
     //値の取得
     float learn_rate        = settings.get<float>("learn_rate");
