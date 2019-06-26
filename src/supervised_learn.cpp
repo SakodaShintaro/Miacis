@@ -30,15 +30,15 @@ void supervisedLearn() {
     std::string kifu_path   = settings.get<std::string>("kifu_path");
 
     //学習データを取得
-    std::vector<std::pair<std::string, TeacherType>> data_buffer = loadData(kifu_path);
+    std::vector<LearningData> data_buffer = loadData(kifu_path);
 
     //データをシャッフル
     std::mt19937_64 engine(0);
     std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
     //validationデータを確保
-    auto validation_size = (int32_t)(data_buffer.size() * 0.1) / batch_size * batch_size;
-    std::vector<std::pair<std::string, TeacherType>> validation_data(data_buffer.end() - validation_size, data_buffer.end());
+    int64_t validation_size = (int64_t)(data_buffer.size() * 0.1) / batch_size * batch_size;
+    std::vector<LearningData> validation_data(data_buffer.end() - validation_size, data_buffer.end());
     data_buffer.erase(data_buffer.end() - validation_size, data_buffer.end());
     std::cout << "learn_data_size = " << data_buffer.size() << ", validation_data_size = " << validation_size << std::endl;
 
@@ -78,22 +78,19 @@ void supervisedLearn() {
         for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size(); step++) {
             //バッチサイズ分データを確保
             Position pos;
-            std::vector<float> inputs;
-            std::vector<PolicyTeacherType> policy_teachers;
-            std::vector<ValueTeacherType> value_teachers;
+            std::vector<LearningData> data;
             for (int32_t b = 0; b < batch_size; b++) {
                 const auto& datum = data_buffer[step * batch_size + b];
-                pos.loadSFEN(datum.first);
-                const auto feature = pos.makeFeature();
-                inputs.insert(inputs.end(), feature.begin(), feature.end());
-                policy_teachers.push_back(datum.second.policy);
-                value_teachers.push_back(datum.second.value);
+                data.push_back(datum);
             }
 
             //学習
             optimizer.zero_grad();
-            auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
-            auto loss_sum = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
+            auto loss = learning_model->loss(data);
+            loss[POLICY] = loss[POLICY].mean();
+            loss[VALUE ] = loss[VALUE ].mean();
+            loss[TRANS ] = loss[TRANS ].mean();
+            auto loss_sum = policy_loss_coeff * loss[POLICY] + value_loss_coeff * loss[VALUE] + 1.0 * loss[POLICY];
             loss_sum.mean().backward();
             optimizer.step();
 
@@ -102,8 +99,9 @@ void supervisedLearn() {
                 dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                            << epoch << "\t"
                                            << step + 1 << "\t"
-                                           << loss.first.mean().item<float>() << "\t"
-                                           << loss.second.mean().item<float>() << std::endl;
+                                           << loss[POLICY].item<float>() << "\t"
+                                           << loss[VALUE].item<float>() << "\t"
+                                           << loss[TRANS].item<float>() << std::endl;
             }
         }
 

@@ -76,7 +76,7 @@ void alphaZero() {
     validation_log             << "time\tstep\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
     //データを取得
-    std::vector<std::pair<std::string, TeacherType>> validation_data = loadData(validation_kifu_path);
+    std::vector<LearningData> validation_data = loadData(validation_kifu_path);
     assert(validation_data.size() >= validation_size);
 
     //データをシャッフルして必要量以外を削除
@@ -129,7 +129,7 @@ void alphaZero() {
 
     for (int32_t step_num = 1; step_num <= max_step_num; step_num++) {
         //バッチサイズ分データを選択
-        replay_buffer.makeBatch(batch_size, inputs, policy_teachers, value_teachers);
+        std::vector<LearningData> data = replay_buffer.makeBatch(batch_size);
 
         //1回目はmakeBatch内で十分棋譜が貯まるまで待ち時間が発生する.その生成速度を計算
         if (step_num == 1) {
@@ -144,8 +144,8 @@ void alphaZero() {
 
         //損失計算
         optimizer.zero_grad();
-        auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
-        auto loss_sum = (policy_loss_coeff * loss.first + value_loss_coeff * loss.second).cpu();
+        auto loss = learning_model->loss(data);
+        auto loss_sum = (policy_loss_coeff * loss[POLICY] + value_loss_coeff * loss[VALUE] + 1.0 * loss[TRANS]).cpu();
 
         //replay_bufferのpriorityを更新
         std::vector<float> loss_vec(loss_sum.data<float>(), loss_sum.data<float>() + batch_size);
@@ -164,8 +164,9 @@ void alphaZero() {
             dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                        << step_num << "\t"
                                        << loss_sum.item<float>() << "\t"
-                                       << loss.first.mean().item<float>() << "\t"
-                                       << loss.second.mean().item<float>() << std::endl;
+                                       << loss[POLICY].mean().item<float>() << "\t"
+                                       << loss[VALUE].mean().item<float>() << "\t"
+                                       << loss[TRANS].mean().item<float>() << std::endl;
         }
 
         //一定間隔でモデルの読み込んでActorのパラメータをLearnerと同期

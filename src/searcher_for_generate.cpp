@@ -232,7 +232,6 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     for (int32_t i = 0; i < root_node.moves.size(); i++) {
         distribution[i] = (CalcType)N[i] / root_node.sum_N;
         assert(0 <= N[i] && N[i] <= root_node.sum_N);
-        element.teacher.policy.push_back({root_node.moves[i].toLabel(), distribution[i]});
     }
 
     //policyの教師として行動価値のsoftmaxを取ったものを考慮する

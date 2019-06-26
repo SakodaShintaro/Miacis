@@ -9,7 +9,7 @@
 
 struct OneTurnElement {
 	Move move;
-	TeacherType teacher;
+	LearningData teacher;
 	ValueType nn_output_value;
 	std::vector<float> nn_output_policy;
 };

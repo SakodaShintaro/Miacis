@@ -27,80 +27,60 @@ double elapsedHours(const std::chrono::steady_clock::time_point& start) {
     return seconds / 3600.0;
 }
 
-std::array<float, 2> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data) {
+std::array<float, LOSS_NUM> validation(const std::vector<LearningData>& data) {
     static constexpr int32_t batch_size = 4096;
     int32_t index = 0;
-    float policy_loss = 0.0, value_loss = 0.0;
+    float policy_loss = 0.0, value_loss = 0.0, trans_loss = 0.0;
     torch::NoGradGuard no_grad_guard;
     Position pos;
-    while (index < validation_data.size()) {
-        std::vector<float> inputs;
-        std::vector<PolicyTeacherType> policy_teachers;
-        std::vector<ValueTeacherType> value_teachers;
-        inputs.reserve(batch_size * INPUT_CHANNEL_NUM);
-        policy_teachers.reserve(batch_size);
-        value_teachers.reserve(batch_size);
+    while (index < data.size()) {
+        std::vector<LearningData> curr_data;
 
         //バッチサイズ分データを確保
-        while (index < validation_data.size() && policy_teachers.size() < batch_size) {
-            const auto& datum = validation_data[index++];
-            pos.loadSFEN(datum.first);
-            const auto feature = pos.makeFeature();
-            inputs.insert(inputs.end(), feature.begin(), feature.end());
-            policy_teachers.push_back(datum.second.policy);
-            value_teachers.push_back(datum.second.value);
+        while (index < data.size() && curr_data.size() < batch_size) {
+            const auto& datum = data[index++];
+            curr_data.push_back(datum);
         }
 
         //計算
-        auto loss = nn->loss(inputs, policy_teachers, value_teachers);
+        auto loss = nn->loss(curr_data);
 
-        policy_loss += loss.first.sum().item<float>();
-
-#ifdef USE_CATEGORICAL
-        //categoricalモデルのときは冗長だがもう一度順伝播を行って損失を手動で計算
-        auto y = nn->policyAndValueBatch(inputs);
-        const auto& values = y.second;
-        for (int32_t i = 0; i < values.size(); i++) {
-            auto e = expOfValueDist(values[i]);
-            auto vt = (value_teachers[i] == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
-            value_loss += (e - vt) * (e - vt);
-        }
-#else
-        //scalarモデルのときはそのまま損失を加える
-        value_loss += loss.second.sum().item<float>();
-#endif
+        policy_loss += loss[POLICY].sum().item<float>();
+        value_loss += loss[VALUE].sum().item<float>();
+        trans_loss += loss[TRANS].sum().item<float>();
     }
 
     //平均を求める
-    policy_loss /= validation_data.size();
-    value_loss /= validation_data.size();
+    policy_loss /= data.size();
+    value_loss /= data.size();
+    trans_loss /= data.size();
 
-    return { policy_loss, value_loss };
+    return { policy_loss, value_loss, trans_loss };
 }
 
-std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& file_path) {
+std::vector<LearningData> loadData(const std::string& file_path) {
     //棋譜を読み込めるだけ読み込む
     auto games = loadGames(file_path, 100000);
 
     //データを局面単位にバラす
-    std::vector<std::pair<std::string, TeacherType>> data_buffer;
+    std::vector<LearningData> data;
     for (const auto& game : games) {
         Position pos;
         for (const auto& e : game.elements) {
-            const auto& move = e.move;
-            TeacherType teacher;
-            teacher.policy.push_back({move.toLabel(), 1.0});
+            LearningData datum;
+            datum.SFEN = pos.toSFEN();
+            datum.move = e.move;
 #ifdef USE_CATEGORICAL
-            teacher.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
+            datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
 #else
-            teacher.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
+            datum.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
 #endif
-            data_buffer.emplace_back(pos.toSFEN(), teacher);
-            pos.doMove(move);
+            data.push_back(datum);
+            pos.doMove(e.move);
         }
     }
 
-    return data_buffer;
+    return data;
 }
 
 void searchLearningRate() {
@@ -128,7 +108,7 @@ void searchLearningRate() {
     std::string kifu_path   = settings.get<std::string>("kifu_path");
 
     //学習データを取得
-    std::vector<std::pair<std::string, TeacherType>> data_buffer = loadData(kifu_path);
+    auto data_buffer = loadData(kifu_path);
 
     //データをシャッフル
     std::mt19937_64 engine(0);
@@ -163,22 +143,16 @@ void searchLearningRate() {
         for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size() && optimizer.options.learning_rate_ <= 1; step++) {
             //バッチサイズ分データを確保
             Position pos;
-            std::vector<float> inputs;
-            std::vector<PolicyTeacherType> policy_teachers;
-            std::vector<ValueTeacherType> value_teachers;
+            std::vector<LearningData> curr_data;
             for (int32_t b = 0; b < batch_size; b++) {
                 const auto& datum = data_buffer[step * batch_size + b];
-                pos.loadSFEN(datum.first);
-                const auto feature = pos.makeFeature();
-                inputs.insert(inputs.end(), feature.begin(), feature.end());
-                policy_teachers.push_back(datum.second.policy);
-                value_teachers.push_back(datum.second.value);
+                curr_data.push_back(datum);
             }
 
             //学習
             optimizer.zero_grad();
-            auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
-            auto loss_sum = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
+            auto loss = learning_model->loss(curr_data);
+            auto loss_sum = policy_loss_coeff * loss[POLICY] + value_loss_coeff * loss[VALUE] + 1.0 * loss[TRANS];
             loss_sum.backward();
             optimizer.step();
 

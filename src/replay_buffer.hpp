@@ -29,8 +29,7 @@ public:
     }
 
     //ミニバッチを作って返す関数
-    void makeBatch(int64_t batch_size, std::vector<float>& inputs, std::vector<PolicyTeacherType>& policy_teachers,
-                   std::vector<ValueTeacherType>& value_teachers);
+    std::vector<LearningData> makeBatch(int64_t batch_size);
 
     //データを入れる関数
     void push(Game& game);
@@ -43,7 +42,7 @@ public:
 
 private:
     //実際のデータ
-    std::vector<std::tuple<std::string, TeacherType>> data_;
+    std::vector<LearningData> data_;
 
     //対応するpriorityを持ったセグメント木
     SegmentTree segment_tree_;

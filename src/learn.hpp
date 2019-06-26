@@ -24,10 +24,10 @@ public:
 };
 
 //教師データを読み込む関数
-std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& file_path);
+std::vector<LearningData> loadData(const std::string& file_path);
 
 //validationを行う関数
-std::array<float, 2> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data);
+std::array<float, LOSS_NUM> validation(const std::vector<LearningData>& data);
 
 //パラメータを初期化
 void initParams();

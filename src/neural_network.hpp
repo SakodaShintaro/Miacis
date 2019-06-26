@@ -36,10 +36,15 @@ using ValueTeacherType = float;
 #endif
 using PolicyTeacherType = std::vector<std::pair<int32_t, float>>;
 
-//教師データの型
-struct TeacherType {
-    PolicyTeacherType policy;
+//学習データの型
+struct LearningData {
+    std::string SFEN;
+    Move move;
     ValueTeacherType value;
+};
+
+enum LossOrder {
+    POLICY, VALUE, TRANS, LOSS_NUM
 };
 
 class NeuralNetworkImpl : public torch::nn::Module {
@@ -63,14 +68,7 @@ public:
     //状態表現と行動から次状態の表現を予測する関数
     torch::Tensor predictNextStateRep(torch::Tensor state_representations, torch::Tensor move_representations);
 
-    std::array<torch::Tensor, 3> loss(const std::vector<std::string>& SFENs,
-                                      const std::vector<Move>& moves,
-                                      const std::vector<ValueTeacherType>& values);
-
-    //バッチの入力特徴量,教師情報を引数として損失を返す関数.これをモデルが一括で行うのが良い実装？
-    std::pair<torch::Tensor, torch::Tensor> loss(const std::vector<float>& input,
-                                                 const std::vector<PolicyTeacherType>& policy_teachers,
-                                                 const std::vector<ValueTeacherType>& value_teachers);
+    std::array<torch::Tensor, LOSS_NUM> loss(const std::vector<LearningData>& data);
 
     void setGPU(int16_t gpu_id);
 

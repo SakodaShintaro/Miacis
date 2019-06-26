@@ -17,13 +17,16 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
         fc[i][0] = register_module("fc" + std::to_string(i) + "_0", torch::nn::Linear(torch::nn::LinearOptions(CHANNEL_NUM, CHANNEL_NUM / REDUCTION).with_bias(false)));
         fc[i][1] = register_module("fc" + std::to_string(i) + "_1", torch::nn::Linear(torch::nn::LinearOptions(CHANNEL_NUM / REDUCTION, CHANNEL_NUM).with_bias(false)));
     }
+
+    action_encode_fc = register_module("action_encode_fc", torch::nn::Linear(SQUARE_NUM * POLICY_CHANNEL_NUM, REPRESENTATION_DIM));
+
     policy_fc = register_module("policy_fc", torch::nn::Linear(CHANNEL_NUM, SQUARE_NUM * POLICY_CHANNEL_NUM));
     value_fc1 = register_module("value_fc1", torch::nn::Linear(CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_fc2 = register_module("value_fc2", torch::nn::Linear(VALUE_HIDDEN_NUM, VALUE_HIDDEN_NUM));
     value_fc3 = register_module("value_fc3", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 
     next_state_rep_predictor = register_module("next_state_rep_predictor",
-            torch::nn::Linear(REPRESENTATION_DIM + SQUARE_NUM * POLICY_CHANNEL_NUM, REPRESENTATION_DIM));
+            torch::nn::Linear(2 * REPRESENTATION_DIM, REPRESENTATION_DIM));
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
@@ -69,48 +72,6 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     return { policies, values };
 }
 
-std::pair<torch::Tensor, torch::Tensor>
-NeuralNetworkImpl::loss(const std::vector<float>& input,
-                        const std::vector<PolicyTeacherType>& policy_teachers,
-                        const std::vector<ValueTeacherType>& value_teachers) {
-    torch::Tensor representation = encodeState(input);
-    torch::Tensor logits = decodePolicy(representation).view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
-
-    std::vector<float> policy_dist(policy_teachers.size() * SQUARE_NUM * POLICY_CHANNEL_NUM, 0.0);
-    for (int64_t i = 0; i < policy_teachers.size(); i++) {
-        for (const auto& e : policy_teachers[i]) {
-            policy_dist[i * SQUARE_NUM * POLICY_CHANNEL_NUM + e.first] = e.second;
-        }
-    }
-
-#ifdef USE_HALF_FLOAT
-    torch::Tensor policy_target = torch::tensor(policy_dist).to(device_, torch::kHalf).view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
-#else
-    torch::Tensor policy_target = torch::tensor(policy_dist).to(device_).view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
-#endif
-    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false);
-
-#ifdef USE_CATEGORICAL
-    torch::Tensor categorical_target = torch::tensor(value_teachers).to(device_);
-    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(decodeValue(representation), 1), categorical_target);
-#else
-
-#ifdef USE_HALF_FLOAT
-    torch::Tensor value_t = torch::tensor(value_teachers).to(device_, torch::kHalf);
-#else
-    torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
-#endif
-    torch::Tensor value = decodeValue(representation).view(-1);
-#ifdef USE_SIGMOID
-    Var value_loss = -value_t * F::log(value) -(1 - value_t) * F::log(1 - value);
-#else
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
-#endif
-#endif
-    
-    return { policy_loss, value_loss };
-}
-
 void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
 #ifdef USE_HALF_FLOAT
@@ -135,7 +96,7 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
 }
 
 torch::Tensor NeuralNetworkImpl::predictNextStateRep(torch::Tensor state_representations, torch::Tensor move_representations) {
-    torch::Tensor concatenated = torch::cat({state_representations, move_representations});
+    torch::Tensor concatenated = torch::cat({state_representations, move_representations}, 1);
     return next_state_rep_predictor->forward(concatenated);
 }
 
@@ -177,11 +138,13 @@ torch::Tensor NeuralNetworkImpl::encodeState(const std::vector<float>& inputs) {
 }
 
 torch::Tensor NeuralNetworkImpl::encodeAction(const std::vector<Move>& moves) {
-    std::vector<int64_t> move_labels;
+    std::vector<float> onehot_move_labels;
     for (Move move : moves) {
-        move_labels.push_back(move.toLabel());
+        std::vector<float> curr_onehot_label(SQUARE_NUM * POLICY_CHANNEL_NUM, 0.0);
+        curr_onehot_label[move.toLabel()] = 1.0;
+        onehot_move_labels.insert(onehot_move_labels.end(), curr_onehot_label.begin(), curr_onehot_label.end());
     }
-    torch::Tensor move_labels_tensor = torch::tensor(move_labels);
+    torch::Tensor move_labels_tensor = torch::tensor(onehot_move_labels).view({(int64_t)moves.size(), SQUARE_NUM * POLICY_CHANNEL_NUM}).to(device_);
     return action_encode_fc->forward(move_labels_tensor);
 }
 
@@ -200,23 +163,20 @@ torch::Tensor NeuralNetworkImpl::decodeValue(torch::Tensor representation) {
 }
 
 std::array<torch::Tensor, 3>
-NeuralNetworkImpl::loss(const std::vector<std::string>& SFENs,
-                        const std::vector<Move>& moves,
-                        const std::vector<ValueTeacherType>& values) {
+NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
     static Position pos;
-    assert(SFENs.size() == moves.size());
 
     //局面の特徴量を取得
     std::vector<float> curr_state_features;
     std::vector<float> next_state_features;
-    for (int64_t i = 0; i < SFENs.size(); i++) {
+    for (const LearningData& datum : data) {
         //現局面の特徴量を取得
-        pos.loadSFEN(SFENs[i]);
+        pos.loadSFEN(datum.SFEN);
         std::vector<float> curr_state_feature = pos.makeFeature();
         curr_state_features.insert(curr_state_features.end(), curr_state_feature.begin(), curr_state_feature.end());
 
         //次局面の特徴量を取得
-        pos.doMove(moves[i]);
+        pos.doMove(datum.move);
         std::vector<float> next_state_feature = pos.makeFeature();
         next_state_features.insert(next_state_features.end(), next_state_feature.begin(), next_state_feature.end());
     }
@@ -232,8 +192,8 @@ NeuralNetworkImpl::loss(const std::vector<std::string>& SFENs,
 
     //Policyの教師を構築
     std::vector<int64_t> move_teachers;
-    for (Move move : moves) {
-        move_teachers.push_back(move.toLabel());
+    for (const LearningData& d : data) {
+        move_teachers.push_back(d.move.toLabel());
     }
     torch::Tensor move_teachers_tensor = torch::tensor(move_teachers).to(device_);
 
@@ -247,18 +207,21 @@ NeuralNetworkImpl::loss(const std::vector<std::string>& SFENs,
     torch::Tensor value = decodeValue(state_representation);
 
     //Valueの教師を構築
-    torch::Tensor value_t = torch::tensor(values).to(device_);
+    std::vector<ValueTeacherType> value_teachers;
+    for (const LearningData& d : data) {
+        value_teachers.push_back(d.value);
+    }
+    torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_);
 
     //損失を計算
 #ifdef USE_CATEGORICAL
-    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_t);
+    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_teachers_tensor);
 #else
-    //これなんでいるんだっけ？
     value = value.view(-1);
 #ifdef USE_SIGMOID
-    Var value_loss = -value_t * F::log(value) -(1 - value_t) * F::log(1 - value);
+    Var value_loss = -value_teachers_tensor * F::log(value) -(1 - value_teachers_tensor) * F::log(1 - value);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_teachers_tensor, Reduction::None);
 #endif
 #endif
 
@@ -266,6 +229,10 @@ NeuralNetworkImpl::loss(const std::vector<std::string>& SFENs,
     //  次状態表現予測の損失計算
     //---------------------------
     //行動の表現を取得
+    std::vector<Move> moves;
+    for (const LearningData& d : data) {
+        moves.push_back(d.move);
+    }
     torch::Tensor action_representation = encodeAction(moves);
 
     //次状態を予測
@@ -275,7 +242,7 @@ NeuralNetworkImpl::loss(const std::vector<std::string>& SFENs,
     torch::Tensor next_state_representation = encodeState(curr_state_features);
 
     //損失を計算
-    torch::Tensor predict_loss = torch::mse_loss(state_representation, next_state_representation);
+    torch::Tensor predict_loss = torch::mse_loss(predict, next_state_representation);
 
     return { policy_loss, value_loss, predict_loss };
 }

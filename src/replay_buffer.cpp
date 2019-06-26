@@ -4,9 +4,7 @@
 
 const std::string ReplayBuffer::save_dir = "./learn_kifu/";
 
-void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
-                             std::vector<PolicyTeacherType>& policy_teachers,
-                             std::vector<ValueTeacherType>& value_teachers) {
+std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
     //ロックの確保
     mutex_.lock();
 
@@ -24,32 +22,17 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
 
     //データを入れる
     Position pos;
-    inputs.clear();
-    policy_teachers.clear();
-    value_teachers.clear();
+    std::vector<LearningData> data;
     pre_indices_.clear();
-    inputs.resize(INPUT_CHANNEL_NUM * SQUARE_NUM * batch_size);
-    policy_teachers.reserve(batch_size);
-    value_teachers.reserve(batch_size);
     pre_indices_.reserve(batch_size);
     for (int32_t i = 0; i < batch_size; i++) {
         //データの取り出し
-        std::string sfen;
-        TeacherType teacher;
+        LearningData teacher;
         uint64_t index = segment_tree_.getIndex(dist(engine));
-        std::tie(sfen, teacher) = data_[index];
+        data.push_back(data_[index]);
 
         //使ったindexの保存
         pre_indices_.push_back(index);
-
-        //入力特徴量の確保
-        pos.loadSFEN(sfen);
-        auto feature = pos.makeFeature();
-        std::copy(feature.begin(), feature.end(), inputs.begin() + i * INPUT_CHANNEL_NUM * SQUARE_NUM);
-
-        //教師
-        policy_teachers.push_back(teacher.policy);
-        value_teachers.push_back(teacher.value);
     }
 
     //ロックの解放
@@ -101,15 +84,17 @@ void ReplayBuffer::push(Game &game) {
         int64_t change_index = segment_tree_.getIndexToPush();
 
         //そこのデータを入れ替える
-        data_[change_index] = std::make_tuple(pos.toSFEN(), e.teacher);
+        LearningData data;
+        data.move = e.move;
+        data.SFEN = pos.toSFEN();
+        data.value = e.teacher.value;
+        data_[change_index] = data;
 
         //priorityを計算
         float priority = 0.0f;
 
         //Policy損失
-        for (const auto& p : e.teacher.policy) {
-            priority += -p.second * std::log(e.nn_output_policy[p.first] + 1e-9f);
-        }
+        priority += -std::log(e.nn_output_policy[e.move.toLabel()] + 1e-9f);
 
         //Value損失
 #ifdef USE_CATEGORICAL
