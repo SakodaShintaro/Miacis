@@ -9,11 +9,11 @@ void supervisedLearn() {
     HyperparameterManager settings;
     settings.add("learn_rate",             0.0f, 100.0f);
     settings.add("momentum",               0.0f, 1.0f);
-    settings.add("learn_rate_decay",       0.0f, 1.0f);
     settings.add("policy_loss_coeff",      0.0f, 1e10f);
     settings.add("value_loss_coeff",       0.0f, 1e10f);
+    settings.add("trans_loss_coeff",       0.0f, 1e10f);
+    settings.add("max_epoch",              1, (int64_t)1e10);
     settings.add("batch_size",             1, (int64_t)1e10);
-    settings.add("patience_limit",         1, (int64_t)1e10);
     settings.add("kifu_path");
 
     //設定をファイルからロード
@@ -22,11 +22,12 @@ void supervisedLearn() {
     //値の取得
     float learn_rate        = settings.get<float>("learn_rate");
     float momentum          = settings.get<float>("momentum");
-    float learn_rate_decay  = settings.get<float>("learn_rate_decay");
-    float policy_loss_coeff = settings.get<float>("policy_loss_coeff");
-    float value_loss_coeff  = settings.get<float>("value_loss_coeff");
+    std::array<float, LOSS_NUM> loss_coeff = {};
+    loss_coeff[POLICY]      = settings.get<float>("policy_loss_coeff");
+    loss_coeff[VALUE]       = settings.get<float>("value_loss_coeff");
+    loss_coeff[TRANS]       = settings.get<float>("trans_loss_coeff");
+    int64_t max_epoch       = settings.get<int64_t>("max_epoch");
     int64_t batch_size      = settings.get<int64_t>("batch_size");
-    int64_t patience_limit  = settings.get<int64_t>("patience_limit");
     std::string kifu_path   = settings.get<std::string>("kifu_path");
 
     //学習データを取得
@@ -44,16 +45,14 @@ void supervisedLearn() {
 
     //早期終了用の変数宣言
     float min_loss = INT_MAX;
-    int32_t patience = 0;
 
     //学習推移のログファイル
     std::ofstream learn_log("supervised_learn_log.txt");
-    learn_log << "time\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
-    std::cout << "time\tepoch\tstep\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
+    dout(std::cout, learn_log) << "time\tepoch\tstep\tpolicy_loss\tvalue_loss\ttrans_loss" << std::fixed << std::endl;
 
     //validation結果のログファイル
     std::ofstream validation_log("supervised_learn_validation_log.txt");
-    validation_log << "time\tepoch\tsum_loss\tpolicy_loss\tvalue_loss\tpatience\tlearning_rate" << std::fixed << std::endl;
+    validation_log << "time\tepoch\tsum_loss\tpolicy_loss\tvalue_loss\ttrans_loss\tlearning_rate" << std::fixed << std::endl;
 
     //評価関数読み込み
     NeuralNetwork learning_model;
@@ -71,27 +70,27 @@ void supervisedLearn() {
     auto start_time = std::chrono::steady_clock::now();
 
     //学習開始
-    for (int32_t epoch = 1; patience < patience_limit; epoch++) {
+    for (int32_t epoch = 1; epoch <= max_epoch; epoch++) {
         //データをシャッフル
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
         for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size(); step++) {
             //バッチサイズ分データを確保
-            Position pos;
             std::vector<LearningData> data;
             for (int32_t b = 0; b < batch_size; b++) {
-                const auto& datum = data_buffer[step * batch_size + b];
-                data.push_back(datum);
+                data.push_back(data_buffer[step * batch_size + b]);
             }
 
             //学習
             optimizer.zero_grad();
-            auto loss = learning_model->loss(data);
-            loss[POLICY] = loss[POLICY].mean();
-            loss[VALUE ] = loss[VALUE ].mean();
-            loss[TRANS ] = loss[TRANS ].mean();
-            auto loss_sum = policy_loss_coeff * loss[POLICY] + value_loss_coeff * loss[VALUE] + 1.0 * loss[POLICY];
-            loss_sum.mean().backward();
+            std::array<torch::Tensor, LOSS_NUM> loss = learning_model->loss(data);
+            for (int64_t i = 0; i < LOSS_NUM; i++) {
+                loss[i] = loss[i].mean();
+            }
+            torch::Tensor loss_sum = loss_coeff[POLICY] * loss[POLICY]
+                                   + loss_coeff[VALUE]  * loss[VALUE]
+                                   + loss_coeff[TRANS]  * loss[TRANS];
+            loss_sum.backward();
             optimizer.step();
 
             //1エポックにつき10回出力
@@ -110,26 +109,28 @@ void supervisedLearn() {
         torch::load(nn, MODEL_PATH);
 
         //validation_lossを計算
-        auto val_loss = validation(validation_data);
-        float sum_loss = policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1];
+        std::array<float, LOSS_NUM> validation_loss = validation(validation_data);
+        float sum_loss = loss_coeff[POLICY] * validation_loss[POLICY]
+                       + loss_coeff[VALUE]  * validation_loss[VALUE]
+                       + loss_coeff[TRANS]  * validation_loss[TRANS];
 
-        //validation_lossからpatience等を更新
+        //最小値が更新されていればパラメータを保存
         if (sum_loss < min_loss) {
             min_loss = sum_loss;
-            patience = 0;
             torch::save(learning_model, MODEL_PREFIX + "_supervised_best.model");
-        } else {
-            patience++;
-            optimizer.options.learning_rate_ *= learn_rate_decay;
         }
 
         dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
                                         << epoch << "\t"
                                         << sum_loss << "\t"
-                                        << val_loss[0] << "\t"
-                                        << val_loss[1] << "\t"
-                                        << patience << "\t"
+                                        << validation_loss[POLICY] << "\t"
+                                        << validation_loss[VALUE] << "\t"
+                                        << validation_loss[TRANS] << "\t"
                                         << optimizer.options.learning_rate_ << std::endl;
+
+        if (epoch == max_epoch / 2 || epoch == max_epoch * 3 / 4) {
+            optimizer.options.learning_rate_ /= 10;
+        }
     }
 
     std::cout << "finish supervisedLearn" << std::endl;

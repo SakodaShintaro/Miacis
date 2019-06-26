@@ -95,7 +95,8 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
 #endif
 }
 
-torch::Tensor NeuralNetworkImpl::predictNextStateRep(torch::Tensor state_representations, torch::Tensor move_representations) {
+torch::Tensor NeuralNetworkImpl::predictTransition(torch::Tensor& state_representations,
+                                                   torch::Tensor& move_representations) {
     torch::Tensor concatenated = torch::cat({state_representations, move_representations}, 1);
     return next_state_rep_predictor->forward(concatenated);
 }
@@ -148,12 +149,12 @@ torch::Tensor NeuralNetworkImpl::encodeAction(const std::vector<Move>& moves) {
     return action_encode_fc->forward(move_labels_tensor);
 }
 
-torch::Tensor NeuralNetworkImpl::decodePolicy(torch::Tensor representation) {
+torch::Tensor NeuralNetworkImpl::decodePolicy(at::Tensor& representation) {
     torch::Tensor policy = policy_fc->forward(representation);
     return policy;
 }
 
-torch::Tensor NeuralNetworkImpl::decodeValue(torch::Tensor representation) {
+torch::Tensor NeuralNetworkImpl::decodeValue(torch::Tensor& representation) {
     torch::Tensor value = value_fc1->forward(representation);
     value = torch::relu(value);
     value = value_fc2->forward(value);
@@ -162,8 +163,7 @@ torch::Tensor NeuralNetworkImpl::decodeValue(torch::Tensor representation) {
     return value;
 }
 
-std::array<torch::Tensor, 3>
-NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
+std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
     static Position pos;
 
     //局面の特徴量を取得
@@ -225,9 +225,9 @@ NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
 #endif
 #endif
 
-    //---------------------------
-    //  次状態表現予測の損失計算
-    //---------------------------
+    //----------------------
+    //  遷移予測の損失計算
+    //----------------------
     //行動の表現を取得
     std::vector<Move> moves;
     for (const LearningData& d : data) {
@@ -236,15 +236,15 @@ NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
     torch::Tensor action_representation = encodeAction(moves);
 
     //次状態を予測
-    torch::Tensor predict = predictNextStateRep(state_representation, action_representation);
+    torch::Tensor transition = predictTransition(state_representation, action_representation);
 
     //次状態の表現を取得
     torch::Tensor next_state_representation = encodeState(curr_state_features);
 
     //損失を計算
-    torch::Tensor predict_loss = torch::mse_loss(predict, next_state_representation);
+    torch::Tensor transition_loss = torch::pow(transition - next_state_representation, 2);
 
-    return { policy_loss, value_loss, predict_loss };
+    return { policy_loss, value_loss, transition_loss };
 }
 
 NeuralNetwork nn;

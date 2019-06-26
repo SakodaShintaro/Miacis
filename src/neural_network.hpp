@@ -57,17 +57,18 @@ public:
     torch::Tensor encodeAction(const std::vector<Move>& moves);
 
     //状態表現から方策を得る関数
-    torch::Tensor decodePolicy(torch::Tensor representation);
+    torch::Tensor decodePolicy(torch::Tensor& representation);
 
     //状態表現から状態価値を得る関数
-    torch::Tensor decodeValue(torch::Tensor representation);
+    torch::Tensor decodeValue(torch::Tensor& representation);
 
     //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
-    //状態表現と行動から次状態の表現を予測する関数
-    torch::Tensor predictNextStateRep(torch::Tensor state_representations, torch::Tensor move_representations);
+    //状態表現と行動表現から次状態の表現を予測する関数
+    torch::Tensor predictTransition(torch::Tensor& state_representations, torch::Tensor& move_representations);
 
+    //データから損失を計算する関数
     std::array<torch::Tensor, LOSS_NUM> loss(const std::vector<LearningData>& data);
 
     void setGPU(int16_t gpu_id);
