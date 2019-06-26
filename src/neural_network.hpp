@@ -6,11 +6,9 @@
 
 //ネットワークの設定
 constexpr int32_t POLICY_CHANNEL_NUM = 27;
+constexpr int32_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM;
 constexpr int32_t BLOCK_NUM = 10;
-constexpr int32_t KERNEL_SIZE = 3;
 constexpr int32_t CHANNEL_NUM = 64;
-constexpr int32_t REDUCTION = 8;
-constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
 //評価パラメータを読み書きするファイルのprefix
 #ifdef USE_CATEGORICAL
@@ -34,7 +32,6 @@ constexpr int32_t BIN_SIZE = 1;
 using ValueType = float;
 using ValueTeacherType = float;
 #endif
-using PolicyTeacherType = std::vector<std::pair<int32_t, float>>;
 
 //学習データの型
 struct LearningData {
@@ -43,13 +40,28 @@ struct LearningData {
     ValueTeacherType value;
 };
 
-enum LossOrder {
+//損失の種類
+enum LossType {
     POLICY, VALUE, TRANS, LOSS_NUM
 };
 
 class NeuralNetworkImpl : public torch::nn::Module {
 public:
     NeuralNetworkImpl();
+    //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
+
+    //データから損失を計算する関数
+    std::array<torch::Tensor, LOSS_NUM> loss(const std::vector<LearningData>& data);
+
+    void setGPU(int16_t gpu_id);
+
+private:
+    static constexpr int64_t REPRESENTATION_DIM = CHANNEL_NUM;
+    static constexpr int32_t VALUE_HIDDEN_NUM = 256;
+    static constexpr int32_t REDUCTION = 8;
+    static constexpr int32_t KERNEL_SIZE = 3;
+
     //状態を表現へと変換する関数
     torch::Tensor encodeState(const std::vector<float>& inputs);
 
@@ -62,20 +74,10 @@ public:
     //状態表現から状態価値を得る関数
     torch::Tensor decodeValue(torch::Tensor& representation);
 
-    //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
-
     //状態表現と行動表現から次状態の表現を予測する関数
     torch::Tensor predictTransition(torch::Tensor& state_representations, torch::Tensor& move_representations);
 
-    //データから損失を計算する関数
-    std::array<torch::Tensor, LOSS_NUM> loss(const std::vector<LearningData>& data);
-
-    void setGPU(int16_t gpu_id);
-
-private:
-    static constexpr int64_t REPRESENTATION_DIM = CHANNEL_NUM;
-
+    //このネットワークが計算されるGPU or CPU
     torch::Device device_;
 
     //encodeStateで使用
@@ -86,7 +88,7 @@ private:
     std::vector<std::vector<torch::nn::Linear>>    fc;
 
     //encodeActionで使用
-    torch::nn::Linear action_encode_fc{nullptr};
+    torch::nn::Linear action_encoder{nullptr};
 
     //decodePolicyで使用
     torch::nn::Linear policy_fc{nullptr};
@@ -96,8 +98,8 @@ private:
     torch::nn::Linear value_fc2{nullptr};
     torch::nn::Linear value_fc3{nullptr};
 
-    //predictNextStateRepで使用
-    torch::nn::Linear next_state_rep_predictor{nullptr};
+    //predictTransitionで使用
+    torch::nn::Linear transition_predictor{nullptr};
 };
 TORCH_MODULE(NeuralNetwork);
 

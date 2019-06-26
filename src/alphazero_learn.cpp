@@ -122,11 +122,6 @@ void alphaZero() {
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames((int64_t)(1e15)); });
     }
 
-    //入力,教師データ
-    std::vector<float> inputs(batch_size * SQUARE_NUM * INPUT_CHANNEL_NUM);
-    std::vector<PolicyTeacherType> policy_teachers(batch_size);
-    std::vector<ValueTeacherType> value_teachers(batch_size);
-
     for (int32_t step_num = 1; step_num <= max_step_num; step_num++) {
         //バッチサイズ分データを選択
         std::vector<LearningData> data = replay_buffer.makeBatch(batch_size);

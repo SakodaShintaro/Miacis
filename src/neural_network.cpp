@@ -18,15 +18,14 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
         fc[i][1] = register_module("fc" + std::to_string(i) + "_1", torch::nn::Linear(torch::nn::LinearOptions(CHANNEL_NUM / REDUCTION, CHANNEL_NUM).with_bias(false)));
     }
 
-    action_encode_fc = register_module("action_encode_fc", torch::nn::Linear(SQUARE_NUM * POLICY_CHANNEL_NUM, REPRESENTATION_DIM));
+    action_encoder = register_module("action_encoder", torch::nn::Linear(POLICY_DIM, REPRESENTATION_DIM));
 
-    policy_fc = register_module("policy_fc", torch::nn::Linear(CHANNEL_NUM, SQUARE_NUM * POLICY_CHANNEL_NUM));
+    policy_fc = register_module("policy_fc", torch::nn::Linear(CHANNEL_NUM, POLICY_DIM));
     value_fc1 = register_module("value_fc1", torch::nn::Linear(CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_fc2 = register_module("value_fc2", torch::nn::Linear(VALUE_HIDDEN_NUM, VALUE_HIDDEN_NUM));
     value_fc3 = register_module("value_fc3", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 
-    next_state_rep_predictor = register_module("next_state_rep_predictor",
-            torch::nn::Linear(2 * REPRESENTATION_DIM, REPRESENTATION_DIM));
+    transition_predictor = register_module("transition_predictor", torch::nn::Linear(2 * REPRESENTATION_DIM, REPRESENTATION_DIM));
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
@@ -46,8 +45,7 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     float* p = policy.data<float>();
 #endif
     for (int32_t i = 0; i < batch_size; i++) {
-        constexpr auto unit_size = POLICY_CHANNEL_NUM * SQUARE_NUM;
-        policies[i].assign(p + i * unit_size, p + (i + 1) * unit_size);
+        policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
     }
 
 #ifdef USE_CATEGORICAL
@@ -98,7 +96,7 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
 torch::Tensor NeuralNetworkImpl::predictTransition(torch::Tensor& state_representations,
                                                    torch::Tensor& move_representations) {
     torch::Tensor concatenated = torch::cat({state_representations, move_representations}, 1);
-    return next_state_rep_predictor->forward(concatenated);
+    return transition_predictor->forward(concatenated);
 }
 
 torch::Tensor NeuralNetworkImpl::encodeState(const std::vector<float>& inputs) {
@@ -141,15 +139,15 @@ torch::Tensor NeuralNetworkImpl::encodeState(const std::vector<float>& inputs) {
 torch::Tensor NeuralNetworkImpl::encodeAction(const std::vector<Move>& moves) {
     std::vector<float> onehot_move_labels;
     for (Move move : moves) {
-        std::vector<float> curr_onehot_label(SQUARE_NUM * POLICY_CHANNEL_NUM, 0.0);
+        std::vector<float> curr_onehot_label(POLICY_DIM, 0.0);
         curr_onehot_label[move.toLabel()] = 1.0;
         onehot_move_labels.insert(onehot_move_labels.end(), curr_onehot_label.begin(), curr_onehot_label.end());
     }
-    torch::Tensor move_labels_tensor = torch::tensor(onehot_move_labels).view({(int64_t)moves.size(), SQUARE_NUM * POLICY_CHANNEL_NUM}).to(device_);
-    return action_encode_fc->forward(move_labels_tensor);
+    torch::Tensor move_labels_tensor = torch::tensor(onehot_move_labels).view({(int64_t)moves.size(), POLICY_DIM}).to(device_);
+    return action_encoder->forward(move_labels_tensor);
 }
 
-torch::Tensor NeuralNetworkImpl::decodePolicy(at::Tensor& representation) {
+torch::Tensor NeuralNetworkImpl::decodePolicy(torch::Tensor& representation) {
     torch::Tensor policy = policy_fc->forward(representation);
     return policy;
 }
