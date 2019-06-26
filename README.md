@@ -6,7 +6,7 @@ MiacisはUSIプロトコルに対応した将棋用思考エンジンです。[�
 ## コンパイル方法
 コンパイル時にはPyTorchのC++APIである[LibTorch](https://pytorch.org/get-started/locally/)を必要とします。CMakeLists.txt9行目におけるlibtorchへのパスを適切に設定してください。
 
-###Ubuntu
+### Ubuntu
 Ubuntu18.04, CUDA10.0, cuDNN7.1, libtorch1.1(for CUDA10.0 nightly)の環境においてcmake3.10.2, g++7.4.0でビルドできることが確認できています。以下にLinuxでコンパイルする手順例を示します。
 
 ```
@@ -24,7 +24,7 @@ make -j4
 
 正常にコンパイルが進むとbuild以下にMiacis_scalarとMiacis_categoricalの二つプログラムが得られます。前者は状態価値(評価値)をスカラとして一つ出力するモデルであり、AlphaZeroとほぼ同等のアーキテクチャとなります。後者は状態価値(評価値)の確率分布を出力するモデルとなります。
 
-###Windows
+### Windows
 Windows10, CUDA9.0, cuDNN7.0.5, libtorch1.1(for CUDA9.0 stable)の環境においてVisual Studio2017にCMake拡張を入れたものでビルドできることが確認できています。CMakeLists.txtの以下の2行を次のように書き換えてください。
 
 書き換え前
