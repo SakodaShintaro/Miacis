@@ -53,8 +53,6 @@ std::array<float, LOSS_NUM> validation(const std::vector<LearningData>& data) {
     value_loss /= data.size();
     trans_loss /= data.size();
 
-    std::cout << policy_loss << " " << value_loss << " " << trans_loss << std::endl;
-
     return { policy_loss, value_loss, trans_loss };
 }
 
