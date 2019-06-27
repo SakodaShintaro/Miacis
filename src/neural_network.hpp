@@ -9,6 +9,10 @@ constexpr int32_t POLICY_CHANNEL_NUM = 27;
 constexpr int32_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM;
 constexpr int32_t BLOCK_NUM = 10;
 constexpr int32_t CHANNEL_NUM = 64;
+constexpr int64_t REPRESENTATION_DIM = CHANNEL_NUM;
+constexpr int32_t VALUE_HIDDEN_NUM = 256;
+constexpr int32_t REDUCTION = 8;
+constexpr int32_t KERNEL_SIZE = 3;
 
 //評価パラメータを読み書きするファイルのprefix
 #ifdef USE_CATEGORICAL
@@ -54,19 +58,14 @@ public:
     //データから損失を計算する関数
     std::array<torch::Tensor, LOSS_NUM> loss(const std::vector<LearningData>& data);
 
+    //このネットワークが計算されるGPU or CPUを設定する関数
     void setGPU(int16_t gpu_id);
 
-private:
-    static constexpr int64_t REPRESENTATION_DIM = CHANNEL_NUM;
-    static constexpr int32_t VALUE_HIDDEN_NUM = 256;
-    static constexpr int32_t REDUCTION = 8;
-    static constexpr int32_t KERNEL_SIZE = 3;
-
     //状態を表現へと変換する関数
-    torch::Tensor encodeState(const std::vector<float>& inputs);
+    torch::Tensor encodeStates(const std::vector<float>& inputs);
 
     //行動を表現へと変換する関数
-    torch::Tensor encodeAction(const std::vector<Move>& moves);
+    torch::Tensor encodeActions(const std::vector<Move>& moves);
 
     //状態表現から方策を得る関数
     torch::Tensor decodePolicy(torch::Tensor& representation);
@@ -77,6 +76,8 @@ private:
     //状態表現と行動表現から次状態の表現を予測する関数
     torch::Tensor predictTransition(torch::Tensor& state_representations, torch::Tensor& move_representations);
 
+
+private:
     //このネットワークが計算されるGPU or CPU
     torch::Device device_;
 

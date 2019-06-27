@@ -30,7 +30,7 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
 NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
-    torch::Tensor representation = encodeState(inputs);
+    torch::Tensor representation = encodeStates(inputs);
 
     auto batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);
 
@@ -99,7 +99,7 @@ torch::Tensor NeuralNetworkImpl::predictTransition(torch::Tensor& state_represen
     return transition_predictor->forward(concatenated);
 }
 
-torch::Tensor NeuralNetworkImpl::encodeState(const std::vector<float>& inputs) {
+torch::Tensor NeuralNetworkImpl::encodeStates(const std::vector<float>& inputs) {
 #ifdef USE_HALF_FLOAT
     torch::Tensor x = torch::tensor(inputs).to(device_, torch::kHalf);
 #else
@@ -136,7 +136,7 @@ torch::Tensor NeuralNetworkImpl::encodeState(const std::vector<float>& inputs) {
     return torch::avg_pool2d(x, {9, 9}).view({-1, CHANNEL_NUM});
 }
 
-torch::Tensor NeuralNetworkImpl::encodeAction(const std::vector<Move>& moves) {
+torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
     std::vector<float> onehot_move_labels;
     for (Move move : moves) {
         std::vector<float> curr_onehot_label(POLICY_DIM, 0.0);
@@ -180,7 +180,7 @@ std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<Le
     }
 
     //現局面の特徴を表現に変換
-    torch::Tensor state_representation = encodeState(curr_state_features);
+    torch::Tensor state_representation = encodeStates(curr_state_features);
 
     //---------------------
     //  Policyの損失計算
@@ -231,13 +231,13 @@ std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<Le
     for (const LearningData& d : data) {
         moves.push_back(d.move);
     }
-    torch::Tensor action_representation = encodeAction(moves);
+    torch::Tensor action_representation = encodeActions(moves);
 
     //次状態を予測
     torch::Tensor transition = predictTransition(state_representation, action_representation);
 
     //次状態の表現を取得
-    torch::Tensor next_state_representation = encodeState(curr_state_features);
+    torch::Tensor next_state_representation = encodeStates(curr_state_features);
 
     //損失を計算
     torch::Tensor transition_loss = torch::pow(transition - next_state_representation, 2).sum(1);

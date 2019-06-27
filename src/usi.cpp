@@ -36,6 +36,7 @@ USI::USI() : searcher_(nullptr) {
     command_["checkGenSpeed"] = checkGenSpeed;
     command_["checkPredictSpeed"] = checkPredictSpeed;
     command_["checkVal"] = checkVal;
+    command_["checkRepresentation"] = checkRepresentation;
 }
 
 void USI::loop() {

@@ -7,5 +7,6 @@ void checkGenSpeed();
 void checkPredictSpeed();
 void checkVal();
 void checkSegmentTree();
+void checkRepresentation();
 
 #endif // !TEST_HPP
