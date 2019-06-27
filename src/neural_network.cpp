@@ -20,12 +20,13 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
 
     action_encoder = register_module("action_encoder", torch::nn::Linear(POLICY_DIM, REPRESENTATION_DIM));
 
-    policy_fc = register_module("policy_fc", torch::nn::Linear(CHANNEL_NUM, POLICY_DIM));
-    value_fc1 = register_module("value_fc1", torch::nn::Linear(CHANNEL_NUM, VALUE_HIDDEN_NUM));
-    value_fc2 = register_module("value_fc2", torch::nn::Linear(VALUE_HIDDEN_NUM, VALUE_HIDDEN_NUM));
-    value_fc3 = register_module("value_fc3", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
+    policy_conv = register_module("policy_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
+    value_conv = register_module("value_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, 1).padding(0).with_bias(false)));
+    value_norm = register_module("value_norm", torch::nn::BatchNorm(CHANNEL_NUM));
+    value_fc1 = register_module("value_fc1", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
+    value_fc2 = register_module("value_fc2", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 
-    transition_predictor = register_module("transition_predictor", torch::nn::Linear(2 * REPRESENTATION_DIM, REPRESENTATION_DIM));
+    transition_predictor = register_module("transition_predictor", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM + POLICY_CHANNEL_NUM, CHANNEL_NUM, 3).padding(1).with_bias(true)));
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
@@ -86,8 +87,8 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
     policy_conv->to(device_, torch::kHalf);
     value_conv->to(device_, torch::kHalf);
     value_bn->to(device_);
+    value_fc1->to(device_, torch::kHalf);
     value_fc2->to(device_, torch::kHalf);
-    value_fc3->to(device_, torch::kHalf);
 #else
     to(device_);
 #endif
@@ -133,7 +134,7 @@ torch::Tensor NeuralNetworkImpl::encodeStates(const std::vector<float>& inputs) 
         x = torch::relu(x + t);
     }
 
-    return torch::avg_pool2d(x, {9, 9}).view({-1, CHANNEL_NUM});
+    return x;
 }
 
 torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
@@ -143,21 +144,23 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
         curr_onehot_label[move.toLabel()] = 1.0;
         onehot_move_labels.insert(onehot_move_labels.end(), curr_onehot_label.begin(), curr_onehot_label.end());
     }
-    torch::Tensor move_labels_tensor = torch::tensor(onehot_move_labels).view({(int64_t)moves.size(), POLICY_DIM}).to(device_);
-    return action_encoder->forward(move_labels_tensor);
+    torch::Tensor move_labels_tensor = torch::tensor(onehot_move_labels).to(device_);
+    return move_labels_tensor.view({ -1, POLICY_CHANNEL_NUM, 9, 9 });
 }
 
 torch::Tensor NeuralNetworkImpl::decodePolicy(torch::Tensor& representation) {
-    torch::Tensor policy = policy_fc->forward(representation);
-    return policy;
+    torch::Tensor policy = policy_conv->forward(representation);
+    return policy.view({ -1, POLICY_DIM });
 }
 
 torch::Tensor NeuralNetworkImpl::decodeValue(torch::Tensor& representation) {
-    torch::Tensor value = value_fc1->forward(representation);
+    torch::Tensor value = value_conv->forward(representation);
+    value = value_norm->forward(value);
+    value = torch::relu(value);
+    value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
+    value = value_fc1->forward(value);
     value = torch::relu(value);
     value = value_fc2->forward(value);
-    value = torch::relu(value);
-    value = value_fc3->forward(value);
     return value;
 }
 
@@ -240,7 +243,8 @@ std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<Le
     torch::Tensor next_state_representation = encodeStates(curr_state_features);
 
     //損失を計算
-    torch::Tensor transition_loss = torch::pow(transition - next_state_representation, 2).sum(1);
+    torch::Tensor square = torch::pow(transition - next_state_representation, 2);
+    torch::Tensor transition_loss = torch::sqrt(torch::sum(square, {1, 2, 3}));
 
     return { policy_loss, value_loss, transition_loss };
 }

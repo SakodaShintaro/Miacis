@@ -76,7 +76,6 @@ public:
     //状態表現と行動表現から次状態の表現を予測する関数
     torch::Tensor predictTransition(torch::Tensor& state_representations, torch::Tensor& move_representations);
 
-
 private:
     //このネットワークが計算されるGPU or CPU
     torch::Device device_;
@@ -92,15 +91,16 @@ private:
     torch::nn::Linear action_encoder{nullptr};
 
     //decodePolicyで使用
-    torch::nn::Linear policy_fc{nullptr};
+    torch::nn::Conv2d policy_conv{nullptr};
 
     //decodeValueで使用
+    torch::nn::Conv2d    value_conv{nullptr};
+    torch::nn::BatchNorm value_norm{nullptr};
     torch::nn::Linear value_fc1{nullptr};
     torch::nn::Linear value_fc2{nullptr};
-    torch::nn::Linear value_fc3{nullptr};
 
     //predictTransitionで使用
-    torch::nn::Linear transition_predictor{nullptr};
+    torch::nn::Conv2d transition_predictor{nullptr};
 };
 TORCH_MODULE(NeuralNetwork);
 
