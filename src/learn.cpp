@@ -32,14 +32,12 @@ std::array<float, LOSS_NUM> validation(const std::vector<LearningData>& data) {
     int32_t index = 0;
     float policy_loss = 0.0, value_loss = 0.0, trans_loss = 0.0;
     torch::NoGradGuard no_grad_guard;
-    Position pos;
     while (index < data.size()) {
         std::vector<LearningData> curr_data;
 
         //バッチサイズ分データを確保
         while (index < data.size() && curr_data.size() < batch_size) {
-            const auto& datum = data[index++];
-            curr_data.push_back(datum);
+            curr_data.push_back(data[index++]);
         }
 
         //計算
@@ -54,6 +52,8 @@ std::array<float, LOSS_NUM> validation(const std::vector<LearningData>& data) {
     policy_loss /= data.size();
     value_loss /= data.size();
     trans_loss /= data.size();
+
+    std::cout << policy_loss << " " << value_loss << " " << trans_loss << std::endl;
 
     return { policy_loss, value_loss, trans_loss };
 }

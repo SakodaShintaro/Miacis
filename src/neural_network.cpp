@@ -196,7 +196,7 @@ std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<Le
     torch::Tensor move_teachers_tensor = torch::tensor(move_teachers).to(device_);
 
     //損失を計算
-    torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(policy, 1), move_teachers_tensor);
+    torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(policy, 1), move_teachers_tensor, {}, Reduction::None);
 
     //--------------------
     //  Valueの損失計算
@@ -240,7 +240,7 @@ std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<Le
     torch::Tensor next_state_representation = encodeState(curr_state_features);
 
     //損失を計算
-    torch::Tensor transition_loss = torch::pow(transition - next_state_representation, 2);
+    torch::Tensor transition_loss = torch::pow(transition - next_state_representation, 2).sum(1);
 
     return { policy_loss, value_loss, transition_loss };
 }
