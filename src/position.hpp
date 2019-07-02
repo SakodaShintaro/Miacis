@@ -49,6 +49,7 @@ public:
     void generateEvasionMoves(Move*& move_ptr) const;
     void generateCaptureMoves(Move*& move_ptr) const;
     void generateNonCaptureMoves(Move*& move_ptr) const;
+    std::vector<Move> generateAllPossibleMoves();
 
     //sfenの入出力
     void loadSFEN(std::string sfen);

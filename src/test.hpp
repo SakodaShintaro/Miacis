@@ -8,5 +8,6 @@ void checkPredictSpeed();
 void checkVal();
 void checkSegmentTree();
 void checkRepresentation();
+void checkGenAllPossibleMoves();
 
 #endif // !TEST_HPP

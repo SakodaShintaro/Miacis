@@ -98,9 +98,13 @@ public:
 
     uint32_t toLabel() const;
 
+    int32_t toID() const;
+
     //探索時にSearcherクラスから気軽にアクセスできるようpublicにおいてるけど
     int32_t move;
     Score score;
+
+    static std::unordered_map<int32_t, int32_t> mp;
 };
 
 //駒を打つ手

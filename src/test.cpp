@@ -200,3 +200,21 @@ void checkRepresentation() {
         std::cout << std::fixed << std::setprecision(2) << move_rep[i] << " \n"[i == REPRESENTATION_DIM - 1];
     }
 }
+
+void checkGenAllPossibleMoves() {
+    Position pos;
+    int32_t counter = 0;
+    for (const Move& move : pos.generateAllPossibleMoves()) {
+        Move::mp[move.move] = counter++;
+    }
+
+    Position pos1;
+    Move move(SQ26, SQ27);
+    move = pos1.transformValidMove(move);
+    move.printWithNewLine();
+    std::cout << move.toID() << std::endl;
+
+    Move move2(SQ48, SQ59);
+    move2 = pos1.transformValidMove(move2);
+    std::cout << move2.toID() << std::endl;
+}

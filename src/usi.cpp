@@ -37,6 +37,7 @@ USI::USI() : searcher_(nullptr) {
     command_["checkPredictSpeed"] = checkPredictSpeed;
     command_["checkVal"] = checkVal;
     command_["checkRepresentation"] = checkRepresentation;
+    command_["checkGenAllPossibleMoves"] = checkGenAllPossibleMoves;
 }
 
 void USI::loop() {

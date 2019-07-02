@@ -1157,3 +1157,35 @@ std::vector<float> Position::makeFeature() const {
 bool Position::isLastMoveDropPawn() const {
     return (lastMove().isDrop() && kind(lastMove().subject()) == PAWN);
 }
+
+std::vector<Move> Position::generateAllPossibleMoves() {
+    for (Square sq : SquareList) {
+        board_[sq] = EMPTY;
+    }
+
+    occupied_all_ = Bitboard(0, 0);
+    for (Bitboard& bb : occupied_bb_) {
+        bb = Bitboard(0, 0);
+    }
+    for (Bitboard& bb : pieces_bb_) {
+        bb = Bitboard(0, 0);
+    }
+
+    std::vector<Move> moves;
+    for (Square sq : SquareList) {
+        for (Piece p : PieceList) {
+            //玉の位置だけ反転のANDが取られることを利用した邪悪なハック
+            king_sq_[BLACK] = king_sq_[WHITE] = sq;
+            board_[sq] = p;
+            auto curr_moves = generateAllMoves();
+            moves.insert(moves.end(), curr_moves.begin(), curr_moves.end());
+        }
+        board_[sq] = EMPTY;
+    }
+
+    for (Move move : moves) {
+        move.printWithNewLine();
+    }
+    std::cout << moves.size() << std::endl;
+    return moves;
+}

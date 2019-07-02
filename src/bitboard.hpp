@@ -222,6 +222,7 @@ inline Bitboard dragonControl(const Square sq, const Bitboard& occupied) {
 }
 
 static ArrayMap<std::function<Bitboard(Square, const Bitboard&)>, PieceNum> controlFunc({
+    {EMPTY, [](Square sq, const Bitboard& b){ return Bitboard(0, 0); } },
     {BLACK_PAWN,   blackPawnControl},
     {BLACK_LANCE,  blackLanceControl},
     {BLACK_KNIGHT, blackNightControl},
