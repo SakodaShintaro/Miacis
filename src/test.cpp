@@ -107,13 +107,11 @@ void checkVal() {
     //データをシャッフルして必要量以外を削除
     std::default_random_engine engine(0);
     std::shuffle(data.begin(), data.end(), engine);
-    data.erase(data.begin() + 409600, data.end());
+    data.erase(data.begin() + 40960, data.end());
     data.shrink_to_fit();
 
-    for (int32_t i = 1; i <= 100000; i++) {
-        auto v = validation(data);
-        printf("%5d回目 : %f\t%f\n", i, v[0], v[1]);
-    }
+    auto v = validation(data);
+    printf("%f\t%f\t%f\n", v[0], v[1], v[2]);
 }
 
 void checkPredictSpeed() {
@@ -217,4 +215,34 @@ void checkGenAllPossibleMoves() {
     Move move2(SQ48, SQ59);
     move2 = pos1.transformValidMove(move2);
     std::cout << move2.toID() << std::endl;
+}
+
+void checkTransitionModel() {
+    torch::load(nn, MODEL_PATH);
+    torch::NoGradGuard no_grad_guard;
+
+    Position pos;
+    torch::Tensor state_rep = nn->encodeStates(pos.makeFeature());
+    std::mt19937_64 engine(1);
+    while (true) {
+        std::vector<Move> moves = pos.generateAllMoves();
+        if (moves.empty()) {
+            break;
+        }
+        std::uniform_int_distribution<> dist(0, moves.size() - 1);
+        Move random_move = moves[dist(engine)];
+
+        pos.doMove(random_move);
+
+        torch::Tensor true_state_rep = nn->encodeStates(pos.makeFeature());
+
+        torch::Tensor move_rep = nn->encodeActions({ random_move });
+        state_rep = nn->predictTransition(state_rep, move_rep);
+
+        torch::Tensor square = torch::pow(state_rep - true_state_rep, 2);
+        torch::Tensor transition_loss = torch::sqrt(torch::sum(square, {1, 2, 3}));
+        std::cout << transition_loss.item<float>() << std::endl;
+
+        //state_rep = true_state_rep;
+    }
 }

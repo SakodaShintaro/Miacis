@@ -240,7 +240,7 @@ std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<Le
     torch::Tensor transition = predictTransition(state_representation, action_representation);
 
     //次状態の表現を取得
-    torch::Tensor next_state_representation = encodeStates(curr_state_features);
+    torch::Tensor next_state_representation = encodeStates(next_state_features);
 
     //損失を計算
     torch::Tensor square = torch::pow(transition - next_state_representation, 2);

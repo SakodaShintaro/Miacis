@@ -38,6 +38,7 @@ USI::USI() : searcher_(nullptr) {
     command_["checkVal"] = checkVal;
     command_["checkRepresentation"] = checkRepresentation;
     command_["checkGenAllPossibleMoves"] = checkGenAllPossibleMoves;
+    command_["checkTransitionModel"] = checkTransitionModel;
 }
 
 void USI::loop() {

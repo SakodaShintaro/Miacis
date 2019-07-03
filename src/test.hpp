@@ -9,5 +9,6 @@ void checkVal();
 void checkSegmentTree();
 void checkRepresentation();
 void checkGenAllPossibleMoves();
+void checkTransitionModel();
 
 #endif // !TEST_HPP
