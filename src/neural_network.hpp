@@ -13,6 +13,7 @@ constexpr int64_t REPRESENTATION_DIM = CHANNEL_NUM;
 constexpr int32_t VALUE_HIDDEN_NUM = 256;
 constexpr int32_t REDUCTION = 8;
 constexpr int32_t KERNEL_SIZE = 3;
+constexpr int32_t MOVE_FEATURE_CHANNEL_NUM = 32;
 
 //評価パラメータを読み書きするファイルのprefix
 #ifdef USE_CATEGORICAL
@@ -88,7 +89,7 @@ private:
     std::vector<std::vector<torch::nn::Linear>>    fc;
 
     //encodeActionで使用
-    torch::nn::Linear action_encoder{nullptr};
+    torch::nn::Conv2d action_encoder{nullptr};
 
     //decodePolicyで使用
     torch::nn::Conv2d policy_conv{nullptr};

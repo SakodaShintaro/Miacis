@@ -18,7 +18,7 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
         fc[i][1] = register_module("fc" + std::to_string(i) + "_1", torch::nn::Linear(torch::nn::LinearOptions(CHANNEL_NUM / REDUCTION, CHANNEL_NUM).with_bias(false)));
     }
 
-    action_encoder = register_module("action_encoder", torch::nn::Linear(POLICY_DIM, REPRESENTATION_DIM));
+    action_encoder = register_module("action_encoder", torch::nn::Conv2d(torch::nn::Conv2dOptions(MOVE_FEATURE_CHANNEL_NUM, POLICY_CHANNEL_NUM, 3).padding(1).with_bias(true)));
 
     policy_conv = register_module("policy_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
     value_conv = register_module("value_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, 1).padding(0).with_bias(false)));
@@ -138,14 +138,41 @@ torch::Tensor NeuralNetworkImpl::encodeStates(const std::vector<float>& inputs) 
 }
 
 torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
-    std::vector<float> onehot_move_labels;
+    std::vector<float> move_features;
     for (Move move : moves) {
-        std::vector<float> curr_onehot_label(POLICY_DIM, 0.0);
-        curr_onehot_label[move.toLabel()] = 1.0;
-        onehot_move_labels.insert(onehot_move_labels.end(), curr_onehot_label.begin(), curr_onehot_label.end());
+        //各moveにつき9×9×MOVE_FEATURE_CHANNEL_NUMの特徴マップを得る
+        std::vector<float> curr_move_feature(9 * 9 * MOVE_FEATURE_CHANNEL_NUM, 0.0);
+
+        //1ch:toの位置に1を立てる
+        curr_move_feature[SquareToNum[move.to()]] = 1;
+
+        //2ch:fromの位置に1を立てる.持ち駒から打つ手ならなし
+        //3ch:持ち駒から打つ手なら全て1
+        if (move.isDrop()) {
+            for (Square sq : SquareList) {
+                curr_move_feature[2 * SQUARE_NUM + SquareToNum[sq]] = 1;
+            }
+        } else {
+            curr_move_feature[SQUARE_NUM + SquareToNum[move.from()]] = 1;
+        }
+
+        //4ch:成りなら全て1
+        if (move.isPromote()) {
+            for (Square sq : SquareList) {
+                curr_move_feature[3 * SQUARE_NUM + SquareToNum[sq]] = 1;
+            }
+        }
+
+        //5ch以降:駒の種類に合わせたところだけ全て1
+        for (Square sq : SquareList) {
+            curr_move_feature[(4 + PieceToNum[move.subject()]) * SQUARE_NUM + SquareToNum[sq]] = 1;
+        }
+
+        move_features.insert(move_features.end(), curr_move_feature.begin(), curr_move_feature.end());
     }
-    torch::Tensor move_labels_tensor = torch::tensor(onehot_move_labels).to(device_);
-    return move_labels_tensor.view({ -1, POLICY_CHANNEL_NUM, 9, 9 });
+    torch::Tensor move_features_tensor = torch::tensor(move_features).to(device_);
+    move_features_tensor = move_features_tensor.view({ -1, MOVE_FEATURE_CHANNEL_NUM, 9, 9 });
+    return action_encoder->forward(move_features_tensor);
 }
 
 torch::Tensor NeuralNetworkImpl::decodePolicy(torch::Tensor& representation) {

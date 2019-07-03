@@ -67,6 +67,7 @@ enum Piece{
     WALL = 1 << (WALL_BIT),                             //1000 0000
 };
 
+extern const ArrayMap<int32_t, PieceNum> PieceToNum;
 extern const ArrayMap<std::string, PieceNum> PieceToStr;
 extern const ArrayMap<std::string, PieceNum> PieceToSfenStr2;
 extern std::unordered_map<int, std::string> PieceToSfenStr;
