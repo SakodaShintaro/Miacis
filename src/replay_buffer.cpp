@@ -83,7 +83,7 @@ void ReplayBuffer::push(Game &game) {
         auto& e = game.elements[i];
 
         //探索結果を先手から見た値に変換
-        double curr_win_rate = (pos.color() == BLACK ? e.move.score : MAX_SCORE + MIN_SCORE - e.move.score);
+        double curr_win_rate = (pos.color() == BLACK ? e.score : MAX_SCORE + MIN_SCORE - e.score);
         //混合
         win_rate_for_black = lambda_ * win_rate_for_black + (1.0 - lambda_) * curr_win_rate;
 

@@ -9,6 +9,7 @@
 
 struct OneTurnElement {
 	Move move;
+	CalcType score;
 	TeacherType teacher;
 	ValueType nn_output_value;
 	std::vector<float> nn_output_policy;

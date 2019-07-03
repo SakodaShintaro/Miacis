@@ -88,14 +88,6 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
     Move best_move = (root.turn_number() < random_turn ?
                       curr_node.moves[randomChoose(distribution)] :
                       curr_node.moves[best_index]);
-
-    //価値の取得
-#ifdef USE_CATEGORICAL
-    best_move.score = (Score)expOfValueDist(QfromNextValue(curr_node, best_index));
-#else
-    best_move.score = (Score)QfromNextValue(curr_node, best_index);
-#endif
-
     return best_move;
 }
 

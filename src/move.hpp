@@ -33,7 +33,7 @@ public:
     //コンストラクタ
     Move() = default;
 
-    explicit Move(int x) : move(x), score(Score(0)) {}
+    explicit Move(int32_t x) : move(x) {}
 
     Move(Square to, Square from) : move(from << MOVE_FROM_SHIFT
                                       | to << MOVE_TO_SHIFT) {}
@@ -93,14 +93,11 @@ public:
     //演算子オーバーロード
     bool operator==(const Move& rhs) const { return (move == rhs.move); }
     bool operator!=(const Move& rhs) const { return !(*this == rhs); }
-    bool operator<(const Move& rhs) const { return (score < rhs.score); }
-    bool operator>(const Move& rhs) const { return (score > rhs.score); }
 
     uint32_t toLabel() const;
 
     //探索時にSearcherクラスから気軽にアクセスできるようpublicにおいてるけど
     int32_t move;
-    Score score;
 };
 
 //駒を打つ手

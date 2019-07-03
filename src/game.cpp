@@ -170,7 +170,7 @@ void Game::writeKifuFile(const std::string& dir_path) const {
             int32_t from_num = SquareToNum[m.from()];
             ofs << "(" << from_num / 9 + 1 << from_num % 9 + 1 << ")" << std::endl;
         }
-        ofs << "**対局 評価値 " << (pieceToColor(m.subject()) == BLACK ? m.score : -m.score) * 1000 << std::endl;
+        ofs << "**対局 評価値 " << (pieceToColor(m.subject()) == BLACK ? elements[i].score : -elements[i].score) * 1000 << std::endl;
 
         pos.doMove(m);
     }
