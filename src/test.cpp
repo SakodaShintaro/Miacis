@@ -110,7 +110,7 @@ void checkVal() {
     data.erase(data.begin() + 40960, data.end());
     data.shrink_to_fit();
 
-    auto v = validation(data);
+    auto v = validation(data, 32);
     printf("%f\t%f\t%f\n", v[0], v[1], v[2]);
 }
 

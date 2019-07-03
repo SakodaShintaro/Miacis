@@ -27,8 +27,7 @@ double elapsedHours(const std::chrono::steady_clock::time_point& start) {
     return seconds / 3600.0;
 }
 
-std::array<float, LOSS_NUM> validation(const std::vector<LearningData>& data) {
-    static constexpr int32_t batch_size = 4096;
+std::array<float, LOSS_NUM> validation(const std::vector<LearningData>& data, int32_t batch_size) {
     int32_t index = 0;
     float policy_loss = 0.0, value_loss = 0.0, trans_loss = 0.0;
     torch::NoGradGuard no_grad_guard;
