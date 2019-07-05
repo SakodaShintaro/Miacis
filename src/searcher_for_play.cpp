@@ -68,27 +68,25 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
         t.join();
     }
 
-    const auto& N = curr_node.N;
-
+    //読み筋などの情報出力
     printUSIInfo(print_policy);
 
-    //探索回数最大の手を選択する
-    int32_t best_index = (int32_t) (std::max_element(N.begin(), N.end()) - N.begin());
-    assert(N[best_index] != 0);
+    //行動選択
+    if (root.turn_number() < random_turn) {
+        //探索回数を正規化して分布を得る
+        std::vector<CalcType> distribution(curr_node.moves.size());
+        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+            distribution[i] = (CalcType) curr_node.N[i] / curr_node.sum_N;
+            assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
+        }
 
-    //選択した着手の勝率の算出
-    //訪問回数に基づいた分布を得る
-    std::vector<CalcType> distribution(curr_node.moves.size());
-    for (int32_t i = 0; i < curr_node.moves.size(); i++) {
-        distribution[i] = (CalcType) N[i] / curr_node.sum_N;
-        assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
+        //ランダムに選択
+        return curr_node.moves[randomChoose(distribution)];
+    } else {
+        //探索回数最大の手を選択
+        int32_t best_index = std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin();
+        return curr_node.moves[best_index];
     }
-
-    //最善手
-    Move best_move = (root.turn_number() < random_turn ?
-                      curr_node.moves[randomChoose(distribution)] :
-                      curr_node.moves[best_index]);
-    return best_move;
 }
 
 std::vector<Move> SearcherForPlay::getPV() const {
