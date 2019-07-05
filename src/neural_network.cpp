@@ -170,21 +170,14 @@ NeuralNetworkImpl::loss(const std::vector<float>& input,
 void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
 #ifdef USE_HALF_FLOAT
-    to(device_, torch::kHalf);
-    first_conv->to(device_, torch::kHalf);
-    first_bn->to(device_);
-    for (int32_t i = 0; i < BLOCK_NUM; i++) {
-        for (int32_t j = 0; j < 2; j++) {
-            conv[i][j]->to(device_, torch::kHalf);
-            bn[i][j]->to(device_);
-            fc[i][j]->to(device_, torch::kHalf);
+    for (const auto& module : modules()) {
+        std::cout << module->name() << std::endl;
+        if (module->name() == "torch::nn::BatchNormImpl") {
+            module->to(device_);
+        } else {
+            module->to(device_, torch::kHalf);
         }
     }
-    policy_conv->to(device_, torch::kHalf);
-    value_conv->to(device_, torch::kHalf);
-    value_bn->to(device_);
-    value_fc1->to(device_, torch::kHalf);
-    value_fc2->to(device_, torch::kHalf);
 #else
     to(device_);
 #endif
