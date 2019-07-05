@@ -19,7 +19,7 @@ Position::Position(){
 
 void Position::init() {
     //盤上の初期化
-    for (int i = 0; i < SquareNum; i++) board_[i] = WALL;
+    for (Piece& p : board_) p = WALL;
     for (Square sq : SquareList) board_[sq] = EMPTY;
 
     //後手の駒
@@ -91,8 +91,8 @@ void Position::init() {
     //Bitboard
     occupied_bb_[BLACK] = Bitboard(0, 0);
     occupied_bb_[WHITE] = Bitboard(0, 0);
-    for (int p = 0; p < PieceNum; ++p) {
-        pieces_bb_[p] = Bitboard(0, 0);
+    for (Bitboard& bb : pieces_bb_) {
+        bb = Bitboard(0, 0);
     }
     for (Square sq : SquareList) {
         if (board_[sq] != EMPTY) {
@@ -458,11 +458,7 @@ bool Position::isLegalMove(const Move move) const {
             flag = false;
         }
     });
-    if (!flag) {
-        return false;
-    }
-
-    return true;
+    return flag;
 }
 
 bool Position::canDropPawn(const Square to) const {
@@ -477,7 +473,7 @@ bool Position::canDropPawn(const Square to) const {
 
 void Position::loadSFEN(std::string sfen) {
     //初期化
-    for (int i = 0; i < SquareNum; i++) board_[i] = WALL;
+    for (Piece& p : board_) p = WALL;
     for (Square sq : SquareList) board_[sq] = EMPTY;
 
     //テーブル用意しておいたほうがシュッと書ける
@@ -576,8 +572,8 @@ void Position::loadSFEN(std::string sfen) {
     //Bitboard
     occupied_bb_[BLACK] = Bitboard(0, 0);
     occupied_bb_[WHITE] = Bitboard(0, 0);
-    for (int p = 0; p < PieceNum; ++p) {
-        pieces_bb_[p] = Bitboard(0, 0);
+    for (Bitboard& bb : pieces_bb_) {
+        bb = Bitboard(0, 0);
     }
     for (Square sq : SquareList) {
         if (board_[sq] != EMPTY) {
