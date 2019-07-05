@@ -312,10 +312,6 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     // 空のインデックスを探す
     index = hash_table_.searchEmptyIndex(pos);
 
-    if (index == hash_table_.size()) {
-        //置換表がいっぱいだったということ。どうしよう
-    }
-
     //経路として記録
     indices.push(index);
 
