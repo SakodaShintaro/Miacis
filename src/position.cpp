@@ -454,12 +454,8 @@ bool Position::isLegalMove(const Move move) const {
 
 bool Position::canDropPawn(const Square to) const {
     //2歩の判定を入れる
-    if (FILE_BB[SquareToFile[to]] & pieces_bb_[color_ == BLACK ? toBlack(PAWN) : toWhite(PAWN)]) {
-        return false;
-    }
-
     //打ち歩詰めは探索時点で弾くのでチェック不要
-    return true;
+    return !(FILE_BB[SquareToFile[to]] & pieces_bb_[color_ == BLACK ? toBlack(PAWN) : toWhite(PAWN)]);
 }
 
 void Position::loadSFEN(std::string sfen) {
