@@ -1,14 +1,5 @@
 ﻿#include"position.hpp"
-#include"common.hpp"
 #include"neural_network.hpp"
-#include<iostream>
-#include<cstdio>
-#include<ctime>
-#include<bitset>
-#include<cassert>
-#include<iterator>
-#include<algorithm>
-#include<set>
 
 int64_t Position::HashSeed[PieceNum][SquareNum];
 int64_t Position::HandHashSeed[ColorNum][PieceNum][19];
