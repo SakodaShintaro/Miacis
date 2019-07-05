@@ -46,9 +46,9 @@ public:
 
     //合法手生成
     std::vector<Move> generateAllMoves() const;
-    void generateEvasionMoves(Move*& move_ptr) const;
-    void generateCaptureMoves(Move*& move_ptr) const;
-    void generateNonCaptureMoves(Move*& move_ptr) const;
+    void generateEvasionMoves(std::vector<Move>& move_buf) const;
+    void generateCaptureMoves(std::vector<Move>& move_buf) const;
+    void generateNonCaptureMoves(std::vector<Move>& move_buf) const;
 
     //sfenの入出力
     void loadSFEN(std::string sfen);
@@ -70,8 +70,8 @@ private:
     //--------------------
     //合法手生成で用いる関数
     bool canPromote(Move move) const;
-    void pushMove(Move move, Move*& move_ptr) const;
-    void generateDropMoves(const Bitboard& to_bb, Move*& move_ptr) const;
+    void pushMove(const Move move, std::vector<Move>& move_buf) const;
+    void generateDropMoves(const Bitboard& to_bb, std::vector<Move>& move_buf) const;
 
     //ハッシュ値の初期化
     void initHashValue();
