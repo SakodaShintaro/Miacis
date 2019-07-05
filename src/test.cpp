@@ -1,19 +1,7 @@
 ﻿#include"test.hpp"
-#include"usi.hpp"
-#include"piece.hpp"
-#include"square.hpp"
-#include"position.hpp"
-#include"hand.hpp"
-#include"game.hpp"
-#include"neural_network.hpp"
-#include"replay_buffer.hpp"
 #include"game_generator.hpp"
 #include"searcher_for_play.hpp"
 #include"learn.hpp"
-#include<cassert>
-#include<numeric>
-#include<climits>
-#include<iomanip>
 
 void test() {
     constexpr int64_t node_limit = 800;

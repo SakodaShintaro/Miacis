@@ -3,7 +3,6 @@
 
 #include"uct_hash_table.hpp"
 #include<chrono>
-#include<atomic>
 
 class Searcher {
 public:

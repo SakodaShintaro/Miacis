@@ -1,15 +1,8 @@
 ﻿#include"usi.hpp"
-#include"move.hpp"
-#include"position.hpp"
 #include"game.hpp"
 #include"test.hpp"
 #include"neural_network.hpp"
 #include"learn.hpp"
-#include"searcher_for_play.hpp"
-#include<iostream>
-#include<string>
-#include<climits>
-#include<thread>
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数

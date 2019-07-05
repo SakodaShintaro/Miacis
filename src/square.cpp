@@ -1,5 +1,4 @@
 ﻿#include"square.hpp"
-#include<array>
 
 const std::array<Square, SQUARE_NUM> SquareList = {
     SQ11, SQ12, SQ13, SQ14, SQ15, SQ16, SQ17, SQ18, SQ19,

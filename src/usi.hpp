@@ -4,7 +4,6 @@
 #include"position.hpp"
 #include"searcher_for_play.hpp"
 #include<thread>
-#include<string>
 #include<functional>
 
 class USI {

@@ -2,9 +2,6 @@
 #define SQUARE_HPP
 
 #include"piece.hpp"
-#include<unordered_map>
-#include<cassert>
-#include<vector>
 #include<array>
 
 enum Square {
@@ -162,7 +159,7 @@ inline static int operator<<(Square sq, int32_t shift) {
 }
 
 extern const std::array<Square, SQUARE_NUM> SquareList;
-extern const int SquareToNum[];
+extern const int32_t SquareToNum[];
 extern const Square InvSquare[];
 
 extern const ArrayMap<std::string, FileNum> fileToString;

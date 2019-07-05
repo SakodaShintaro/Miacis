@@ -4,7 +4,6 @@
 #include"game.hpp"
 #include"segment_tree.hpp"
 #include<mutex>
-#include<queue>
 #include<experimental/filesystem>
 #ifdef _MSC_VER
 #include<direct.h>

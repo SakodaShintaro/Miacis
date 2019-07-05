@@ -1,8 +1,6 @@
 ﻿#ifndef UCT_HASH_ENTRY_HPP
 #define UCT_HASH_ENTRY_HPP
 
-#include"piece.hpp"
-#include"position.hpp"
 #include"neural_network.hpp"
 
 using Index = int32_t;
