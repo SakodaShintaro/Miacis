@@ -1,6 +1,5 @@
 ﻿#include"position.hpp"
 #include"common.hpp"
-#include"usi_options.hpp"
 #include"neural_network.hpp"
 #include<iostream>
 #include<cstdio>

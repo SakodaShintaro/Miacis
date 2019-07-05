@@ -3,7 +3,6 @@
 
 #include"position.hpp"
 #include"searcher_for_play.hpp"
-#include"usi_options.hpp"
 #include<thread>
 #include<string>
 #include<functional>
@@ -27,7 +26,19 @@ private:
     Position root_;
     std::unique_ptr<SearcherForPlay> searcher_;
     std::thread thread_;
-    USIOption usi_option_;
+
+    class USIOption {
+    public:
+        int64_t byoyomi_margin;
+        int64_t random_turn;
+        int64_t USI_Hash;
+        int64_t draw_turn;
+        int64_t print_interval;
+        int64_t thread_num;
+        int64_t search_batch_size;
+        int64_t search_limit;
+        bool print_policy;
+    } usi_option_;
 };
 
 #endif

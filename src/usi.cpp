@@ -1,7 +1,6 @@
 ﻿#include"usi.hpp"
 #include"move.hpp"
 #include"position.hpp"
-#include"usi_options.hpp"
 #include"game.hpp"
 #include"test.hpp"
 #include"neural_network.hpp"
