@@ -47,8 +47,7 @@ public:
     //合法手生成
     std::vector<Move> generateAllMoves() const;
     void generateEvasionMoves(std::vector<Move>& move_buf) const;
-    void generateCaptureMoves(std::vector<Move>& move_buf) const;
-    void generateNonCaptureMoves(std::vector<Move>& move_buf) const;
+    void generateNormalMoves(std::vector<Move>& move_buf) const;
 
     //sfenの入出力
     void loadSFEN(std::string sfen);

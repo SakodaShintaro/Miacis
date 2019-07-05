@@ -75,8 +75,6 @@ inline const Piece operator++(Piece &p, int) { return p = Piece(p + 1); }
 inline Piece operator|(Piece lhs, Piece rhs) { return Piece(int(lhs) | int(rhs)); }
 inline int operator<<(Piece p, int shift) { return static_cast<int>(p) << shift; }
 
-static Piece ColorToFlag[ColorNum] = { BLACK_FLAG, WHITE_FLAG };
-
 inline static Color operator~(Color c) { return (c == BLACK) ? WHITE : BLACK; }
 
 constexpr uint32_t PIECE_KIND_NUM = 14;
