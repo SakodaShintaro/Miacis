@@ -171,7 +171,6 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
 #ifdef USE_HALF_FLOAT
     for (const auto& module : modules()) {
-        std::cout << module->name() << std::endl;
         if (module->name() == "torch::nn::BatchNormImpl") {
             module->to(device_);
         } else {
