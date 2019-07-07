@@ -222,9 +222,10 @@ void checkTransitionModel() {
     torch::NoGradGuard no_grad_guard;
 
     Position pos;
+    torch::Tensor initial_state_rep = nn->encodeStates(pos.makeFeature());
     torch::Tensor state_rep = nn->encodeStates(pos.makeFeature());
     std::mt19937_64 engine(1);
-    while (true) {
+    for (int64_t i = 0; ; i++) {
         std::vector<Move> moves = pos.generateAllMoves();
         if (moves.empty()) {
             break;
@@ -236,12 +237,15 @@ void checkTransitionModel() {
 
         torch::Tensor true_state_rep = nn->encodeStates(pos.makeFeature());
 
+        random_move.printWithNewLine();
         torch::Tensor move_rep = nn->encodeActions({ random_move });
+        std::cout << move_rep << std::endl;
+
         state_rep = nn->predictTransition(state_rep, move_rep);
 
         torch::Tensor square = torch::pow(state_rep - true_state_rep, 2);
         torch::Tensor transition_loss = torch::sqrt(torch::sum(square, {1, 2, 3}));
-        std::cout << transition_loss.item<float>() << std::endl;
+        std::cout << i << "\t" << transition_loss.item<float>() << std::endl;
 
         //state_rep = true_state_rep;
     }
