@@ -89,7 +89,7 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
 torch::Tensor NeuralNetworkImpl::predictTransition(torch::Tensor& state_representations,
                                                    torch::Tensor& move_representations) {
     torch::Tensor concatenated = torch::cat({state_representations, move_representations}, 1);
-    return transition_predictor->forward(concatenated);
+    return transition_predictor->forward(concatenated) + state_representations;
 }
 
 torch::Tensor NeuralNetworkImpl::encodeStates(const std::vector<float>& inputs) {
