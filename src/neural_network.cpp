@@ -1,7 +1,7 @@
 ﻿#include"neural_network.hpp"
 
 //遅くなるのでオフ
-//#define USE_HALF_FLOAT
+#define USE_HALF_FLOAT
 
 NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
                                          conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)),
@@ -162,7 +162,11 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
 
         move_features.insert(move_features.end(), curr_move_feature.begin(), curr_move_feature.end());
     }
+#ifdef USE_HALF_FLOAT
+    torch::Tensor move_features_tensor = torch::tensor(move_features).to(device_, torch::kHalf);
+#else
     torch::Tensor move_features_tensor = torch::tensor(move_features).to(device_);
+#endif
     move_features_tensor = move_features_tensor.view({ -1, MOVE_FEATURE_CHANNEL_NUM, 9, 9 });
     return action_encoder->forward(move_features_tensor);
 }
@@ -215,7 +219,11 @@ std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<Le
     for (const LearningData& d : data) {
         move_teachers.push_back(d.move.toLabel());
     }
+#ifdef USE_HALF_FLOAT
+    torch::Tensor move_teachers_tensor = torch::tensor(move_teachers).to(device_, torch::kHalf);
+#else
     torch::Tensor move_teachers_tensor = torch::tensor(move_teachers).to(device_);
+#endif
 
     //損失を計算
     torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(policy, 1), move_teachers_tensor, {}, Reduction::None);
@@ -231,7 +239,11 @@ std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<Le
     for (const LearningData& d : data) {
         value_teachers.push_back(d.value);
     }
+#ifdef USE_HALF_FLOAT
+    torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_, torch::kHalf);
+#else
     torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_);
+#endif
 
     //損失を計算
 #ifdef USE_CATEGORICAL
