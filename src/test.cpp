@@ -223,7 +223,7 @@ void checkTransitionModel() {
 
     Position pos;
     std::mt19937_64 engine(1);
-    for (int64_t i = 0; ; i++) {
+    for (int64_t i = 1; ; i++) {
         std::vector<Move> moves = pos.generateAllMoves();
         if (moves.empty()) {
             break;
@@ -246,8 +246,11 @@ void checkTransitionModel() {
         //次状態表現の予測
         torch::Tensor predicted_state_rep = nn->predictTransition(curr_state_rep, move_rep);
 
-        torch::Tensor square = torch::pow(next_state_rep - predicted_state_rep, 2);
-        torch::Tensor transition_loss = torch::sqrt(torch::sum(square, {1, 2, 3}));
+        //損失を計算
+        torch::Tensor diff = predicted_state_rep - next_state_rep;
+        torch::Tensor square = torch::pow(diff, 2);
+        torch::Tensor sum = torch::sum(square, {1, 2, 3});
+        torch::Tensor transition_loss = torch::sqrt(sum);
         std::cout << i << "\t" << transition_loss.item<float>() << std::endl;
     }
 }

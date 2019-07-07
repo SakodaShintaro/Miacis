@@ -282,14 +282,16 @@ std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<Le
     torch::Tensor action_representation = encodeActions(moves);
 
     //次状態を予測
-    torch::Tensor transition = predictTransition(state_representation, action_representation);
+    torch::Tensor predicted_state_representation = predictTransition(state_representation, action_representation);
 
     //次状態の表現を取得
     torch::Tensor next_state_representation = encodeStates(next_state_features);
 
     //損失を計算
-    torch::Tensor square = torch::pow(transition - next_state_representation, 2);
-    torch::Tensor transition_loss = torch::sqrt(torch::sum(square, {1, 2, 3}));
+    torch::Tensor diff = predicted_state_representation - next_state_representation;
+    torch::Tensor square = torch::pow(diff, 2);
+    torch::Tensor sum = torch::sum(square, {1, 2, 3});
+    torch::Tensor transition_loss = torch::sqrt(sum);
 
     return { policy_loss, value_loss, transition_loss };
 }
