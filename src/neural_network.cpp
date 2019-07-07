@@ -219,11 +219,7 @@ std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<Le
     for (const LearningData& d : data) {
         move_teachers.push_back(d.move.toLabel());
     }
-#ifdef USE_HALF_FLOAT
-    torch::Tensor move_teachers_tensor = torch::tensor(move_teachers).to(device_, torch::kHalf);
-#else
     torch::Tensor move_teachers_tensor = torch::tensor(move_teachers).to(device_);
-#endif
 
     //損失を計算
     torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(policy, 1), move_teachers_tensor, {}, Reduction::None);
@@ -239,16 +235,18 @@ std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<Le
     for (const LearningData& d : data) {
         value_teachers.push_back(d.value);
     }
+
+    //損失を計算
+#ifdef USE_CATEGORICAL
+    torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_);
+    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_teachers_tensor);
+#else
 #ifdef USE_HALF_FLOAT
     torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_, torch::kHalf);
 #else
     torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_);
 #endif
 
-    //損失を計算
-#ifdef USE_CATEGORICAL
-    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_teachers_tensor);
-#else
     value = value.view(-1);
 #ifdef USE_SIGMOID
     Var value_loss = -value_teachers_tensor * F::log(value) -(1 - value_teachers_tensor) * F::log(1 - value);
