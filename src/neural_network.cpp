@@ -1,7 +1,7 @@
 ﻿#include"neural_network.hpp"
 
-//遅くなるのでオフ
-#define USE_HALF_FLOAT
+//大して速くならないわりに性能は落ちるのでとりあえずOFF
+//#define USE_HALF_FLOAT
 
 NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
                                          conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)),
