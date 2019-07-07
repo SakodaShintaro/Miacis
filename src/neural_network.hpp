@@ -50,9 +50,24 @@ enum LossType {
     POLICY, VALUE, TRANS, LOSS_NUM
 };
 
+class ResidualBlockImpl : public torch::nn::Module {
+public:
+    ResidualBlockImpl(int64_t channel_num, int64_t kernel_size = 3, int64_t reduction = 8);
+
+    torch::Tensor forward(torch::Tensor& x);
+
+private:
+    static constexpr int64_t CONV_NUM = 2;
+    std::vector<torch::nn::Conv2d>    conv;
+    std::vector<torch::nn::BatchNorm> norm;
+    std::vector<torch::nn::Linear>    fc;
+};
+TORCH_MODULE(ResidualBlock);
+
 class NeuralNetworkImpl : public torch::nn::Module {
 public:
     NeuralNetworkImpl();
+
     //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
@@ -84,9 +99,7 @@ private:
     //encodeStateで使用
     torch::nn::Conv2d    first_conv{nullptr};
     torch::nn::BatchNorm first_norm{nullptr};
-    std::vector<std::vector<torch::nn::Conv2d>>    conv;
-    std::vector<std::vector<torch::nn::BatchNorm>> norm;
-    std::vector<std::vector<torch::nn::Linear>>    fc;
+    std::vector<ResidualBlock> blocks;
 
     //encodeActionで使用
     torch::nn::Conv2d action_encoder{nullptr};

@@ -3,19 +3,48 @@
 //大して速くならないわりに性能は落ちるのでとりあえずOFF
 //#define USE_HALF_FLOAT
 
-NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
-                                         conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)),
-                                         norm(BLOCK_NUM, std::vector<torch::nn::BatchNorm>(2, nullptr)),
-                                         fc(BLOCK_NUM, std::vector<torch::nn::Linear>(2, nullptr)) {
+ResidualBlockImpl::ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, int64_t reduction)
+    : conv(CONV_NUM, nullptr), norm(CONV_NUM, nullptr), fc(CONV_NUM, nullptr) {
+    for (int32_t j = 0; j < CONV_NUM; j++) {
+        conv[j] = register_module("conv" + std::to_string(j),
+                torch::nn::Conv2d(torch::nn::Conv2dOptions(channel_num, channel_num, kernel_size).with_bias(false).padding((kernel_size / 2))));
+        norm[j] = register_module("norm" + std::to_string(j), torch::nn::BatchNorm(channel_num));
+    }
+    fc[0] = register_module("fc0", torch::nn::Linear(torch::nn::LinearOptions(channel_num, channel_num / reduction).with_bias(false)));
+    fc[1] = register_module("fc1", torch::nn::Linear(torch::nn::LinearOptions(channel_num / reduction, channel_num).with_bias(false)));
+}
+
+torch::Tensor ResidualBlockImpl::forward(torch::Tensor& x) {
+    int64_t channel_num = x.size(1);
+
+    torch::Tensor t = x;
+
+    x = conv[0]->forward(x);
+    x = norm[0]->forward(x);
+    x = torch::relu(x);
+
+    x = conv[1]->forward(x);
+    x = norm[1]->forward(x);
+
+    //SENet構造
+    torch::Tensor y = torch::avg_pool2d(x, { 9, 9 });
+    y = y.view({ -1, channel_num });
+    y = fc[0]->forward(y);
+    y = torch::relu(y);
+    y = fc[1]->forward(y);
+    y = torch::sigmoid(y);
+    y = y.view({ -1, channel_num, 1, 1 });
+    x = x * y;
+
+    x = torch::relu(x + t);
+    return x;
+}
+
+NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), blocks(BLOCK_NUM, nullptr) {
     first_conv = register_module("first_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
     first_norm = register_module("first_norm", torch::nn::BatchNorm(CHANNEL_NUM));
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
-        for (int32_t j = 0; j < 2; j++) {
-            conv[i][j] = register_module("conv" + std::to_string(i) + "_" + std::to_string(j), torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
-            norm[i][j] = register_module("norm" + std::to_string(i) + "_" + std::to_string(j), torch::nn::BatchNorm(CHANNEL_NUM));
-        }
-        fc[i][0] = register_module("fc" + std::to_string(i) + "_0", torch::nn::Linear(torch::nn::LinearOptions(CHANNEL_NUM, CHANNEL_NUM / REDUCTION).with_bias(false)));
-        fc[i][1] = register_module("fc" + std::to_string(i) + "_1", torch::nn::Linear(torch::nn::LinearOptions(CHANNEL_NUM / REDUCTION, CHANNEL_NUM).with_bias(false)));
+        blocks[i] = register_module("block" + std::to_string(i), ResidualBlock(CHANNEL_NUM));
     }
 
     action_encoder = register_module("action_encoder", torch::nn::Conv2d(torch::nn::Conv2dOptions(MOVE_FEATURE_CHANNEL_NUM, POLICY_CHANNEL_NUM, 3).padding(1).with_bias(true)));
@@ -104,26 +133,7 @@ torch::Tensor NeuralNetworkImpl::encodeStates(const std::vector<float>& inputs) 
     x = torch::relu(x);
 
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
-        torch::Tensor t = x;
-
-        x = conv[i][0]->forward(x);
-        x = norm[i][0]->forward(x);
-        x = torch::relu(x);
-
-        x = conv[i][1]->forward(x);
-        x = norm[i][1]->forward(x);
-
-        //SENet構造
-        torch::Tensor y = torch::avg_pool2d(x, {9, 9});
-        y = y.view({-1, CHANNEL_NUM});
-        y = fc[i][0]->forward(y);
-        y = torch::relu(y);
-        y = fc[i][1]->forward(y);
-        y = torch::sigmoid(y);
-        y = y.view({-1, CHANNEL_NUM, 1, 1});
-        x = x * y;
-
-        x = torch::relu(x + t);
+        x = blocks[i]->forward(x);
     }
 
     return x;
