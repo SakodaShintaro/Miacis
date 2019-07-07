@@ -222,31 +222,32 @@ void checkTransitionModel() {
     torch::NoGradGuard no_grad_guard;
 
     Position pos;
-    torch::Tensor initial_state_rep = nn->encodeStates(pos.makeFeature());
-    torch::Tensor state_rep = nn->encodeStates(pos.makeFeature());
     std::mt19937_64 engine(1);
     for (int64_t i = 0; ; i++) {
         std::vector<Move> moves = pos.generateAllMoves();
         if (moves.empty()) {
             break;
         }
+        //現状態表現
+        torch::Tensor curr_state_rep = nn->encodeStates(pos.makeFeature());
+
+        //行動をランダムに選択
         std::uniform_int_distribution<> dist(0, moves.size() - 1);
         Move random_move = moves[dist(engine)];
-
+        random_move.printWithNewLine();
         pos.doMove(random_move);
 
-        torch::Tensor true_state_rep = nn->encodeStates(pos.makeFeature());
+        //次状態表現
+        torch::Tensor next_state_rep = nn->encodeStates(pos.makeFeature());
 
-        random_move.printWithNewLine();
+        //行動の表現
         torch::Tensor move_rep = nn->encodeActions({ random_move });
-        std::cout << move_rep << std::endl;
 
-        state_rep = nn->predictTransition(state_rep, move_rep);
+        //次状態表現の予測
+        torch::Tensor predicted_state_rep = nn->predictTransition(curr_state_rep, move_rep);
 
-        torch::Tensor square = torch::pow(state_rep - true_state_rep, 2);
+        torch::Tensor square = torch::pow(next_state_rep - predicted_state_rep, 2);
         torch::Tensor transition_loss = torch::sqrt(torch::sum(square, {1, 2, 3}));
         std::cout << i << "\t" << transition_loss.item<float>() << std::endl;
-
-        //state_rep = true_state_rep;
     }
 }
