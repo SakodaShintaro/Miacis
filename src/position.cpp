@@ -328,9 +328,6 @@ void Position::undo() {
     //occupied_all_を更新
     occupied_all_ = occupied_bb_[BLACK] | occupied_bb_[WHITE];
 
-    //王手は自玉へのattackers
-    //checkers_ = attackersTo(~color_, king_sq_[color_]);
-
     //ハッシュの更新
     hash_value_ = board_hash_ ^ hand_hash_;
     //一番右のbitを0にする
@@ -1120,7 +1117,7 @@ void Position::initHashValue() {
 }
 
 std::vector<float> Position::makeFeature() const {
-    std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
+    std::vector<float> features(SQUARE_NUM * STATE_FEATURE_CHANNEL_NUM, 0);
 
     int32_t i;
 
