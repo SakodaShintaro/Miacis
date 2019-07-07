@@ -772,6 +772,10 @@ void Position::generateNormalMoves(std::vector<Move>& move_buf) const {
             pushMove(Move(to, from, false, false, board_[from], board_[to]), move_buf);
         });
     });
+
+    //駒を打つ手
+    Bitboard drop_to_bb = (~occupied_all_ & BOARD_BB);
+    generateDropMoves(drop_to_bb, move_buf);
 }
 
 inline bool Position::canPromote(Move move) const {
