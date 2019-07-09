@@ -155,7 +155,7 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
             double v = QfromNextValue(curr_node, i);
 #endif
             printf("info string %3d  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
-            curr_node.moves[i].printWithNewLine();
+            curr_node.moves[i].print();
         }
     }
 }

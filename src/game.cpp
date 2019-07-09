@@ -51,7 +51,7 @@ Game loadGameFromCSA(const sys::path& p) {
 
         if (!pos.isLegalMove(move)) {
             std::cerr << "There is a illegal move in " << p << std::endl;
-            move.printWithNewLine();
+            move.print();
             exit(1);
         }
         OneTurnElement element;

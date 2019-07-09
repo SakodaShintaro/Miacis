@@ -33,27 +33,27 @@ public:
     //コンストラクタ
     Move() = default;
 
-    explicit Move(int32_t x) : move(x) {}
+    explicit Move(int32_t x) : move_(x) {}
 
-    Move(Square to, Square from) : move(from << MOVE_FROM_SHIFT
-                                      | to << MOVE_TO_SHIFT) {}
+    Move(Square to, Square from) : move_(from << MOVE_FROM_SHIFT
+                                       | to << MOVE_TO_SHIFT) {}
 
-    Move(Square to, Square from, bool isDrop) : move(isDrop << MOVE_DROP_SHIFT
-                                                   | from << MOVE_FROM_SHIFT
-                                                   | to << MOVE_TO_SHIFT) {}
+    Move(Square to, Square from, bool isDrop) : move_(isDrop << MOVE_DROP_SHIFT
+                                                    | from << MOVE_FROM_SHIFT
+                                                    | to << MOVE_TO_SHIFT) {}
 
-    Move(Square to, Square from, bool isDrop, bool isPromote) : move(isPromote << MOVE_PROMOTE_SHIFT
-                                                                   | isDrop << MOVE_DROP_SHIFT
-                                                                   | from << MOVE_FROM_SHIFT
-                                                                   | to << MOVE_TO_SHIFT) {}
+    Move(Square to, Square from, bool isDrop, bool isPromote) : move_(isPromote << MOVE_PROMOTE_SHIFT
+                                                                    | isDrop << MOVE_DROP_SHIFT
+                                                                    | from << MOVE_FROM_SHIFT
+                                                                    | to << MOVE_TO_SHIFT) {}
 
-    Move(Square to, Square from, bool isDrop, bool isPromote, Piece subject) : move(subject << MOVE_SUBJECT_SHIFT
-                                                                                  | isPromote << MOVE_PROMOTE_SHIFT
-                                                                                  | isDrop << MOVE_DROP_SHIFT
-                                                                                  | from << MOVE_FROM_SHIFT
-                                                                                  | to << MOVE_TO_SHIFT) {}
+    Move(Square to, Square from, bool isDrop, bool isPromote, Piece subject) : move_(subject << MOVE_SUBJECT_SHIFT
+                                                                                   | isPromote << MOVE_PROMOTE_SHIFT
+                                                                                   | isDrop << MOVE_DROP_SHIFT
+                                                                                   | from << MOVE_FROM_SHIFT
+                                                                                   | to << MOVE_TO_SHIFT) {}
 
-    Move(Square to, Square from, bool isDrop, bool isPromote, Piece subject, Piece capture) : move(
+    Move(Square to, Square from, bool isDrop, bool isPromote, Piece subject, Piece capture) : move_(
               capture << MOVE_CAPTURE_SHIFT
             | subject << MOVE_SUBJECT_SHIFT
             | isPromote << MOVE_PROMOTE_SHIFT
@@ -61,6 +61,7 @@ public:
             | from << MOVE_FROM_SHIFT
             | to << MOVE_TO_SHIFT) {}
 
+    //日本語での表示
     void print() const {
         std::cout << SquareToFile[to()] << SquareToRank[to()] << PieceToStr[subject()];
         if (isPromote()) {
@@ -74,30 +75,25 @@ public:
         if (capture() != EMPTY) {
             std::cout << "capture:" << PieceToStr[capture()];
         }
-    }
-
-    //見やすい表示
-    void printWithNewLine() const {
-        print();
         std::cout << std::endl;
     }
 
     //要素を取り出す関数ら
-    inline Square to() const { return static_cast<Square>(move & MOVE_TO_MASK); }
-    inline Square from() const { return static_cast<Square>((move & MOVE_FROM_MASK) >> MOVE_FROM_SHIFT); }
-    inline bool isDrop() const { return (move & MOVE_DROP_MASK) != 0; }
-    inline bool isPromote() const { return (move & MOVE_PROMOTE_MASK) != 0; }
-    inline Piece subject() const { return static_cast<Piece>((move & MOVE_SUBJECT_MASK) >> MOVE_SUBJECT_SHIFT); }
-    inline Piece capture() const { return static_cast<Piece>((move & MOVE_CAPTURE_MASK) >> MOVE_CAPTURE_SHIFT); }
+    inline Square to() const { return static_cast<Square>(move_ & MOVE_TO_MASK); }
+    inline Square from() const { return static_cast<Square>((move_ & MOVE_FROM_MASK) >> MOVE_FROM_SHIFT); }
+    inline bool isDrop() const { return (move_ & MOVE_DROP_MASK) != 0; }
+    inline bool isPromote() const { return (move_ & MOVE_PROMOTE_MASK) != 0; }
+    inline Piece subject() const { return static_cast<Piece>((move_ & MOVE_SUBJECT_MASK) >> MOVE_SUBJECT_SHIFT); }
+    inline Piece capture() const { return static_cast<Piece>((move_ & MOVE_CAPTURE_MASK) >> MOVE_CAPTURE_SHIFT); }
 
-    //演算子オーバーロード
-    bool operator==(const Move& rhs) const { return (move == rhs.move); }
+    //比較演算子
+    bool operator==(const Move& rhs) const { return (move_ == rhs.move_); }
     bool operator!=(const Move& rhs) const { return !(*this == rhs); }
 
     uint32_t toLabel() const;
 
-    //探索時にSearcherクラスから気軽にアクセスできるようpublicにおいてるけど
-    int32_t move;
+private:
+    int32_t move_;
 };
 
 //駒を打つ手
