@@ -1,9 +1,6 @@
 ﻿#include"learn.hpp"
-#include"replay_buffer.hpp"
 #include"game_generator.hpp"
 #include"hyperparameter_manager.hpp"
-#include<thread>
-#include<climits>
 
 void alphaZero() {
     HyperparameterManager settings;

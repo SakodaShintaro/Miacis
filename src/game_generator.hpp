@@ -3,7 +3,6 @@
 
 #include "replay_buffer.hpp"
 #include "game.hpp"
-#include "uct_hash_table.hpp"
 #include "searcher_for_generate.hpp"
 #include <atomic>
 #include <mutex>

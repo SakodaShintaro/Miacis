@@ -11,7 +11,6 @@
 #include<sys/stat.h>
 #endif
 
-
 class ReplayBuffer{
 public:
     ReplayBuffer(int64_t first_wait, int64_t max_size, double lambda, double alpha) : first_wait_(first_wait), max_size_(max_size),

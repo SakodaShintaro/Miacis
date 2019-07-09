@@ -1,6 +1,5 @@
 ﻿#include"usi.hpp"
 #include"test.hpp"
-#include"bitboard.hpp"
 #include"neural_network.hpp"
 
 int main()

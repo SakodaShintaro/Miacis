@@ -1,11 +1,4 @@
 ﻿#include"game.hpp"
-#include"position.hpp"
-#include<iostream>
-#include<algorithm>
-#include<string>
-#include<unordered_map>
-#include<experimental/filesystem>
-#include<atomic>
 
 namespace sys = std::experimental::filesystem;
 
