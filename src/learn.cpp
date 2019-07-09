@@ -27,7 +27,7 @@ double elapsedHours(const std::chrono::steady_clock::time_point& start) {
     return seconds / 3600.0;
 }
 
-std::array<float, 2> validation(const std::vector<std::pair<std::string, TeacherType>>& validation_data) {
+std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& validation_data) {
     static constexpr int32_t batch_size = 4096;
     int32_t index = 0;
     float policy_loss = 0.0, value_loss = 0.0;
@@ -44,11 +44,11 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
         //バッチサイズ分データを確保
         while (index < validation_data.size() && policy_teachers.size() < batch_size) {
             const auto& datum = validation_data[index++];
-            pos.loadSFEN(datum.first);
+            pos.loadSFEN(datum.SFEN);
             const auto feature = pos.makeFeature();
             inputs.insert(inputs.end(), feature.begin(), feature.end());
-            policy_teachers.push_back(datum.second.policy);
-            value_teachers.push_back(datum.second.value);
+            policy_teachers.push_back(datum.policy);
+            value_teachers.push_back(datum.value);
         }
 
         //計算
@@ -78,24 +78,25 @@ std::array<float, 2> validation(const std::vector<std::pair<std::string, Teacher
     return { policy_loss, value_loss };
 }
 
-std::vector<std::pair<std::string, TeacherType>> loadData(const std::string& file_path) {
+std::vector<LearningData> loadData(const std::string& file_path) {
     //棋譜を読み込めるだけ読み込む
     auto games = loadGames(file_path, 100000);
 
     //データを局面単位にバラす
-    std::vector<std::pair<std::string, TeacherType>> data_buffer;
+    std::vector<LearningData> data_buffer;
     for (const auto& game : games) {
         Position pos;
         for (const auto& e : game.elements) {
             const auto& move = e.move;
-            TeacherType teacher;
-            teacher.policy.push_back({move.toLabel(), 1.0});
+            LearningData datum;
+            datum.policy.push_back({move.toLabel(), 1.0});
 #ifdef USE_CATEGORICAL
-            teacher.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
+            datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
 #else
-            teacher.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
+            datum.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
 #endif
-            data_buffer.emplace_back(pos.toSFEN(), teacher);
+            datum.SFEN = pos.toSFEN();
+            data_buffer.push_back(datum);
             pos.doMove(move);
         }
     }
@@ -128,7 +129,7 @@ void searchLearningRate() {
     std::string kifu_path   = settings.get<std::string>("kifu_path");
 
     //学習データを取得
-    std::vector<std::pair<std::string, TeacherType>> data_buffer = loadData(kifu_path);
+    std::vector<LearningData> data_buffer = loadData(kifu_path);
 
     //データをシャッフル
     std::mt19937_64 engine(0);
@@ -168,11 +169,11 @@ void searchLearningRate() {
             std::vector<ValueTeacherType> value_teachers;
             for (int32_t b = 0; b < batch_size; b++) {
                 const auto& datum = data_buffer[step * batch_size + b];
-                pos.loadSFEN(datum.first);
+                pos.loadSFEN(datum.SFEN);
                 const auto feature = pos.makeFeature();
                 inputs.insert(inputs.end(), feature.begin(), feature.end());
-                policy_teachers.push_back(datum.second.policy);
-                value_teachers.push_back(datum.second.value);
+                policy_teachers.push_back(datum.policy);
+                value_teachers.push_back(datum.value);
             }
 
             //学習

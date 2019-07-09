@@ -73,7 +73,7 @@ void alphaZero() {
     validation_log             << "time\tstep\tsum_loss\tpolicy_loss\tvalue_loss" << std::fixed << std::endl;
 
     //データを取得
-    std::vector<std::pair<std::string, TeacherType>> validation_data = loadData(validation_kifu_path);
+    std::vector<LearningData> validation_data = loadData(validation_kifu_path);
     assert(validation_data.size() >= validation_size);
 
     //データをシャッフルして必要量以外を削除
@@ -184,9 +184,9 @@ void alphaZero() {
             auto val_loss = validation(validation_data);
             dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
                                             << step_num << "\t"
-                                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
-                                            << val_loss[0] << "\t"
-                                            << val_loss[1] << std::endl;
+                                            << policy_loss_coeff * val_loss[POLICY_LOSS_INDEX] + value_loss_coeff * val_loss[VALUE_LOSS_INDEX] << "\t"
+                                            << val_loss[POLICY_LOSS_INDEX] << "\t"
+                                            << val_loss[VALUE_LOSS_INDEX] << std::endl;
         }
 
         //学習率の減衰.AlphaZeroを意識して3回まで設定可能

@@ -30,7 +30,7 @@ void supervisedLearn() {
     std::string kifu_path   = settings.get<std::string>("kifu_path");
 
     //学習データを取得
-    std::vector<std::pair<std::string, TeacherType>> data_buffer = loadData(kifu_path);
+    std::vector<LearningData> data_buffer = loadData(kifu_path);
 
     //データをシャッフル
     std::mt19937_64 engine(0);
@@ -38,7 +38,7 @@ void supervisedLearn() {
 
     //validationデータを確保
     auto validation_size = (int32_t)(data_buffer.size() * 0.1) / batch_size * batch_size;
-    std::vector<std::pair<std::string, TeacherType>> validation_data(data_buffer.end() - validation_size, data_buffer.end());
+    std::vector<LearningData> validation_data(data_buffer.end() - validation_size, data_buffer.end());
     data_buffer.erase(data_buffer.end() - validation_size, data_buffer.end());
     std::cout << "learn_data_size = " << data_buffer.size() << ", validation_data_size = " << validation_size << std::endl;
 
@@ -83,11 +83,11 @@ void supervisedLearn() {
             std::vector<ValueTeacherType> value_teachers;
             for (int32_t b = 0; b < batch_size; b++) {
                 const auto& datum = data_buffer[step * batch_size + b];
-                pos.loadSFEN(datum.first);
+                pos.loadSFEN(datum.SFEN);
                 const auto feature = pos.makeFeature();
                 inputs.insert(inputs.end(), feature.begin(), feature.end());
-                policy_teachers.push_back(datum.second.policy);
-                value_teachers.push_back(datum.second.value);
+                policy_teachers.push_back(datum.policy);
+                value_teachers.push_back(datum.value);
             }
 
             //学習
@@ -113,7 +113,7 @@ void supervisedLearn() {
 
         //validation_lossを計算
         auto val_loss = validation(validation_data);
-        float sum_loss = policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1];
+        float sum_loss = policy_loss_coeff * val_loss[POLICY_LOSS_INDEX] + value_loss_coeff * val_loss[VALUE_LOSS_INDEX];
 
         //validation_lossからpatience等を更新
         if (sum_loss < min_loss) {
@@ -128,8 +128,8 @@ void supervisedLearn() {
         dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
                                         << epoch << "\t"
                                         << sum_loss << "\t"
-                                        << val_loss[0] << "\t"
-                                        << val_loss[1] << "\t"
+                                        << val_loss[POLICY_LOSS_INDEX] << "\t"
+                                        << val_loss[VALUE_LOSS_INDEX] << "\t"
                                         << patience << "\t"
                                         << optimizer.options.learning_rate_ << std::endl;
     }
