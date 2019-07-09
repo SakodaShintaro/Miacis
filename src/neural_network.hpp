@@ -4,22 +4,9 @@
 #include"position.hpp"
 #include<torch/torch.h>
 
-//ネットワークの設定
+//ネットワーク構造によらない定数
 constexpr int32_t POLICY_CHANNEL_NUM = 27;
-constexpr int32_t BLOCK_NUM = 10;
-constexpr int32_t KERNEL_SIZE = 3;
-constexpr int32_t CHANNEL_NUM = 64;
-constexpr int32_t REDUCTION = 8;
-constexpr int32_t VALUE_HIDDEN_NUM = 256;
-
-//評価パラメータを読み書きするファイルのprefix
-#ifdef USE_CATEGORICAL
-const std::string MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#else
-const std::string MODEL_PREFIX = "sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#endif
-//デフォルトで読み書きするファイル名
-const std::string MODEL_PATH = MODEL_PREFIX + ".model";
+constexpr int32_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM;
 
 //型のエイリアス
 using CalcType = float;
@@ -63,7 +50,20 @@ public:
 
     void setGPU(int16_t gpu_id);
 
+    //評価パラメータを読み書きするファイルのprefix
+    static const std::string MODEL_PREFIX;
+
+    //デフォルトで読み書きするファイル名
+    static const std::string DEFAULT_MODEL_NAME;
+
 private:
+    //ネットワークの設定
+    static constexpr int32_t BLOCK_NUM = 10;
+    static constexpr int32_t KERNEL_SIZE = 3;
+    static constexpr int32_t CHANNEL_NUM = 64;
+    static constexpr int32_t REDUCTION = 8;
+    static constexpr int32_t VALUE_HIDDEN_NUM = 256;
+
     torch::Device device_;
     torch::nn::Conv2d first_conv{nullptr};
     torch::nn::BatchNorm first_bn{nullptr};

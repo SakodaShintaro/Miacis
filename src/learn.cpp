@@ -130,7 +130,7 @@ void searchLearningRate() {
 
         //評価関数準備
         NeuralNetwork learning_model;
-        torch::load(learning_model, MODEL_PATH);
+        torch::load(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
         //optimizerの準備.学習率を小さい値から開始
         torch::optim::SGDOptions sgd_option(1e-5);
@@ -173,6 +173,6 @@ void searchLearningRate() {
 }
 
 void initParams() {
-    torch::save(nn, MODEL_PATH);
-    std::cout << "初期化したパラメータを" << MODEL_PATH << "に出力" << std::endl;
+    torch::save(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    std::cout << "初期化したパラメータを" << NeuralNetworkImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
 }

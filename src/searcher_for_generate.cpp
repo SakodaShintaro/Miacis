@@ -264,7 +264,7 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     element.score = best_wp;
 
     //priorityを計算する用にNNの出力をセットする
-    element.nn_output_policy.resize(SQUARE_NUM * POLICY_CHANNEL_NUM, 0.0);
+    element.nn_output_policy.resize(POLICY_DIM, 0.0);
     for (uint64_t i = 0; i < root_node.moves.size(); i++) {
         element.nn_output_policy[root_node.moves[i].toLabel()] = root_node.nn_policy[i];
     }

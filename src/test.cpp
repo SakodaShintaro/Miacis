@@ -8,7 +8,7 @@ void test() {
     constexpr int64_t thread_num = 1;
     constexpr int64_t search_batch_size = 1;
     constexpr int64_t draw_turn = 256;
-    torch::load(nn, MODEL_PATH);
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     SearcherForPlay searcher(node_limit, thread_num, search_batch_size, nn);
 
     Position pos;
@@ -48,7 +48,7 @@ void test() {
 }
 
 void checkGenSpeed() {
-    torch::load(nn, MODEL_PATH);
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
     constexpr int64_t buffer_size = 20000;
 

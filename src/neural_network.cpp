@@ -3,6 +3,14 @@
 //遅くなるのでオフ
 //#define USE_HALF_FLOAT
 
+#ifdef USE_CATEGORICAL
+const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+#else
+const std::string NeuralNetworkImpl::MODEL_PREFIX = "sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+#endif
+//デフォルトで読み書きするファイル名
+const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MODEL_PREFIX + ".model";
+
 NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
                                          conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)),
                                          bn(BLOCK_NUM, std::vector<torch::nn::BatchNorm>(2, nullptr)),
@@ -98,8 +106,7 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     float* p = policy.data<float>();
 #endif
     for (int32_t i = 0; i < batch_size; i++) {
-        constexpr auto unit_size = POLICY_CHANNEL_NUM * SQUARE_NUM;
-        policies[i].assign(p + i * unit_size, p + (i + 1) * unit_size);
+        policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
     }
 
 #ifdef USE_CATEGORICAL
@@ -138,21 +145,20 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     }
 
     auto y = forward(inputs);
-    auto logits = y.first.view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
+    auto logits = y.first.view({ -1, POLICY_DIM });
 
-    std::vector<float> policy_dist(policy_teachers.size() * SQUARE_NUM * POLICY_CHANNEL_NUM, 0.0);
+    std::vector<float> policy_dist(policy_teachers.size() * POLICY_DIM, 0.0);
     for (int64_t i = 0; i < policy_teachers.size(); i++) {
         for (const auto& e : policy_teachers[i]) {
-            policy_dist[i * SQUARE_NUM * POLICY_CHANNEL_NUM + e.first] = e.second;
+            policy_dist[i * POLICY_DIM + e.first] = e.second;
         }
     }
 
 #ifdef USE_HALF_FLOAT
-    torch::Tensor policy_target = torch::tensor(policy_dist).to(device_, torch::kHalf).view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
+    torch::Tensor policy_target = torch::tensor(policy_dist).to(device_, torch::kHalf).view({ -1, POLICY_DIM });
 #else
-    torch::Tensor policy_target = torch::tensor(policy_dist).to(device_).view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
+    torch::Tensor policy_target = torch::tensor(policy_dist).to(device_).view({ -1, POLICY_DIM });
 #endif
-    //ここ怪しいので注意
     torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false);
 
 #ifdef USE_CATEGORICAL
