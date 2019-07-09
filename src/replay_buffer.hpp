@@ -3,6 +3,7 @@
 #include"neural_network.hpp"
 #include"game.hpp"
 #include"segment_tree.hpp"
+#include"learn.hpp"
 #include<mutex>
 #include<experimental/filesystem>
 #ifdef _MSC_VER
@@ -41,7 +42,7 @@ public:
 
 private:
     //実際のデータ
-    std::vector<std::tuple<std::string, TeacherType>> data_;
+    std::vector<LearningData> data_;
 
     //対応するpriorityを持ったセグメント木
     SegmentTree segment_tree_;

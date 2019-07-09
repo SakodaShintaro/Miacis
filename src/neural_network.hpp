@@ -24,6 +24,7 @@ const std::string MODEL_PATH = MODEL_PREFIX + ".model";
 //型のエイリアス
 using CalcType = float;
 using PolicyType = std::vector<float>;
+using PolicyTeacherType = std::vector<std::pair<int32_t, float>>;
 #ifdef USE_CATEGORICAL
 constexpr int32_t BIN_SIZE = 51;
 constexpr double VALUE_WIDTH = (MAX_SCORE - MIN_SCORE) / BIN_SIZE;
@@ -34,13 +35,6 @@ constexpr int32_t BIN_SIZE = 1;
 using ValueType = float;
 using ValueTeacherType = float;
 #endif
-using PolicyTeacherType = std::vector<std::pair<int32_t, float>>;
-
-//教師データの型
-struct TeacherType {
-    PolicyTeacherType policy;
-    ValueTeacherType value;
-};
 
 class NeuralNetworkImpl : public torch::nn::Module {
 public:

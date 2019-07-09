@@ -34,22 +34,20 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
     pre_indices_.reserve(batch_size);
     for (int32_t i = 0; i < batch_size; i++) {
         //データの取り出し
-        std::string sfen;
-        TeacherType teacher;
         uint64_t index = segment_tree_.getIndex(dist(engine));
-        std::tie(sfen, teacher) = data_[index];
+        const LearningData& datum = data_[index];
 
         //使ったindexの保存
         pre_indices_.push_back(index);
 
         //入力特徴量の確保
-        pos.loadSFEN(sfen);
+        pos.loadSFEN(datum.SFEN);
         auto feature = pos.makeFeature();
         std::copy(feature.begin(), feature.end(), inputs.begin() + i * INPUT_CHANNEL_NUM * SQUARE_NUM);
 
         //教師
-        policy_teachers.push_back(teacher.policy);
-        value_teachers.push_back(teacher.value);
+        policy_teachers.push_back(datum.policy);
+        value_teachers.push_back(datum.value);
     }
 
     //ロックの解放
@@ -91,33 +89,35 @@ void ReplayBuffer::push(Game &game) {
 
 #ifdef USE_CATEGORICAL
         //teacherにコピーする
-        e.teacher.value = valueToIndex(teacher_signal);
+        e.value_teacher = valueToIndex(teacher_signal);
 #else
         //teacherにコピーする
-        e.teacher.value = (CalcType) (teacher_signal);
+        e.value_teacher = (CalcType) (teacher_signal);
 #endif
 
         //このデータを入れる位置を取得
         int64_t change_index = segment_tree_.getIndexToPush();
 
         //そこのデータを入れ替える
-        data_[change_index] = std::make_tuple(pos.toSFEN(), e.teacher);
+        data_[change_index].SFEN = pos.toSFEN();
+        data_[change_index].policy = e.policy_teacher;
+        data_[change_index].value = e.value_teacher;
 
         //priorityを計算
         float priority = 0.0f;
 
         //Policy損失
-        for (const auto& p : e.teacher.policy) {
+        for (const auto& p : e.policy_teacher) {
             priority += -p.second * std::log(e.nn_output_policy[p.first] + 1e-9f);
         }
 
         //Value損失
 #ifdef USE_CATEGORICAL
         //float priority = -2 * std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) - std::log(e.nn_output_value[e.teacher.value] + 1e-10f);
-        priority += -std::log(e.nn_output_value[e.teacher.value] + 1e-9f);
+        priority += -std::log(e.nn_output_value[e.value_teacher] + 1e-9f);
 #else
         //float priority = -2 * std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f);
-        priority += std::pow(e.nn_output_value - e.teacher.value, 2.0f);
+        priority += std::pow(e.nn_output_value - e.value_teacher, 2.0f);
 #endif
         //segment_treeのpriorityを更新
         segment_tree_.update(change_index, std::pow(priority * 2, alpha_));
