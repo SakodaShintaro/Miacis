@@ -7,6 +7,9 @@ enum Color {
     BLACK, WHITE, ColorNum,
 };
 
+//Valueの活性化関数をsigmoidにするかtanhにするか
+//これをオンにするとValueの範囲が[0, 1]になり勝率に対応するようになる
+//強化学習の報酬としては[-1, 1]とした方が自然に思えるので基本はオフ
 //#define USE_SIGMOID
 
 using Score = float;
@@ -17,8 +20,6 @@ constexpr Score MIN_SCORE = 0.0;
 #else
 constexpr Score MIN_SCORE = -MAX_SCORE;
 #endif
-
-constexpr double CP_GAIN = 1.0 / 600.0;
 
 template<class T, size_t SIZE>
 inline std::array<T, SIZE>& operator+=(std::array<T, SIZE>& lhs, std::array<T, SIZE> rhs) {

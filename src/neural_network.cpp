@@ -173,7 +173,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
 #endif
     torch::Tensor value = y.second.view(-1);
 #ifdef USE_SIGMOID
-    Var value_loss = -value_t * F::log(value) - (1 - value_t) * F::log(1 - value);
+    torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
 #else
     torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
 #endif

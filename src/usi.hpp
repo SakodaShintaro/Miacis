@@ -26,8 +26,7 @@ private:
     std::unique_ptr<SearcherForPlay> searcher_;
     std::thread thread_;
 
-    class USIOption {
-    public:
+    struct USIOption {
         int64_t byoyomi_margin;
         int64_t random_turn;
         int64_t USI_Hash;
