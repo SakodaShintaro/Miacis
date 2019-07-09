@@ -32,6 +32,7 @@ std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
 
     //ロックの解放
     mutex_.unlock();
+    return data;
 }
 
 void ReplayBuffer::push(Game &game) {
