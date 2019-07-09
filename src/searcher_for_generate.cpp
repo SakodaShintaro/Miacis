@@ -260,8 +260,7 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
 //    }
 
     //分布に従って行動選択
-    Move best_move = root_node.moves[randomChoose(distribution)];
-    element.move = best_move;
+    element.move = root_node.moves[randomChoose(distribution)];
     element.score = best_wp;
 
     //priorityを計算する用にNNの出力をセットする

@@ -23,18 +23,6 @@ public:
       For more information, see ostream header */
 };
 
-//学習データの型
-struct LearningData {
-    std::string SFEN;
-    PolicyTeacherType policy;
-    ValueTeacherType value;
-};
-
-//損失の種類
-enum LossType {
-    POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM
-};
-
 //教師データを読み込む関数
 std::vector<LearningData> loadData(const std::string& file_path);
 

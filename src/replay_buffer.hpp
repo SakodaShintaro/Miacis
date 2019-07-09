@@ -28,8 +28,7 @@ public:
     }
 
     //ミニバッチを作って返す関数
-    void makeBatch(int64_t batch_size, std::vector<float>& inputs, std::vector<PolicyTeacherType>& policy_teachers,
-                   std::vector<ValueTeacherType>& value_teachers);
+    std::vector<LearningData> makeBatch(int64_t batch_size);
 
     //データを入れる関数
     void push(Game& game);

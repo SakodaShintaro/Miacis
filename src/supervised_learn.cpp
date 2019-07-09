@@ -77,23 +77,15 @@ void supervisedLearn() {
 
         for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size(); step++) {
             //バッチサイズ分データを確保
-            Position pos;
-            std::vector<float> inputs;
-            std::vector<PolicyTeacherType> policy_teachers;
-            std::vector<ValueTeacherType> value_teachers;
+            std::vector<LearningData> curr_data;
             for (int32_t b = 0; b < batch_size; b++) {
-                const auto& datum = data_buffer[step * batch_size + b];
-                pos.loadSFEN(datum.SFEN);
-                const auto feature = pos.makeFeature();
-                inputs.insert(inputs.end(), feature.begin(), feature.end());
-                policy_teachers.push_back(datum.policy);
-                value_teachers.push_back(datum.value);
+                curr_data.push_back(data_buffer[step * batch_size + b]);
             }
 
             //学習
             optimizer.zero_grad();
-            auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
-            auto loss_sum = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
+            auto loss = learning_model->loss(curr_data);
+            auto loss_sum = policy_loss_coeff * loss[POLICY_LOSS_INDEX] + value_loss_coeff * loss[VALUE_LOSS_INDEX];
             loss_sum.mean().backward();
             optimizer.step();
 
@@ -102,8 +94,8 @@ void supervisedLearn() {
                 dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                            << epoch << "\t"
                                            << step + 1 << "\t"
-                                           << loss.first.mean().item<float>() << "\t"
-                                           << loss.second.mean().item<float>() << std::endl;
+                                           << loss[POLICY_LOSS_INDEX].mean().item<float>() << "\t"
+                                           << loss[VALUE_LOSS_INDEX].mean().item<float>() << std::endl;
             }
         }
 

@@ -34,41 +34,17 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& val
     torch::NoGradGuard no_grad_guard;
     Position pos;
     while (index < validation_data.size()) {
-        std::vector<float> inputs;
-        std::vector<PolicyTeacherType> policy_teachers;
-        std::vector<ValueTeacherType> value_teachers;
-        inputs.reserve(batch_size * INPUT_CHANNEL_NUM);
-        policy_teachers.reserve(batch_size);
-        value_teachers.reserve(batch_size);
-
         //バッチサイズ分データを確保
-        while (index < validation_data.size() && policy_teachers.size() < batch_size) {
-            const auto& datum = validation_data[index++];
-            pos.loadSFEN(datum.SFEN);
-            const auto feature = pos.makeFeature();
-            inputs.insert(inputs.end(), feature.begin(), feature.end());
-            policy_teachers.push_back(datum.policy);
-            value_teachers.push_back(datum.value);
+        std::vector<LearningData> curr_data;
+        while (index < validation_data.size() && curr_data.size() < batch_size) {
+            curr_data.push_back(validation_data[index++]);
         }
 
         //計算
-        auto loss = nn->loss(inputs, policy_teachers, value_teachers);
+        auto loss = nn->loss(curr_data);
 
-        policy_loss += loss.first.sum().item<float>();
-
-#ifdef USE_CATEGORICAL
-        //categoricalモデルのときは冗長だがもう一度順伝播を行って損失を手動で計算
-        auto y = nn->policyAndValueBatch(inputs);
-        const auto& values = y.second;
-        for (int32_t i = 0; i < values.size(); i++) {
-            auto e = expOfValueDist(values[i]);
-            auto vt = (value_teachers[i] == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
-            value_loss += (e - vt) * (e - vt);
-        }
-#else
-        //scalarモデルのときはそのまま損失を加える
-        value_loss += loss.second.sum().item<float>();
-#endif
+        policy_loss += loss[POLICY_LOSS_INDEX].sum().item<float>();
+        value_loss += loss[VALUE_LOSS_INDEX].sum().item<float>();
     }
 
     //平均を求める
@@ -163,23 +139,15 @@ void searchLearningRate() {
 
         for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size() && optimizer.options.learning_rate_ <= 1; step++) {
             //バッチサイズ分データを確保
-            Position pos;
-            std::vector<float> inputs;
-            std::vector<PolicyTeacherType> policy_teachers;
-            std::vector<ValueTeacherType> value_teachers;
+            std::vector<LearningData> curr_data;
             for (int32_t b = 0; b < batch_size; b++) {
-                const auto& datum = data_buffer[step * batch_size + b];
-                pos.loadSFEN(datum.SFEN);
-                const auto feature = pos.makeFeature();
-                inputs.insert(inputs.end(), feature.begin(), feature.end());
-                policy_teachers.push_back(datum.policy);
-                value_teachers.push_back(datum.value);
+                curr_data.push_back(data_buffer[step * batch_size + b]);
             }
 
             //学習
             optimizer.zero_grad();
-            auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
-            auto loss_sum = policy_loss_coeff * loss.first + value_loss_coeff * loss.second;
+            auto loss = learning_model->loss(curr_data);
+            auto loss_sum = policy_loss_coeff * loss[POLICY_LOSS_INDEX] + value_loss_coeff * loss[VALUE_LOSS_INDEX];
             loss_sum.backward();
             optimizer.step();
 

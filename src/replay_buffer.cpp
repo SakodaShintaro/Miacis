@@ -4,9 +4,7 @@
 
 const std::string ReplayBuffer::save_dir = "./learn_kifu/";
 
-void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
-                             std::vector<PolicyTeacherType>& policy_teachers,
-                             std::vector<ValueTeacherType>& value_teachers) {
+std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
     //ロックの確保
     mutex_.lock();
 
@@ -22,32 +20,14 @@ void ReplayBuffer::makeBatch(int64_t batch_size, std::vector<float>& inputs,
     static std::mt19937 engine(0);
     std::uniform_real_distribution<float> dist(0.0, sum);
 
-    //データを入れる
-    Position pos;
-    inputs.clear();
-    policy_teachers.clear();
-    value_teachers.clear();
+    //データを取得
+    std::vector<LearningData> data;
     pre_indices_.clear();
-    inputs.resize(INPUT_CHANNEL_NUM * SQUARE_NUM * batch_size);
-    policy_teachers.reserve(batch_size);
-    value_teachers.reserve(batch_size);
-    pre_indices_.reserve(batch_size);
     for (int32_t i = 0; i < batch_size; i++) {
-        //データの取り出し
+        //データの取り出し及びインデックスを保存
         uint64_t index = segment_tree_.getIndex(dist(engine));
-        const LearningData& datum = data_[index];
-
-        //使ったindexの保存
+        data.push_back(data_[index]);
         pre_indices_.push_back(index);
-
-        //入力特徴量の確保
-        pos.loadSFEN(datum.SFEN);
-        auto feature = pos.makeFeature();
-        std::copy(feature.begin(), feature.end(), inputs.begin() + i * INPUT_CHANNEL_NUM * SQUARE_NUM);
-
-        //教師
-        policy_teachers.push_back(datum.policy);
-        value_teachers.push_back(datum.value);
     }
 
     //ロックの解放
@@ -60,7 +40,7 @@ void ReplayBuffer::push(Game &game) {
     Position pos;
 
     static int64_t num = 0;
-    if (++num % 500 == 0) {
+    if (++num % 5000 == 0) {
         game.writeKifuFile(save_dir);
     }
 

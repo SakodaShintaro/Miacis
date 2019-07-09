@@ -124,11 +124,20 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     return { policies, values };
 }
 
-std::pair<torch::Tensor, torch::Tensor>
-NeuralNetworkImpl::loss(const std::vector<float>& input,
-                        const std::vector<PolicyTeacherType>& policy_teachers,
-                        const std::vector<ValueTeacherType>& value_teachers) {
-    auto y = forward(input);
+std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
+    static Position pos;
+    std::vector<CalcType> inputs;
+    std::vector<PolicyTeacherType> policy_teachers;
+    std::vector<ValueTeacherType> value_teachers;
+    for (const LearningData& datum : data) {
+        pos.loadSFEN(datum.SFEN);
+        const auto feature = pos.makeFeature();
+        inputs.insert(inputs.end(), feature.begin(), feature.end());
+        policy_teachers.push_back(datum.policy);
+        value_teachers.push_back(datum.value);
+    }
+
+    auto y = forward(inputs);
     auto logits = y.first.view({ -1, SQUARE_NUM * POLICY_CHANNEL_NUM });
 
     std::vector<float> policy_dist(policy_teachers.size() * SQUARE_NUM * POLICY_CHANNEL_NUM, 0.0);

@@ -119,14 +119,9 @@ void alphaZero() {
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames((int64_t)(1e15)); });
     }
 
-    //入力,教師データ
-    std::vector<float> inputs(batch_size * SQUARE_NUM * INPUT_CHANNEL_NUM);
-    std::vector<PolicyTeacherType> policy_teachers(batch_size);
-    std::vector<ValueTeacherType> value_teachers(batch_size);
-
     for (int32_t step_num = 1; step_num <= max_step_num; step_num++) {
         //バッチサイズ分データを選択
-        replay_buffer.makeBatch(batch_size, inputs, policy_teachers, value_teachers);
+        std::vector<LearningData> curr_data = replay_buffer.makeBatch(batch_size);
 
         //1回目はmakeBatch内で十分棋譜が貯まるまで待ち時間が発生する.その生成速度を計算
         if (step_num == 1) {
@@ -141,8 +136,8 @@ void alphaZero() {
 
         //損失計算
         optimizer.zero_grad();
-        auto loss = learning_model->loss(inputs, policy_teachers, value_teachers);
-        auto loss_sum = (policy_loss_coeff * loss.first + value_loss_coeff * loss.second).cpu();
+        auto loss = learning_model->loss(curr_data);
+        auto loss_sum = (policy_loss_coeff * loss[POLICY_LOSS_INDEX] + value_loss_coeff * loss[VALUE_LOSS_INDEX]).cpu();
 
         //replay_bufferのpriorityを更新
         std::vector<float> loss_vec(loss_sum.data<float>(), loss_sum.data<float>() + batch_size);
@@ -161,8 +156,8 @@ void alphaZero() {
             dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                        << step_num << "\t"
                                        << loss_sum.item<float>() << "\t"
-                                       << loss.first.mean().item<float>() << "\t"
-                                       << loss.second.mean().item<float>() << std::endl;
+                                       << loss[POLICY_LOSS_INDEX].mean().item<float>() << "\t"
+                                       << loss[VALUE_LOSS_INDEX].mean().item<float>() << std::endl;
         }
 
         //一定間隔でモデルの読み込んでActorのパラメータをLearnerと同期

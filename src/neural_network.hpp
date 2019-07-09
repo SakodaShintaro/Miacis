@@ -36,6 +36,18 @@ using ValueType = float;
 using ValueTeacherType = float;
 #endif
 
+//学習データの型
+struct LearningData {
+    std::string SFEN;
+    PolicyTeacherType policy;
+    ValueTeacherType value;
+};
+
+//損失の種類
+enum LossType {
+    POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM
+};
+
 class NeuralNetworkImpl : public torch::nn::Module {
 public:
     NeuralNetworkImpl();
@@ -47,9 +59,7 @@ public:
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
     //バッチの入力特徴量,教師情報を引数として損失を返す関数.これをモデルが一括で行うのが良い実装？
-    std::pair<torch::Tensor, torch::Tensor> loss(const std::vector<float>& input,
-                                                 const std::vector<PolicyTeacherType>& policy_teachers,
-                                                 const std::vector<ValueTeacherType>& value_teachers);
+    std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
 
     void setGPU(int16_t gpu_id);
 
