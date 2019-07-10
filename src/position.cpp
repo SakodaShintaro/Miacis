@@ -96,7 +96,7 @@ void Position::init() {
     //pinners
     computePinners();
 
-    isChecked_ = false;
+    is_checked_ = false;
 }
 
 void Position::print() const {
@@ -232,8 +232,8 @@ void Position::doMove(const Move move) {
     kifu_.push_back(move);
 
     //王手
-    //isChecked_ = isThereControl(~color_, king_sq_[color_]);
-    isChecked_ = isLastMoveCheck();
+    //is_checked_ = isThereControl(~color_, king_sq_[color_]);
+    is_checked_ = isLastMoveCheck();
 
     //hashの手番要素を更新
     hash_value_ = board_hash_ ^ hand_hash_;
@@ -333,7 +333,7 @@ void Position::undo() {
 
     //計算が面倒なものはコピーで戻してみる
     pinners_ = stack_.back().pinners;
-    isChecked_ = stack_.back().isChecked;
+    is_checked_ = stack_.back().is_checked;
 
     //Stack更新
     stack_.pop_back();
@@ -574,7 +574,7 @@ void Position::loadSFEN(std::string sfen) {
     computePinners();
 
     //王手の確認
-    isChecked_ = isThereControl(~color_, king_sq_[color_]);
+    is_checked_ = isThereControl(~color_, king_sq_[color_]);
 
     stack_.clear();
     stack_.reserve(512);
@@ -947,7 +947,7 @@ std::vector<Move> Position::generateAllMoves() const {
     std::vector<Move> move_buf;
     move_buf.reserve(MAX_MOVE_LIST_SIZE);
     //手番側に王手がかかっていたら逃れる手だけを生成
-    if (isChecked_) {
+    if (is_checked_) {
         generateEvasionMoves(move_buf);
     } else {
         generateNormalMoves(move_buf);
@@ -1014,7 +1014,7 @@ bool Position::isRepeating(Score& score) const {
         //局面のハッシュ値が一致
         if (hand_hash_ == stack_[index].hand_hash) { //手駒のハッシュ値も一致
             if ((index == (int32_t) stack_.size() - 4) &&
-                (stack_[index].isChecked && stack_[index + 2].isChecked)) { //手番側が連続王手された
+                (stack_[index].is_checked && stack_[index + 2].is_checked)) { //手番側が連続王手された
                 score = MAX_SCORE;
             } else { //普通の千日手
                 score = (MAX_SCORE + MIN_SCORE) / 2;

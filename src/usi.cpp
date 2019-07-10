@@ -171,7 +171,7 @@ void USI::go() {
         std::cin >> input;
         int64_t wtime = stoll(input);
         int64_t time = (root_.color() == BLACK ? btime : wtime);
-        int64_t remained_turn = (usi_option_.draw_turn - root_.turn_number()) / 2;
+        int64_t remained_turn = (usi_option_.draw_turn - root_.turnNumber()) / 2;
         int64_t curr_time = (remained_turn == 0 ? 0 : time / remained_turn);
         std::cin >> input; //input == "byoyomi" or "binc"となるはず
         if (input == "byoyomi") {

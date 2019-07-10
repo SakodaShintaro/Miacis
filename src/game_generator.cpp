@@ -104,7 +104,7 @@ void GameGenerator::genSlave(int64_t id) {
                 games[i].elements.push_back(result);
 
                 bool curr_game_finish = false;
-                if (positions[i].turn_number() >= draw_turn_) {
+                if (positions[i].turnNumber() >= draw_turn_) {
                     //長手数による引き分け
                     games[i].result = (MAX_SCORE + MIN_SCORE) / 2;
                     curr_game_finish = true;

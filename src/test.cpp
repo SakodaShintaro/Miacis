@@ -28,7 +28,7 @@ void test() {
             //千日手
             game.result = Game::RESULT_DRAW_REPEAT;
             break;
-        } else if (pos.turn_number() >= draw_turn) {
+        } else if (pos.turnNumber() >= draw_turn) {
             //長手数
             game.result = Game::RESULT_DRAW_OVER_LIMIT;
             break;
@@ -41,7 +41,7 @@ void test() {
     }
     auto end = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << elapsed.count() / pos.turn_number() << " msec / pos" << std::endl;
+    std::cout << elapsed.count() / pos.turnNumber() << " msec / pos" << std::endl;
 
     game.writeKifuFile("./");
     std::cout << "finish test" << std::endl;

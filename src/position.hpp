@@ -1,11 +1,8 @@
 ﻿#ifndef POSITION_HPP
 #define POSITION_HPP
 
-#include"square.hpp"
-#include"piece.hpp"
 #include"move.hpp"
 #include"hand.hpp"
-#include"types.hpp"
 #include"bitboard.hpp"
 
 class Position {
@@ -25,15 +22,7 @@ public:
 
     //合法性に関する関数
     bool isLegalMove(Move move) const;
-    bool canDropPawn(Square to) const;
     bool isLastMoveDropPawn() const;
-
-    //王手,利き関連
-    Bitboard attackersTo(Color c, Square sq) const;
-    Bitboard attackersTo(Color c, Square sq, const Bitboard& occupied) const;
-    inline bool isThereControl(const Color c, const Square sq) const { return (bool)attackersTo(c, sq); }
-    inline bool isLastMoveCheck();
-    void computePinners();
 
     //千日手の判定
     bool isRepeating(Score& score) const;
@@ -46,8 +35,6 @@ public:
 
     //合法手生成
     std::vector<Move> generateAllMoves() const;
-    void generateEvasionMoves(std::vector<Move>& move_buf) const;
-    void generateNormalMoves(std::vector<Move>& move_buf) const;
 
     //sfenの入出力
     void loadSFEN(std::string sfen);
@@ -57,23 +44,35 @@ public:
     static void initHashSeed();
 
     //getter
-    Move lastMove() const { return (kifu_.empty() ? NULL_MOVE : kifu_.back()); }
-    uint32_t turn_number() const { return turn_number_; }
+    uint32_t turnNumber() const { return turn_number_; }
     Color color() const { return color_; }
-    int64_t hash_value() const { return hash_value_; }
+    int64_t hashValue() const { return hash_value_; }
     Piece on(const Square sq) const { return board_[sq]; }
-    bool isChecked() { return isChecked_; }
+    bool isChecked() { return is_checked_; }
 private:
     //--------------------
     //    内部メソッド
     //--------------------
     //合法手生成で用いる関数
     bool canPromote(Move move) const;
-    void pushMove(const Move move, std::vector<Move>& move_buf) const;
+    bool canDropPawn(Square to) const;
+    void pushMove(Move move, std::vector<Move>& move_buf) const;
+    void generateNormalMoves(std::vector<Move>& move_buf) const;
+    void generateEvasionMoves(std::vector<Move>& move_buf) const;
     void generateDropMoves(const Bitboard& to_bb, std::vector<Move>& move_buf) const;
+
+    //王手,利き関連
+    Bitboard attackersTo(Color c, Square sq) const;
+    Bitboard attackersTo(Color c, Square sq, const Bitboard& occupied) const;
+    inline bool isThereControl(const Color c, const Square sq) const { return (bool)attackersTo(c, sq); }
+    inline bool isLastMoveCheck();
+    void computePinners();
 
     //ハッシュ値の初期化
     void initHashValue();
+
+    //emptyの条件分けをいちいち書かないための補助関数
+    Move lastMove() const { return (kifu_.empty() ? NULL_MOVE : kifu_.back()); }
 
     //------------------
     //    クラス変数
@@ -105,18 +104,18 @@ private:
 
     //現局面のハッシュ値
     int64_t hash_value_, board_hash_, hand_hash_;
-    bool isChecked_;
+    bool is_checked_;
 
     struct StateInfo {
         //千日手判定用に必要な情報
         int64_t board_hash, hand_hash;
         Hand hand[ColorNum];
-        bool isChecked;
+        bool is_checked;
 
         Bitboard pinners;
 
         StateInfo(Position& pos) :
-            board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), isChecked(pos.isChecked_), pinners(pos.pinners_) {
+            board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), is_checked(pos.is_checked_), pinners(pos.pinners_) {
             hand[BLACK] = pos.hand_[BLACK];
             hand[WHITE] = pos.hand_[WHITE];
         }

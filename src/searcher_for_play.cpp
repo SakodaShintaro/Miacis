@@ -72,7 +72,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
     printUSIInfo(print_policy);
 
     //行動選択
-    if (root.turn_number() < random_turn) {
+    if (root.turnNumber() < random_turn) {
         //探索回数を正規化して分布を得る
         std::vector<CalcType> distribution(curr_node.moves.size());
         for (int32_t i = 0; i < curr_node.moves.size(); i++) {

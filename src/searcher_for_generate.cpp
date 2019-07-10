@@ -9,7 +9,7 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     std::stack<int32_t> actions;
     root_index_ = expand(root, indices, actions);
 
-    if (root.turn_number() >= 50) {
+    if (root.turnNumber() >= 50) {
         //5手詰めまで探索
         mateSearch(root, 5);
     }
