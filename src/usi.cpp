@@ -75,7 +75,7 @@ void USI::usi() {
 }
 
 void USI::isready() {
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::load(nn, usi_option_.model_name);
     printf("readyok\n");
 }
 
