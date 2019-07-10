@@ -36,6 +36,7 @@ private:
         int64_t search_batch_size;
         int64_t search_limit;
         bool print_policy;
+        std::string model_name;
     } usi_option_;
 };
 
