@@ -1,8 +1,5 @@
 ﻿#include"neural_network.hpp"
 
-//遅くなるのでオフ
-//#define USE_HALF_FLOAT
-
 #ifdef USE_CATEGORICAL
 const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 #else
@@ -33,11 +30,7 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
 }
 
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::vector<float>& inputs) {
-#ifdef USE_HALF_FLOAT
-    torch::Tensor x = torch::tensor(inputs).to(device_, torch::kHalf);
-#else
-    torch::Tensor x = torch::tensor(inputs).to(device_);
-#endif
+    torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, 9, 9 });
     x = first_conv->forward(x);
     x = first_bn->forward(x);
@@ -100,33 +93,39 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
 
     //CPUに持ってくる
     torch::Tensor policy = y.first.cpu();
-#ifdef USE_HALF_FLOAT
-    torch::Half* p = policy.data<torch::Half>();
-#else
-    float* p = policy.data<float>();
-#endif
-    for (int32_t i = 0; i < batch_size; i++) {
-        policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
+    if (fp16_) {
+        torch::Half* p = policy.data<torch::Half>();
+        for (int32_t i = 0; i < batch_size; i++) {
+            policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
+        }
+    } else {
+        float* p = policy.data<float>();
+        for (int32_t i = 0; i < batch_size; i++) {
+            policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
+        }
     }
 
 #ifdef USE_CATEGORICAL
     torch::Tensor value = torch::softmax(y.second, 1).cpu();
-#ifdef USE_HALF_FLOAT
-    torch::Half* value_p = value.data<torch::Half>();
-#else
-    float* value_p = value.data<float>();
-#endif
-    for (int32_t i = 0; i < batch_size; i++) {
-        std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
+    if (fp16_) {
+        torch::Half* value_p = value.data<torch::Half>();
+        for (int32_t i = 0; i < batch_size; i++) {
+            std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
+        }
+    } else {
+        float* value_p = value.data<float>();
+        for (int32_t i = 0; i < batch_size; i++) {
+            std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
+        }
     }
 #else
     //CPUに持ってくる
     torch::Tensor value = y.second.cpu();
-#ifdef USE_HALF_FLOAT
-    std::copy(value.data<torch::Half>(), value.data<torch::Half>() + batch_size, values.begin());
-#else
-    std::copy(value.data<float>(), value.data<float>() + batch_size, values.begin());
-#endif
+    if (fp16_) {
+        std::copy(value.data<torch::Half>(), value.data<torch::Half>() + batch_size, values.begin());
+    } else {
+        std::copy(value.data<float>(), value.data<float>() + batch_size, values.begin());
+    }
 #endif
     return { policies, values };
 }
@@ -154,11 +153,11 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
         }
     }
 
-#ifdef USE_HALF_FLOAT
-    torch::Tensor policy_target = torch::tensor(policy_dist).to(device_, torch::kHalf).view({ -1, POLICY_DIM });
-#else
-    torch::Tensor policy_target = torch::tensor(policy_dist).to(device_).view({ -1, POLICY_DIM });
-#endif
+    torch::Tensor policy_target = (fp16_ ? torch::tensor(policy_dist).to(device_, torch::kHalf) :
+                                           torch::tensor(policy_dist).to(device_));
+
+    policy_target = policy_target.view({ -1, POLICY_DIM });
+
     torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false);
 
 #ifdef USE_CATEGORICAL
@@ -166,11 +165,8 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
 #else
 
-#ifdef USE_HALF_FLOAT
-    torch::Tensor value_t = torch::tensor(value_teachers).to(device_, torch::kHalf);
-#else
-    torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
-#endif
+    torch::Tensor value_t = (fp16_ ? torch::tensor(value_teachers).to(device_, torch::kHalf) :
+                                     torch::tensor(value_teachers).to(device_));
     torch::Tensor value = y.second.view(-1);
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
@@ -182,19 +178,20 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     return { policy_loss, value_loss };
 }
 
-void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
+void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-#ifdef USE_HALF_FLOAT
-    for (const auto& module : modules()) {
-        if (module->name() == "torch::nn::BatchNormImpl") {
-            module->to(device_);
-        } else {
-            module->to(device_, torch::kHalf);
+    fp16_ = fp16;
+    if (fp16_) {
+        for (const auto& module : modules()) {
+            if (module->name() == "torch::nn::BatchNormImpl") {
+                module->to(device_);
+            } else {
+                module->to(device_, torch::kHalf);
+            }
         }
+    } else {
+        to(device_);
     }
-#else
-    to(device_);
-#endif
 }
 
 NeuralNetwork nn;

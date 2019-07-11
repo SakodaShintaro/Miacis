@@ -48,7 +48,7 @@ public:
     //バッチの入力特徴量,教師情報を引数として損失を返す関数.これをモデルが一括で行うのが良い実装？
     std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
 
-    void setGPU(int16_t gpu_id);
+    void setGPU(int16_t gpu_id, bool fp16 = false);
 
     //評価パラメータを読み書きするファイルのprefix
     static const std::string MODEL_PREFIX;
@@ -64,6 +64,7 @@ private:
     static constexpr int32_t REDUCTION = 8;
     static constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
+    bool fp16_;
     torch::Device device_;
     torch::nn::Conv2d first_conv{nullptr};
     torch::nn::BatchNorm first_bn{nullptr};
