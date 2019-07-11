@@ -103,6 +103,7 @@ void alphaZero() {
     auto gpu_num = torch::getNumGPUs();
     std::vector<NeuralNetwork> additional_nn(gpu_num - 1);
     for (uint64_t i = 0; i < gpu_num - 1; i++) {
+        torch::load(additional_nn[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
         additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
     }
 
