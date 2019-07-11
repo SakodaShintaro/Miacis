@@ -248,9 +248,41 @@ void checkTransitionModel() {
 
         //損失を計算
         torch::Tensor diff = predicted_state_rep - next_state_rep;
+
         torch::Tensor square = torch::pow(diff, 2);
         torch::Tensor sum = torch::sum(square, {1, 2, 3});
         torch::Tensor transition_loss = torch::sqrt(sum);
         std::cout << i << "\t" << transition_loss.item<float>() << std::endl;
+    }
+}
+
+void checkActionRepresentations() {
+    torch::load(nn, MODEL_PATH);
+    torch::NoGradGuard no_grad_guard;
+
+    std::cout << std::fixed;
+
+    std::vector<Move> moves;
+    moves.emplace_back(SQ53, SQ54, false, false, BLACK_GOLD, EMPTY);
+    moves.emplace_back(SQ53, SQ54, false, false, BLACK_PAWN_PROMOTE, EMPTY);
+    moves.emplace_back(SQ53, SQ54, false, false, BLACK_LANCE_PROMOTE, EMPTY);
+    moves.emplace_back(SQ53, SQ54, false, false, BLACK_KNIGHT_PROMOTE, EMPTY);
+    moves.emplace_back(SQ53, SQ43, false, false, BLACK_KNIGHT_PROMOTE, EMPTY);
+    moves.emplace_back(SQ55, SQ54, false, false, BLACK_KNIGHT_PROMOTE, EMPTY);
+    moves.emplace_back(SQ54, SQ55, false, false, BLACK_KNIGHT_PROMOTE, EMPTY);
+    moves.emplace_back(SQ24, SQ28, false, false, BLACK_ROOK, EMPTY);
+    moves.emplace_back(SQ22, SQ88, false, false, BLACK_BISHOP, EMPTY);
+
+    for (int32_t i = 0; i < moves.size(); i++) {
+        moves[i].print();
+        std::cout << "\t\t";
+        for (int32_t j = 0; j < i; j++) {
+            torch::Tensor move_reps = nn->encodeActions(moves);
+            torch::Tensor diff = move_reps[i] - move_reps[j];
+
+            torch::Tensor loss = torch::pow(diff, 2).mean();
+            std::cout << loss.item<float>() << " ";
+        }
+        std::cout << std::endl;
     }
 }
