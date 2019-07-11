@@ -8,7 +8,7 @@ const std::string NeuralNetworkImpl::MODEL_PREFIX = "sca_bl" + std::to_string(BL
 //デフォルトで読み書きするファイル名
 const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MODEL_PREFIX + ".model";
 
-NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA),
+NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false),
                                          conv(BLOCK_NUM, std::vector<torch::nn::Conv2d>(2, nullptr)),
                                          bn(BLOCK_NUM, std::vector<torch::nn::BatchNorm>(2, nullptr)),
                                          fc(BLOCK_NUM, std::vector<torch::nn::Linear>(2, nullptr)) {
@@ -181,17 +181,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
 void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
-    if (fp16_) {
-        for (const auto& module : modules()) {
-            if (module->name() == "torch::nn::BatchNormImpl") {
-                module->to(device_);
-            } else {
-                module->to(device_, torch::kHalf);
-            }
-        }
-    } else {
-        to(device_);
-    }
+    (fp16_ ? to(device_, torch::kHalf) : to(device_));
 }
 
 NeuralNetwork nn;
