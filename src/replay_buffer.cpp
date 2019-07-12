@@ -41,7 +41,7 @@ void ReplayBuffer::push(Game &game) {
     Position pos;
 
     static int64_t num = 0;
-    if (++num % 5000 == 0) {
+    if (++num % 100 == 0) {
         game.writeKifuFile(save_dir);
     }
 

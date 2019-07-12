@@ -235,32 +235,25 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
         element.policy_teacher.push_back({root_node.moves[i].toLabel(), distribution[i]});
     }
 
-    //policyの教師として行動価値のsoftmaxを取ったものを考慮する
-//    std::vector<CalcType> N_dist(root_node.moves.size());
-//    std::vector<CalcType> Q_dist(root_node.moves.size());
-//    assert(current_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
-//    for (int32_t i = 0; i < root_node.moves.size(); i++) {
-//        N_dist[i] = (CalcType)N[i] / root_node.sum_N;
-//        assert(0 <= N[i] && N[i] <= current_node.sum_N);
-//
-//        //漸進的更新にしてからまだ動かしたことがないのでここが合っているか不安
-//#ifdef USE_CATEGORICAL
-//        Q_dist[i] = (N[i] == 0 ? INT_MIN : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : expOfValueDist(QfromNextValue(root_node, i)));
-//#else
-//        Q_dist[i] = (N[i] == 0 ? INT_MIN : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : QfromNextValue(root_node, i));
-//#endif
-//        teacher.policy.push_back({root_node.moves[i].toLabel(), N_dist[i]});
-//    }
-//    Q_dist = softmax(Q_dist, 1.0f);
-//
-//    constexpr CalcType lambda_NQ = 0.5;
-//    for (int32_t i = 0; i < root_node.moves.size(); i++) {
-//        teacher.policy.push_back({root_node.moves[i].toLabel(),
-//                                  lambda_NQ * N_dist[i] + (1.0f - lambda_NQ) * Q_dist[i]});
-//    }
+    //行動価値のsoftmaxを取った分布を計算
+    std::vector<CalcType> Q_dist(root_node.moves.size());
+    assert(root_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
+    for (int32_t i = 0; i < root_node.moves.size(); i++) {
+        assert(0 <= N[i] && N[i] <= root_node.sum_N);
 
-    //分布に従って行動選択
-    element.move = root_node.moves[randomChoose(distribution)];
+        //選択回数が0ならMIN_SCORE
+        //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
+        //その他は普通に計算
+#ifdef USE_CATEGORICAL
+        Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : expOfValueDist(QfromNextValue(root_node, i)));
+#else
+        Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : QfromNextValue(root_node, i));
+#endif
+    }
+    Q_dist = softmax(Q_dist, 0.25f);
+
+    //行動価値のsoftmax分布に従って行動選択
+    element.move = root_node.moves[randomChoose(Q_dist)];
     element.score = best_wp;
 
     //priorityを計算する用にNNの出力をセットする
