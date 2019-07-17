@@ -7,7 +7,6 @@ void checkGenSpeed();
 void checkPredictSpeed();
 void checkVal();
 void checkSegmentTree();
-void checkRepresentation();
 void checkTransitionModel();
 void checkActionRepresentations();
 

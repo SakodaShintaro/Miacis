@@ -183,22 +183,6 @@ void checkSegmentTree() {
     }
 }
 
-void checkRepresentation() {
-    Position pos;
-    torch::Tensor curr_rep = nn->encodeStates(pos.makeFeature()).cpu();
-    std::vector<float> curr_state_rep(curr_rep.data<float>(), curr_rep.data<float>() + REPRESENTATION_DIM);
-    for (int64_t i = 0; i < REPRESENTATION_DIM; i++) {
-        std::cout << std::showpos << std::fixed << std::setprecision(2) << curr_state_rep[i] << " \n"[i == REPRESENTATION_DIM - 1];
-    }
-    Move move(SQ27, SQ26);
-    move = pos.transformValidMove(move);
-    torch::Tensor move_rep_tensor = nn->encodeActions({move}).cpu();
-    std::vector<float> move_rep(move_rep_tensor.data<float>(), move_rep_tensor.data<float>() + REPRESENTATION_DIM);
-    for (int64_t i = 0; i < REPRESENTATION_DIM; i++) {
-        std::cout << std::fixed << std::setprecision(2) << move_rep[i] << " \n"[i == REPRESENTATION_DIM - 1];
-    }
-}
-
 void checkTransitionModel() {
     torch::load(nn, MODEL_PATH);
     torch::NoGradGuard no_grad_guard;
