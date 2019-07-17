@@ -14,6 +14,7 @@ constexpr int64_t REPRESENTATION_DIM = CHANNEL_NUM;
 constexpr int32_t VALUE_HIDDEN_NUM = 256;
 constexpr int32_t KERNEL_SIZE = 3;
 constexpr int32_t ACTION_FEATURE_CHANNEL_NUM = 32;
+constexpr int32_t REDUCTION = 8;
 
 //評価パラメータを読み書きするファイルのprefix
 #ifdef USE_CATEGORICAL
@@ -50,19 +51,29 @@ enum LossType {
     POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, TRANS_LOSS_INDEX, LOSS_TYPE_NUM
 };
 
+//畳み込みとBatchNormalizationをまとめたユニット
+class Conv2DwithBatchNormImpl : public torch::nn::Module {
+public:
+    Conv2DwithBatchNormImpl(int64_t input_ch, int64_t output_ch, int64_t kernel_size);
+    torch::Tensor forward(torch::Tensor& x);
+private:
+    torch::nn::Conv2d    conv_{ nullptr };
+    torch::nn::BatchNorm norm_{ nullptr };
+};
+TORCH_MODULE(Conv2DwithBatchNorm);
+
 class ResidualBlockImpl : public torch::nn::Module {
 public:
-    ResidualBlockImpl(int64_t channel_num, int64_t kernel_size = 3, int64_t reduction = 8);
-
+    ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, int64_t reduction);
     torch::Tensor forward(torch::Tensor& x);
-
 private:
-    static constexpr int64_t CONV_NUM = 2;
-    std::vector<torch::nn::Conv2d>    conv;
-    std::vector<torch::nn::BatchNorm> norm;
-    std::vector<torch::nn::Linear>    fc;
+    Conv2DwithBatchNorm conv_and_norm0_{ nullptr };
+    Conv2DwithBatchNorm conv_and_norm1_{ nullptr };
+    torch::nn::Linear   linear0_{ nullptr };
+    torch::nn::Linear   linear1_{ nullptr };
 };
 TORCH_MODULE(ResidualBlock);
+
 
 class NeuralNetworkImpl : public torch::nn::Module {
 public:

@@ -3,37 +3,39 @@
 //大して速くならないわりに性能は落ちるのでとりあえずOFF
 //#define USE_HALF_FLOAT
 
-ResidualBlockImpl::ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, int64_t reduction)
-    : conv(CONV_NUM, nullptr), norm(CONV_NUM, nullptr), fc(CONV_NUM, nullptr) {
-    for (int32_t j = 0; j < CONV_NUM; j++) {
-        conv[j] = register_module("conv" + std::to_string(j),
-                torch::nn::Conv2d(torch::nn::Conv2dOptions(channel_num, channel_num, kernel_size).with_bias(false).padding((kernel_size / 2))));
-        norm[j] = register_module("norm" + std::to_string(j), torch::nn::BatchNorm(channel_num));
-    }
-    fc[0] = register_module("fc0", torch::nn::Linear(torch::nn::LinearOptions(channel_num, channel_num / reduction).with_bias(false)));
-    fc[1] = register_module("fc1", torch::nn::Linear(torch::nn::LinearOptions(channel_num / reduction, channel_num).with_bias(false)));
+Conv2DwithBatchNormImpl::Conv2DwithBatchNormImpl(int64_t input_ch, int64_t output_ch, int64_t kernel_size) {
+    conv_ = register_module("conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(input_ch, output_ch, kernel_size).with_bias(false).padding(kernel_size / 2)));
+    norm_ = register_module("norm_", torch::nn::BatchNorm(output_ch));
+}
+
+torch::Tensor Conv2DwithBatchNormImpl::forward(torch::Tensor& x) {
+    x = conv_->forward(x);
+    x = norm_->forward(x);
+    return x;
+}
+
+ResidualBlockImpl::ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, int64_t reduction) {
+    conv_and_norm0_ = register_module("conv_and_norm0_", Conv2DwithBatchNorm(channel_num, channel_num, kernel_size));
+    conv_and_norm1_ = register_module("conv_and_norm1_", Conv2DwithBatchNorm(channel_num, channel_num, kernel_size));
+    linear0_ = register_module("linear0_", torch::nn::Linear(torch::nn::LinearOptions(channel_num, channel_num / reduction).with_bias(false)));
+    linear1_ = register_module("linear1_", torch::nn::Linear(torch::nn::LinearOptions(channel_num / reduction, channel_num).with_bias(false)));
 }
 
 torch::Tensor ResidualBlockImpl::forward(torch::Tensor& x) {
-    int64_t channel_num = x.size(1);
-
     torch::Tensor t = x;
 
-    x = conv[0]->forward(x);
-    x = norm[0]->forward(x);
+    x = conv_and_norm0_->forward(x);
     x = torch::relu(x);
-
-    x = conv[1]->forward(x);
-    x = norm[1]->forward(x);
+    x = conv_and_norm1_->forward(x);
 
     //SENet構造
-    torch::Tensor y = torch::avg_pool2d(x, { 9, 9 });
-    y = y.view({ -1, channel_num });
-    y = fc[0]->forward(y);
+    auto y = torch::avg_pool2d(x, {9, 9});
+    y = y.view({-1, CHANNEL_NUM});
+    y = linear0_->forward(y);
     y = torch::relu(y);
-    y = fc[1]->forward(y);
+    y = linear1_->forward(y);
     y = torch::sigmoid(y);
-    y = y.view({ -1, channel_num, 1, 1 });
+    y = y.view({-1, CHANNEL_NUM, 1, 1});
     x = x * y;
 
     x = torch::relu(x + t);
@@ -44,13 +46,13 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), state_encoder_bl
     state_encoder_first_conv = register_module("state_encoder_first_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(STATE_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
     state_encoder_first_norm = register_module("state_encoder_first_norm", torch::nn::BatchNorm(CHANNEL_NUM));
     for (int32_t i = 0; i < STATE_BLOCK_NUM; i++) {
-        state_encoder_blocks[i] = register_module("state_encoder_blocks" + std::to_string(i), ResidualBlock(CHANNEL_NUM));
+        state_encoder_blocks[i] = register_module("state_encoder_blocks" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
 
     action_encoder_first_conv = register_module("action_encoder_first_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(ACTION_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
     action_encoder_first_norm = register_module("action_encoder_first_norm", torch::nn::BatchNorm(CHANNEL_NUM));
     for (int32_t i = 0; i < ACTION_BLOCK_NUM; i++) {
-        action_encoder_blocks[i] = register_module("action_encoder_blocks" + std::to_string(i), ResidualBlock(CHANNEL_NUM));
+        action_encoder_blocks[i] = register_module("action_encoder_blocks" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
 
     policy_conv = register_module("policy_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
