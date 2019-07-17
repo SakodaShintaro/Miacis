@@ -11,6 +11,7 @@ void alphaZero() {
     settings.add("lambda",                 0.0f, 1.0f);
     settings.add("alpha",                  0.0f, 1e10f);
     settings.add("Q_dist_lambda",          0.0f, 1.0f);
+    settings.add("C_PUCT",                 0.0f, 1e10f);
     settings.add("draw_turn",              0, (int64_t)1024);
     settings.add("batch_size",             1, (int64_t)1e10);
     settings.add("thread_num",             1, (int64_t)std::thread::hardware_concurrency());
@@ -40,6 +41,7 @@ void alphaZero() {
     float lambda                     = settings.get<float>("lambda");
     float alpha                      = settings.get<float>("alpha");
     float Q_dist_lambda              = settings.get<float>("Q_dist_lambda");
+    float C_PUCT                     = settings.get<float>("C_PUCT");
     int64_t draw_turn                = settings.get<int64_t>("draw_turn");
     int64_t batch_size               = settings.get<int64_t>("batch_size");
     int64_t thread_num               = settings.get<int64_t>("thread_num");
@@ -115,7 +117,7 @@ void alphaZero() {
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     for (uint64_t i = 0; i < gpu_num; i++) {
         generators[i] = std::make_unique<GameGenerator>(search_limit, draw_turn, thread_num, search_batch_size,
-                                                        Q_dist_lambda, replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
+                                                        Q_dist_lambda, C_PUCT, replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
     }
 
     //生成開始.10^15個の(つまり無限に)棋譜を生成させる

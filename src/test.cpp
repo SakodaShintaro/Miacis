@@ -8,8 +8,9 @@ void test() {
     constexpr int64_t thread_num = 1;
     constexpr int64_t search_batch_size = 1;
     constexpr int64_t draw_turn = 256;
+    constexpr double C_PUCT = 2.5;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    SearcherForPlay searcher(node_limit, thread_num, search_batch_size, nn);
+    SearcherForPlay searcher(node_limit, C_PUCT, thread_num, search_batch_size, nn);
 
     Position pos;
     Game game;
@@ -51,12 +52,13 @@ void checkGenSpeed() {
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
     constexpr int64_t buffer_size = 20000;
+    constexpr double C_PUCT = 2.5;
 
     for (int64_t search_batch_size = 32; search_batch_size <= 128; search_batch_size *= 2) {
         ReplayBuffer buffer(0, buffer_size, 10 * buffer_size, 1.0, 1.0);
         Searcher::stop_signal = false;
         auto start = std::chrono::steady_clock::now();
-        GameGenerator generator(800, 256, 2, search_batch_size, 0.0, buffer, nn);
+        GameGenerator generator(800, 256, 2, search_batch_size, 0.0, C_PUCT, buffer, nn);
         std::thread t(&GameGenerator::genGames, &generator, (int64_t)1e15);
         while (buffer.size() < buffer_size) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -75,11 +77,12 @@ void checkGenSpeed() {
 void checkSearchSpeed() {
     constexpr int64_t time_limit = 10000;
     constexpr int64_t hash_size = 10000000;
+    constexpr double C_PUCT = 2.5;
     Position pos;
     for (uint64_t search_batch_size = 64; search_batch_size <= 512; search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_batch_size << std::endl;
         for (uint64_t thread_num = 1; thread_num <= 3; thread_num++) {
-            SearcherForPlay searcher(hash_size, thread_num, search_batch_size, nn);
+            SearcherForPlay searcher(hash_size, C_PUCT, thread_num, search_batch_size, nn);
             searcher.think(pos, time_limit, LLONG_MAX, 0, LLONG_MAX, false);
         }
     }

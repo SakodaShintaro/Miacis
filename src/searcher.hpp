@@ -9,7 +9,9 @@ public:
     static bool stop_signal;
 
 protected:
-    explicit Searcher(int64_t hash_size) : hash_table_(hash_size), time_limit_(LLONG_MAX), node_limit_(LLONG_MAX) {}
+    explicit Searcher(int64_t hash_size, double C_PUCT) : hash_table_(hash_size), C_PUCT_(C_PUCT),
+                                                          time_limit_(LLONG_MAX), node_limit_(LLONG_MAX),
+                                                          root_index_(UctHashTable::NOT_EXPANDED) {}
 
     //時間制限含め探索を続けるかどうかを判定する関数
     bool shouldStop();
@@ -27,6 +29,9 @@ protected:
 
     //置換表
     UctHashTable hash_table_;
+
+    //C_PUCT
+    const double C_PUCT_;
 
     //時間
     std::chrono::steady_clock::time_point start_;

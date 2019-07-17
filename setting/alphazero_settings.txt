@@ -5,6 +5,7 @@ value_loss_coeff       1.0
 lambda                 0.75
 alpha                  2.0
 Q_dist_lambda          0.0
+C_PUCT                 2.5
 draw_turn              512
 batch_size             128
 thread_num             3

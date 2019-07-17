@@ -35,6 +35,7 @@ private:
         int64_t thread_num;
         int64_t search_batch_size;
         int64_t search_limit;
+        int64_t C_PUCT_1000;
         bool print_policy;
     } usi_option_;
 };

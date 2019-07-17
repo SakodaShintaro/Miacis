@@ -67,6 +67,9 @@ void USI::usi() {
     printf("option name search_limit type spin default %llu min 1 max %llu\n", d, d);
     usi_option_.search_limit = (int64_t)d;
 
+    std::cout << "option name C_PUCT_1000 type spin default 2500 min 0 max 1000000" << std::endl;
+    usi_option_.C_PUCT_1000 = 2500;
+
     usi_option_.USI_Hash = 256;
     printf("usiok\n");
 }
@@ -106,6 +109,9 @@ void USI::setoption() {
     } else if (input == "search_limit") {
         std::cin >> input;
         std::cin >> usi_option_.search_limit;
+    } else if (input == "C_PUCT_1000") {
+        std::cin >> input;
+        std::cin >> usi_option_.C_PUCT_1000;
     } else if (input == "print_policy") {
         std::cin >> input;
         std::cin >> input;
@@ -118,7 +124,10 @@ void USI::setoption() {
 
 void USI::usinewgame() {
     searcher_ = std::make_unique<SearcherForPlay>(usi_option_.USI_Hash * 1024 * 1024 / 20000,
-                                                  usi_option_.thread_num, usi_option_.search_batch_size, nn);
+                                                  usi_option_.C_PUCT_1000 / 1000.0,
+                                                  usi_option_.thread_num,
+                                                  usi_option_.search_batch_size,
+                                                  nn);
 }
 
 void USI::position() {
