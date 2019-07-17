@@ -199,24 +199,6 @@ void checkRepresentation() {
     }
 }
 
-void checkGenAllPossibleMoves() {
-    Position pos;
-    int32_t counter = 0;
-    for (const Move& move : pos.generateAllPossibleMoves()) {
-        Move::mp[move.move] = counter++;
-    }
-
-    Position pos1;
-    Move move(SQ26, SQ27);
-    move = pos1.transformValidMove(move);
-    move.printWithNewLine();
-    std::cout << move.toID() << std::endl;
-
-    Move move2(SQ48, SQ59);
-    move2 = pos1.transformValidMove(move2);
-    std::cout << move2.toID() << std::endl;
-}
-
 void checkTransitionModel() {
     torch::load(nn, MODEL_PATH);
     torch::NoGradGuard no_grad_guard;

@@ -46,8 +46,3 @@ uint32_t Move::toLabel() const {
 
     return static_cast<uint32_t>(to_num + SQUARE_NUM * direction);
 }
-
-int32_t Move::toID() const {
-    assert(mp.count(move & ~MOVE_CAPTURE_MASK) == 1);
-    return mp[move & ~MOVE_CAPTURE_MASK];
-}
