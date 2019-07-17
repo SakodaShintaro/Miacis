@@ -42,24 +42,21 @@ torch::Tensor ResidualBlockImpl::forward(torch::Tensor& x) {
     return x;
 }
 
-NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), state_encoder_blocks(STATE_BLOCK_NUM, nullptr), action_encoder_blocks(ACTION_BLOCK_NUM, nullptr) {
-    state_encoder_first_conv = register_module("state_encoder_first_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(STATE_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
-    state_encoder_first_norm = register_module("state_encoder_first_norm", torch::nn::BatchNorm(CHANNEL_NUM));
+NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), state_encoder_blocks_(STATE_BLOCK_NUM, nullptr), action_encoder_blocks_(ACTION_BLOCK_NUM, nullptr) {
+    state_encoder_first_conv_ = register_module("state_encoder_first_conv_", Conv2DwithBatchNorm(STATE_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
     for (int32_t i = 0; i < STATE_BLOCK_NUM; i++) {
-        state_encoder_blocks[i] = register_module("state_encoder_blocks" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
+        state_encoder_blocks_[i] = register_module("state_encoder_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
 
-    action_encoder_first_conv = register_module("action_encoder_first_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(ACTION_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE).with_bias(false).padding(1)));
-    action_encoder_first_norm = register_module("action_encoder_first_norm", torch::nn::BatchNorm(CHANNEL_NUM));
+    action_encoder_first_conv_ = register_module("action_encoder_first_conv_", Conv2DwithBatchNorm(ACTION_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
     for (int32_t i = 0; i < ACTION_BLOCK_NUM; i++) {
-        action_encoder_blocks[i] = register_module("action_encoder_blocks" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
+        action_encoder_blocks_[i] = register_module("action_encoder_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
 
-    policy_conv = register_module("policy_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
-    value_conv = register_module("value_conv", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, CHANNEL_NUM, 1).padding(0).with_bias(false)));
-    value_norm = register_module("value_norm", torch::nn::BatchNorm(CHANNEL_NUM));
-    value_fc1 = register_module("value_fc1", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
-    value_fc2 = register_module("value_fc2", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
+    policy_conv_ = register_module("policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
+    value_conv_ = register_module("value_conv_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
+    value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
+    value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
@@ -131,12 +128,11 @@ torch::Tensor NeuralNetworkImpl::encodeStates(const std::vector<float>& inputs) 
     torch::Tensor x = torch::tensor(inputs).to(device_);
 #endif
     x = x.view({ -1, STATE_FEATURE_CHANNEL_NUM, 9, 9 });
-    x = state_encoder_first_conv->forward(x);
-    x = state_encoder_first_norm->forward(x);
+    x = state_encoder_first_conv_->forward(x);
     x = torch::relu(x);
 
     for (int32_t i = 0; i < STATE_BLOCK_NUM; i++) {
-        x = state_encoder_blocks[i]->forward(x);
+        x = state_encoder_blocks_[i]->forward(x);
     }
 
     return x;
@@ -181,27 +177,25 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
     torch::Tensor move_features_tensor = torch::tensor(move_features).to(device_);
 #endif
     move_features_tensor = move_features_tensor.view({ -1, ACTION_FEATURE_CHANNEL_NUM, 9, 9 });
-    torch::Tensor x = action_encoder_first_conv->forward(move_features_tensor);
-    x = action_encoder_first_norm->forward(x);
-    for (auto& block : action_encoder_blocks) {
+    torch::Tensor x = action_encoder_first_conv_->forward(move_features_tensor);
+    for (auto& block : action_encoder_blocks_) {
         x = block->forward(x);
     }
     return x;
 }
 
 torch::Tensor NeuralNetworkImpl::decodePolicy(torch::Tensor& representation) {
-    torch::Tensor policy = policy_conv->forward(representation);
+    torch::Tensor policy = policy_conv_->forward(representation);
     return policy.view({ -1, POLICY_DIM });
 }
 
 torch::Tensor NeuralNetworkImpl::decodeValue(torch::Tensor& representation) {
-    torch::Tensor value = value_conv->forward(representation);
-    value = value_norm->forward(value);
+    torch::Tensor value = value_conv_->forward(representation);
     value = torch::relu(value);
     value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
-    value = value_fc1->forward(value);
+    value = value_linear0_->forward(value);
     value = torch::relu(value);
-    value = value_fc2->forward(value);
+    value = value_linear1_->forward(value);
     return value;
 }
 

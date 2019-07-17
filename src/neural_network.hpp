@@ -108,23 +108,20 @@ private:
     torch::Device device_;
 
     //encodeStateで使用
-    torch::nn::Conv2d    state_encoder_first_conv{nullptr};
-    torch::nn::BatchNorm state_encoder_first_norm{nullptr};
-    std::vector<ResidualBlock> state_encoder_blocks;
+    Conv2DwithBatchNorm state_encoder_first_conv_{nullptr};
+    std::vector<ResidualBlock> state_encoder_blocks_;
 
     //encodeActionで使用
-    torch::nn::Conv2d    action_encoder_first_conv{nullptr};
-    torch::nn::BatchNorm action_encoder_first_norm{nullptr};
-    std::vector<ResidualBlock> action_encoder_blocks;
+    Conv2DwithBatchNorm action_encoder_first_conv_{nullptr};
+    std::vector<ResidualBlock> action_encoder_blocks_;
 
     //decodePolicyで使用
-    torch::nn::Conv2d policy_conv{nullptr};
+    torch::nn::Conv2d policy_conv_{nullptr};
 
     //decodeValueで使用
-    torch::nn::Conv2d    value_conv{nullptr};
-    torch::nn::BatchNorm value_norm{nullptr};
-    torch::nn::Linear value_fc1{nullptr};
-    torch::nn::Linear value_fc2{nullptr};
+    Conv2DwithBatchNorm value_conv_{nullptr};
+    torch::nn::Linear value_linear0_{nullptr};
+    torch::nn::Linear value_linear1_{nullptr};
 };
 TORCH_MODULE(NeuralNetwork);
 
