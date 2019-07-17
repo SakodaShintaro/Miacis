@@ -12,9 +12,9 @@
 class GameGenerator {
 public:
     GameGenerator(int64_t search_limit, int64_t draw_turn, int64_t thread_num, int64_t search_batch_size,
-                  ReplayBuffer& rb, NeuralNetwork evaluator)
-        : search_limit_(search_limit), draw_turn_(draw_turn),thread_num_(thread_num),
-          search_batch_size_(search_batch_size), rb_(rb), evaluator_(std::move(evaluator)) {
+                  CalcType Q_dist_lambda, ReplayBuffer& rb, NeuralNetwork evaluator)
+        : search_limit_(search_limit), draw_turn_(draw_turn),thread_num_(thread_num), search_batch_size_(search_batch_size),
+          Q_dist_lambda_(Q_dist_lambda), rb_(rb), evaluator_(std::move(evaluator)) {
         evaluator_->eval();
     };
 
@@ -42,6 +42,10 @@ private:
 
     //1CPUスレッドが1回GPUへ評価要求を投げるまでまとめて探索する回数
     int64_t search_batch_size_;
+
+    //探索結果の分布として価値のsoftmax分布を混ぜる割合([0,1])
+    //0で普通のAlphaZero
+    CalcType Q_dist_lambda_;
 
     //データを送るReplayBufferへの参照
     ReplayBuffer& rb_;

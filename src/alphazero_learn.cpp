@@ -10,6 +10,7 @@ void alphaZero() {
     settings.add("value_loss_coeff",       0.0f, 1e10f);
     settings.add("lambda",                 0.0f, 1.0f);
     settings.add("alpha",                  0.0f, 1e10f);
+    settings.add("Q_dist_lambda",          0.0f, 1.0f);
     settings.add("learn_rate_decay_step1", 0, (int64_t)1e10);
     settings.add("learn_rate_decay_step2", 0, (int64_t)1e10);
     settings.add("learn_rate_decay_step3", 0, (int64_t)1e10);
@@ -37,6 +38,7 @@ void alphaZero() {
     float value_loss_coeff           = settings.get<float>("value_loss_coeff");
     float lambda                     = settings.get<float>("lambda");
     float alpha                      = settings.get<float>("alpha");
+    float Q_dist_lambda              = settings.get<float>("Q_dist_lambda");
     int64_t learn_rate_decay_step1   = settings.get<int64_t>("learn_rate_decay_step1");
     int64_t learn_rate_decay_step2   = settings.get<int64_t>("learn_rate_decay_step2");
     int64_t learn_rate_decay_step3   = settings.get<int64_t>("learn_rate_decay_step3");
@@ -111,7 +113,7 @@ void alphaZero() {
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     for (uint64_t i = 0; i < gpu_num; i++) {
         generators[i] = std::make_unique<GameGenerator>(search_limit, draw_turn, thread_num, search_batch_size,
-                                                        replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
+                                                        Q_dist_lambda, replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
     }
 
     //生成開始.10^15個の(つまり無限に)棋譜を生成させる

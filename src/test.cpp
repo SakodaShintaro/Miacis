@@ -56,7 +56,7 @@ void checkGenSpeed() {
         ReplayBuffer buffer(0, buffer_size, 1.0, 1.0);
         Searcher::stop_signal = false;
         auto start = std::chrono::steady_clock::now();
-        GameGenerator generator(800, 256, 2, search_batch_size,buffer, nn);
+        GameGenerator generator(800, 256, 2, search_batch_size, 0.0, buffer, nn);
         std::thread t(&GameGenerator::genGames, &generator, (int64_t)1e15);
         while (buffer.size() < buffer_size) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
