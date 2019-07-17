@@ -27,7 +27,7 @@ double elapsedHours(const std::chrono::steady_clock::time_point& start) {
     return seconds / 3600.0;
 }
 
-std::array<float, LOSS_NUM> validation(const std::vector<LearningData>& data, int32_t batch_size) {
+std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& data, int32_t batch_size) {
     int32_t index = 0;
     float policy_loss = 0.0, value_loss = 0.0, trans_loss = 0.0;
     torch::NoGradGuard no_grad_guard;
@@ -42,9 +42,9 @@ std::array<float, LOSS_NUM> validation(const std::vector<LearningData>& data, in
         //計算
         auto loss = nn->loss(curr_data);
 
-        policy_loss += loss[POLICY].sum().item<float>();
-        value_loss += loss[VALUE].sum().item<float>();
-        trans_loss += loss[TRANS].sum().item<float>();
+        policy_loss += loss[POLICY_LOSS_INDEX].sum().item<float>();
+        value_loss += loss[VALUE_LOSS_INDEX].sum().item<float>();
+        trans_loss += loss[TRANS_LOSS_INDEX].sum().item<float>();
     }
 
     //平均を求める
@@ -149,7 +149,7 @@ void searchLearningRate() {
             //学習
             optimizer.zero_grad();
             auto loss = learning_model->loss(curr_data);
-            auto loss_sum = policy_loss_coeff * loss[POLICY] + value_loss_coeff * loss[VALUE] + 1.0 * loss[TRANS];
+            auto loss_sum = policy_loss_coeff * loss[POLICY_LOSS_INDEX] + value_loss_coeff * loss[VALUE_LOSS_INDEX] + 1.0 * loss[TRANS_LOSS_INDEX];
             loss_sum.backward();
             optimizer.step();
 

@@ -203,7 +203,7 @@ torch::Tensor NeuralNetworkImpl::decodeValue(torch::Tensor& representation) {
     return value;
 }
 
-std::array<torch::Tensor, LOSS_NUM> NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
+std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
     static Position pos;
 
     //局面の特徴量を取得

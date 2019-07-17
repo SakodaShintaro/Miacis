@@ -140,7 +140,7 @@ void alphaZero() {
         //損失計算
         optimizer.zero_grad();
         auto loss = learning_model->loss(data);
-        auto loss_sum = (policy_loss_coeff * loss[POLICY] + value_loss_coeff * loss[VALUE] + 1.0 * loss[TRANS]).cpu();
+        auto loss_sum = (policy_loss_coeff * loss[POLICY_LOSS_INDEX] + value_loss_coeff * loss[VALUE_LOSS_INDEX] + 1.0 * loss[TRANS_LOSS_INDEX]).cpu();
 
         //replay_bufferのpriorityを更新
         std::vector<float> loss_vec(loss_sum.data<float>(), loss_sum.data<float>() + batch_size);
@@ -159,9 +159,9 @@ void alphaZero() {
             dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
                                        << step_num << "\t"
                                        << loss_sum.item<float>() << "\t"
-                                       << loss[POLICY].mean().item<float>() << "\t"
-                                       << loss[VALUE].mean().item<float>() << "\t"
-                                       << loss[TRANS].mean().item<float>() << std::endl;
+                                       << loss[POLICY_LOSS_INDEX].mean().item<float>() << "\t"
+                                       << loss[VALUE_LOSS_INDEX].mean().item<float>() << "\t"
+                                       << loss[TRANS_LOSS_INDEX].mean().item<float>() << std::endl;
         }
 
         //一定間隔でモデルの読み込んでActorのパラメータをLearnerと同期

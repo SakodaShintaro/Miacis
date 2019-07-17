@@ -27,7 +27,7 @@ public:
 std::vector<LearningData> loadData(const std::string& file_path);
 
 //validationを行う関数
-std::array<float, LOSS_NUM> validation(const std::vector<LearningData>& data, int32_t batch_size = 4096);
+std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& data, int32_t batch_size = 4096);
 
 //パラメータを初期化
 void initParams();

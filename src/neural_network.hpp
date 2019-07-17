@@ -47,7 +47,7 @@ struct LearningData {
 
 //損失の種類
 enum LossType {
-    POLICY, VALUE, TRANS, LOSS_NUM
+    POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, TRANS_LOSS_INDEX, LOSS_TYPE_NUM
 };
 
 class ResidualBlockImpl : public torch::nn::Module {
@@ -72,7 +72,7 @@ public:
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
     //データから損失を計算する関数
-    std::array<torch::Tensor, LOSS_NUM> loss(const std::vector<LearningData>& data);
+    std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
 
     //このネットワークが計算されるGPU or CPUを設定する関数
     void setGPU(int16_t gpu_id);
