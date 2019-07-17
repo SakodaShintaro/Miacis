@@ -35,6 +35,29 @@ enum LossType {
     POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM
 };
 
+//畳み込みとBatchNormalizationをまとめたユニット
+class Conv2DwithBatchNormImpl : public torch::nn::Module {
+public:
+    Conv2DwithBatchNormImpl(int64_t input_ch, int64_t output_ch, int64_t kernel_size);
+    torch::Tensor forward(torch::Tensor& x);
+private:
+    torch::nn::Conv2d    conv_{ nullptr };
+    torch::nn::BatchNorm norm_{ nullptr };
+};
+TORCH_MODULE(Conv2DwithBatchNorm);
+
+class ResidualBlockImpl : public torch::nn::Module {
+public:
+    ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, int64_t reduction);
+    torch::Tensor forward(torch::Tensor& x);
+private:
+    Conv2DwithBatchNorm conv_and_norm0_{ nullptr };
+    Conv2DwithBatchNorm conv_and_norm1_{ nullptr };
+    torch::nn::Linear   linear0_{ nullptr };
+    torch::nn::Linear   linear1_{ nullptr };
+};
+TORCH_MODULE(ResidualBlock);
+
 class NeuralNetworkImpl : public torch::nn::Module {
 public:
     NeuralNetworkImpl();
@@ -45,7 +68,7 @@ public:
     //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
-    //バッチの入力特徴量,教師情報を引数として損失を返す関数.これをモデルが一括で行うのが良い実装？
+    //バッチの入力特徴量,教師情報を引数として損失を返す関数
     std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
 
     void setGPU(int16_t gpu_id, bool fp16 = false);
@@ -59,16 +82,14 @@ public:
 private:
     bool fp16_;
     torch::Device device_;
-    torch::nn::Conv2d first_conv{nullptr};
-    torch::nn::BatchNorm first_bn{nullptr};
-    std::vector<std::vector<torch::nn::Conv2d>> conv;
-    std::vector<std::vector<torch::nn::BatchNorm>> bn;
-    std::vector<std::vector<torch::nn::Linear>> fc;
-    torch::nn::Conv2d policy_conv{nullptr};
-    torch::nn::Conv2d value_conv{nullptr};
-    torch::nn::BatchNorm value_bn{nullptr};
-    torch::nn::Linear value_fc1{nullptr};
-    torch::nn::Linear value_fc2{nullptr};
+
+    Conv2DwithBatchNorm state_first_conv_{ nullptr };
+    std::vector<ResidualBlock> state_blocks_;
+
+    torch::nn::Conv2d policy_conv_{ nullptr };
+    Conv2DwithBatchNorm value_conv_{ nullptr };
+    torch::nn::Linear value_linear0_{ nullptr };
+    torch::nn::Linear value_linear1_{ nullptr };
 };
 TORCH_MODULE(NeuralNetwork);
 
