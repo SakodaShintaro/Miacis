@@ -52,7 +52,6 @@ static int32_t PieceToHandMask[] = {
 };
 
 class Hand {
-    uint32_t hand_;
 public:
     //コンストラクタ
     Hand() : hand_(0) {}
@@ -110,6 +109,9 @@ public:
         }
         std::cout << std::endl;
     }
+
+private:
+    uint32_t hand_;
 };
 
 #endif // !HAND_HPP

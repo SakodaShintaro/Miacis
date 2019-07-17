@@ -9,7 +9,7 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     std::stack<int32_t> actions;
     root_index_ = expand(root, indices, actions);
 
-    if (root.turn_number() >= 50) {
+    if (root.turnNumber() >= 50) {
         //5手詰めまで探索
         mateSearch(root, 5);
     }
@@ -208,10 +208,10 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     //選択した着手の勝率の算出
     //詰みのときは未展開であることに注意する
 #ifdef USE_CATEGORICAL
-    auto best_wp = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
+    auto best_value = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
                     expOfValueDist(QfromNextValue(root_node, best_index)));
 #else
-    auto best_wp = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
+    auto best_value = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
                     QfromNextValue(root_node, best_index));
 #endif
 
@@ -220,51 +220,55 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
 
     //valueのセット
 #ifdef USE_CATEGORICAL
-    element.teacher.value = valueToIndex(best_wp);
+    element.value_teacher = valueToIndex(best_value);
 #else
-    element.teacher.value = (CalcType)best_wp;
+    element.value_teacher = (CalcType)best_value;
 #endif
 
     //policyのセット
-    //訪問回数に基づいた分布を得る
-    std::vector<CalcType> distribution(root_node.moves.size());
+    assert(root_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
+
+    //探索回数を正規化した分布
+    //探索回数のsoftmaxを取ることを検討したほうが良いかもしれない
+    std::vector<CalcType> N_dist(root_node.moves.size());
+    //行動価値のsoftmaxを取った分布
+    std::vector<CalcType> Q_dist(root_node.moves.size());
     assert(root_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
     for (int32_t i = 0; i < root_node.moves.size(); i++) {
-        distribution[i] = (CalcType)N[i] / root_node.sum_N;
         assert(0 <= N[i] && N[i] <= root_node.sum_N);
+
+        //探索回数を正規化
+        N_dist[i] = (CalcType)N[i] / root_node.sum_N;
+
+        //選択回数が0ならMIN_SCORE
+        //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
+        //その他は普通に計算
+#ifdef USE_CATEGORICAL
+        Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : expOfValueDist(QfromNextValue(root_node, i)));
+#else
+        Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : QfromNextValue(root_node, i));
+#endif
+    }
+    Q_dist = softmax(Q_dist, 0.01f);
+
+    //教師分布のセット
+    //(1)どちらの分布を使うべきか
+    //(2)実際に行動選択をする分布と一致しているべきか
+    //など要検討
+    for (int32_t i = 0; i < root_node.moves.size(); i++) {
+        //N_distにQ_distの値を混ぜ込む
+        N_dist[i] = (1 - Q_dist_lambda_) * N_dist[i] + Q_dist_lambda_ * Q_dist[i];
+
+        //N_distを教師分布とする
+        element.policy_teacher.push_back({ root_node.moves[i].toLabel(), N_dist[i] });
     }
 
-    //policyの教師として行動価値のsoftmaxを取ったものを考慮する
-//    std::vector<CalcType> N_dist(root_node.moves.size());
-//    std::vector<CalcType> Q_dist(root_node.moves.size());
-//    assert(current_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
-//    for (int32_t i = 0; i < root_node.moves.size(); i++) {
-//        N_dist[i] = (CalcType)N[i] / root_node.sum_N;
-//        assert(0 <= N[i] && N[i] <= current_node.sum_N);
-//
-//        //漸進的更新にしてからまだ動かしたことがないのでここが合っているか不安
-//#ifdef USE_CATEGORICAL
-//        Q_dist[i] = (N[i] == 0 ? INT_MIN : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : expOfValueDist(QfromNextValue(root_node, i)));
-//#else
-//        Q_dist[i] = (N[i] == 0 ? INT_MIN : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : QfromNextValue(root_node, i));
-//#endif
-//        teacher.policy.push_back({root_node.moves[i].toLabel(), N_dist[i]});
-//    }
-//    Q_dist = softmax(Q_dist, 1.0f);
-//
-//    constexpr CalcType lambda_NQ = 0.5;
-//    for (int32_t i = 0; i < root_node.moves.size(); i++) {
-//        teacher.policy.push_back({root_node.moves[i].toLabel(),
-//                                  lambda_NQ * N_dist[i] + (1.0f - lambda_NQ) * Q_dist[i]});
-//    }
-
-    //分布に従って行動選択
-    Move best_move = root_node.moves[randomChoose(distribution)];
-    element.move = best_move;
-    element.move.score = best_wp;
+    //N_distに従って行動選択
+    element.move = root_node.moves[randomChoose(N_dist)];
+    element.score = best_value;
 
     //priorityを計算する用にNNの出力をセットする
-    element.nn_output_policy.resize(SQUARE_NUM * POLICY_CHANNEL_NUM, 0.0);
+    element.nn_output_policy.resize(POLICY_DIM, 0.0);
     for (uint64_t i = 0; i < root_node.moves.size(); i++) {
         element.nn_output_policy[root_node.moves[i].toLabel()] = root_node.nn_policy[i];
     }

@@ -44,8 +44,6 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
     double best_value = expOfValueDist(QfromNextValue(node, best_index));
 #endif
 
-    constexpr double C_PUCT = 2.5;
-
     int32_t max_index = -1;
     double max_value = MIN_SCORE - 1;
 
@@ -61,7 +59,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
         double Q = (node.N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(node, i));
 #endif
         double U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
-        double ucb = Q + C_PUCT * node.nn_policy[i] * U;
+        double ucb = Q + C_PUCT_ * node.nn_policy[i] * U;
 
         if (ucb > max_value) {
             max_value = ucb;

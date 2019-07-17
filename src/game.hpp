@@ -9,9 +9,11 @@
 
 struct OneTurnElement {
 	Move move;
-	LearningData teacher;
-	ValueType nn_output_value;
-	std::vector<float> nn_output_policy;
+	CalcType score;
+    PolicyType nn_output_policy;
+    PolicyTeacherType policy_teacher;
+    ValueType nn_output_value;
+    ValueTeacherType value_teacher;
 };
 
 struct Game {

@@ -11,6 +11,7 @@ constexpr int32_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM;
 //型のエイリアス
 using CalcType = float;
 using PolicyType = std::vector<float>;
+using PolicyTeacherType = std::vector<std::pair<int32_t, float>>;
 #ifdef USE_CATEGORICAL
 constexpr int32_t BIN_SIZE = 51;
 constexpr double VALUE_WIDTH = (MAX_SCORE - MIN_SCORE) / BIN_SIZE;
@@ -57,7 +58,6 @@ private:
 };
 TORCH_MODULE(ResidualBlock);
 
-
 class NeuralNetworkImpl : public torch::nn::Module {
 public:
     NeuralNetworkImpl();
@@ -69,7 +69,7 @@ public:
     std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
 
     //このネットワークが計算されるGPU or CPUを設定する関数
-    void setGPU(int16_t gpu_id);
+    void setGPU(int16_t gpu_id, bool fp16 = false);
 
     //状態を表現へと変換する関数
     torch::Tensor encodeStates(const std::vector<float>& inputs);
@@ -95,6 +95,7 @@ public:
 private:
     //このネットワークが計算されるGPU or CPU
     torch::Device device_;
+    bool fp16_;
 
     //encodeStateで使用
     Conv2DwithBatchNorm state_encoder_first_conv_{nullptr};

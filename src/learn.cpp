@@ -43,8 +43,27 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& dat
         auto loss = nn->loss(curr_data);
 
         policy_loss += loss[POLICY_LOSS_INDEX].sum().item<float>();
-        value_loss += loss[VALUE_LOSS_INDEX].sum().item<float>();
         trans_loss += loss[TRANS_LOSS_INDEX].sum().item<float>();
+#ifdef USE_CATEGORICAL
+        //categoricalモデルのときは冗長だがもう一度順伝播を行って損失を手動で計算
+        std::vector<CalcType> inputs;
+        Position pos;
+        for (const LearningData& datum : curr_data) {
+            pos.loadSFEN(datum.SFEN);
+            auto feature = pos.makeFeature();
+            inputs.insert(inputs.end(), feature.begin(), feature.end());
+        }
+        auto y = nn->policyAndValueBatch(inputs);
+        const auto& values = y.second;
+        for (int32_t i = 0; i < values.size(); i++) {
+            auto e = expOfValueDist(values[i]);
+            auto vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
+            value_loss += (e - vt) * (e - vt);
+        }
+#else
+        //scalarモデルのときはそのまま損失を加える
+        value_loss += loss[VALUE_LOSS_INDEX].sum().item<float>();
+#endif
     }
 
     //平均を求める
@@ -105,7 +124,7 @@ void searchLearningRate() {
     std::string kifu_path   = settings.get<std::string>("kifu_path");
 
     //学習データを取得
-    auto data_buffer = loadData(kifu_path);
+    std::vector<LearningData> data_buffer = loadData(kifu_path);
 
     //データをシャッフル
     std::mt19937_64 engine(0);

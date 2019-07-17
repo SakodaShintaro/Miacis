@@ -1,13 +1,13 @@
 ﻿#include"uct_hash_table.hpp"
 
 Index UctHashTable::searchEmptyIndex(const Position& pos) {
-    auto hash = pos.hash_value();
+    auto hash = pos.hashValue();
     auto key = hashToIndex(hash);
     auto i = key;
     while (true) {
         if (table_[i].age != age_) {
             table_[i].hash = hash;
-            table_[i].turn_number = static_cast<int16_t>(pos.turn_number());
+            table_[i].turn_number = static_cast<int16_t>(pos.turnNumber());
             table_[i].age = age_;
             used_num_++;
             return i;
@@ -24,14 +24,14 @@ Index UctHashTable::searchEmptyIndex(const Position& pos) {
 }
 
 Index UctHashTable::findSameHashIndex(const Position& pos) {
-    auto hash = pos.hash_value();
+    auto hash = pos.hashValue();
     auto key = hashToIndex(hash);
     auto i = key;
     while (true) {
         if (table_[i].age != age_) {
             return (Index)table_.size();
         } else if (table_[i].hash == hash
-            && table_[i].turn_number == pos.turn_number()) {
+            && table_[i].turn_number == pos.turnNumber()) {
             return i;
         }
 

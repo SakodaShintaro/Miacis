@@ -76,14 +76,14 @@ void supervisedLearn() {
 
         for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size(); step++) {
             //バッチサイズ分データを確保
-            std::vector<LearningData> data;
+            std::vector<LearningData> curr_data;
             for (int32_t b = 0; b < batch_size; b++) {
-                data.push_back(data_buffer[step * batch_size + b]);
+                curr_data.push_back(data_buffer[step * batch_size + b]);
             }
 
             //学習
             optimizer.zero_grad();
-            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(data);
+            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data);
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 loss[i] = loss[i].mean();
             }

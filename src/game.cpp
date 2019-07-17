@@ -1,11 +1,4 @@
 ﻿#include"game.hpp"
-#include"position.hpp"
-#include<iostream>
-#include<algorithm>
-#include<string>
-#include<unordered_map>
-#include<experimental/filesystem>
-#include<atomic>
 
 namespace sys = std::experimental::filesystem;
 
@@ -58,7 +51,7 @@ Game loadGameFromCSA(const sys::path& p) {
 
         if (!pos.isLegalMove(move)) {
             std::cerr << "There is a illegal move in " << p << std::endl;
-            move.printWithNewLine();
+            move.print();
             exit(1);
         }
         OneTurnElement element;
@@ -170,7 +163,7 @@ void Game::writeKifuFile(const std::string& dir_path) const {
             int32_t from_num = SquareToNum[m.from()];
             ofs << "(" << from_num / 9 + 1 << from_num % 9 + 1 << ")" << std::endl;
         }
-        ofs << "**対局 評価値 " << (pieceToColor(m.subject()) == BLACK ? m.score : -m.score) * 1000 << std::endl;
+        ofs << "**対局 評価値 " << (pieceToColor(m.subject()) == BLACK ? elements[i].score : -elements[i].score) * 1000 << std::endl;
 
         pos.doMove(m);
     }

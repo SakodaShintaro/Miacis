@@ -8,8 +8,8 @@
 
 class SearcherForPlay : public Searcher {
 public:
-    SearcherForPlay(int64_t hash_size, uint64_t thread_num, uint64_t search_batch_size, NeuralNetwork evaluator) :
-    Searcher(hash_size), thread_num_(thread_num), search_batch_size_(search_batch_size), evaluator_(std::move(evaluator)) {
+    SearcherForPlay(int64_t hash_size, double C_PUCT, uint64_t thread_num, uint64_t search_batch_size, NeuralNetwork evaluator) :
+    Searcher(hash_size, C_PUCT), thread_num_(thread_num), search_batch_size_(search_batch_size), evaluator_(std::move(evaluator)) {
         lock_node_ = std::vector<std::mutex>(hash_table_.size());
         input_queues_.resize(thread_num);
         index_queues_.resize(thread_num);

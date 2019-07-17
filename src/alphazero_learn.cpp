@@ -1,9 +1,6 @@
 ﻿#include"learn.hpp"
-#include"replay_buffer.hpp"
 #include"game_generator.hpp"
 #include"hyperparameter_manager.hpp"
-#include<thread>
-#include<climits>
 
 void alphaZero() {
     HyperparameterManager settings;
@@ -13,19 +10,22 @@ void alphaZero() {
     settings.add("value_loss_coeff",       0.0f, 1e10f);
     settings.add("lambda",                 0.0f, 1.0f);
     settings.add("alpha",                  0.0f, 1e10f);
-    settings.add("learn_rate_decay_step1", 0, (int64_t)1e10);
-    settings.add("learn_rate_decay_step2", 0, (int64_t)1e10);
-    settings.add("learn_rate_decay_step3", 0, (int64_t)1e10);
+    settings.add("Q_dist_lambda",          0.0f, 1.0f);
+    settings.add("C_PUCT",                 0.0f, 1e10f);
     settings.add("draw_turn",              0, (int64_t)1024);
     settings.add("batch_size",             1, (int64_t)1e10);
     settings.add("thread_num",             1, (int64_t)std::thread::hardware_concurrency());
     settings.add("max_step_num",           1, (int64_t)1e10);
+    settings.add("learn_rate_decay_step1", 0, (int64_t)1e10);
+    settings.add("learn_rate_decay_step2", 0, (int64_t)1e10);
+    settings.add("learn_rate_decay_step3", 0, (int64_t)1e10);
     settings.add("update_interval",        1, (int64_t)1e10);
     settings.add("batch_size_per_gen",     1, (int64_t)1e10);
     settings.add("max_stack_size",         1, (int64_t)1e10);
     settings.add("first_wait",             0, (int64_t)1e10);
     settings.add("search_limit",           1, (int64_t)1e10);
     settings.add("search_batch_size",      1, (int64_t)1e10);
+    settings.add("output_interval",        1, (int64_t)1e10);
     settings.add("validation_interval",    1, (int64_t)1e10);
     settings.add("validation_size",        0, (int64_t)1e10);
     settings.add("validation_kifu_path");
@@ -40,19 +40,22 @@ void alphaZero() {
     float value_loss_coeff           = settings.get<float>("value_loss_coeff");
     float lambda                     = settings.get<float>("lambda");
     float alpha                      = settings.get<float>("alpha");
-    int64_t learn_rate_decay_step1   = settings.get<int64_t>("learn_rate_decay_step1");
-    int64_t learn_rate_decay_step2   = settings.get<int64_t>("learn_rate_decay_step2");
-    int64_t learn_rate_decay_step3   = settings.get<int64_t>("learn_rate_decay_step3");
+    float Q_dist_lambda              = settings.get<float>("Q_dist_lambda");
+    float C_PUCT                     = settings.get<float>("C_PUCT");
     int64_t draw_turn                = settings.get<int64_t>("draw_turn");
     int64_t batch_size               = settings.get<int64_t>("batch_size");
     int64_t thread_num               = settings.get<int64_t>("thread_num");
     int64_t max_step_num             = settings.get<int64_t>("max_step_num");
+    int64_t learn_rate_decay_step1   = settings.get<int64_t>("learn_rate_decay_step1");
+    int64_t learn_rate_decay_step2   = settings.get<int64_t>("learn_rate_decay_step2");
+    int64_t learn_rate_decay_step3   = settings.get<int64_t>("learn_rate_decay_step3");
     int64_t update_interval          = settings.get<int64_t>("update_interval");
     int64_t batch_size_per_gen       = settings.get<int64_t>("batch_size_per_gen");
     int64_t max_stack_size           = settings.get<int64_t>("max_stack_size");
     int64_t first_wait               = settings.get<int64_t>("first_wait");
     int64_t search_limit             = settings.get<int64_t>("search_limit");
     int64_t search_batch_size        = settings.get<int64_t>("search_batch_size");
+    int64_t output_interval          = settings.get<int64_t>("output_interval");
     int64_t validation_interval      = settings.get<int64_t>("validation_interval");
     int64_t validation_size          = settings.get<int64_t>("validation_size");
     std::string validation_kifu_path = settings.get<std::string>("validation_kifu_path");
@@ -67,7 +70,7 @@ void alphaZero() {
     Searcher::stop_signal = false;
 
     //リプレイバッファの生成
-    ReplayBuffer replay_buffer(first_wait, max_stack_size, lambda, alpha);
+    ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, alpha);
 
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");
@@ -106,6 +109,7 @@ void alphaZero() {
     auto gpu_num = torch::getNumGPUs();
     std::vector<NeuralNetwork> additional_nn(gpu_num - 1);
     for (uint64_t i = 0; i < gpu_num - 1; i++) {
+        torch::load(additional_nn[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
         additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
     }
 
@@ -113,7 +117,7 @@ void alphaZero() {
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     for (uint64_t i = 0; i < gpu_num; i++) {
         generators[i] = std::make_unique<GameGenerator>(search_limit, draw_turn, thread_num, search_batch_size,
-                                                        replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
+                                                        Q_dist_lambda, C_PUCT, replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
     }
 
     //生成開始.10^15個の(つまり無限に)棋譜を生成させる
@@ -183,9 +187,9 @@ void alphaZero() {
             auto val_loss = validation(validation_data);
             dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
                                             << step_num << "\t"
-                                            << policy_loss_coeff * val_loss[0] + value_loss_coeff * val_loss[1] << "\t"
-                                            << val_loss[0] << "\t"
-                                            << val_loss[1] << std::endl;
+                                            << policy_loss_coeff * val_loss[POLICY_LOSS_INDEX] + value_loss_coeff * val_loss[VALUE_LOSS_INDEX] << "\t"
+                                            << val_loss[POLICY_LOSS_INDEX] << "\t"
+                                            << val_loss[VALUE_LOSS_INDEX] << std::endl;
         }
 
         //学習率の減衰.AlphaZeroを意識して3回まで設定可能

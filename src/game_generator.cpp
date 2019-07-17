@@ -37,7 +37,7 @@ void GameGenerator::genSlave(int64_t id) {
     //探索クラスの生成,初期局面を探索する準備
     std::vector<SearcherForGenerate> searchers;
     for (int32_t i = 0; i < search_batch_size_; i++) {
-        searchers.emplace_back(search_limit_, i, features, hash_indices, actions, ids);
+        searchers.emplace_back(search_limit_, C_PUCT_, i, Q_dist_lambda_, features, hash_indices, actions, ids);
         searchers[i].prepareForCurrPos(positions[i]);
     }
 
@@ -104,7 +104,7 @@ void GameGenerator::genSlave(int64_t id) {
                 games[i].elements.push_back(result);
 
                 bool curr_game_finish = false;
-                if (positions[i].turn_number() >= draw_turn_) {
+                if (positions[i].turnNumber() >= draw_turn_) {
                     //長手数による引き分け
                     games[i].result = (MAX_SCORE + MIN_SCORE) / 2;
                     curr_game_finish = true;

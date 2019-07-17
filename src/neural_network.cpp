@@ -114,21 +114,6 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     return { policies, values };
 }
 
-void NeuralNetworkImpl::setGPU(int16_t gpu_id) {
-    device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-#ifdef USE_HALF_FLOAT
-    for (const auto& module : modules()) {
-        if (module->name() == "torch::nn::BatchNormImpl") {
-            module->to(device_);
-        } else {
-            module->to(device_, torch::kHalf);
-        }
-    }
-#else
-    to(device_);
-#endif
-}
-
 torch::Tensor NeuralNetworkImpl::predictTransition(torch::Tensor& state_representations,
                                                    torch::Tensor& move_representations) {
     return state_representations + move_representations;
@@ -247,7 +232,8 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     torch::Tensor move_teachers_tensor = torch::tensor(move_teachers).to(device_);
 
     //損失を計算
-    torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(policy, 1), move_teachers_tensor, {}, Reduction::None);
+    torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(policy, 1), move_teachers_tensor, {},
+                                                Reduction::None);
 
     //--------------------
     //  Valueの損失計算
@@ -274,7 +260,9 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
 
     value = value.view(-1);
 #ifdef USE_SIGMOID
-    Var value_loss = -value_teachers_tensor * F::log(value) -(1 - value_teachers_tensor) * F::log(1 - value);
+    torch::Tensor value_t = (fp16_ ? torch::tensor(value_teachers).to(device_, torch::kHalf) :
+                                     torch::tensor(value_teachers).to(device_));
+    torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
 #else
     torch::Tensor value_loss = torch::mse_loss(value, value_teachers_tensor, Reduction::None);
 #endif
@@ -299,10 +287,16 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     //損失を計算
     torch::Tensor diff = predicted_state_representation - next_state_representation;
     torch::Tensor square = torch::pow(diff, 2);
-    torch::Tensor sum = torch::sum(square, {1, 2, 3});
+    torch::Tensor sum = torch::sum(square, { 1, 2, 3 });
     torch::Tensor transition_loss = torch::sqrt(sum);
 
     return { policy_loss, value_loss, transition_loss };
+}
+
+void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
+    device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
+    fp16_ = fp16;
+    (fp16_ ? to(device_, torch::kHalf) : to(device_));
 }
 
 NeuralNetwork nn;

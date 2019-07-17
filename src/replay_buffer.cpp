@@ -20,23 +20,19 @@ std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
     static std::mt19937 engine(0);
     std::uniform_real_distribution<float> dist(0.0, sum);
 
-    //データを入れる
-    Position pos;
+    //データを取得
     std::vector<LearningData> data;
     pre_indices_.clear();
-    pre_indices_.reserve(batch_size);
     for (int32_t i = 0; i < batch_size; i++) {
-        //データの取り出し
-        LearningData teacher;
+        //データの取り出し及びインデックスを保存
         uint64_t index = segment_tree_.getIndex(dist(engine));
         data.push_back(data_[index]);
-
-        //使ったindexの保存
         pre_indices_.push_back(index);
     }
 
     //ロックの解放
     mutex_.unlock();
+    return data;
 }
 
 void ReplayBuffer::push(Game &game) {
@@ -45,7 +41,7 @@ void ReplayBuffer::push(Game &game) {
     Position pos;
 
     static int64_t num = 0;
-    if (++num % 500 == 0) {
+    if (++num % output_interval_ == 0) {
         game.writeKifuFile(save_dir);
     }
 
@@ -66,7 +62,7 @@ void ReplayBuffer::push(Game &game) {
         auto& e = game.elements[i];
 
         //探索結果を先手から見た値に変換
-        double curr_win_rate = (pos.color() == BLACK ? e.move.score : MAX_SCORE + MIN_SCORE - e.move.score);
+        double curr_win_rate = (pos.color() == BLACK ? e.score : MAX_SCORE + MIN_SCORE - e.score);
         //混合
         win_rate_for_black = lambda_ * win_rate_for_black + (1.0 - lambda_) * curr_win_rate;
 
@@ -74,35 +70,37 @@ void ReplayBuffer::push(Game &game) {
 
 #ifdef USE_CATEGORICAL
         //teacherにコピーする
-        e.teacher.value = valueToIndex(teacher_signal);
+        e.value_teacher = valueToIndex(teacher_signal);
 #else
         //teacherにコピーする
-        e.teacher.value = (CalcType) (teacher_signal);
+        e.value_teacher = (CalcType) (teacher_signal);
 #endif
 
         //このデータを入れる位置を取得
         int64_t change_index = segment_tree_.getIndexToPush();
 
         //そこのデータを入れ替える
-        LearningData data;
-        data.move = e.move;
-        data.SFEN = pos.toSFEN();
-        data.value = e.teacher.value;
-        data_[change_index] = data;
+        data_[change_index].move = e.move;
+        data_[change_index].SFEN = pos.toSFEN();
+        //data_[change_index].policy = e.policy_teacher;
+        data_[change_index].value = e.value_teacher;
 
         //priorityを計算
         float priority = 0.0f;
 
         //Policy損失
         priority += -std::log(e.nn_output_policy[e.move.toLabel()] + 1e-9f);
+//        for (const auto& p : e.policy_teacher) {
+//            priority += -p.second * std::log(e.nn_output_policy[p.first] + 1e-9f);
+//        }
 
         //Value損失
 #ifdef USE_CATEGORICAL
         //float priority = -2 * std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) - std::log(e.nn_output_value[e.teacher.value] + 1e-10f);
-        priority += -std::log(e.nn_output_value[e.teacher.value] + 1e-9f);
+        priority += -std::log(e.nn_output_value[e.value_teacher] + 1e-9f);
 #else
         //float priority = -2 * std::log(e.nn_output_policy[e.move.toLabel()] + 1e-10f) + std::pow(e.nn_output_value - e.teacher.value, 2.0f);
-        priority += std::pow(e.nn_output_value - e.teacher.value, 2.0f);
+        priority += std::pow(e.nn_output_value - e.value_teacher, 2.0f);
 #endif
         //segment_treeのpriorityを更新
         segment_tree_.update(change_index, std::pow(priority * 2, alpha_));
