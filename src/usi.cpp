@@ -67,12 +67,15 @@ void USI::usi() {
     printf("option name search_limit type spin default %llu min 1 max %llu\n", d, d);
     usi_option_.search_limit = (int64_t)d;
 
+    usi_option_.model_name = NeuralNetworkImpl::DEFAULT_MODEL_NAME;
+    std::cout << "option name model_name type string default " << usi_option_.model_name << std::endl;
+
     usi_option_.USI_Hash = 256;
     printf("usiok\n");
 }
 
 void USI::isready() {
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::load(nn, usi_option_.model_name);
     nn->setGPU(0);
     printf("readyok\n");
 }
@@ -113,6 +116,9 @@ void USI::setoption() {
     } else if (input == "print_interval") {
         std::cin >> input;
         std::cin >> usi_option_.print_interval;
+    } else if (input == "model_name") {
+        std::cin >> input;
+        std::cin >> usi_option_.model_name;
     }
 }
 
