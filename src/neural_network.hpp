@@ -57,13 +57,6 @@ public:
     static const std::string DEFAULT_MODEL_NAME;
 
 private:
-    //ネットワークの設定
-    static constexpr int32_t BLOCK_NUM = 10;
-    static constexpr int32_t KERNEL_SIZE = 3;
-    static constexpr int32_t CHANNEL_NUM = 64;
-    static constexpr int32_t REDUCTION = 8;
-    static constexpr int32_t VALUE_HIDDEN_NUM = 256;
-
     bool fp16_;
     torch::Device device_;
     torch::nn::Conv2d first_conv{nullptr};
