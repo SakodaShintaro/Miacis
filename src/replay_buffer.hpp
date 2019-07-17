@@ -14,8 +14,9 @@
 
 class ReplayBuffer{
 public:
-    ReplayBuffer(int64_t first_wait, int64_t max_size, double lambda, double alpha) : first_wait_(first_wait), max_size_(max_size),
-    segment_tree_(max_size), data_(max_size), lambda_(lambda),  alpha_(alpha) {
+    ReplayBuffer(int64_t first_wait, int64_t max_size, int64_t output_interval, double lambda, double alpha) :
+        first_wait_(first_wait), max_size_(max_size), output_interval_(output_interval),
+        segment_tree_(max_size), data_(max_size), lambda_(lambda),  alpha_(alpha) {
         //棋譜を保存するディレクトリの削除
         std::experimental::filesystem::remove_all(save_dir);
 
@@ -51,6 +52,9 @@ private:
 
     //最大サイズ
     int64_t max_size_;
+
+    //棋譜に書き出す間隔
+    int64_t output_interval_;
 
     //TD(λ)のパラメータ
     double lambda_;

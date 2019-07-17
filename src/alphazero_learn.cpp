@@ -24,6 +24,7 @@ void alphaZero() {
     settings.add("first_wait",             0, (int64_t)1e10);
     settings.add("search_limit",           1, (int64_t)1e10);
     settings.add("search_batch_size",      1, (int64_t)1e10);
+    settings.add("output_interval",        1, (int64_t)1e10);
     settings.add("validation_interval",    1, (int64_t)1e10);
     settings.add("validation_size",        0, (int64_t)1e10);
     settings.add("validation_kifu_path");
@@ -52,6 +53,7 @@ void alphaZero() {
     int64_t first_wait               = settings.get<int64_t>("first_wait");
     int64_t search_limit             = settings.get<int64_t>("search_limit");
     int64_t search_batch_size        = settings.get<int64_t>("search_batch_size");
+    int64_t output_interval          = settings.get<int64_t>("output_interval");
     int64_t validation_interval      = settings.get<int64_t>("validation_interval");
     int64_t validation_size          = settings.get<int64_t>("validation_size");
     std::string validation_kifu_path = settings.get<std::string>("validation_kifu_path");
@@ -66,7 +68,7 @@ void alphaZero() {
     Searcher::stop_signal = false;
 
     //リプレイバッファの生成
-    ReplayBuffer replay_buffer(first_wait, max_stack_size, lambda, alpha);
+    ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, alpha);
 
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");
