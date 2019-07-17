@@ -56,10 +56,10 @@ void supervisedLearn() {
 
     //評価関数読み込み
     NeuralNetwork learning_model;
-    torch::load(learning_model, MODEL_PATH);
+    torch::load(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
     //学習前のパラメータを出力
-    torch::save(learning_model, MODEL_PREFIX + "_before_learn.model");
+    torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_before_learn.model");
 
     //optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
@@ -105,8 +105,8 @@ void supervisedLearn() {
         }
 
         //学習中のパラメータを書き出して推論用のモデルで読み込む
-        torch::save(learning_model, MODEL_PATH);
-        torch::load(nn, MODEL_PATH);
+        torch::save(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+        torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
         //validation_lossを計算
         std::array<float, LOSS_TYPE_NUM> validation_loss = validation(validation_data);
@@ -117,7 +117,7 @@ void supervisedLearn() {
         //最小値が更新されていればパラメータを保存
         if (sum_loss < min_loss) {
             min_loss = sum_loss;
-            torch::save(learning_model, MODEL_PREFIX + "_supervised_best.model");
+            torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_supervised_best.model");
         }
 
         dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"

@@ -1,7 +1,20 @@
 ﻿#include"neural_network.hpp"
 
-//大して速くならないわりに性能は落ちるのでとりあえずOFF
-//#define USE_HALF_FLOAT
+static constexpr int32_t STATE_BLOCK_NUM = 10;
+static constexpr int32_t ACTION_BLOCK_NUM = 10;
+static constexpr int32_t CHANNEL_NUM = 64;
+static constexpr int32_t VALUE_HIDDEN_NUM = 256;
+static constexpr int32_t KERNEL_SIZE = 3;
+static constexpr int32_t ACTION_FEATURE_CHANNEL_NUM = 32;
+static constexpr int32_t REDUCTION = 8;
+
+#ifdef USE_CATEGORICAL
+const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_bl" + std::to_string(STATE_BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+#else
+const std::string NeuralNetworkImpl::MODEL_PREFIX = "sca_bl" + std::to_string(STATE_BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+#endif
+//デフォルトで読み書きするファイル名
+const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MODEL_PREFIX + ".model";
 
 Conv2DwithBatchNormImpl::Conv2DwithBatchNormImpl(int64_t input_ch, int64_t output_ch, int64_t kernel_size) {
     conv_ = register_module("conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(input_ch, output_ch, kernel_size).with_bias(false).padding(kernel_size / 2)));

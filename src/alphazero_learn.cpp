@@ -88,11 +88,11 @@ void alphaZero() {
     //モデル読み込み
     NeuralNetwork learning_model;
     learning_model->setGPU(0);
-    torch::load(learning_model, MODEL_PATH);
-    torch::load(nn, MODEL_PATH);
+    torch::load(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
     //学習前のパラメータを保存
-    torch::save(learning_model, MODEL_PREFIX + "_before_alphazero.model");
+    torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_before_alphazero.model");
 
     //Optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
@@ -152,7 +152,7 @@ void alphaZero() {
         //学習
         loss_sum.backward();
         optimizer.step();
-        torch::save(learning_model, MODEL_PATH);
+        torch::save(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
         //1回のvalidationまで10回表示
         if (step_num % (validation_interval / 10) == 0) {
@@ -166,10 +166,10 @@ void alphaZero() {
 
         //一定間隔でモデルの読み込んでActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
-            torch::load(nn, MODEL_PATH);
+            torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
             for (uint64_t i = 0; i < gpu_num - 1; i++) {
                 generators[i + 1]->gpu_mutex.lock();
-                torch::load(additional_nn[i], MODEL_PATH);
+                torch::load(additional_nn[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
                 additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
                 generators[i + 1]->gpu_mutex.unlock();
             }
@@ -178,7 +178,7 @@ void alphaZero() {
         //validation
         if (step_num % validation_interval == 0) {
             //パラメータをステップ付きで保存
-            torch::save(learning_model, MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
+            torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
 
             auto val_loss = validation(validation_data);
             dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
