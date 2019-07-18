@@ -175,10 +175,12 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         route_queue.clear();
         action_queue.clear();
 
+        lock_node_[root_index_].lock();
         if (hash_table_[root_index_].sum_N >= next_print_node_num_) {
             next_print_node_num_ += print_interval_;
             printUSIInfo(false);
         }
+        lock_node_[root_index_].unlock();
 
         //評価要求を貯める
         for (uint64_t i = 0; i < search_batch_size_ && !shouldStop(); i++) {
@@ -187,10 +189,10 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
 
         //評価要求をGPUで計算
         if (!index_queue.empty()) {
-            lock_expand_.lock();
             torch::NoGradGuard no_grad_guard;
+            lock_gpu_.lock();
             auto y = evaluator_->policyAndValueBatch(input_queue);
-            lock_expand_.unlock();
+            lock_gpu_.unlock();
 
             //書き込み
             for (uint64_t i = 0; i < index_queue.size(); i++) {
@@ -281,12 +283,12 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
 }
 
 Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id) {
-    //全体をロック.このノードだけではなく探す部分も含めてなので
-    std::unique_lock<std::mutex> lock(lock_expand_);
+    //置換表全体をロック
+    lock_all_table_.lock();
 
     uint64_t index = hash_table_.findSameHashIndex(pos);
 
-    // 合流先が検知できればそれを返す
+    //合流先が検知できればそれを返す
     if (index != hash_table_.size()) {
         indices.push(index);
         if (hash_table_[index].evaled) {
@@ -304,6 +306,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
                 action_queues_[id].push_back(actions);
             }
         }
+        lock_all_table_.unlock();
         return index;
     }
 
@@ -312,6 +315,12 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 
     //経路として記録
     indices.push(index);
+
+    //テーブル全体を使うのはここまで
+    lock_all_table_.unlock();
+
+    //取得したノードをロック
+    lock_node_[index].lock();
 
     auto& curr_node = hash_table_[index];
 
@@ -344,6 +353,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
+        lock_node_[index].unlock();
         backup(indices, actions);
     } else if (curr_node.moves.empty()) {
         //打ち歩詰めなら勝ち,そうでないなら負け
@@ -356,8 +366,11 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
+        lock_node_[index].unlock();
         backup(indices, actions);
     } else {
+        lock_node_[index].unlock();
+
         //GPUへ計算要求を投げる
         auto this_feature = pos.makeFeature();
         input_queues_[id].insert(input_queues_[id].end(), this_feature.begin(), this_feature.end());
@@ -372,10 +385,13 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 
 void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
     assert(indices.size() == actions.size() + 1);
+    static constexpr float LAMBDA = 0.9;
+
     auto leaf = indices.top();
     indices.pop();
+    lock_node_[leaf].lock();
     auto value = hash_table_[leaf].value;
-    static constexpr float LAMBDA = 0.9;
+    lock_node_[leaf].unlock();
 
     //バックアップ
     while (!actions.empty()) {

@@ -69,13 +69,15 @@ void USI::usi() {
 
     std::cout << "option name C_PUCT_1000 type spin default 2500 min 0 max 1000000" << std::endl;
     usi_option_.C_PUCT_1000 = 2500;
+    usi_option_.model_name = NeuralNetworkImpl::DEFAULT_MODEL_NAME;
+    std::cout << "option name model_name type string default " << usi_option_.model_name << std::endl;
 
     usi_option_.USI_Hash = 256;
     printf("usiok\n");
 }
 
 void USI::isready() {
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::load(nn, usi_option_.model_name);
     nn->setGPU(0);
     printf("readyok\n");
 }
@@ -119,6 +121,9 @@ void USI::setoption() {
     } else if (input == "print_interval") {
         std::cin >> input;
         std::cin >> usi_option_.print_interval;
+    } else if (input == "model_name") {
+        std::cin >> input;
+        std::cin >> usi_option_.model_name;
     }
 }
 

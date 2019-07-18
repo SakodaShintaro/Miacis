@@ -37,6 +37,7 @@ private:
         int64_t search_limit;
         int64_t C_PUCT_1000;
         bool print_policy;
+        std::string model_name;
     } usi_option_;
 };
 

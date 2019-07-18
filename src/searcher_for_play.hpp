@@ -52,7 +52,8 @@ private:
 
     //mutex
     std::vector<std::mutex> lock_node_;
-    std::mutex lock_expand_;
+    std::mutex lock_all_table_;
+    std::mutex lock_gpu_;
 
     //スレッド数
     uint64_t thread_num_;
