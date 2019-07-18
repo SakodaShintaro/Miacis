@@ -46,6 +46,7 @@ private:
 };
 TORCH_MODULE(Conv2DwithBatchNorm);
 
+//残差ブロック:SENetの構造を利用
 class ResidualBlockImpl : public torch::nn::Module {
 public:
     ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, int64_t reduction);
@@ -58,6 +59,7 @@ private:
 };
 TORCH_MODULE(ResidualBlock);
 
+//使用する全体のニューラルネットワーク
 class NeuralNetworkImpl : public torch::nn::Module {
 public:
     NeuralNetworkImpl();
@@ -98,18 +100,18 @@ private:
     bool fp16_;
 
     //encodeStateで使用
-    Conv2DwithBatchNorm state_encoder_first_conv_{nullptr};
+    Conv2DwithBatchNorm state_encoder_first_conv_and_norm_{nullptr};
     std::vector<ResidualBlock> state_encoder_blocks_;
 
     //encodeActionで使用
-    Conv2DwithBatchNorm action_encoder_first_conv_{nullptr};
+    Conv2DwithBatchNorm action_encoder_first_conv_and_norm_{nullptr};
     std::vector<ResidualBlock> action_encoder_blocks_;
 
     //decodePolicyで使用
     torch::nn::Conv2d policy_conv_{nullptr};
 
     //decodeValueで使用
-    Conv2DwithBatchNorm value_conv_{nullptr};
+    Conv2DwithBatchNorm value_conv_and_norm_{nullptr};
     torch::nn::Linear value_linear0_{nullptr};
     torch::nn::Linear value_linear1_{nullptr};
 };

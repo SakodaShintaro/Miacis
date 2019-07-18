@@ -8,10 +8,10 @@
 class SearcherForGenerate : public Searcher {
 public:
     //コンストラクタ
-    SearcherForGenerate(int64_t node_limit, double C_PUCT, int32_t id, CalcType Q_dist_lambda,
+    SearcherForGenerate(int64_t node_limit, double C_PUCT, int32_t id, CalcType Q_dist_temperature, CalcType Q_dist_lambda,
                         std::vector<float>& input_queue, std::vector<std::stack<int32_t>>& index_queue,
                         std::vector<std::stack<int32_t>>& action_queue, std::vector<int32_t>& id_queue) :
-            Searcher(node_limit, C_PUCT), id_(id), Q_dist_lambda_(Q_dist_lambda),
+            Searcher(node_limit, C_PUCT), id_(id), Q_dist_temperature_(Q_dist_temperature), Q_dist_lambda_(Q_dist_lambda),
             input_queue_(input_queue), index_queue_(index_queue), action_queue_(action_queue), id_queue_(id_queue) {
         time_limit_ = LLONG_MAX;
         node_limit_ = node_limit;
@@ -44,6 +44,9 @@ private:
 
     //漸進的に更新されてしまうのでルート局面の生のValue出力を保存しておく
     ValueType root_raw_value_;
+
+    //探索結果の分布として価値のsoftmax分布を計算するときの温度
+    CalcType Q_dist_temperature_;
 
     //探索結果の分布として価値のsoftmax分布を混ぜる割合([0,1])
     //0で普通のAlphaZero

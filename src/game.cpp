@@ -145,7 +145,7 @@ void Game::writeKifuFile(const std::string& dir_path) const {
 
     Position pos;
 
-    for (int32_t i = 0; i < elements.size(); i++) {
+    for (uint64_t i = 0; i < elements.size(); i++) {
         Move m = elements[i].move;
         ofs << i + 1 << " ";
         File to_file = SquareToFile[m.to()];

@@ -8,7 +8,7 @@ void GameGenerator::genGames(int64_t game_num) {
     //生成スレッドを生成
     std::vector<std::thread> threads;
     for (int64_t i = 0; i < thread_num_; i++) {
-        threads.emplace_back(&GameGenerator::genSlave, this, i);
+        threads.emplace_back(&GameGenerator::genSlave, this);
     }
 
     //生成スレッドが終わるのを待つ
@@ -17,7 +17,7 @@ void GameGenerator::genGames(int64_t game_num) {
     }
 }
 
-void GameGenerator::genSlave(int64_t id) {
+void GameGenerator::genSlave() {
     //キュー
     std::vector<float> features;
     std::vector<std::stack<int32_t>> hash_indices;
@@ -37,7 +37,7 @@ void GameGenerator::genSlave(int64_t id) {
     //探索クラスの生成,初期局面を探索する準備
     std::vector<SearcherForGenerate> searchers;
     for (int32_t i = 0; i < search_batch_size_; i++) {
-        searchers.emplace_back(search_limit_, C_PUCT_, i, Q_dist_lambda_, features, hash_indices, actions, ids);
+        searchers.emplace_back(search_limit_, C_PUCT_, i, Q_dist_temperature_, Q_dist_lambda_, features, hash_indices, actions, ids);
         searchers[i].prepareForCurrPos(positions[i]);
     }
 
@@ -56,13 +56,13 @@ void GameGenerator::genSlave(int64_t id) {
         auto policies = result.first;
         auto values = result.second;
 
-        for (int32_t i = 0; i < hash_indices.size(); i++) {
+        for (uint64_t i = 0; i < hash_indices.size(); i++) {
             //何番目のsearcherが持つハッシュテーブルのどの位置に書き込むかを取得
             auto& current_node = searchers[ids[i]].hash_table_[hash_indices[i].top()];
 
             //policyを設定
             std::vector<float> legal_moves_policy(current_node.moves.size());
-            for (int32_t j = 0; j < current_node.moves.size(); j++) {
+            for (uint64_t j = 0; j < current_node.moves.size(); j++) {
                 legal_moves_policy[j] = policies[i][current_node.moves[j].toLabel()];
                 assert(!std::isnan(legal_moves_policy[j]));
             }

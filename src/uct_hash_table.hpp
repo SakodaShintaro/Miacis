@@ -19,13 +19,13 @@ struct UctHashEntry {
     //識別用データ
     //ハッシュ値だけでは衝突が発生するので手数も持つ
     int64_t hash;
-    int16_t turn_number;
+    uint16_t turn_number;
 
     uint16_t age;
 
 #ifdef USE_CATEGORICAL
     UctHashEntry() :
-        sum_N(0), virtual_sum_N(0),
+        sum_N(0), virtual_sum_N(0), value({}),
         evaled(false), hash(0), turn_number(0), age(0) {}
 #else
     UctHashEntry() :
@@ -63,7 +63,7 @@ public:
     }
 
     bool hasEnoughSize() {
-        return used_num_ < table_.size() - 1;
+        return used_num_ < table_.size();
     }
 
     uint64_t size() {
@@ -78,7 +78,7 @@ private:
         return (Index)(((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (table_.size() - 1));
     }
 
-    int64_t used_num_;
+    uint64_t used_num_;
     uint16_t age_;
     std::vector<UctHashEntry> table_;
 };

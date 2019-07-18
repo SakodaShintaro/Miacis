@@ -48,7 +48,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
     double max_value = MIN_SCORE - 1;
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
-    for (int32_t i = 0; i < node.moves.size(); i++) {
+    for (uint64_t i = 0; i < node.moves.size(); i++) {
 #ifdef USE_CATEGORICAL
         double Q = 0.0;
         ValueType Q_dist = QfromNextValue(node, i);
@@ -115,7 +115,7 @@ bool Searcher::mateSearchForEvader(Position& pos, int32_t depth) {
 void Searcher::mateSearch(Position pos, int32_t depth_limit) {
     auto& curr_node = hash_table_[root_index_];
     for (int32_t depth = 1; !shouldStop() && depth <= depth_limit; depth += 2) {
-        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
             pos.doMove(curr_node.moves[i]);
             bool result = mateSearchForEvader(pos, depth - 1);
             pos.undo();

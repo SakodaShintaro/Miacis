@@ -55,19 +55,19 @@ torch::Tensor ResidualBlockImpl::forward(torch::Tensor& x) {
     return x;
 }
 
-NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), state_encoder_blocks_(STATE_BLOCK_NUM, nullptr), action_encoder_blocks_(ACTION_BLOCK_NUM, nullptr) {
-    state_encoder_first_conv_ = register_module("state_encoder_first_conv_", Conv2DwithBatchNorm(STATE_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
+NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), state_encoder_blocks_(STATE_BLOCK_NUM, nullptr), action_encoder_blocks_(ACTION_BLOCK_NUM, nullptr) {
+    state_encoder_first_conv_and_norm_ = register_module("state_encoder_first_conv_and_norm_", Conv2DwithBatchNorm(STATE_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
     for (int32_t i = 0; i < STATE_BLOCK_NUM; i++) {
         state_encoder_blocks_[i] = register_module("state_encoder_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
 
-    action_encoder_first_conv_ = register_module("action_encoder_first_conv_", Conv2DwithBatchNorm(ACTION_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
+    action_encoder_first_conv_and_norm_ = register_module("action_encoder_first_conv_and_norm_", Conv2DwithBatchNorm(ACTION_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
     for (int32_t i = 0; i < ACTION_BLOCK_NUM; i++) {
         action_encoder_blocks_[i] = register_module("action_encoder_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
 
     policy_conv_ = register_module("policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
-    value_conv_ = register_module("value_conv_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
+    value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
     value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 }
@@ -88,7 +88,7 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
 #else
     float* p = policy.data<float>();
 #endif
-    for (int32_t i = 0; i < batch_size; i++) {
+    for (uint64_t i = 0; i < batch_size; i++) {
         policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
     }
 
@@ -99,7 +99,7 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
 #else
     float* value_p = value.data<float>();
 #endif
-    for (int32_t i = 0; i < batch_size; i++) {
+    for (uint64_t i = 0; i < batch_size; i++) {
         std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
     }
 #else
@@ -126,7 +126,7 @@ torch::Tensor NeuralNetworkImpl::encodeStates(const std::vector<float>& inputs) 
     torch::Tensor x = torch::tensor(inputs).to(device_);
 #endif
     x = x.view({ -1, STATE_FEATURE_CHANNEL_NUM, 9, 9 });
-    x = state_encoder_first_conv_->forward(x);
+    x = state_encoder_first_conv_and_norm_->forward(x);
     x = torch::relu(x);
 
     for (int32_t i = 0; i < STATE_BLOCK_NUM; i++) {
@@ -175,7 +175,7 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
     torch::Tensor move_features_tensor = torch::tensor(move_features).to(device_);
 #endif
     move_features_tensor = move_features_tensor.view({ -1, ACTION_FEATURE_CHANNEL_NUM, 9, 9 });
-    torch::Tensor x = action_encoder_first_conv_->forward(move_features_tensor);
+    torch::Tensor x = action_encoder_first_conv_and_norm_->forward(move_features_tensor);
     for (auto& block : action_encoder_blocks_) {
         x = block->forward(x);
     }
@@ -188,7 +188,7 @@ torch::Tensor NeuralNetworkImpl::decodePolicy(torch::Tensor& representation) {
 }
 
 torch::Tensor NeuralNetworkImpl::decodeValue(torch::Tensor& representation) {
-    torch::Tensor value = value_conv_->forward(representation);
+    torch::Tensor value = value_conv_and_norm_->forward(representation);
     value = torch::relu(value);
     value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
     value = value_linear0_->forward(value);

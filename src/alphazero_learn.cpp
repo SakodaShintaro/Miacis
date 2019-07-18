@@ -10,6 +10,7 @@ void alphaZero() {
     settings.add("value_loss_coeff",       0.0f, 1e10f);
     settings.add("lambda",                 0.0f, 1.0f);
     settings.add("alpha",                  0.0f, 1e10f);
+    settings.add("Q_dist_temperature",     0.0f, 1e10f);
     settings.add("Q_dist_lambda",          0.0f, 1.0f);
     settings.add("C_PUCT",                 0.0f, 1e10f);
     settings.add("draw_turn",              0, (int64_t)1024);
@@ -40,6 +41,7 @@ void alphaZero() {
     float value_loss_coeff           = settings.get<float>("value_loss_coeff");
     float lambda                     = settings.get<float>("lambda");
     float alpha                      = settings.get<float>("alpha");
+    float Q_dist_temperature         = settings.get<float>("Q_dist_temperature");
     float Q_dist_lambda              = settings.get<float>("Q_dist_lambda");
     float C_PUCT                     = settings.get<float>("C_PUCT");
     int64_t draw_turn                = settings.get<int64_t>("draw_turn");
@@ -80,7 +82,7 @@ void alphaZero() {
 
     //データを取得
     std::vector<LearningData> validation_data = loadData(validation_kifu_path);
-    assert(validation_data.size() >= validation_size);
+    assert(validation_data.size() >= (uint64_t)validation_size);
 
     //データをシャッフルして必要量以外を削除
     std::mt19937_64 engine(0);
@@ -116,7 +118,7 @@ void alphaZero() {
     //自己対局スレッドを生成.0番目のものはnnを使い、それ以外は上で生成したネットワークを使う
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     for (uint64_t i = 0; i < gpu_num; i++) {
-        generators[i] = std::make_unique<GameGenerator>(search_limit, draw_turn, thread_num, search_batch_size,
+        generators[i] = std::make_unique<GameGenerator>(search_limit, draw_turn, thread_num, search_batch_size, Q_dist_temperature,
                                                         Q_dist_lambda, C_PUCT, replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
     }
 

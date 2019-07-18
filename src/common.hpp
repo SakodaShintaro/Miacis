@@ -39,7 +39,7 @@ unsigned char inline GNUBitScanReverse(unsigned long *Index, uint64_t Mask) {
 
 inline int MSB64(uint64_t v) {
     assert(v != 0);
-    unsigned long index;
+    unsigned long index = {};
 
 #ifdef _MSC_VER
     _BitScanReverse64(&index, v);
@@ -63,7 +63,7 @@ inline auto POP_CNT64(uint64_t bits) {
 }
 
 inline int pop_lsb(uint64_t& b) {
-    unsigned long index;
+    unsigned long index = {};
 
 #ifdef _MSC_VER
     _BitScanForward64(&index, b);
@@ -102,7 +102,7 @@ inline int32_t randomChoose(const std::vector<Type>& x) {
     std::random_device seed;
     std::uniform_real_distribution<Type> dist(0.0, 1.0);
     Type prob = dist(seed);
-    for (int32_t i = 0; i < x.size(); i++) {
+    for (uint64_t i = 0; i < x.size(); i++) {
         if ((prob -= x[i]) < 0) {
             return i;
         }

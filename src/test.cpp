@@ -53,12 +53,14 @@ void checkGenSpeed() {
 
     constexpr int64_t buffer_size = 20000;
     constexpr double C_PUCT = 2.5;
+    constexpr CalcType Q_dist_temperature = 0.01;
+    constexpr CalcType Q_dist_lambda = 0.0;
 
     for (int64_t search_batch_size = 32; search_batch_size <= 128; search_batch_size *= 2) {
         ReplayBuffer buffer(0, buffer_size, 10 * buffer_size, 1.0, 1.0);
         Searcher::stop_signal = false;
         auto start = std::chrono::steady_clock::now();
-        GameGenerator generator(800, 256, 2, search_batch_size, 0.0, C_PUCT, buffer, nn);
+        GameGenerator generator(800, 256, 2, search_batch_size, Q_dist_temperature, Q_dist_lambda, C_PUCT, buffer, nn);
         std::thread t(&GameGenerator::genGames, &generator, (int64_t)1e15);
         while (buffer.size() < buffer_size) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -230,10 +232,10 @@ void checkActionRepresentations() {
     moves.emplace_back(SQ24, SQ28, false, false, BLACK_ROOK, EMPTY);
     moves.emplace_back(SQ22, SQ88, false, false, BLACK_BISHOP, EMPTY);
 
-    for (int32_t i = 0; i < moves.size(); i++) {
+    for (uint64_t i = 0; i < moves.size(); i++) {
         moves[i].print();
         std::cout << "\t\t";
-        for (int32_t j = 0; j < i; j++) {
+        for (uint64_t j = 0; j < i; j++) {
             torch::Tensor move_reps = nn->encodeActions(moves);
             torch::Tensor diff = move_reps[i] - move_reps[j];
 

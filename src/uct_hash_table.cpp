@@ -2,8 +2,8 @@
 
 Index UctHashTable::searchEmptyIndex(const Position& pos) {
     auto hash = pos.hashValue();
-    auto key = hashToIndex(hash);
-    auto i = key;
+    uint64_t key = hashToIndex(hash);
+    uint64_t i = key;
     while (true) {
         if (table_[i].age != age_) {
             table_[i].hash = hash;
@@ -25,8 +25,8 @@ Index UctHashTable::searchEmptyIndex(const Position& pos) {
 
 Index UctHashTable::findSameHashIndex(const Position& pos) {
     auto hash = pos.hashValue();
-    auto key = hashToIndex(hash);
-    auto i = key;
+    uint64_t key = hashToIndex(hash);
+    uint64_t i = key;
     while (true) {
         if (table_[i].age != age_) {
             return (Index)table_.size();
@@ -51,7 +51,7 @@ void UctHashTable::saveUsedHash(Position& pos, Index index) {
 
     auto& current_node = table_[index];
     auto& child_indices = current_node.child_indices;
-    for (int32_t i = 0; i < current_node.moves.size(); i++) {
+    for (uint64_t i = 0; i < current_node.moves.size(); i++) {
         if (child_indices[i] != NOT_EXPANDED && table_[child_indices[i]].age != age_) {
             pos.doMove(current_node.moves[i]);
             saveUsedHash(pos, child_indices[i]);
@@ -61,7 +61,7 @@ void UctHashTable::saveUsedHash(Position& pos, Index index) {
 }
 
 void UctHashTable::deleteOldHash(Position& root, bool leave_root) {
-    auto root_index = findSameHashIndex(root);
+    uint64_t root_index = findSameHashIndex(root);
 
     used_num_ = 0;
     age_++;

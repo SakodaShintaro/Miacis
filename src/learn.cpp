@@ -27,8 +27,8 @@ double elapsedHours(const std::chrono::steady_clock::time_point& start) {
     return seconds / 3600.0;
 }
 
-std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& data, int32_t batch_size) {
-    int32_t index = 0;
+std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& data, uint64_t batch_size) {
+    uint64_t index = 0;
     float policy_loss = 0.0, value_loss = 0.0, trans_loss = 0.0;
     torch::NoGradGuard no_grad_guard;
     while (index < data.size()) {
@@ -55,7 +55,7 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& dat
         }
         auto y = nn->policyAndValueBatch(inputs);
         const auto& values = y.second;
-        for (int32_t i = 0; i < values.size(); i++) {
+        for (uint64_t i = 0; i < values.size(); i++) {
             auto e = expOfValueDist(values[i]);
             auto vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
             value_loss += (e - vt) * (e - vt);
@@ -114,13 +114,13 @@ void searchLearningRate() {
     settings.load("supervised_learn_settings.txt");
 
     //値の取得
-    float learn_rate        = settings.get<float>("learn_rate");
+    //float learn_rate        = settings.get<float>("learn_rate");
     float momentum          = settings.get<float>("momentum");
-    float learn_rate_decay  = settings.get<float>("learn_rate_decay");
+    //float learn_rate_decay  = settings.get<float>("learn_rate_decay");
     float policy_loss_coeff = settings.get<float>("policy_loss_coeff");
     float value_loss_coeff  = settings.get<float>("value_loss_coeff");
     int64_t batch_size      = settings.get<int64_t>("batch_size");
-    int64_t patience_limit  = settings.get<int64_t>("patience_limit");
+    //int64_t patience_limit  = settings.get<int64_t>("patience_limit");
     std::string kifu_path   = settings.get<std::string>("kifu_path");
 
     //学習データを取得
@@ -156,7 +156,7 @@ void searchLearningRate() {
         sgd_option.momentum(momentum);
         torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
-        for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size() && optimizer.options.learning_rate_ <= 1; step++) {
+        for (uint64_t step = 0; (step + 1) * batch_size <= data_buffer.size() && optimizer.options.learning_rate_ <= 1; step++) {
             //バッチサイズ分データを確保
             Position pos;
             std::vector<LearningData> curr_data;
@@ -186,7 +186,7 @@ void searchLearningRate() {
     }
 
     std::cout << "学習率\t損失" << std::fixed << std::endl;
-    for (int64_t i = 0; i < lrs.size(); i++) {
+    for (uint64_t i = 0; i < lrs.size(); i++) {
         std::cout << lrs[i] << "\t" << losses[i] / times << std::endl;
     }
 

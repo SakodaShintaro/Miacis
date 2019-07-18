@@ -160,7 +160,7 @@ void Bitboard::init() {
     //飛車の縦方向
     for (int rank = Rank1; rank <= Rank9; ++rank) {
         const int num1s = 7;
-        for (int i = 0; i < (1u << num1s); ++i) {
+        for (uint64_t i = 0; i < (1u << num1s); ++i) {
             //iが邪魔駒の配置を表したindex
             //1つシフトすればそのまま2~8段目のマスの邪魔駒を表す
             int occupied = (i << 1);
