@@ -83,11 +83,11 @@ private:
     bool fp16_;
     torch::Device device_;
 
-    Conv2DwithBatchNorm state_first_conv_{ nullptr };
+    Conv2DwithBatchNorm state_first_conv_and_norm_{ nullptr };
     std::vector<ResidualBlock> state_blocks_;
 
     torch::nn::Conv2d policy_conv_{ nullptr };
-    Conv2DwithBatchNorm value_conv_{ nullptr };
+    Conv2DwithBatchNorm value_conv_and_norm_{ nullptr };
     torch::nn::Linear value_linear0_{ nullptr };
     torch::nn::Linear value_linear1_{ nullptr };
 };

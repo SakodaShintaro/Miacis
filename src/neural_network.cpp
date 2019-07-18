@@ -55,12 +55,12 @@ torch::Tensor ResidualBlockImpl::forward(torch::Tensor& x) {
 }
 
 NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), state_blocks_(BLOCK_NUM, nullptr) {
-    state_first_conv_ = register_module("state_first_conv_", Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
+    state_first_conv_and_norm_ = register_module("state_first_conv_and_norm_", Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
         state_blocks_[i] = register_module("state_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
     policy_conv_ = register_module("policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
-    value_conv_ = register_module("value_conv_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
+    value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
     value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 }
@@ -68,7 +68,7 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, 9, 9 });
-    x = state_first_conv_->forward(x);
+    x = state_first_conv_and_norm_->forward(x);
     x = torch::relu(x);
 
     for (ResidualBlock& block : state_blocks_) {
@@ -80,7 +80,7 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::ve
     torch::Tensor policy = policy_conv_->forward(x);
 
     //value
-    torch::Tensor value = value_conv_->forward(x);
+    torch::Tensor value = value_conv_and_norm_->forward(x);
     value = torch::relu(value);
     value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
     value = value_linear0_->forward(value);
