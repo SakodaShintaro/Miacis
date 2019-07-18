@@ -46,6 +46,7 @@ private:
 };
 TORCH_MODULE(Conv2DwithBatchNorm);
 
+//残差ブロック:SENetの構造を利用
 class ResidualBlockImpl : public torch::nn::Module {
 public:
     ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, int64_t reduction);
@@ -58,19 +59,21 @@ private:
 };
 TORCH_MODULE(ResidualBlock);
 
+//使用する全体のニューラルネットワーク
 class NeuralNetworkImpl : public torch::nn::Module {
 public:
     NeuralNetworkImpl();
 
-    //入力としてvectorを受け取ってTensorを返す関数
+    //入力として局面の特徴量を並べたvectorを受け取ってPolicyとValueに対応するTensorを返す関数
     std::pair<torch::Tensor, torch::Tensor> forward(const std::vector<float>& inputs);
 
     //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
-    //バッチの入力特徴量,教師情報を引数として損失を返す関数
+    //学習データについて損失を返す関数
     std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
 
+    //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
 
     //評価パラメータを読み書きするファイルのprefix
