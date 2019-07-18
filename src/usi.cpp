@@ -6,28 +6,28 @@
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数
-    command_["usi"]        = std::bind(&USI::usi, this);
-    command_["isready"]    = std::bind(&USI::isready, this);
-    command_["setoption"]  = std::bind(&USI::setoption, this);
+    command_["usi"]        = std::bind(&USI::usi,        this);
+    command_["isready"]    = std::bind(&USI::isready,    this);
+    command_["setoption"]  = std::bind(&USI::setoption,  this);
     command_["usinewgame"] = std::bind(&USI::usinewgame, this);
-    command_["position"]   = std::bind(&USI::position, this);
-    command_["go"]         = std::bind(&USI::go, this);
-    command_["stop"]       = std::bind(&USI::stop, this);
-    command_["ponderhit"]  = std::bind(&USI::ponderhit, this);
-    command_["quit"]       = std::bind(&USI::quit, this);
-    command_["gameover"]   = std::bind(&USI::gameover, this);
+    command_["position"]   = std::bind(&USI::position,   this);
+    command_["go"]         = std::bind(&USI::go,         this);
+    command_["stop"]       = std::bind(&USI::stop,       this);
+    command_["ponderhit"]  = std::bind(&USI::ponderhit,  this);
+    command_["quit"]       = std::bind(&USI::quit,       this);
+    command_["gameover"]   = std::bind(&USI::gameover,   this);
 
     //メンバ関数以外
-    command_["initParams"] = initParams;
-    command_["cleanGames"] = cleanGames;
+    command_["initParams"]         = initParams;
+    command_["cleanGames"]         = cleanGames;
     command_["searchLearningRate"] = searchLearningRate;
-    command_["supervisedLearn"] = supervisedLearn;
-    command_["alphaZero"] = alphaZero;
-    command_["test"] = test;
-    command_["checkSearchSpeed"] = checkSearchSpeed;
-    command_["checkGenSpeed"] = checkGenSpeed;
-    command_["checkPredictSpeed"] = checkPredictSpeed;
-    command_["checkVal"] = checkVal;
+    command_["supervisedLearn"]    = supervisedLearn;
+    command_["alphaZero"]          = alphaZero;
+    command_["test"]               = test;
+    command_["checkSearchSpeed"]   = checkSearchSpeed;
+    command_["checkGenSpeed"]      = checkGenSpeed;
+    command_["checkPredictSpeed"]  = checkPredictSpeed;
+    command_["checkVal"]           = checkVal;
 }
 
 void USI::loop() {
@@ -43,32 +43,39 @@ void USI::loop() {
 
 void USI::usi() {
 #ifdef USE_CATEGORICAL
-    printf("id name Miacis_categorical\n");
+    std::cout << "id name Miacis_categorical" << std::endl;
 #else
-    printf("id name Miacis_scalar\n");
+    std::cout << "id name Miacis_scalar" << std::endl;
 #endif
-    printf("id author Sakoda Shintaro\n");
-    printf("option name byoyomi_margin type spin default 0 min 0 max 1000\n");
+    std::cout << "id author Sakoda Shintaro" << std::endl;
+
     usi_option_.byoyomi_margin = 0;
-    printf("option name random_turn type spin default 0 min 0 max 1000\n");
+    std::cout << "option name byoyomi_margin type spin default 0 min 0 max 10000" << std::endl;
+
     usi_option_.random_turn = 0;
-    printf("option name thread_num type spin default 2 min 1 max 2048\n");
+    std::cout << "option name random_turn type spin default 0 min 0 max 1000" << std::endl;
+
     usi_option_.thread_num = 2;
-    printf("option name search_batch_size type spin default 128 min 1 max 2048\n");
+    std::cout << "option name thread_num type spin default 2 min 1 max 2048" << std::endl;
+
     usi_option_.search_batch_size = 128;
-    printf("option name draw_turn type spin default 256 min 0 max 4096\n");
+    std::cout << "option name search_batch_size type spin default 128 min 1 max 2048" << std::endl;
+
     usi_option_.draw_turn = 256;
-    printf("option name print_policy type check default false\n");
+    std::cout << "option name draw_turn type spin default 256 min 0 max 4096" << std::endl;
+
     usi_option_.print_policy = false;
-    printf("option name print_interval type spin default 10000 min 1 max 100000000\n");
+    std::cout << "option name print_policy type check default false" << std::endl;
+
     usi_option_.print_interval = 10000;
+    std::cout << "option name print_interval type spin default 10000 min 1 max 100000000" << std::endl;
 
-    auto d = (unsigned long long)1e9;
-    printf("option name search_limit type spin default %llu min 1 max %llu\n", d, d);
-    usi_option_.search_limit = (int64_t)d;
+    usi_option_.search_limit = 1000000000;
+    std::cout << "option name search_limit type spin default 1000000000 min 1 max 1000000000" << std::endl;
 
-    std::cout << "option name C_PUCT_1000 type spin default 2500 min 0 max 1000000" << std::endl;
     usi_option_.C_PUCT_1000 = 2500;
+    std::cout << "option name C_PUCT_1000 type spin default 2500 min 0 max 1000000" << std::endl;
+
     usi_option_.model_name = NeuralNetworkImpl::DEFAULT_MODEL_NAME;
     std::cout << "option name model_name type string default " << usi_option_.model_name << std::endl;
 
@@ -204,7 +211,7 @@ void USI::go() {
     } else if (input == "infinite") {
         //思考時間をほぼ無限に
         time_limit = LLONG_MAX;
-        
+
         //random_turnをなくす
         usi_option_.random_turn = 0;
     } else if (input == "mate") {
@@ -217,7 +224,8 @@ void USI::go() {
     thread_ = std::thread([this, time_limit]() {
         auto best_move = searcher_->think(root_,
                                           time_limit - usi_option_.byoyomi_margin,
-                                          usi_option_.search_limit, usi_option_.random_turn,
+                                          usi_option_.search_limit,
+                                          usi_option_.random_turn,
                                           usi_option_.print_interval,
                                           usi_option_.print_policy);
         std::cout << "bestmove " << best_move << std::endl;
