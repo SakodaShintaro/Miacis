@@ -249,7 +249,7 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
         Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : QfromNextValue(root_node, i));
 #endif
     }
-    Q_dist = softmax(Q_dist, 0.01f);
+    Q_dist = softmax(Q_dist, Q_dist_temperature_);
 
     //教師分布のセット
     //(1)どちらの分布を使うべきか

@@ -37,7 +37,7 @@ void GameGenerator::genSlave(int64_t id) {
     //探索クラスの生成,初期局面を探索する準備
     std::vector<SearcherForGenerate> searchers;
     for (int32_t i = 0; i < search_batch_size_; i++) {
-        searchers.emplace_back(search_limit_, C_PUCT_, i, Q_dist_lambda_, features, hash_indices, actions, ids);
+        searchers.emplace_back(search_limit_, C_PUCT_, i, Q_dist_temperature_, Q_dist_lambda_, features, hash_indices, actions, ids);
         searchers[i].prepareForCurrPos(positions[i]);
     }
 

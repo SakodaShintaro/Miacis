@@ -12,9 +12,9 @@
 class GameGenerator {
 public:
     GameGenerator(int64_t search_limit, int64_t draw_turn, int64_t thread_num, int64_t search_batch_size,
-                  CalcType Q_dist_lambda, double C_PUCT, ReplayBuffer& rb, NeuralNetwork evaluator)
+                  CalcType Q_dist_temperature, CalcType Q_dist_lambda, double C_PUCT, ReplayBuffer& rb, NeuralNetwork evaluator)
         : search_limit_(search_limit), draw_turn_(draw_turn),thread_num_(thread_num), search_batch_size_(search_batch_size),
-          Q_dist_lambda_(Q_dist_lambda), C_PUCT_(C_PUCT), rb_(rb), evaluator_(std::move(evaluator)) {
+          Q_dist_temperature_(Q_dist_temperature), Q_dist_lambda_(Q_dist_lambda), C_PUCT_(C_PUCT), rb_(rb), evaluator_(std::move(evaluator)) {
         evaluator_->eval();
     };
 
@@ -42,6 +42,9 @@ private:
 
     //1CPUスレッドが1回GPUへ評価要求を投げるまでまとめて探索する回数
     int64_t search_batch_size_;
+
+    //探索結果の分布として価値のsoftmax分布を計算するときの温度
+    CalcType Q_dist_temperature_;
 
     //探索結果の分布として価値のsoftmax分布を混ぜる割合([0,1])
     //0で普通のAlphaZero
