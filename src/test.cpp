@@ -104,7 +104,7 @@ void checkVal() {
     data.shrink_to_fit();
 
     for (int32_t i = 1; i <= 100000; i++) {
-        auto v = validation(data);
+        auto v = validation(data, 32);
         printf("%5d回目 : %f\t%f\n", i, v[0], v[1]);
     }
 }
