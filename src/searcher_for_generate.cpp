@@ -25,7 +25,7 @@ void SearcherForGenerate::select(Position& pos) {
         auto& root_node = hash_table_[root_index_];
         constexpr double epsilon = 0.25;
         auto dirichlet = dirichletDistribution(root_node.moves.size(), 0.15);
-        for (int32_t i = 0; i < root_node.moves.size(); i++) {
+        for (uint64_t i = 0; i < root_node.moves.size(); i++) {
             root_node.nn_policy[i] = (CalcType) ((1.0 - epsilon) * root_node.nn_policy[i] + epsilon * dirichlet[i]);
         }
 
@@ -80,13 +80,13 @@ void SearcherForGenerate::select(Position& pos) {
     hash_table_[index].child_indices[action] = leaf_index;
 
     //バックアップはGPU計算後にやるので局面だけ戻す
-    for (int32_t i = 0; i < move_num; i++) {
+    for (uint64_t i = 0; i < move_num; i++) {
         pos.undo();
     }
 }
 
 Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
-    auto index = hash_table_.findSameHashIndex(pos);
+    uint64_t index = hash_table_.findSameHashIndex(pos);
 
     // 合流先が検知できればそれを返す
     if (index != hash_table_.size()) {
@@ -234,7 +234,7 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     //行動価値のsoftmaxを取った分布
     std::vector<CalcType> Q_dist(root_node.moves.size());
     assert(root_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
-    for (int32_t i = 0; i < root_node.moves.size(); i++) {
+    for (uint64_t i = 0; i < root_node.moves.size(); i++) {
         assert(0 <= N[i] && N[i] <= root_node.sum_N);
 
         //探索回数を正規化
@@ -255,7 +255,7 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     //(1)どちらの分布を使うべきか
     //(2)実際に行動選択をする分布と一致しているべきか
     //など要検討
-    for (int32_t i = 0; i < root_node.moves.size(); i++) {
+    for (uint64_t i = 0; i < root_node.moves.size(); i++) {
         //N_distにQ_distの値を混ぜ込む
         N_dist[i] = (1 - Q_dist_lambda_) * N_dist[i] + Q_dist_lambda_ * Q_dist[i];
 
@@ -284,10 +284,10 @@ std::vector<double> SearcherForGenerate::dirichletDistribution(uint64_t k, doubl
     std::gamma_distribution<double> gamma(alpha, 1.0);
     std::vector<double> dirichlet(k);
     double sum = 0.0;
-    for (int32_t i = 0; i < k; i++) {
+    for (uint64_t i = 0; i < k; i++) {
         sum += (dirichlet[i] = std::max(gamma(engine), eps));
     }
-    for (int32_t i = 0; i < k; i++) {
+    for (uint64_t i = 0; i < k; i++) {
         dirichlet[i] /= sum;
     }
     return dirichlet;

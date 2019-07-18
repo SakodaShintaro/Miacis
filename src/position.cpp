@@ -1060,7 +1060,7 @@ void Position::initHashValue() {
 std::vector<float> Position::makeFeature() const {
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
 
-    int32_t i;
+    uint64_t i;
 
     //盤上の駒の特徴量
     for (i = 0; i < PieceList.size(); i++) {

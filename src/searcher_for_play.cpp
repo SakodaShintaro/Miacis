@@ -18,7 +18,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
     next_print_node_num_ = print_interval;
 
     //キューの初期化
-    for (int32_t i = 0; i < thread_num_; i++) {
+    for (uint64_t i = 0; i < thread_num_; i++) {
         input_queues_[i].clear();
         index_queues_[i].clear();
         route_queues_[i].clear();
@@ -47,7 +47,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
 
     //ルートノードへ書き込み
     curr_node.nn_policy.resize(curr_node.moves.size());
-    for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+    for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
         curr_node.nn_policy[i] = y.first[0][curr_node.moves[i].toLabel()];
     }
     curr_node.nn_policy = softmax(curr_node.nn_policy);
@@ -75,7 +75,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
     if (root.turnNumber() < random_turn) {
         //探索回数を正規化して分布を得る
         std::vector<CalcType> distribution(curr_node.moves.size());
-        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
             distribution[i] = (CalcType) curr_node.N[i] / curr_node.sum_N;
             assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
         }
@@ -146,7 +146,7 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
     std::cout << std::endl;
 
     if (print_policy) {
-        for (int32_t i = 0; i < curr_node.moves.size(); i++) {
+        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
             double nn_policy = 100.0 * curr_node.nn_policy[i];
             double search_policy = 100.0 * curr_node.N[i] / curr_node.sum_N;
 #ifdef USE_CATEGORICAL
@@ -154,7 +154,7 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
 #else
             double v = QfromNextValue(curr_node, i);
 #endif
-            printf("info string %3d  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
+            printf("info string %3lu  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
             curr_node.moves[i].print();
         }
     }
@@ -193,11 +193,11 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
             lock_expand_.unlock();
 
             //書き込み
-            for (int32_t i = 0; i < index_queue.size(); i++) {
+            for (uint64_t i = 0; i < index_queue.size(); i++) {
                 std::unique_lock<std::mutex> lock(lock_node_[index_queue[i]]);
                 auto& curr_node = hash_table_[index_queue[i]];
                 curr_node.nn_policy.resize(curr_node.moves.size());
-                for (int32_t j = 0; j < curr_node.moves.size(); j++) {
+                for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
                     curr_node.nn_policy[j] = y.first[i][curr_node.moves[j].toLabel()];
                 }
                 curr_node.nn_policy = softmax(curr_node.nn_policy);
@@ -207,7 +207,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         }
 
         //バックアップ
-        for (int32_t i = 0; i < route_queue.size(); i++) {
+        for (uint64_t i = 0; i < route_queue.size(); i++) {
             backup(route_queue[i], action_queue[i]);
         }
     }
@@ -264,7 +264,7 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
     //expandNode内でこれらの情報は壊れる可能性があるので保存しておく
     index = curr_indices.top();
     auto action = curr_actions.top();
-    auto move_num = curr_actions.size();
+    uint64_t move_num = curr_actions.size();
 
     //今の局面を展開・GPUに評価依頼を投げる
     auto leaf_index = expand(pos, curr_indices, curr_actions, id);
@@ -275,7 +275,7 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
     lock_node_[index].unlock();
 
     //バックアップはGPU計算後にやるので局面だけ戻す
-    for (int32_t i = 0; i < move_num; i++) {
+    for (uint64_t i = 0; i < move_num; i++) {
         pos.undo();
     }
 }
@@ -284,7 +284,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     //全体をロック.このノードだけではなく探す部分も含めてなので
     std::unique_lock<std::mutex> lock(lock_expand_);
 
-    auto index = hash_table_.findSameHashIndex(pos);
+    uint64_t index = hash_table_.findSameHashIndex(pos);
 
     // 合流先が検知できればそれを返す
     if (index != hash_table_.size()) {

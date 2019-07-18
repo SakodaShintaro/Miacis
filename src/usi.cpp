@@ -192,7 +192,8 @@ void USI::go() {
             int64_t binc = stoll(input);
             std::cin >> input; //input == "winc" となるはず
             std::cin >> input;
-            int64_t winc = stoll(input);
+            //wincは使わないので警告が出る.鬱陶しいのでコメントアウト
+            //int64_t winc = stoll(input);
             time_limit = binc + curr_time;
         }
     } else if (input == "infinite") {

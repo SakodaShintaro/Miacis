@@ -83,8 +83,8 @@ public:
     static const std::string DEFAULT_MODEL_NAME;
 
 private:
-    bool fp16_;
     torch::Device device_;
+    bool fp16_;
 
     Conv2DwithBatchNorm state_first_conv_and_norm_{ nullptr };
     std::vector<ResidualBlock> state_blocks_;

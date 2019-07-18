@@ -75,7 +75,7 @@ void supervisedLearn() {
         //データをシャッフル
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
-        for (int32_t step = 0; (step + 1) * batch_size <= data_buffer.size(); step++) {
+        for (uint64_t step = 0; (step + 1) * batch_size <= data_buffer.size(); step++) {
             //バッチサイズ分データを確保
             std::vector<LearningData> curr_data;
             for (int32_t b = 0; b < batch_size; b++) {

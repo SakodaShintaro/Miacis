@@ -9,9 +9,11 @@ public:
     static bool stop_signal;
 
 protected:
-    explicit Searcher(int64_t hash_size, double C_PUCT) : hash_table_(hash_size), C_PUCT_(C_PUCT),
-                                                          time_limit_(LLONG_MAX), node_limit_(LLONG_MAX),
-                                                          root_index_(UctHashTable::NOT_EXPANDED) {}
+    explicit Searcher(int64_t hash_size, double C_PUCT) : hash_table_(hash_size),
+                                                          C_PUCT_(C_PUCT),
+                                                          root_index_(UctHashTable::NOT_EXPANDED),
+                                                          time_limit_(LLONG_MAX),
+                                                          node_limit_(LLONG_MAX) {}
 
     //時間制限含め探索を続けるかどうかを判定する関数
     bool shouldStop();

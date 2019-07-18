@@ -131,7 +131,7 @@ inline std::ostream& operator<<(std::ostream& os, Move m) {
 
 //これコンストラクタとかで書いた方がいい気がするけどうまく書き直せなかった
 //まぁ動けばいいのかなぁ
-static Move stringToMove(std::string input) {
+inline Move stringToMove(std::string input) {
     static std::unordered_map<char, Piece> charToPiece = {
             {'P', PAWN},
             {'L', LANCE},

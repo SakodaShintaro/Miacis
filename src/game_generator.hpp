@@ -26,7 +26,7 @@ public:
 
 private:
     //生成してはreplay_bufferへ送る関数
-    void genSlave(int64_t id);
+    void genSlave();
 
     //生成する局数
     std::atomic<int64_t> game_num_;

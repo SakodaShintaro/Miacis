@@ -111,12 +111,12 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     torch::Tensor policy = y.first.cpu();
     if (fp16_) {
         torch::Half* p = policy.data<torch::Half>();
-        for (int32_t i = 0; i < batch_size; i++) {
+        for (uint64_t i = 0; i < batch_size; i++) {
             policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
         }
     } else {
         float* p = policy.data<float>();
-        for (int32_t i = 0; i < batch_size; i++) {
+        for (uint64_t i = 0; i < batch_size; i++) {
             policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
         }
     }
@@ -125,12 +125,12 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     torch::Tensor value = torch::softmax(y.second, 1).cpu();
     if (fp16_) {
         torch::Half* value_p = value.data<torch::Half>();
-        for (int32_t i = 0; i < batch_size; i++) {
+        for (uint64_t i = 0; i < batch_size; i++) {
             std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
         }
     } else {
         float* value_p = value.data<float>();
-        for (int32_t i = 0; i < batch_size; i++) {
+        for (uint64_t i = 0; i < batch_size; i++) {
             std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
         }
     }
@@ -163,7 +163,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     auto logits = y.first.view({ -1, POLICY_DIM });
 
     std::vector<float> policy_dist(policy_teachers.size() * POLICY_DIM, 0.0);
-    for (int64_t i = 0; i < policy_teachers.size(); i++) {
+    for (uint64_t i = 0; i < policy_teachers.size(); i++) {
         for (const auto& e : policy_teachers[i]) {
             policy_dist[i * POLICY_DIM + e.first] = e.second;
         }

@@ -9,7 +9,7 @@ uint32_t Move::toLabel() const {
     int32_t to_num = SquareToNum[to_sq];
 
     //移動元からの方向
-    int32_t direction;
+    int32_t direction = {};
     File to_file = SquareToFile[to_sq];
     Rank to_rank = SquareToRank[to_sq];
     File from_file = SquareToFile[from_sq];
@@ -37,6 +37,8 @@ uint32_t Move::toLabel() const {
         direction = 8;
     } else if (to_file < from_file && to_rank > from_rank) { //左上
         direction = 9;
+    } else {
+        assert(false);
     }
     if (isPromote()) {
         direction += 10;
