@@ -14,8 +14,8 @@ void supervisedLearn() {
     settings.add("value_loss_coeff",  0.0f, 1e10f);
     settings.add("batch_size",        1, (int64_t)1e10);
     settings.add("max_epoch",         1, (int64_t)1e10);
-    settings.add("lr decay_epoch1",   1, (int64_t)1e10);
-    settings.add("lr decay_epoch2",   1, (int64_t)1e10);
+    settings.add("lr_decay_epoch1",   1, (int64_t)1e10);
+    settings.add("lr_decay_epoch2",   1, (int64_t)1e10);
     settings.add("kifu_path");
 
     //設定をファイルからロード
