@@ -191,16 +191,21 @@ void checkTransitionModel() {
         torch::Tensor curr_state_rep = nn->encodeStates(pos.makeFeature());
 
         //行動をランダムに選択
-        std::uniform_int_distribution<> dist(0, moves.size() - 1);
-        Move random_move = moves[dist(engine)];
-        random_move.print();
-        pos.doMove(random_move);
+        auto y = nn->policyAndValueBatch(pos.makeFeature());
+        auto raw_policy = y.first[0];
+        std::vector<float> masked_policy(moves.size());
+        for (uint64_t j = 0; j < moves.size(); j++) {
+            masked_policy[j] = raw_policy[moves[j].toLabel()];
+        }
+        Move best_move = moves[std::max_element(masked_policy.begin(), masked_policy.end()) - masked_policy.begin()];
+        best_move.print();
+        pos.doMove(best_move);
 
         //次状態表現
         torch::Tensor next_state_rep = nn->encodeStates(pos.makeFeature());
 
         //行動の表現
-        torch::Tensor move_rep = nn->encodeActions({ random_move });
+        torch::Tensor move_rep = nn->encodeActions({ best_move });
 
         //次状態表現の予測
         torch::Tensor predicted_state_rep = nn->predictTransition(curr_state_rep, move_rep);
