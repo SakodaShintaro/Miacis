@@ -88,6 +88,9 @@ public:
     //状態表現と行動表現から次状態の表現を予測する関数
     torch::Tensor predictTransition(torch::Tensor& state_representations, torch::Tensor& move_representations);
 
+    //状態表現の予測と実際の表現から損失を計算する関数
+    torch::Tensor transitionLoss(torch::Tensor& predict, torch::Tensor& ground_truth);
+
     //評価パラメータを読み書きするファイルのprefix
     static const std::string MODEL_PREFIX;
 

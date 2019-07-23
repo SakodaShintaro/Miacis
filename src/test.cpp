@@ -181,6 +181,11 @@ void checkTransitionModel() {
     torch::NoGradGuard no_grad_guard;
 
     Position pos;
+    //現状態表現
+    torch::Tensor seq_predicted_state_rep = nn->encodeStates(pos.makeFeature());
+
+    std::cout << std::fixed;
+
     std::mt19937_64 engine(1);
     for (int64_t i = 1; ; i++) {
         std::vector<Move> moves = pos.generateAllMoves();
@@ -198,7 +203,6 @@ void checkTransitionModel() {
             masked_policy[j] = raw_policy[moves[j].toLabel()];
         }
         Move best_move = moves[std::max_element(masked_policy.begin(), masked_policy.end()) - masked_policy.begin()];
-        best_move.print();
         pos.doMove(best_move);
 
         //次状態表現
@@ -210,13 +214,21 @@ void checkTransitionModel() {
         //次状態表現の予測
         torch::Tensor predicted_state_rep = nn->predictTransition(curr_state_rep, move_rep);
 
-        //損失を計算
-        torch::Tensor diff = predicted_state_rep - next_state_rep;
+        //連続的に予測している表現
+        seq_predicted_state_rep = nn->predictTransition(seq_predicted_state_rep, move_rep);
 
-        torch::Tensor square = torch::pow(diff, 2);
-        torch::Tensor sum = torch::sum(square, {1, 2, 3});
-        torch::Tensor transition_loss = torch::sqrt(sum);
-        std::cout << i << "\t" << transition_loss.item<float>() << std::endl;
+        //損失を計算
+        torch::Tensor loss1 = nn->transitionLoss(predicted_state_rep, next_state_rep);
+        torch::Tensor loss2 = nn->transitionLoss(seq_predicted_state_rep, next_state_rep);
+
+        //状態価値を計算
+        torch::Tensor value0 = nn->decodeValue(next_state_rep);
+        torch::Tensor value1 = nn->decodeValue(predicted_state_rep);
+        torch::Tensor value2 = nn->decodeValue(seq_predicted_state_rep);
+
+        std::cout << i << "\t" << loss1.item<float>() << "\t" << loss2.item<float>() << "\t"
+            << value0.item<float>() << "\t" << value1.item<float>() << "\t" << value2.item<float>() << "\t";
+        best_move.print();
     }
 }
 

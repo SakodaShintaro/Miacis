@@ -194,6 +194,11 @@ torch::Tensor NeuralNetworkImpl::decodeValue(torch::Tensor& representation) {
     value = value_linear0_->forward(value);
     value = torch::relu(value);
     value = value_linear1_->forward(value);
+#ifdef USE_SIGMOID
+    value = torch::sigmoid(value);
+#else
+    value = torch::tanh(value);
+#endif
     return value;
 }
 
@@ -260,9 +265,8 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
 
     value = value.view(-1);
 #ifdef USE_SIGMOID
-    torch::Tensor value_t = (fp16_ ? torch::tensor(value_teachers).to(device_, torch::kHalf) :
-                                     torch::tensor(value_teachers).to(device_));
-    torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
+    torch::Tensor value_loss = -value_teachers_tensor * torch::log(value)
+                        - (1 - value_teachers_tensor) * torch::log(1 - value);
 #else
     torch::Tensor value_loss = torch::mse_loss(value, value_teachers_tensor, Reduction::None);
 #endif
@@ -285,10 +289,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     torch::Tensor next_state_representation = encodeStates(next_state_features);
 
     //損失を計算
-    torch::Tensor diff = predicted_state_representation - next_state_representation;
-    torch::Tensor square = torch::pow(diff, 2);
-    torch::Tensor sum = torch::sum(square, { 1, 2, 3 });
-    torch::Tensor transition_loss = torch::sqrt(sum);
+    torch::Tensor transition_loss = transitionLoss(predicted_state_representation, next_state_representation);
 
     return { policy_loss, value_loss, transition_loss };
 }
@@ -297,6 +298,15 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
     (fp16_ ? to(device_, torch::kHalf) : to(device_));
+}
+
+torch::Tensor NeuralNetworkImpl::transitionLoss(torch::Tensor& predict, torch::Tensor& ground_truth) {
+    //要素ごとの自乗誤差の和
+    //最後にsqrtを取ればユークリッド距離になるが、取ったほうが良いかどうかは不明
+    torch::Tensor diff = predict - ground_truth;
+    torch::Tensor square = torch::pow(diff, 2);
+    torch::Tensor sum = torch::sum(square, { 1, 2, 3 });
+    return torch::sqrt(sum);
 }
 
 NeuralNetwork nn;
