@@ -290,6 +290,9 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 
     //合流先が検知できればそれを返す
     if (index != hash_table_.size()) {
+        //置換表全体のロックはもういらないので開放
+        lock_all_table_.unlock();
+
         indices.push(index);
         if (hash_table_[index].evaled) {
             //評価済みならば,前回までのループでここへ違う経路で到達していたか,終端状態であるかのいずれか
@@ -306,7 +309,6 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
                 action_queues_[id].push_back(actions);
             }
         }
-        lock_all_table_.unlock();
         return index;
     }
 
