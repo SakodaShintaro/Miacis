@@ -146,17 +146,49 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
     std::cout << std::endl;
 
     if (print_policy) {
+        //まず各指し手の価値を取得
+        std::vector<CalcType> Q(curr_node.moves.size());
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-            double nn_policy = 100.0 * curr_node.nn_policy[i];
-            double search_policy = 100.0 * curr_node.N[i] / curr_node.sum_N;
 #ifdef USE_CATEGORICAL
-            double v = expOfValueDist(QfromNextValue(curr_node, i));
+            Q[i] = expOfValueDist(QfromNextValue(curr_node, i));
 #else
-            double v = QfromNextValue(curr_node, i);
+            Q[i] = QfromNextValue(curr_node, i);
 #endif
-            printf("info string %3lu  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
-            curr_node.moves[i].print();
         }
+        std::vector<CalcType> softmaxed_Q = softmax(Q, 0.02f);
+
+        //ソートするために構造体を準備
+        struct MoveWithInfo {
+            Move move;
+            int32_t N;
+            CalcType nn_output_policy, Q, softmaxed_Q;
+            bool operator<(const MoveWithInfo& rhs) const {
+                return Q < rhs.Q;
+            }
+            bool operator>(const MoveWithInfo& rhs) const {
+                return Q > rhs.Q;
+            }
+        };
+
+        std::vector<MoveWithInfo> moves_with_info(curr_node.moves.size());
+        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
+            moves_with_info[i].move = curr_node.moves[i];
+            moves_with_info[i].nn_output_policy = curr_node.nn_policy[i];
+            moves_with_info[i].N = curr_node.N[i];
+            moves_with_info[i].Q = Q[i];
+            moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
+        }
+        std::sort(moves_with_info.begin(), moves_with_info.end());
+
+        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
+            printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  ", curr_node.moves.size() - i,
+                                                                          moves_with_info[i].nn_output_policy * 100.0,
+                                                                          moves_with_info[i].N * 100.0 / curr_node.sum_N,
+                                                                          moves_with_info[i].softmaxed_Q * 100,
+                                                                          moves_with_info[i].Q);
+            moves_with_info[i].move.print();
+        }
+        std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
     }
 }
 
