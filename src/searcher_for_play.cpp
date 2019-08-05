@@ -73,14 +73,26 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
 
     //行動選択
     if (root.turnNumber() < random_turn) {
-        //探索回数を正規化して分布を得る
         std::vector<CalcType> distribution(curr_node.moves.size());
-        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-            distribution[i] = (CalcType) curr_node.N[i] / curr_node.sum_N;
-            assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
+        if (temperature_ == 0.0) {
+            //探索回数を正規化した分布に従って行動選択
+            for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
+                distribution[i] = (CalcType) curr_node.N[i] / curr_node.sum_N;
+                assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
+            }
+        } else {
+            //価値のソフトマックス分布に従って行動選択
+            std::vector<CalcType> Q(curr_node.moves.size());
+            for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
+#ifdef USE_CATEGORICAL
+                Q[i] = expOfValueDist(QfromNextValue(curr_node, i));
+#else
+                Q[i] = QfromNextValue(curr_node, i);
+#endif
+            }
+            distribution = softmax(Q, temperature_);
         }
 
-        //ランダムに選択
         return curr_node.moves[randomChoose(distribution)];
     } else {
         //探索回数最大の手を選択

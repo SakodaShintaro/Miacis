@@ -9,8 +9,9 @@ void test() {
     constexpr int64_t search_batch_size = 1;
     constexpr int64_t draw_turn = 256;
     constexpr double C_PUCT = 2.5;
+    constexpr CalcType temperature = 0.01;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    SearcherForPlay searcher(node_limit, C_PUCT, thread_num, search_batch_size, nn);
+    SearcherForPlay searcher(node_limit, C_PUCT, thread_num, search_batch_size, nn, temperature);
 
     Position pos;
     Game game;
@@ -80,11 +81,12 @@ void checkSearchSpeed() {
     constexpr int64_t time_limit = 10000;
     constexpr int64_t hash_size = 10000000;
     constexpr double C_PUCT = 2.5;
+    constexpr CalcType temperature = 0.01;
     Position pos;
     for (uint64_t search_batch_size = 64; search_batch_size <= 512; search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_batch_size << std::endl;
         for (uint64_t thread_num = 1; thread_num <= 3; thread_num++) {
-            SearcherForPlay searcher(hash_size, C_PUCT, thread_num, search_batch_size, nn);
+            SearcherForPlay searcher(hash_size, C_PUCT, thread_num, search_batch_size, nn, temperature);
             searcher.think(pos, time_limit, LLONG_MAX, 0, LLONG_MAX, false);
         }
     }
