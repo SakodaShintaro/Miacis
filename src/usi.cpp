@@ -79,6 +79,9 @@ void USI::usi() {
     usi_option_.temperature_x1000 = 0;
     std::cout << "option name temperature_x1000 type spin default 0 min 0 max 1000000000" << std::endl;
 
+    usi_option_.UCT_lambda_x1000 = 1000;
+    std::cout << "option name UCT_lambda_x1000 type spin default 1000 min 0 max 1000" << std::endl;
+
     usi_option_.model_name = NeuralNetworkImpl::DEFAULT_MODEL_NAME;
     std::cout << "option name model_name type string default " << usi_option_.model_name << std::endl;
 
@@ -127,6 +130,9 @@ void USI::setoption() {
     } else if (input == "temperature_x1000") {
         std::cin >> input;
         std::cin >> usi_option_.temperature_x1000;
+    } else if (input == "UCT_lambda_x1000") {
+        std::cin >> input;
+        std::cin >> usi_option_.UCT_lambda_x1000;
     } else if (input == "print_policy") {
         std::cin >> input;
         std::cin >> input;
@@ -146,7 +152,8 @@ void USI::usinewgame() {
                                                   usi_option_.thread_num,
                                                   usi_option_.search_batch_size,
                                                   nn,
-                                                  usi_option_.temperature_x1000 / 1000.0);
+                                                  usi_option_.temperature_x1000 / 1000.0,
+                                                  usi_option_.UCT_lambda_x1000 / 1000.0);
 }
 
 void USI::position() {

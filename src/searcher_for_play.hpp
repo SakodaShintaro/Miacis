@@ -8,9 +8,10 @@
 
 class SearcherForPlay : public Searcher {
 public:
-    SearcherForPlay(int64_t hash_size, double C_PUCT, uint64_t thread_num, uint64_t search_batch_size, NeuralNetwork evaluator, CalcType temperature) :
+    SearcherForPlay(int64_t hash_size, double C_PUCT, uint64_t thread_num, uint64_t search_batch_size,
+                    NeuralNetwork evaluator, CalcType temperature, CalcType lambda) :
     Searcher(hash_size, C_PUCT), evaluator_(std::move(evaluator)), thread_num_(thread_num), search_batch_size_(search_batch_size),
-    print_interval_(LLONG_MAX), next_print_node_num_(LLONG_MAX), temperature_(temperature) {
+    print_interval_(LLONG_MAX), next_print_node_num_(LLONG_MAX), temperature_(temperature), lambda_(lambda) {
         lock_node_ = std::vector<std::mutex>(hash_table_.size());
         input_queues_.resize(thread_num);
         index_queues_.resize(thread_num);
@@ -66,7 +67,10 @@ private:
     int64_t next_print_node_num_;
 
     //ソフトマックス分布の温度: 0のときは行動分布に従った選択をする
-    CalcType temperature_;
+    const CalcType temperature_;
+
+    //Sarsa-UCT(λ)のλ
+    const CalcType lambda_;
 
     //キュー
     std::vector<std::vector<float>> input_queues_;

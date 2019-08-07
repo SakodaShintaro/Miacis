@@ -431,7 +431,6 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 
 void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
     assert(indices.size() == actions.size() + 1);
-    static constexpr float LAMBDA = 0.9;
 
     auto leaf = indices.top();
     indices.pop();
@@ -468,7 +467,7 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
         auto curr_v = node.value;
         float alpha = 1.0f / (node.sum_N + 1);
         node.value += alpha * (value - curr_v);
-        value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
+        value = lambda_ * value + (1.0f - lambda_) * curr_v;
 
         //最大バックアップ
 //#ifdef USE_CATEGORICAL
