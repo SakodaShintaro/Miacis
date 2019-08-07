@@ -45,7 +45,7 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& val
         policy_loss += loss[POLICY_LOSS_INDEX].sum().item<float>();
 #ifdef USE_CATEGORICAL
         //categoricalモデルのときは冗長だがもう一度順伝播を行って損失を手動で計算
-        std::vector<CalcType> inputs;
+        std::vector<FloatType> inputs;
         for (const LearningData& datum : curr_data) {
             pos.loadSFEN(datum.SFEN);
             auto feature = pos.makeFeature();

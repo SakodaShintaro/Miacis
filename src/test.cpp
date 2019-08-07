@@ -9,8 +9,8 @@ void test() {
     constexpr int64_t search_batch_size = 1;
     constexpr int64_t draw_turn = 256;
     constexpr double C_PUCT = 2.5;
-    constexpr CalcType temperature = 0.01;
-    constexpr CalcType lambda = 1.0;
+    constexpr FloatType temperature = 0.01;
+    constexpr FloatType lambda = 1.0;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     SearcherForPlay searcher(node_limit, C_PUCT, thread_num, search_batch_size, nn, temperature, lambda);
 
@@ -55,8 +55,8 @@ void checkGenSpeed() {
 
     constexpr int64_t buffer_size = 20000;
     constexpr double C_PUCT = 2.5;
-    constexpr CalcType Q_dist_temperature = 0.01;
-    constexpr CalcType Q_dist_lambda = 0.0;
+    constexpr FloatType Q_dist_temperature = 0.01;
+    constexpr FloatType Q_dist_lambda = 0.0;
 
     for (int64_t search_batch_size = 32; search_batch_size <= 128; search_batch_size *= 2) {
         ReplayBuffer buffer(0, buffer_size, 10 * buffer_size, 1.0, 1.0);
@@ -82,8 +82,8 @@ void checkSearchSpeed() {
     constexpr int64_t time_limit = 10000;
     constexpr int64_t hash_size = 10000000;
     constexpr double C_PUCT = 2.5;
-    constexpr CalcType temperature = 0.01;
-    constexpr CalcType lambda = 1.0;
+    constexpr FloatType temperature = 0.01;
+    constexpr FloatType lambda = 1.0;
     Position pos;
     for (uint64_t search_batch_size = 64; search_batch_size <= 512; search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_batch_size << std::endl;

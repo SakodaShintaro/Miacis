@@ -9,7 +9,7 @@ constexpr int32_t POLICY_CHANNEL_NUM = 27;
 constexpr int32_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM;
 
 //型のエイリアス
-using CalcType = float;
+using FloatType = float;
 using PolicyType = std::vector<float>;
 using PolicyTeacherType = std::vector<std::pair<int32_t, float>>;
 #ifdef USE_CATEGORICAL

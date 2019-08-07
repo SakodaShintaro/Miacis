@@ -26,7 +26,7 @@ void SearcherForGenerate::select(Position& pos) {
         constexpr double epsilon = 0.25;
         auto dirichlet = dirichletDistribution(root_node.moves.size(), 0.15);
         for (uint64_t i = 0; i < root_node.moves.size(); i++) {
-            root_node.nn_policy[i] = (CalcType) ((1.0 - epsilon) * root_node.nn_policy[i] + epsilon * dirichlet[i]);
+            root_node.nn_policy[i] = (FloatType) ((1.0 - epsilon) * root_node.nn_policy[i] + epsilon * dirichlet[i]);
         }
 
         root_raw_value_ = root_node.value;
@@ -222,7 +222,7 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
 #ifdef USE_CATEGORICAL
     element.value_teacher = valueToIndex(best_value);
 #else
-    element.value_teacher = (CalcType)best_value;
+    element.value_teacher = (FloatType)best_value;
 #endif
 
     //policyのセット
@@ -230,15 +230,15 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
 
     //探索回数を正規化した分布
     //探索回数のsoftmaxを取ることを検討したほうが良いかもしれない
-    std::vector<CalcType> N_dist(root_node.moves.size());
+    std::vector<FloatType> N_dist(root_node.moves.size());
     //行動価値のsoftmaxを取った分布
-    std::vector<CalcType> Q_dist(root_node.moves.size());
+    std::vector<FloatType> Q_dist(root_node.moves.size());
     assert(root_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
     for (uint64_t i = 0; i < root_node.moves.size(); i++) {
         assert(0 <= N[i] && N[i] <= root_node.sum_N);
 
         //探索回数を正規化
-        N_dist[i] = (CalcType)N[i] / root_node.sum_N;
+        N_dist[i] = (FloatType)N[i] / root_node.sum_N;
 
         //選択回数が0ならMIN_SCORE
         //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE

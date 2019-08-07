@@ -9,7 +9,7 @@
 
 struct OneTurnElement {
 	Move move;
-	CalcType score;
+	FloatType score;
     PolicyType nn_output_policy;
     PolicyTeacherType policy_teacher;
     ValueType nn_output_value;

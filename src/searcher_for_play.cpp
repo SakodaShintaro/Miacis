@@ -73,16 +73,16 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
 
     //行動選択
     if (root.turnNumber() < random_turn) {
-        std::vector<CalcType> distribution(curr_node.moves.size());
+        std::vector<FloatType> distribution(curr_node.moves.size());
         if (temperature_ == 0.0) {
             //探索回数を正規化した分布に従って行動選択
             for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-                distribution[i] = (CalcType) curr_node.N[i] / curr_node.sum_N;
+                distribution[i] = (FloatType) curr_node.N[i] / curr_node.sum_N;
                 assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
             }
         } else {
             //価値のソフトマックス分布に従って行動選択
-            std::vector<CalcType> Q(curr_node.moves.size());
+            std::vector<FloatType> Q(curr_node.moves.size());
             for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
 #ifdef USE_CATEGORICAL
                 Q[i] = expOfValueDist(QfromNextValue(curr_node, i));
@@ -159,7 +159,7 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
 
     if (print_policy) {
         //まず各指し手の価値を取得
-        std::vector<CalcType> Q(curr_node.moves.size());
+        std::vector<FloatType> Q(curr_node.moves.size());
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
 #ifdef USE_CATEGORICAL
             Q[i] = expOfValueDist(QfromNextValue(curr_node, i));
@@ -167,13 +167,13 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
             Q[i] = QfromNextValue(curr_node, i);
 #endif
         }
-        std::vector<CalcType> softmaxed_Q = softmax(Q, 0.02f);
+        std::vector<FloatType> softmaxed_Q = softmax(Q, 0.02f);
 
         //ソートするために構造体を準備
         struct MoveWithInfo {
             Move move;
             int32_t N;
-            CalcType nn_output_policy, Q, softmaxed_Q;
+            FloatType nn_output_policy, Q, softmaxed_Q;
             bool operator<(const MoveWithInfo& rhs) const {
                 return Q < rhs.Q;
             }
