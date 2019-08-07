@@ -8,7 +8,7 @@ void test() {
     constexpr int64_t thread_num = 1;
     constexpr int64_t search_batch_size = 1;
     constexpr int64_t draw_turn = 256;
-    constexpr double C_PUCT = 2.5;
+    constexpr FloatType C_PUCT = 2.5;
     constexpr FloatType temperature = 0.01;
     constexpr FloatType lambda = 1.0;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
@@ -54,7 +54,7 @@ void checkGenSpeed() {
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
     constexpr int64_t buffer_size = 20000;
-    constexpr double C_PUCT = 2.5;
+    constexpr FloatType C_PUCT = 2.5;
     constexpr FloatType Q_dist_temperature = 0.01;
     constexpr FloatType Q_dist_lambda = 0.0;
 
@@ -81,7 +81,7 @@ void checkGenSpeed() {
 void checkSearchSpeed() {
     constexpr int64_t time_limit = 10000;
     constexpr int64_t hash_size = 10000000;
-    constexpr double C_PUCT = 2.5;
+    constexpr FloatType C_PUCT = 2.5;
     constexpr FloatType temperature = 0.01;
     constexpr FloatType lambda = 1.0;
     Position pos;

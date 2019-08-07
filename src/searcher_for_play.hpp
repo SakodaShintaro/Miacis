@@ -8,7 +8,7 @@
 
 class SearcherForPlay : public Searcher {
 public:
-    SearcherForPlay(int64_t hash_size, double C_PUCT, uint64_t thread_num, uint64_t search_batch_size,
+    SearcherForPlay(int64_t hash_size, FloatType C_PUCT, uint64_t thread_num, uint64_t search_batch_size,
                     NeuralNetwork evaluator, FloatType temperature, FloatType lambda) :
     Searcher(hash_size, C_PUCT), evaluator_(std::move(evaluator)), thread_num_(thread_num), search_batch_size_(search_batch_size),
     print_interval_(LLONG_MAX), next_print_node_num_(LLONG_MAX), temperature_(temperature), lambda_(lambda) {

@@ -8,10 +8,10 @@
 class SearcherForGenerate : public Searcher {
 public:
     //コンストラクタ
-    SearcherForGenerate(int64_t node_limit, double C_PUCT, int32_t id, FloatType Q_dist_temperature, FloatType Q_dist_lambda,
+    SearcherForGenerate(int64_t node_limit, FloatType C_PUCT, int32_t id, FloatType Q_dist_temperature, FloatType Q_dist_lambda,
                         std::vector<float>& input_queue, std::vector<std::stack<int32_t>>& index_queue,
                         std::vector<std::stack<int32_t>>& action_queue, std::vector<int32_t>& id_queue) :
-            Searcher(node_limit, C_PUCT), id_(id), Q_dist_temperature_(Q_dist_temperature), Q_dist_lambda_(Q_dist_lambda),
+            Searcher(node_limit, C_PUCT), id_(id), root_raw_value_({}), Q_dist_temperature_(Q_dist_temperature), Q_dist_lambda_(Q_dist_lambda),
             input_queue_(input_queue), index_queue_(index_queue), action_queue_(action_queue), id_queue_(id_queue) {
         time_limit_ = LLONG_MAX;
         node_limit_ = node_limit;
