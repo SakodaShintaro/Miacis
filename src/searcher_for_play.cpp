@@ -404,6 +404,17 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
         //GPUに送らないのでこのタイミングでバックアップを行う
         lock_node_[index].unlock();
         backup(indices, actions);
+    } else if (pos.turnNumber() >= draw_turn_) {
+        FloatType value = (MAX_SCORE + MIN_SCORE) / 2;
+#ifdef USE_CATEGORICAL
+        curr_node.value = onehotDist(value);
+#else
+        curr_node.value = value;
+#endif
+        curr_node.evaled = true;
+        //GPUに送らないのでこのタイミングでバックアップを行う
+        lock_node_[index].unlock();
+        backup(indices, actions);
     } else if (curr_node.moves.empty()) {
         //打ち歩詰めなら勝ち,そうでないなら負け
         auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);

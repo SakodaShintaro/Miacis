@@ -153,7 +153,8 @@ void USI::usinewgame() {
                                                   nn,
                                                   usi_option_.temperature_x1000 / 1000.0,
                                                   usi_option_.UCT_lambda_x1000 / 1000.0,
-                                                  usi_option_.print_policy_num);
+                                                  usi_option_.print_policy_num,
+                                                  usi_option_.draw_turn);
 }
 
 void USI::position() {

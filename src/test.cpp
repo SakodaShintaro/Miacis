@@ -13,7 +13,8 @@ void test() {
     constexpr FloatType temperature = 0.01;
     constexpr FloatType lambda = 1.0;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    SearcherForPlay searcher(node_limit, C_PUCT, thread_num, search_batch_size, nn, temperature, lambda, print_policy_num);
+    SearcherForPlay searcher(node_limit, C_PUCT, thread_num, search_batch_size, nn, temperature, lambda,
+                             print_policy_num, draw_turn);
 
     Position pos;
     Game game;
@@ -83,6 +84,7 @@ void checkSearchSpeed() {
     constexpr int64_t time_limit = 10000;
     constexpr int64_t hash_size = 10000000;
     constexpr int64_t print_policy_num = 0;
+    constexpr int64_t draw_turn = 256;
     constexpr FloatType C_PUCT = 2.5;
     constexpr FloatType temperature = 0.01;
     constexpr FloatType lambda = 1.0;
@@ -90,7 +92,8 @@ void checkSearchSpeed() {
     for (uint64_t search_batch_size = 64; search_batch_size <= 512; search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_batch_size << std::endl;
         for (uint64_t thread_num = 1; thread_num <= 3; thread_num++) {
-            SearcherForPlay searcher(hash_size, C_PUCT, thread_num, search_batch_size, nn, temperature, lambda, print_policy_num);
+            SearcherForPlay searcher(hash_size, C_PUCT, thread_num, search_batch_size, nn, temperature, lambda,
+                                     print_policy_num, draw_turn);
             searcher.think(pos, time_limit, LLONG_MAX, 0, LLONG_MAX);
         }
     }
