@@ -15,7 +15,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
 
     //表示間隔の設定
     print_interval_ = print_interval;
-    next_print_node_num_ = print_interval;
+    next_print_time_ = print_interval;
 
     //キューの初期化
     for (uint64_t i = 0; i < thread_num_; i++) {
@@ -223,8 +223,11 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         action_queue.clear();
 
         lock_node_[root_index_].lock();
-        if (hash_table_[root_index_].sum_N >= next_print_node_num_) {
-            next_print_node_num_ += print_interval_;
+        auto now_time = std::chrono::steady_clock::now();
+        auto elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_).count();
+        if (elapsed_msec >= next_print_time_) {
+            next_print_time_ += print_interval_;
+            print_interval_ += print_interval_;
             printUSIInfo();
         }
         lock_node_[root_index_].unlock();
@@ -276,6 +279,11 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
 
         if (hash_table_[index].moves.empty()) {
             //詰みの場合抜ける
+            break;
+        }
+
+        if (pos.turnNumber() >= draw_turn_) {
+            //手数が制限まで達している場合も抜ける
             break;
         }
 
