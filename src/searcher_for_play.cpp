@@ -2,7 +2,7 @@
 #include <thread>
 
 Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_limit, int64_t random_turn,
-                            int64_t print_interval, bool print_policy) {
+                            int64_t print_interval) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
 
@@ -69,7 +69,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
     }
 
     //読み筋などの情報出力
-    printUSIInfo(print_policy);
+    printUSIInfo();
 
     //行動選択
     if (root.turnNumber() < random_turn) {
@@ -113,7 +113,7 @@ std::vector<Move> SearcherForPlay::getPV() const {
     return pv;
 }
 
-void SearcherForPlay::printUSIInfo(bool print_policy) const {
+void SearcherForPlay::printUSIInfo() const {
     const auto& curr_node = hash_table_[root_index_];
 
     int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
@@ -157,7 +157,7 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
     }
     std::cout << std::endl;
 
-    if (print_policy) {
+    if (print_policy_num_ > 0) {
         //まず各指し手の価値を取得
         std::vector<FloatType> Q(curr_node.moves.size());
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
@@ -192,7 +192,10 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
         }
         std::sort(moves_with_info.begin(), moves_with_info.end());
 
-        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
+        //指定された数だけ価値が高い順に表示する
+        //GUIを通すと後に出力したものが上に来るので昇順ソートしたものを出力すれば上から降順になる
+        for (uint64_t i = std::max((int64_t)0, (int64_t)curr_node.moves.size() - print_policy_num_);
+                      i < curr_node.moves.size(); i++) {
             printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  ", curr_node.moves.size() - i,
                                                                           moves_with_info[i].nn_output_policy * 100.0,
                                                                           moves_with_info[i].N * 100.0 / curr_node.sum_N,
@@ -222,7 +225,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         lock_node_[root_index_].lock();
         if (hash_table_[root_index_].sum_N >= next_print_node_num_) {
             next_print_node_num_ += print_interval_;
-            printUSIInfo(false);
+            printUSIInfo();
         }
         lock_node_[root_index_].unlock();
 

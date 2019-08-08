@@ -38,7 +38,7 @@ private:
         int64_t C_PUCT_1000;
         int64_t temperature_x1000;
         int64_t UCT_lambda_x1000;
-        bool print_policy;
+        int64_t print_policy_num;
         std::string model_name;
     } usi_option_;
 };

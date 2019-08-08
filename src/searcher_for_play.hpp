@@ -9,9 +9,10 @@
 class SearcherForPlay : public Searcher {
 public:
     SearcherForPlay(int64_t hash_size, FloatType C_PUCT, uint64_t thread_num, uint64_t search_batch_size,
-                    NeuralNetwork evaluator, FloatType temperature, FloatType lambda) :
+                    NeuralNetwork evaluator, FloatType temperature, FloatType lambda, int64_t print_policy_num) :
     Searcher(hash_size, C_PUCT), evaluator_(std::move(evaluator)), thread_num_(thread_num), search_batch_size_(search_batch_size),
-    print_interval_(LLONG_MAX), next_print_node_num_(LLONG_MAX), temperature_(temperature), lambda_(lambda) {
+    print_interval_(LLONG_MAX), next_print_node_num_(LLONG_MAX), temperature_(temperature), lambda_(lambda),
+    print_policy_num_(print_policy_num) {
         lock_node_ = std::vector<std::mutex>(hash_table_.size());
         input_queues_.resize(thread_num);
         index_queues_.resize(thread_num);
@@ -20,8 +21,7 @@ public:
     }
 
     //探索を行って一番良い指し手を返す関数
-    Move think(Position& root, int64_t time_limit, int64_t node_limit, int64_t random_turn,
-               int64_t print_interval, bool print_policy);
+    Move think(Position& root, int64_t time_limit, int64_t node_limit, int64_t random_turn, int64_t print_interval);
 
 private:
     //--------------------------
@@ -34,7 +34,7 @@ private:
     std::vector<Move> getPV() const;
 
     //情報をUSIプロトコルに従って標準出力に出す関数
-    void printUSIInfo(bool print_policy) const;
+    void printUSIInfo() const;
 
     //各スレッドに割り当てられる探索関数
     void parallelUctSearch(Position root, int32_t id);
@@ -71,6 +71,9 @@ private:
 
     //Sarsa-UCT(λ)のλ
     const FloatType lambda_;
+
+    //上位n手までの方策を出力
+    const int64_t print_policy_num_;
 
     //キュー
     std::vector<std::vector<float>> input_queues_;

@@ -64,8 +64,8 @@ void USI::usi() {
     usi_option_.draw_turn = 256;
     std::cout << "option name draw_turn type spin default 256 min 0 max 4096" << std::endl;
 
-    usi_option_.print_policy = false;
-    std::cout << "option name print_policy type check default false" << std::endl;
+    usi_option_.print_policy_num = 0;
+    std::cout << "option name print_policy_num type spin default 0 min 0 max 593" << std::endl;
 
     usi_option_.print_interval = 10000;
     std::cout << "option name print_interval type spin default 10000 min 1 max 100000000" << std::endl;
@@ -133,10 +133,9 @@ void USI::setoption() {
     } else if (input == "UCT_lambda_x1000") {
         std::cin >> input;
         std::cin >> usi_option_.UCT_lambda_x1000;
-    } else if (input == "print_policy") {
+    } else if (input == "print_policy_num") {
         std::cin >> input;
-        std::cin >> input;
-        usi_option_.print_policy = (input == "true");
+        std::cin >> usi_option_.print_policy_num;
     } else if (input == "print_interval") {
         std::cin >> input;
         std::cin >> usi_option_.print_interval;
@@ -153,7 +152,8 @@ void USI::usinewgame() {
                                                   usi_option_.search_batch_size,
                                                   nn,
                                                   usi_option_.temperature_x1000 / 1000.0,
-                                                  usi_option_.UCT_lambda_x1000 / 1000.0);
+                                                  usi_option_.UCT_lambda_x1000 / 1000.0,
+                                                  usi_option_.print_policy_num);
 }
 
 void USI::position() {
@@ -240,8 +240,7 @@ void USI::go() {
                                           time_limit - usi_option_.byoyomi_margin,
                                           usi_option_.search_limit,
                                           usi_option_.random_turn,
-                                          usi_option_.print_interval,
-                                          usi_option_.print_policy);
+                                          usi_option_.print_interval);
         std::cout << "bestmove " << best_move << std::endl;
     });
 }
