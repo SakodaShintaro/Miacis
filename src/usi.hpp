@@ -35,7 +35,7 @@ private:
         int64_t thread_num;
         int64_t search_batch_size;
         int64_t search_limit;
-        int64_t C_PUCT_1000;
+        int64_t C_PUCT_x1000;
         int64_t temperature_x1000;
         int64_t UCT_lambda_x1000;
         int64_t print_policy_num;

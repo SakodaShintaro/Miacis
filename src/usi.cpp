@@ -73,8 +73,8 @@ void USI::usi() {
     usi_option_.search_limit = 1000000000;
     std::cout << "option name search_limit type spin default 1000000000 min 1 max 1000000000" << std::endl;
 
-    usi_option_.C_PUCT_1000 = 2500;
-    std::cout << "option name C_PUCT_1000 type spin default 2500 min 0 max 1000000" << std::endl;
+    usi_option_.C_PUCT_x1000 = 2500;
+    std::cout << "option name C_PUCT_x1000 type spin default 2500 min 0 max 1000000" << std::endl;
 
     usi_option_.temperature_x1000 = 0;
     std::cout << "option name temperature_x1000 type spin default 0 min 0 max 1000000000" << std::endl;
@@ -124,9 +124,9 @@ void USI::setoption() {
     } else if (input == "search_limit") {
         std::cin >> input;
         std::cin >> usi_option_.search_limit;
-    } else if (input == "C_PUCT_1000") {
+    } else if (input == "C_PUCT_x1000") {
         std::cin >> input;
-        std::cin >> usi_option_.C_PUCT_1000;
+        std::cin >> usi_option_.C_PUCT_x1000;
     } else if (input == "temperature_x1000") {
         std::cin >> input;
         std::cin >> usi_option_.temperature_x1000;
@@ -147,7 +147,7 @@ void USI::setoption() {
 
 void USI::usinewgame() {
     searcher_ = std::make_unique<SearcherForPlay>(usi_option_.USI_Hash * 1024 * 1024 / 20000,
-                                                  usi_option_.C_PUCT_1000 / 1000.0,
+                                                  usi_option_.C_PUCT_x1000 / 1000.0,
                                                   usi_option_.thread_num,
                                                   usi_option_.search_batch_size,
                                                   nn,
