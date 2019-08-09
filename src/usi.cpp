@@ -171,8 +171,7 @@ void USI::position() {
     } else {
         for (int i = 0; i < 4; i++) {
             std::cin >> input;
-            sfen += input;
-            sfen += " ";
+            sfen += input + (i < 3 ? " " : "");
         }
     }
     root_.init();
