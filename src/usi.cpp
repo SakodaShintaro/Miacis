@@ -36,9 +36,10 @@ void USI::loop() {
         if (command_.count(input)) {
             command_[input]();
         } else {
-            std::cout << "Illegal input" << std::endl;
+            std::cout << "Illegal input: " << input << std::endl;
         }
     }
+    quit();
 }
 
 void USI::usi() {
@@ -256,6 +257,7 @@ void USI::ponderhit() {
 }
 
 void USI::quit() {
+    stop();
     exit(0);
 }
 
