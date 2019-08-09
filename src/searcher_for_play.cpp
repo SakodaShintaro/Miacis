@@ -237,6 +237,10 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
             select(root, id);
         }
 
+        if (shouldStop()) {
+            break;
+        }
+
         //評価要求をGPUで計算
         if (!index_queue.empty()) {
             torch::NoGradGuard no_grad_guard;
