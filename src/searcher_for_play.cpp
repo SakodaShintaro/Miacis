@@ -329,6 +329,11 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
 
     //今の局面を展開・GPUに評価依頼を投げる
     auto leaf_index = expand(pos, curr_indices, curr_actions, id);
+    if (leaf_index == -1) {
+        //shouldStopがtrueになったということ
+        //基本的には置換表に空きがなかったということだと思われる
+        return;
+    }
 
     //葉の直前ノードを更新
     lock_node_[index].lock();
@@ -371,7 +376,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
         return index;
     }
 
-    // 空のインデックスを探す
+    //空のインデックスを探す
     index = hash_table_.searchEmptyIndex(pos);
 
     //経路として記録
@@ -379,6 +384,11 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 
     //テーブル全体を使うのはここまで
     lock_all_table_.unlock();
+
+    //空のインデックスが見つからなかった
+    if (index == hash_table_.size()) {
+        return -1;
+    }
 
     //取得したノードをロック
     lock_node_[index].lock();
