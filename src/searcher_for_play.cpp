@@ -286,7 +286,7 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
             break;
         }
 
-        if (pos.turnNumber() >= draw_turn_) {
+        if (pos.turnNumber() > draw_turn_) {
             //手数が制限まで達している場合も抜ける
             break;
         }
@@ -426,7 +426,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
         //GPUに送らないのでこのタイミングでバックアップを行う
         lock_node_[index].unlock();
         backup(indices, actions);
-    } else if (pos.turnNumber() >= draw_turn_) {
+    } else if (pos.turnNumber() > draw_turn_) {
         FloatType value = (MAX_SCORE + MIN_SCORE) / 2;
 #ifdef USE_CATEGORICAL
         curr_node.value = onehotDist(value);
