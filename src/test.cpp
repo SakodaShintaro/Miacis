@@ -4,24 +4,19 @@
 #include"learn.hpp"
 
 void test() {
-    constexpr int64_t node_limit = 800;
-    constexpr int64_t thread_num = 1;
-    constexpr int64_t search_batch_size = 1;
-    constexpr int64_t draw_turn = 256;
-    constexpr int64_t print_policy_num = 0;
-    constexpr FloatType C_PUCT = 2.5;
-    constexpr FloatType temperature = 0.01;
-    constexpr FloatType lambda = 1.0;
+    UsiOptions usi_options;
+    usi_options.search_limit = 800;
+    usi_options.thread_num = 1;
+    usi_options.search_batch_size = 1;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    SearcherForPlay searcher(node_limit, C_PUCT, thread_num, search_batch_size, nn, temperature, lambda,
-                             print_policy_num, draw_turn);
+    SearcherForPlay searcher(usi_options, nn);
 
     Position pos;
     Game game;
 
     auto start = std::chrono::steady_clock::now();
     while (true) {
-        Move best_move = searcher.think(pos, LLONG_MAX, 800, 0, LLONG_MAX);
+        Move best_move = searcher.think(pos, LLONG_MAX);
 
         if (best_move == NULL_MOVE) {
             //投了
@@ -33,7 +28,7 @@ void test() {
             //千日手
             game.result = Game::RESULT_DRAW_REPEAT;
             break;
-        } else if (pos.turnNumber() >= draw_turn) {
+        } else if (pos.turnNumber() > usi_options.draw_turn) {
             //長手数
             game.result = Game::RESULT_DRAW_OVER_LIMIT;
             break;
@@ -81,20 +76,15 @@ void checkGenSpeed() {
 }
 
 void checkSearchSpeed() {
+    UsiOptions usi_options;
+    usi_options.USI_Hash = 2048;
     constexpr int64_t time_limit = 10000;
-    constexpr int64_t hash_size = 10000000;
-    constexpr int64_t print_policy_num = 0;
-    constexpr int64_t draw_turn = 256;
-    constexpr FloatType C_PUCT = 2.5;
-    constexpr FloatType temperature = 0.01;
-    constexpr FloatType lambda = 1.0;
     Position pos;
-    for (uint64_t search_batch_size = 64; search_batch_size <= 512; search_batch_size *= 2) {
-        std::cout << "search_batch_size = " << search_batch_size << std::endl;
-        for (uint64_t thread_num = 1; thread_num <= 3; thread_num++) {
-            SearcherForPlay searcher(hash_size, C_PUCT, thread_num, search_batch_size, nn, temperature, lambda,
-                                     print_policy_num, draw_turn);
-            searcher.think(pos, time_limit, LLONG_MAX, 0, LLONG_MAX);
+    for (usi_options.search_batch_size = 64; usi_options.search_batch_size <= 512; usi_options.search_batch_size *= 2) {
+        std::cout << "search_batch_size = " << usi_options.search_batch_size << std::endl;
+        for (usi_options.thread_num = 1; usi_options.thread_num <= 3; usi_options.thread_num++) {
+            SearcherForPlay searcher(usi_options, nn);
+            searcher.think(pos, time_limit);
         }
     }
 }
