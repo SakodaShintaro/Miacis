@@ -13,7 +13,6 @@ USI::USI() : searcher_(nullptr) {
     command_["position"]   = std::bind(&USI::position,   this);
     command_["go"]         = std::bind(&USI::go,         this);
     command_["stop"]       = std::bind(&USI::stop,       this);
-    command_["ponderhit"]  = std::bind(&USI::ponderhit,  this);
     command_["quit"]       = std::bind(&USI::quit,       this);
     command_["gameover"]   = std::bind(&USI::gameover,   this);
 
@@ -153,6 +152,7 @@ void USI::go() {
     if (input == "ponder") {
         //ponderの処理
         //指し手を指定してのponderは行わないのでここには来ない
+        assert(false);
     } else if (input == "btime") {
         std::cin >> input;
         int64_t btime = stoll(input);
@@ -202,10 +202,6 @@ void USI::go() {
 void USI::stop() {
     Searcher::stop_signal = true;
     thread_.join();
-}
-
-void USI::ponderhit() {
-    //指し手を指定してのponderは行わないのでここには来ない
 }
 
 void USI::quit() {

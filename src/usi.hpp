@@ -18,7 +18,6 @@ public:
     void position();
     void go();
     void stop();
-    void ponderhit();
     void quit();
     void gameover();
 private:
@@ -26,7 +25,6 @@ private:
     Position root_;
     std::unique_ptr<SearcherForPlay> searcher_;
     std::thread thread_;
-
     UsiOptions usi_options_;
 };
 
