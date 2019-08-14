@@ -28,6 +28,9 @@ USI::USI() : searcher_(nullptr) {
     command_["checkGenSpeed"]      = checkGenSpeed;
     command_["checkPredictSpeed"]  = checkPredictSpeed;
     command_["checkVal"]           = checkVal;
+
+    //positionでjoinしたいので最初にダミーの関数を動かす
+    thread_ = std::thread([](){});
 }
 
 void USI::loop() {
@@ -105,9 +108,11 @@ void USI::usinewgame() {
 }
 
 void USI::position() {
-    if (thread_.joinable()) {
-        thread_.join();
-    }
+    //Ponderが走っているかもしれないので一度止める
+    //root_をthinkに参照で与えているのでposition構築前に止める必要がある
+    //値渡しにすれば大丈夫だろうけど、別に棋力的に大差はないだろう
+    Searcher::stop_signal = true;
+    thread_.join();
 
     //局面の構築
     std::string input, sfen;
@@ -147,6 +152,7 @@ void USI::go() {
     std::cin >> input;
     if (input == "ponder") {
         //ponderの処理
+        //指し手を指定してのponderは行わないのでここには来ない
     } else if (input == "btime") {
         std::cin >> input;
         int64_t btime = stoll(input);
@@ -181,10 +187,15 @@ void USI::go() {
     }
 
     //思考開始
-    //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので別スレッドに投げる
+    //別スレッドで思考させてこのスレッドはコマンド受付ループに戻る
+    //Ponderオンの場合、一度与えられた持ち時間でbestmoveを弾き出したあと無限の持ち時間で現局面についてPonderを行う
+    //予想手を決めなくとも置換表を埋めていくだけで強くなるはず
     thread_ = std::thread([this, time_limit]() {
-        auto best_move = searcher_->think(root_, time_limit - usi_options_.byoyomi_margin);
+        Move best_move = searcher_->think(root_, time_limit - usi_options_.byoyomi_margin);
         std::cout << "bestmove " << best_move << std::endl;
+        if (usi_options_.USI_Ponder) {
+            searcher_->think(root_, LLONG_MAX);
+        }
     });
 }
 
@@ -194,7 +205,7 @@ void USI::stop() {
 }
 
 void USI::ponderhit() {
-    //まだ未実装
+    //指し手を指定してのponderは行わないのでここには来ない
 }
 
 void USI::quit() {
