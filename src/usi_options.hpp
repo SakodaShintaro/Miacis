@@ -6,20 +6,26 @@
 #include <string>
 #include <map>
 
+struct CheckOption {
+    explicit CheckOption(bool& v) : value(v) {}
+    bool& value;
+};
+
 struct SpinOption {
     SpinOption(int64_t& v, int64_t mi, int64_t ma) : value(v), min(mi), max(ma) {}
     int64_t& value;
     int64_t min, max;
 };
 
-struct StringOption {
-    StringOption(std::string& v) : value(v) {}
+struct FilenameOption {
+    explicit FilenameOption(std::string& v) : value(v) {}
     std::string& value;
 };
 
-class UsiOptions {
+struct UsiOptions {
 public:
     UsiOptions() {
+        check_options.emplace("USI_Ponder",       CheckOption(USI_Ponder = false));
         spin_options.emplace("USI_Hash",          SpinOption(USI_Hash          =       256, 0, INT32_MAX));
         spin_options.emplace("byoyomi_margin",    SpinOption(byoyomi_margin    =         0, 0, INT32_MAX));
         spin_options.emplace("random_turn",       SpinOption(random_turn       =         0, 0, INT32_MAX));
@@ -32,8 +38,9 @@ public:
         spin_options.emplace("temperature_x1000", SpinOption(temperature_x1000 =         0, 0, INT32_MAX));
         spin_options.emplace("UCT_lambda_x1000",  SpinOption(UCT_lambda_x1000  =      1000, 0,      1000));
         spin_options.emplace("print_policy_num",  SpinOption(print_policy_num  =         0, 0,       593));
-        string_options.emplace("model_name",      StringOption(model_name = NeuralNetworkImpl::DEFAULT_MODEL_NAME));
+        filename_options.emplace("model_name", FilenameOption(model_name = NeuralNetworkImpl::DEFAULT_MODEL_NAME));
     }
+    bool USI_Ponder;
     int64_t byoyomi_margin;
     int64_t random_turn;
     int64_t USI_Hash;
@@ -48,11 +55,9 @@ public:
     int64_t print_policy_num;
     std::string model_name;
 
+    std::map<std::string, CheckOption> check_options;
     std::map<std::string, SpinOption> spin_options;
-    std::map<std::string, StringOption> string_options;
-
-private:
+    std::map<std::string, FilenameOption> filename_options;
 };
-
 
 #endif //MIACIS_USI_OPTIONS_HPP

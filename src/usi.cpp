@@ -50,12 +50,15 @@ void USI::usi() {
 #endif
     std::cout << "id author Sakoda Shintaro" << std::endl;
 
+    for (const auto& pair : usi_options_.check_options) {
+        std::cout << "option name " << pair.first << " type string default " << std::boolalpha << pair.second.value << std::endl;
+    }
     for (const auto& pair : usi_options_.spin_options) {
         std::cout << "option name " << pair.first << " type spin default " << pair.second.value
                   << " min " << pair.second.min << " max " << pair.second.max << std::endl;
     }
-    for (const auto& pair : usi_options_.string_options) {
-        std::cout << "option name " << pair.first << " type string default " << pair.second.value << std::endl;
+    for (const auto& pair : usi_options_.filename_options) {
+        std::cout << "option name " << pair.first << " type filename default " << pair.second.value << std::endl;
     }
 
     printf("usiok\n");
@@ -73,6 +76,14 @@ void USI::setoption() {
     assert(input == "name");
     std::cin >> input;
 
+    for (auto& pair : usi_options_.check_options) {
+        if (input == pair.first) {
+            std::cin >> input;
+            std::cin >> input;
+            pair.second.value = (input == "true");
+            return;
+        }
+    }
     for (auto& pair : usi_options_.spin_options) {
         if (input == pair.first) {
             std::cin >> input;
@@ -80,8 +91,7 @@ void USI::setoption() {
             return;
         }
     }
-
-    for (auto& pair : usi_options_.string_options) {
+    for (auto& pair : usi_options_.filename_options) {
         if (input == pair.first) {
             std::cin >> input;
             std::cin >> pair.second.value;
