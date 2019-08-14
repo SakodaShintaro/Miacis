@@ -26,6 +26,7 @@ struct UsiOptions {
 public:
     UsiOptions() {
         check_options.emplace("USI_Ponder",       CheckOption(USI_Ponder = false));
+        check_options.emplace("leave_root",       CheckOption(leave_root = true));
         spin_options.emplace("USI_Hash",          SpinOption(USI_Hash          =       256, 0, INT32_MAX));
         spin_options.emplace("byoyomi_margin",    SpinOption(byoyomi_margin    =         0, 0, INT32_MAX));
         spin_options.emplace("random_turn",       SpinOption(random_turn       =         0, 0, INT32_MAX));
@@ -41,6 +42,7 @@ public:
         filename_options.emplace("model_name", FilenameOption(model_name = NeuralNetworkImpl::DEFAULT_MODEL_NAME));
     }
     bool USI_Ponder;
+    bool leave_root;
     int64_t byoyomi_margin;
     int64_t random_turn;
     int64_t USI_Hash;

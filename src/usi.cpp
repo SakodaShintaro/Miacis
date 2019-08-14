@@ -53,7 +53,7 @@ void USI::usi() {
     std::cout << "id author Sakoda Shintaro" << std::endl;
 
     for (const auto& pair : usi_options_.check_options) {
-        std::cout << "option name " << pair.first << " type string default " << std::boolalpha << pair.second.value << std::endl;
+        std::cout << "option name " << pair.first << " type check default " << std::boolalpha << pair.second.value << std::endl;
     }
     for (const auto& pair : usi_options_.spin_options) {
         std::cout << "option name " << pair.first << " type spin default " << pair.second.value

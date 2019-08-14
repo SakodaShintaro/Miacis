@@ -10,7 +10,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     node_limit_ = usi_options_.search_limit;
 
     //古いハッシュを削除
-    hash_table_.deleteOldHash(root, true);
+    hash_table_.deleteOldHash(root, usi_options_.leave_root);
 
     //表示時刻の初期化
     next_print_time_ = usi_options_.print_interval;
