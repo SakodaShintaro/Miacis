@@ -16,8 +16,9 @@ public:
                         std::vector<std::stack<int32_t>>& index_queue,
                         std::vector<std::stack<int32_t>>& action_queue,
                         std::vector<int32_t>& id_queue) :
-            //ハッシュ容量は個数で与えられるものとする
-            Searcher(usi_options.USI_Hash, usi_options.C_PUCT_x1000 / 1000.0),
+            //ハッシュ容量は探索制限の2倍以上確保する
+            //局面の遷移後も置換表を再利用しているため探索制限そのものだとまずい
+            Searcher(usi_options.search_limit * 2, usi_options.C_PUCT_x1000 / 1000.0),
             id_(id),
             usi_options_(usi_options),
             Q_dist_lambda_(Q_dist_lambda),

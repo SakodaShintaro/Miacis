@@ -50,8 +50,6 @@ void alphaZero() {
     usi_options.random_turn          = settings.get<int64_t>("random_turn");
     usi_options.thread_num           = settings.get<int64_t>("thread_num");
     usi_options.search_limit         = settings.get<int64_t>("search_limit");
-    //ハッシュは探索制限の2倍個程度取っていれば良いだろう
-    usi_options.USI_Hash             = 2 * usi_options.search_limit;
     usi_options.search_batch_size    = settings.get<int64_t>("search_batch_size");
     int64_t batch_size               = settings.get<int64_t>("batch_size");
     int64_t max_step_num             = settings.get<int64_t>("max_step_num");
