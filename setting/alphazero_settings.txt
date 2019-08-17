@@ -1,4 +1,4 @@
-learn_rate             0.015
+learn_rate             0.03
 momentum               0.9
 policy_loss_coeff      1.0
 value_loss_coeff       1.0
@@ -6,15 +6,15 @@ lambda                 0.75
 alpha                  2.0
 Q_dist_temperature     0.01
 Q_dist_lambda          1.0
-C_PUCT                 2.5
+C_PUCT                 1.5
 draw_turn              512
-batch_size             128
+batch_size             256
 thread_num             3
-max_step_num           5000000
-learn_rate_decay_step1 3000000
-learn_rate_decay_step2 4000000
-learn_rate_decay_step3 4500000
-update_interval        4000
+max_step_num           2500000
+learn_rate_decay_step1 1500000
+learn_rate_decay_step2 2000000
+learn_rate_decay_step3 2250000
+update_interval        2000
 batch_size_per_gen     4
 max_stack_size         1048576
 first_wait             524288
@@ -23,4 +23,4 @@ search_batch_size      128
 output_interval        100
 validation_interval    100000
 validation_size        4096000
-validation_kifu_path   /home/sakoda/Downloads/2016
+validation_kifu_path   /root/2016
