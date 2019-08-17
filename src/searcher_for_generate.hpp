@@ -18,7 +18,10 @@ public:
                         std::vector<int32_t>& id_queue) :
             //ハッシュ容量は探索制限の2倍以上確保する
             //局面の遷移後も置換表を再利用しているため探索制限そのものだとまずい
-            Searcher(usi_options.search_limit * 2, usi_options.C_PUCT_x1000 / 1000.0),
+            Searcher(usi_options.search_limit * 2,
+                     usi_options.Q_coeff_x1000 / 1000.0,
+                     usi_options.C_PUCT_x1000 / 1000.0,
+                     usi_options.P_coeff_x1000 / 1000.0),
             id_(id),
             usi_options_(usi_options),
             Q_dist_lambda_(Q_dist_lambda),

@@ -11,7 +11,10 @@ class SearcherForPlay : public Searcher {
 public:
     SearcherForPlay(const UsiOptions& usi_options, NeuralNetwork evaluator) :
             //ハッシュ容量はMByte単位になっているので個数に変換する
-            Searcher(usi_options.USI_Hash * 1024 * 1024 / 10000, usi_options.C_PUCT_x1000 / 1000.0),
+            Searcher(usi_options.USI_Hash * 1024 * 1024 / 10000,
+                     usi_options.Q_coeff_x1000 / 1000.0,
+                     usi_options.C_PUCT_x1000 / 1000.0,
+                     usi_options.P_coeff_x1000 / 1000.0),
             usi_options_(usi_options),
             next_print_time_(LLONG_MAX),
             evaluator_(std::move(evaluator)) {

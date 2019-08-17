@@ -41,25 +41,28 @@ bool Searcher::shouldStop() {
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
 #ifdef USE_CATEGORICAL
     int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
-    double best_value = expOfValueDist(QfromNextValue(node, best_index));
+    FloatType best_value = expOfValueDist(QfromNextValue(node, best_index));
 #endif
 
     int32_t max_index = -1;
-    double max_value = MIN_SCORE - 1;
+    FloatType max_value = MIN_SCORE - 1;
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
     for (uint64_t i = 0; i < node.moves.size(); i++) {
+        FloatType U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
+
 #ifdef USE_CATEGORICAL
-        double Q = 0.0;
+        FloatType P = 0.0;
         ValueType Q_dist = QfromNextValue(node, i);
+        FloatType Q = expOfValueDist(Q_dist);
         for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-            Q += Q_dist[j];
+            P += Q_dist[j];
         }
+        FloatType ucb = Q_coeff_ * Q + C_PUCT_ * node.nn_policy[i] * U + P_coeff_ * P;
 #else
-        double Q = (node.N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(node, i));
+        FloatType Q = (node.N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(node, i));
+        FloatType ucb = Q_coeff_ * Q + C_PUCT_ * node.nn_policy[i] * U;
 #endif
-        double U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
-        double ucb = Q + C_PUCT_ * node.nn_policy[i] * U;
 
         if (ucb > max_value) {
             max_value = ucb;

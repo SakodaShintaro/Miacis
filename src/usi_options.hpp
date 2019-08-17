@@ -35,7 +35,9 @@ public:
         spin_options.emplace("thread_num",        SpinOption(thread_num        =         2, 1, INT32_MAX));
         spin_options.emplace("search_batch_size", SpinOption(search_batch_size =       128, 1, INT32_MAX));
         spin_options.emplace("search_limit",      SpinOption(search_limit      = INT32_MAX, 1, INT32_MAX));
+        spin_options.emplace("Q_coeff_x1000",     SpinOption(Q_coeff_x1000     =         0, 0, INT32_MAX));
         spin_options.emplace("C_PUCT_x1000",      SpinOption(C_PUCT_x1000      =      1500, 1, INT32_MAX));
+        spin_options.emplace("P_coeff_x1000",     SpinOption(P_coeff_x1000     =      1000, 0, INT32_MAX));
         spin_options.emplace("temperature_x1000", SpinOption(temperature_x1000 =         0, 0, INT32_MAX));
         spin_options.emplace("UCT_lambda_x1000",  SpinOption(UCT_lambda_x1000  =      1000, 0,      1000));
         spin_options.emplace("print_policy_num",  SpinOption(print_policy_num  =         0, 0,       593));
@@ -51,7 +53,9 @@ public:
     int64_t thread_num;
     int64_t search_batch_size;
     int64_t search_limit;
+    int64_t Q_coeff_x1000;
     int64_t C_PUCT_x1000;
+    int64_t P_coeff_x1000;
     int64_t temperature_x1000;
     int64_t UCT_lambda_x1000;
     int64_t print_policy_num;
