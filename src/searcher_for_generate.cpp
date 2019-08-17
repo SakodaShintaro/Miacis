@@ -228,43 +228,51 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     //policyのセット
     assert(root_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
 
-    //探索回数を正規化した分布
-    //探索回数のsoftmaxを取ることを検討したほうが良いかもしれない
-    std::vector<FloatType> N_dist(root_node.moves.size());
-    //行動価値のsoftmaxを取った分布
-    std::vector<FloatType> Q_dist(root_node.moves.size());
-    assert(root_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
-    for (uint64_t i = 0; i < root_node.moves.size(); i++) {
-        assert(0 <= N[i] && N[i] <= root_node.sum_N);
+    if (root.turnNumber() < usi_options_.random_turn) {
+        //分布に従ってランダムに行動選択
+        //探索回数を正規化した分布
+        //探索回数のsoftmaxを取ることを検討したほうが良いかもしれない
+        std::vector<FloatType> N_dist(root_node.moves.size());
+        //行動価値のsoftmaxを取った分布
+        std::vector<FloatType> Q_dist(root_node.moves.size());
+        assert(root_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
+        for (uint64_t i = 0; i < root_node.moves.size(); i++) {
+            assert(0 <= N[i] && N[i] <= root_node.sum_N);
 
-        //探索回数を正規化
-        N_dist[i] = (FloatType)N[i] / root_node.sum_N;
+            //探索回数を正規化
+            N_dist[i] = (FloatType)N[i] / root_node.sum_N;
 
-        //選択回数が0ならMIN_SCORE
-        //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
-        //その他は普通に計算
+            //選択回数が0ならMIN_SCORE
+            //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
+            //その他は普通に計算
 #ifdef USE_CATEGORICAL
-        Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : expOfValueDist(QfromNextValue(root_node, i)));
+            Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : expOfValueDist(QfromNextValue(root_node, i)));
 #else
-        Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : QfromNextValue(root_node, i));
+            Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : QfromNextValue(root_node, i));
 #endif
+        }
+        Q_dist = softmax(Q_dist, usi_options_.temperature_x1000 / 1000.0f);
+
+        //教師分布のセット
+        //(1)どちらの分布を使うべきか
+        //(2)実際に行動選択をする分布と一致しているべきか
+        //など要検討
+        for (uint64_t i = 0; i < root_node.moves.size(); i++) {
+            //N_distにQ_distの値を混ぜ込む
+            N_dist[i] = (1 - Q_dist_lambda_) * N_dist[i] + Q_dist_lambda_ * Q_dist[i];
+
+            //N_distを教師分布とする
+            element.policy_teacher.push_back({ root_node.moves[i].toLabel(), N_dist[i] });
+        }
+
+        //N_distに従って行動選択
+        element.move = root_node.moves[randomChoose(N_dist)];
+    } else {
+        //最良の行動を選択
+        element.policy_teacher.push_back({ root_node.moves[best_index].toLabel(), 1.0f });
+        element.move = root_node.moves[best_index];
     }
-    Q_dist = softmax(Q_dist, Q_dist_temperature_);
 
-    //教師分布のセット
-    //(1)どちらの分布を使うべきか
-    //(2)実際に行動選択をする分布と一致しているべきか
-    //など要検討
-    for (uint64_t i = 0; i < root_node.moves.size(); i++) {
-        //N_distにQ_distの値を混ぜ込む
-        N_dist[i] = (1 - Q_dist_lambda_) * N_dist[i] + Q_dist_lambda_ * Q_dist[i];
-
-        //N_distを教師分布とする
-        element.policy_teacher.push_back({ root_node.moves[i].toLabel(), N_dist[i] });
-    }
-
-    //N_distに従って行動選択
-    element.move = root_node.moves[randomChoose(N_dist)];
     element.score = best_value;
 
     //priorityを計算する用にNNの出力をセットする

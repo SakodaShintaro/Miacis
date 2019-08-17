@@ -8,6 +8,7 @@ Q_dist_temperature     0.01
 Q_dist_lambda          1.0
 C_PUCT                 1.5
 draw_turn              512
+random_turn            512
 batch_size             256
 thread_num             3
 max_step_num           2500000
