@@ -110,6 +110,10 @@ private:
     Conv2DwithBatchNorm action_encoder_first_conv_and_norm_{nullptr};
     std::vector<ResidualBlock> action_encoder_blocks_;
 
+    //predictTransitionで使用
+    Conv2DwithBatchNorm predict_transition_first_conv_and_norm_{nullptr};
+    std::vector<ResidualBlock> predict_transition_blocks_;
+
     //decodePolicyで使用
     torch::nn::Conv2d policy_conv_{nullptr};
 
