@@ -30,7 +30,8 @@ set(SRCS bitboard.cpp
          searcher_for_play.cpp
          searcher_for_generate.cpp
          hyperparameter_manager.cpp
-         segment_tree.cpp)
+         segment_tree.cpp
+         searcher_using_sim_net.cpp)
 
 add_executable(Miacis_scalar      ${SRCS})
 add_executable(Miacis_categorical ${SRCS})
