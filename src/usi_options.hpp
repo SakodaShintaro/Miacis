@@ -25,8 +25,9 @@ struct FilenameOption {
 struct UsiOptions {
 public:
     UsiOptions() {
-        check_options.emplace("USI_Ponder",       CheckOption(USI_Ponder = false));
-        check_options.emplace("leave_root",       CheckOption(leave_root = true));
+        check_options.emplace("USI_Ponder",       CheckOption(USI_Ponder  = false));
+        check_options.emplace("leave_root",       CheckOption(leave_root  = true));
+        check_options.emplace("use_sim_net",      CheckOption(use_sim_net = false));
         spin_options.emplace("USI_Hash",          SpinOption(USI_Hash          =       256, 0, INT32_MAX));
         spin_options.emplace("byoyomi_margin",    SpinOption(byoyomi_margin    =         0, 0, INT32_MAX));
         spin_options.emplace("random_turn",       SpinOption(random_turn       =         0, 0, INT32_MAX));
@@ -45,6 +46,7 @@ public:
     }
     bool USI_Ponder;
     bool leave_root;
+    bool use_sim_net;
     int64_t byoyomi_margin;
     int64_t random_turn;
     int64_t USI_Hash;

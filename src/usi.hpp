@@ -4,6 +4,7 @@
 #include"position.hpp"
 #include"searcher_for_play.hpp"
 #include"usi_options.hpp"
+#include"searcher_using_sim_net.hpp"
 #include<thread>
 #include<functional>
 
@@ -24,6 +25,7 @@ private:
     std::unordered_map<std::string, std::function<void()>> command_;
     Position root_;
     std::unique_ptr<SearcherForPlay> searcher_;
+    std::unique_ptr<SearcherUsingSimNet> searcher_using_sim_net_;
     std::thread thread_;
     UsiOptions usi_options_;
 };

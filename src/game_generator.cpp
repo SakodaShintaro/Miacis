@@ -25,7 +25,7 @@ void GameGenerator::genSlave() {
     std::vector<int32_t> ids;
 
     //容量の確保
-    features.reserve(usi_options_.search_batch_size * INPUT_CHANNEL_NUM * SQUARE_NUM);
+    features.reserve(usi_options_.search_batch_size * STATE_FEATURE_CHANNEL_NUM * SQUARE_NUM);
     hash_indices.reserve(usi_options_.search_batch_size);
     actions.reserve(usi_options_.search_batch_size);
     ids.reserve(usi_options_.search_batch_size);

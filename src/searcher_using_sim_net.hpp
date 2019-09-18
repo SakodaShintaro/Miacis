@@ -1,5 +1,5 @@
-﻿#ifndef MIACIS_SEARCHER_FOR_PLAY_HPP
-#define MIACIS_SEARCHER_FOR_PLAY_HPP
+﻿#ifndef MIACIS_SEARCHER_USING_SIM_NET_HPP
+#define MIACIS_SEARCHER_USING_SIM_NET_HPP
 
 #include"searcher.hpp"
 #include"neural_network.hpp"
