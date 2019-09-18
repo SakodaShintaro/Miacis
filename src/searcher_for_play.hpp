@@ -3,24 +3,30 @@
 
 #include"searcher.hpp"
 #include"neural_network.hpp"
+#include"usi_options.hpp"
 #include<stack>
 #include<mutex>
 
 class SearcherForPlay : public Searcher {
 public:
-    SearcherForPlay(int64_t hash_size, double C_PUCT, uint64_t thread_num, uint64_t search_batch_size, NeuralNetwork evaluator) :
-    Searcher(hash_size, C_PUCT), evaluator_(std::move(evaluator)), thread_num_(thread_num), search_batch_size_(search_batch_size),
-    print_interval_(LLONG_MAX), next_print_node_num_(LLONG_MAX) {
+    SearcherForPlay(const UsiOptions& usi_options, NeuralNetwork evaluator) :
+            //ハッシュ容量はMByte単位になっているので個数に変換する
+            Searcher(usi_options.USI_Hash * 1024 * 1024 / 10000,
+                     usi_options.Q_coeff_x1000 / 1000.0,
+                     usi_options.C_PUCT_x1000 / 1000.0,
+                     usi_options.P_coeff_x1000 / 1000.0),
+            usi_options_(usi_options),
+            next_print_time_(LLONG_MAX),
+            evaluator_(std::move(evaluator)) {
         lock_node_ = std::vector<std::mutex>(hash_table_.size());
-        input_queues_.resize(thread_num);
-        index_queues_.resize(thread_num);
-        route_queues_.resize(thread_num);
-        action_queues_.resize(thread_num);
+        input_queues_.resize(usi_options.thread_num);
+        index_queues_.resize(usi_options.thread_num);
+        route_queues_.resize(usi_options.thread_num);
+        action_queues_.resize(usi_options.thread_num);
     }
 
     //探索を行って一番良い指し手を返す関数
-    Move think(Position& root, int64_t time_limit, int64_t node_limit, int64_t random_turn,
-               int64_t print_interval, bool print_policy);
+    Move think(Position& root, int64_t time_limit);
 
 private:
     //--------------------------
@@ -33,7 +39,7 @@ private:
     std::vector<Move> getPV() const;
 
     //情報をUSIプロトコルに従って標準出力に出す関数
-    void printUSIInfo(bool print_policy) const;
+    void printUSIInfo() const;
 
     //各スレッドに割り当てられる探索関数
     void parallelUctSearch(Position root, int32_t id);
@@ -47,22 +53,20 @@ private:
     //バックアップ
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
-    //局面評価に用いるネットワーク
-    NeuralNetwork evaluator_;
-
     //mutex
     std::vector<std::mutex> lock_node_;
-    std::mutex lock_expand_;
+    std::mutex lock_all_table_;
+    std::mutex lock_gpu_;
 
-    //スレッド数
-    uint64_t thread_num_;
+    //複数のオプションをバラバラにまた設定するのではなくUsiオプションへのconst参照をまるごと持ってしまうのがわかりやすそう
+    //多少探索には関係ないものもあるけど、どうせUsiオプションで設定するものってほとんどが探索で用いるパラメータ等の設定だし
+    const UsiOptions& usi_options_;
 
-    //各スレッドが1回GPUを使うまでに探索する数
-    uint64_t search_batch_size_;
+    //次に表示する経過時間
+    int64_t next_print_time_;
 
-    //表示間隔.厳密には取れないので適当な間隔で表示する
-    int64_t print_interval_;
-    int64_t next_print_node_num_;
+    //局面評価に用いるネットワーク
+    NeuralNetwork evaluator_;
 
     //キュー
     std::vector<std::vector<float>> input_queues_;

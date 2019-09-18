@@ -73,7 +73,7 @@ void ReplayBuffer::push(Game &game) {
         e.value_teacher = valueToIndex(teacher_signal);
 #else
         //teacherにコピーする
-        e.value_teacher = (CalcType) (teacher_signal);
+        e.value_teacher = (FloatType) (teacher_signal);
 #endif
 
         //このデータを入れる位置を取得

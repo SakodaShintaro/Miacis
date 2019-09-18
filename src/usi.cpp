@@ -6,20 +6,19 @@
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数
-    command_["usi"]        = std::bind(&USI::usi, this);
-    command_["isready"]    = std::bind(&USI::isready, this);
-    command_["setoption"]  = std::bind(&USI::setoption, this);
+    command_["usi"]        = std::bind(&USI::usi,        this);
+    command_["isready"]    = std::bind(&USI::isready,    this);
+    command_["setoption"]  = std::bind(&USI::setoption,  this);
     command_["usinewgame"] = std::bind(&USI::usinewgame, this);
-    command_["position"]   = std::bind(&USI::position, this);
-    command_["go"]         = std::bind(&USI::go, this);
-    command_["stop"]       = std::bind(&USI::stop, this);
-    command_["ponderhit"]  = std::bind(&USI::ponderhit, this);
-    command_["quit"]       = std::bind(&USI::quit, this);
-    command_["gameover"]   = std::bind(&USI::gameover, this);
+    command_["position"]   = std::bind(&USI::position,   this);
+    command_["go"]         = std::bind(&USI::go,         this);
+    command_["stop"]       = std::bind(&USI::stop,       this);
+    command_["quit"]       = std::bind(&USI::quit,       this);
+    command_["gameover"]   = std::bind(&USI::gameover,   this);
 
     //メンバ関数以外
-    command_["initParams"] = initParams;
-    command_["cleanGames"] = cleanGames;
+    command_["initParams"]         = initParams;
+    command_["cleanGames"]         = cleanGames;
     command_["searchLearningRate"] = searchLearningRate;
     command_["supervisedLearn"] = supervisedLearn;
     command_["alphaZero"] = alphaZero;
@@ -38,46 +37,36 @@ void USI::loop() {
         if (command_.count(input)) {
             command_[input]();
         } else {
-            std::cout << "Illegal input" << std::endl;
+            std::cout << "Illegal input: " << input << std::endl;
         }
     }
+    quit();
 }
 
 void USI::usi() {
 #ifdef USE_CATEGORICAL
-    printf("id name Miacis_categorical\n");
+    std::cout << "id name Miacis_categorical" << std::endl;
 #else
-    printf("id name Miacis_scalar\n");
+    std::cout << "id name Miacis_scalar" << std::endl;
 #endif
-    printf("id author Sakoda Shintaro\n");
-    printf("option name byoyomi_margin type spin default 0 min 0 max 1000\n");
-    usi_option_.byoyomi_margin = 0;
-    printf("option name random_turn type spin default 0 min 0 max 1000\n");
-    usi_option_.random_turn = 0;
-    printf("option name thread_num type spin default 2 min 1 max 2048\n");
-    usi_option_.thread_num = 2;
-    printf("option name search_batch_size type spin default 128 min 1 max 2048\n");
-    usi_option_.search_batch_size = 128;
-    printf("option name draw_turn type spin default 256 min 0 max 4096\n");
-    usi_option_.draw_turn = 256;
-    printf("option name print_policy type check default false\n");
-    usi_option_.print_policy = false;
-    printf("option name print_interval type spin default 10000 min 1 max 100000000\n");
-    usi_option_.print_interval = 10000;
+    std::cout << "id author Sakoda Shintaro" << std::endl;
 
-    auto d = (unsigned long long)1e9;
-    printf("option name search_limit type spin default %llu min 1 max %llu\n", d, d);
-    usi_option_.search_limit = (int64_t)d;
+    for (const auto& pair : usi_options_.check_options) {
+        std::cout << "option name " << pair.first << " type check default " << std::boolalpha << pair.second.value << std::endl;
+    }
+    for (const auto& pair : usi_options_.spin_options) {
+        std::cout << "option name " << pair.first << " type spin default " << pair.second.value
+                  << " min " << pair.second.min << " max " << pair.second.max << std::endl;
+    }
+    for (const auto& pair : usi_options_.filename_options) {
+        std::cout << "option name " << pair.first << " type filename default " << pair.second.value << std::endl;
+    }
 
-    std::cout << "option name C_PUCT_1000 type spin default 2500 min 0 max 1000000" << std::endl;
-    usi_option_.C_PUCT_1000 = 2500;
-
-    usi_option_.USI_Hash = 256;
     printf("usiok\n");
 }
 
 void USI::isready() {
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::load(nn, usi_options_.model_name);
     nn->setGPU(0);
     printf("readyok\n");
 }
@@ -87,52 +76,40 @@ void USI::setoption() {
     std::cin >> input;
     assert(input == "name");
     std::cin >> input;
-    if (input == "byoyomi_margin") {
-        std::cin >> input; //input == "value"となるなず
-        std::cin >> usi_option_.byoyomi_margin;
-    } else if (input == "random_turn") {
-        std::cin >> input; //input == "value"となるなず
-        std::cin >> usi_option_.random_turn;
-    } else if (input == "USI_Hash") {
-        std::cin >> input; //input == "value"となるはず
-        std::cin >> usi_option_.USI_Hash;
-    } else if (input == "USI_Ponder") {
-        std::cin >> input; //input == "value"となるなず
-        std::cin >> input; //特になにもしていない
-    } else if (input == "thread_num") {
-        std::cin >> input; //input == "value"となるはず
-        std::cin >> usi_option_.thread_num;
-    } else if (input == "search_batch_size") {
-        std::cin >> input; //input == "value"となるはず
-        std::cin >> usi_option_.search_batch_size;
-    } else if (input == "draw_turn") {
-        std::cin >> input; //input == "value"となるはず
-        std::cin >> usi_option_.draw_turn;
-    } else if (input == "search_limit") {
-        std::cin >> input;
-        std::cin >> usi_option_.search_limit;
-    } else if (input == "C_PUCT_1000") {
-        std::cin >> input;
-        std::cin >> usi_option_.C_PUCT_1000;
-    } else if (input == "print_policy") {
-        std::cin >> input;
-        std::cin >> input;
-        usi_option_.print_policy = (input == "true");
-    } else if (input == "print_interval") {
-        std::cin >> input;
-        std::cin >> usi_option_.print_interval;
+
+    for (auto& pair : usi_options_.check_options) {
+        if (input == pair.first) {
+            std::cin >> input;
+            std::cin >> input;
+            pair.second.value = (input == "true");
+            return;
+        }
+    }
+    for (auto& pair : usi_options_.spin_options) {
+        if (input == pair.first) {
+            std::cin >> input;
+            std::cin >> pair.second.value;
+            return;
+        }
+    }
+    for (auto& pair : usi_options_.filename_options) {
+        if (input == pair.first) {
+            std::cin >> input;
+            std::cin >> pair.second.value;
+            return;
+        }
     }
 }
 
 void USI::usinewgame() {
-    searcher_ = std::make_unique<SearcherForPlay>(usi_option_.USI_Hash * 1024 * 1024 / 20000,
-                                                  usi_option_.C_PUCT_1000 / 1000.0,
-                                                  usi_option_.thread_num,
-                                                  usi_option_.search_batch_size,
-                                                  nn);
+    searcher_ = std::make_unique<SearcherForPlay>(usi_options_, nn);
 }
 
 void USI::position() {
+    //Ponderが走っているかもしれないので一度止める
+    //root_をthinkに参照で与えているのでposition構築前に止める必要がある
+    //値渡しにすれば大丈夫だろうけど、別に棋力的に大差はないだろう
+    Searcher::stop_signal = true;
     if (thread_.joinable()) {
         thread_.join();
     }
@@ -145,8 +122,7 @@ void USI::position() {
     } else {
         for (int i = 0; i < 4; i++) {
             std::cin >> input;
-            sfen += input;
-            sfen += " ";
+            sfen += input + (i < 3 ? " " : "");
         }
     }
     root_.init();
@@ -176,6 +152,8 @@ void USI::go() {
     std::cin >> input;
     if (input == "ponder") {
         //ponderの処理
+        //指し手を指定してのponderは行わないのでここには来ない
+        assert(false);
     } else if (input == "btime") {
         std::cin >> input;
         int64_t btime = stoll(input);
@@ -183,7 +161,7 @@ void USI::go() {
         std::cin >> input;
         int64_t wtime = stoll(input);
         int64_t time = (root_.color() == BLACK ? btime : wtime);
-        int64_t remained_turn = (usi_option_.draw_turn - root_.turnNumber()) / 2;
+        int64_t remained_turn = (usi_options_.draw_turn - root_.turnNumber()) / 2;
         int64_t curr_time = (remained_turn == 0 ? 0 : time / remained_turn);
         std::cin >> input; //input == "byoyomi" or "binc"となるはず
         if (input == "byoyomi") {
@@ -201,36 +179,36 @@ void USI::go() {
     } else if (input == "infinite") {
         //思考時間をほぼ無限に
         time_limit = LLONG_MAX;
-        
+
         //random_turnをなくす
-        usi_option_.random_turn = 0;
+        usi_options_.random_turn = 0;
     } else if (input == "mate") {
         //詰み探索(未実装)
         assert(false);
     }
 
     //思考開始
-    //thinkを直接書くとstopコマンドを受け付けられなくなってしまうので別スレッドに投げる
+    //別スレッドで思考させてこのスレッドはコマンド受付ループに戻る
+    //Ponderオンの場合、一度与えられた持ち時間でbestmoveを弾き出したあと無限の持ち時間で現局面についてPonderを行う
+    //予想手を決めなくとも置換表を埋めていくだけで強くなるはず
     thread_ = std::thread([this, time_limit]() {
-        auto best_move = searcher_->think(root_,
-                                          time_limit - usi_option_.byoyomi_margin,
-                                          usi_option_.search_limit, usi_option_.random_turn,
-                                          usi_option_.print_interval,
-                                          usi_option_.print_policy);
+        Move best_move = searcher_->think(root_, time_limit - usi_options_.byoyomi_margin);
         std::cout << "bestmove " << best_move << std::endl;
+        if (usi_options_.USI_Ponder) {
+            searcher_->think(root_, LLONG_MAX);
+        }
     });
 }
 
 void USI::stop() {
     Searcher::stop_signal = true;
-    thread_.join();
-}
-
-void USI::ponderhit() {
-    //まだ未実装
+    if (thread_.joinable()) {
+        thread_.join();
+    }
 }
 
 void USI::quit() {
+    stop();
     exit(0);
 }
 

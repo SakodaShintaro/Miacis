@@ -4,20 +4,19 @@
 #include"learn.hpp"
 
 void test() {
-    constexpr int64_t node_limit = 800;
-    constexpr int64_t thread_num = 1;
-    constexpr int64_t search_batch_size = 1;
-    constexpr int64_t draw_turn = 256;
-    constexpr double C_PUCT = 2.5;
+    UsiOptions usi_options;
+    usi_options.search_limit = 800;
+    usi_options.thread_num = 1;
+    usi_options.search_batch_size = 1;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    SearcherForPlay searcher(node_limit, C_PUCT, thread_num, search_batch_size, nn);
+    SearcherForPlay searcher(usi_options, nn);
 
     Position pos;
     Game game;
 
     auto start = std::chrono::steady_clock::now();
     while (true) {
-        Move best_move = searcher.think(pos, LLONG_MAX, 800, 0, LLONG_MAX, false);
+        Move best_move = searcher.think(pos, LLONG_MAX);
 
         if (best_move == NULL_MOVE) {
             //投了
@@ -29,7 +28,7 @@ void test() {
             //千日手
             game.result = Game::RESULT_DRAW_REPEAT;
             break;
-        } else if (pos.turnNumber() >= draw_turn) {
+        } else if (pos.turnNumber() > usi_options.draw_turn) {
             //長手数
             game.result = Game::RESULT_DRAW_OVER_LIMIT;
             break;
@@ -52,15 +51,17 @@ void checkGenSpeed() {
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
     constexpr int64_t buffer_size = 20000;
-    constexpr double C_PUCT = 2.5;
-    constexpr CalcType Q_dist_temperature = 0.01;
-    constexpr CalcType Q_dist_lambda = 0.0;
+    UsiOptions usi_options;
+    usi_options.search_limit = 800;
+    usi_options.draw_turn = 256;
+    usi_options.thread_num = 2;
+    constexpr FloatType Q_dist_lambda = 0.0;
 
-    for (int64_t search_batch_size = 32; search_batch_size <= 128; search_batch_size *= 2) {
+    for (usi_options.search_batch_size = 32; usi_options.search_batch_size <= 128; usi_options.search_batch_size *= 2) {
         ReplayBuffer buffer(0, buffer_size, 10 * buffer_size, 1.0, 1.0);
         Searcher::stop_signal = false;
         auto start = std::chrono::steady_clock::now();
-        GameGenerator generator(800, 256, 2, search_batch_size, Q_dist_temperature, Q_dist_lambda, C_PUCT, buffer, nn);
+        GameGenerator generator(usi_options, Q_dist_lambda, buffer, nn);
         std::thread t(&GameGenerator::genGames, &generator, (int64_t)1e15);
         while (buffer.size() < buffer_size) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -69,7 +70,7 @@ void checkGenSpeed() {
         Searcher::stop_signal = true;
         t.join();
         auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "search_batch_size = " << std::setw(4) << search_batch_size
+        std::cout << "search_batch_size = " << std::setw(4) << usi_options.search_batch_size
                   << ", elapsed = " << ela.count()
                   << ", size = " << buffer.size()
                   << ", speed = " << (buffer.size() * 1000.0) / ela.count() << " pos / sec" << std::endl;
@@ -77,15 +78,15 @@ void checkGenSpeed() {
 }
 
 void checkSearchSpeed() {
+    UsiOptions usi_options;
+    usi_options.USI_Hash = 2048;
     constexpr int64_t time_limit = 10000;
-    constexpr int64_t hash_size = 10000000;
-    constexpr double C_PUCT = 2.5;
     Position pos;
-    for (uint64_t search_batch_size = 64; search_batch_size <= 512; search_batch_size *= 2) {
-        std::cout << "search_batch_size = " << search_batch_size << std::endl;
-        for (uint64_t thread_num = 1; thread_num <= 3; thread_num++) {
-            SearcherForPlay searcher(hash_size, C_PUCT, thread_num, search_batch_size, nn);
-            searcher.think(pos, time_limit, LLONG_MAX, 0, LLONG_MAX, false);
+    for (usi_options.search_batch_size = 64; usi_options.search_batch_size <= 512; usi_options.search_batch_size *= 2) {
+        std::cout << "search_batch_size = " << usi_options.search_batch_size << std::endl;
+        for (usi_options.thread_num = 1; usi_options.thread_num <= 3; usi_options.thread_num++) {
+            SearcherForPlay searcher(usi_options, nn);
+            searcher.think(pos, time_limit);
         }
     }
 }

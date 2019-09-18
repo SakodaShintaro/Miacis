@@ -9,11 +9,9 @@ public:
     static bool stop_signal;
 
 protected:
-    explicit Searcher(int64_t hash_size, double C_PUCT) : hash_table_(hash_size),
-                                                          C_PUCT_(C_PUCT),
-                                                          root_index_(UctHashTable::NOT_EXPANDED),
-                                                          time_limit_(LLONG_MAX),
-                                                          node_limit_(LLONG_MAX) {}
+    explicit Searcher(int64_t hash_size, FloatType Q_coeff, FloatType C_PUCT, FloatType P_coeff)
+                       : hash_table_(hash_size), Q_coeff_(Q_coeff), C_PUCT_(C_PUCT), P_coeff_(P_coeff),
+                         root_index_(UctHashTable::NOT_EXPANDED), time_limit_(LLONG_MAX), node_limit_(LLONG_MAX) {}
 
     //時間制限含め探索を続けるかどうかを判定する関数
     bool shouldStop();
@@ -32,8 +30,15 @@ protected:
     //置換表
     UctHashTable hash_table_;
 
+    //Qにかける係数:scalarのときは意味がない気もするがそうでもない？
+    //             categoricalのときに使うのがメイン
+    const FloatType Q_coeff_;
+
     //C_PUCT
-    const double C_PUCT_;
+    const FloatType C_PUCT_;
+
+    //Pにかける係数:scalarのときは使わない
+    const FloatType P_coeff_;
 
     //時間
     std::chrono::steady_clock::time_point start_;

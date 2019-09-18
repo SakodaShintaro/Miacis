@@ -12,7 +12,7 @@ struct UctHashEntry {
     std::vector<Index> child_indices;
     std::vector<int32_t> N;
     std::vector<int32_t> virtual_N;
-    std::vector<CalcType> nn_policy;
+    std::vector<FloatType> nn_policy;
     ValueType value;
     bool evaled;
 

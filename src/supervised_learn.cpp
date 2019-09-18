@@ -43,7 +43,7 @@ void supervisedLearn() {
     data_buffer.erase(data_buffer.end() - validation_size, data_buffer.end());
     std::cout << "learn_data_size = " << data_buffer.size() << ", validation_data_size = " << validation_size << std::endl;
 
-    //早期終了用の変数宣言
+    //最小値を更新した場合のみパラメータを保存する
     float min_loss = INT_MAX;
 
     //学習推移のログファイル
@@ -64,6 +64,7 @@ void supervisedLearn() {
     //optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
+    //sgd_option.weight_decay(weight_decay);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
     //学習開始時間の設定

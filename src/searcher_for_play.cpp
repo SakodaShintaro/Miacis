@@ -1,24 +1,22 @@
 ﻿#include "searcher_for_play.hpp"
 #include <thread>
 
-Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_limit, int64_t random_turn,
-                            int64_t print_interval, bool print_policy) {
+Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
 
     //制限の設定
     time_limit_ = time_limit;
-    node_limit_ = node_limit;
+    node_limit_ = usi_options_.search_limit;
 
     //古いハッシュを削除
-    hash_table_.deleteOldHash(root, true);
+    hash_table_.deleteOldHash(root, usi_options_.leave_root);
 
-    //表示間隔の設定
-    print_interval_ = print_interval;
-    next_print_node_num_ = print_interval;
+    //表示時刻の初期化
+    next_print_time_ = usi_options_.print_interval;
 
     //キューの初期化
-    for (uint64_t i = 0; i < thread_num_; i++) {
+    for (int64_t i = 0; i < usi_options_.thread_num; i++) {
         input_queues_[i].clear();
         index_queues_[i].clear();
         route_queues_[i].clear();
@@ -57,8 +55,8 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
     std::thread mate_thread(&SearcherForPlay::mateSearch, this, root, LLONG_MAX);
 
     //workerを立ち上げ
-    std::vector<std::thread> threads(thread_num_);
-    for (uint64_t i = 0; i < thread_num_; i++) {
+    std::vector<std::thread> threads(usi_options_.thread_num);
+    for (int64_t i = 0; i < usi_options_.thread_num; i++) {
         threads[i] = std::thread(&SearcherForPlay::parallelUctSearch, this, root, i);
     }
 
@@ -69,18 +67,30 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit, int64_t node_lim
     }
 
     //読み筋などの情報出力
-    printUSIInfo(print_policy);
+    printUSIInfo();
 
     //行動選択
-    if (root.turnNumber() < random_turn) {
-        //探索回数を正規化して分布を得る
-        std::vector<CalcType> distribution(curr_node.moves.size());
-        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-            distribution[i] = (CalcType) curr_node.N[i] / curr_node.sum_N;
-            assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
+    if (root.turnNumber() < usi_options_.random_turn) {
+        std::vector<FloatType> distribution(curr_node.moves.size());
+        if (usi_options_.temperature_x1000 == 0) {
+            //探索回数を正規化した分布に従って行動選択
+            for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
+                distribution[i] = (FloatType) curr_node.N[i] / curr_node.sum_N;
+                assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
+            }
+        } else {
+            //価値のソフトマックス分布に従って行動選択
+            std::vector<FloatType> Q(curr_node.moves.size());
+            for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
+#ifdef USE_CATEGORICAL
+                Q[i] = expOfValueDist(QfromNextValue(curr_node, i));
+#else
+                Q[i] = QfromNextValue(curr_node, i);
+#endif
+            }
+            distribution = softmax(Q, usi_options_.temperature_x1000 / 1000.0f);
         }
 
-        //ランダムに選択
         return curr_node.moves[randomChoose(distribution)];
     } else {
         //探索回数最大の手を選択
@@ -101,7 +111,7 @@ std::vector<Move> SearcherForPlay::getPV() const {
     return pv;
 }
 
-void SearcherForPlay::printUSIInfo(bool print_policy) const {
+void SearcherForPlay::printUSIInfo() const {
     const auto& curr_node = hash_table_[root_index_];
 
     int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
@@ -145,18 +155,53 @@ void SearcherForPlay::printUSIInfo(bool print_policy) const {
     }
     std::cout << std::endl;
 
-    if (print_policy) {
+    if (usi_options_.print_policy_num > 0) {
+        //まず各指し手の価値を取得
+        std::vector<FloatType> Q(curr_node.moves.size());
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-            double nn_policy = 100.0 * curr_node.nn_policy[i];
-            double search_policy = 100.0 * curr_node.N[i] / curr_node.sum_N;
 #ifdef USE_CATEGORICAL
-            double v = expOfValueDist(QfromNextValue(curr_node, i));
+            Q[i] = expOfValueDist(QfromNextValue(curr_node, i));
 #else
-            double v = QfromNextValue(curr_node, i);
+            Q[i] = QfromNextValue(curr_node, i);
 #endif
-            printf("info string %3lu  %5.1f  %5.1f  %+.3f  ", i, nn_policy, search_policy, v);
-            curr_node.moves[i].print();
         }
+        std::vector<FloatType> softmaxed_Q = softmax(Q, 0.02f);
+
+        //ソートするために構造体を準備
+        struct MoveWithInfo {
+            Move move;
+            int32_t N;
+            FloatType nn_output_policy, Q, softmaxed_Q;
+            bool operator<(const MoveWithInfo& rhs) const {
+                return Q < rhs.Q;
+            }
+            bool operator>(const MoveWithInfo& rhs) const {
+                return Q > rhs.Q;
+            }
+        };
+
+        std::vector<MoveWithInfo> moves_with_info(curr_node.moves.size());
+        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
+            moves_with_info[i].move = curr_node.moves[i];
+            moves_with_info[i].nn_output_policy = curr_node.nn_policy[i];
+            moves_with_info[i].N = curr_node.N[i];
+            moves_with_info[i].Q = Q[i];
+            moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
+        }
+        std::sort(moves_with_info.begin(), moves_with_info.end());
+
+        //指定された数だけ価値が高い順に表示する
+        //GUIを通すと後に出力したものが上に来るので昇順ソートしたものを出力すれば上から降順になる
+        for (uint64_t i = std::max((int64_t)0, (int64_t)curr_node.moves.size() - usi_options_.print_policy_num);
+                      i < curr_node.moves.size(); i++) {
+            printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  ", curr_node.moves.size() - i,
+                                                                          moves_with_info[i].nn_output_policy * 100.0,
+                                                                          moves_with_info[i].N * 100.0 / curr_node.sum_N,
+                                                                          moves_with_info[i].softmaxed_Q * 100,
+                                                                          moves_with_info[i].Q);
+            moves_with_info[i].move.print();
+        }
+        std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
     }
 }
 
@@ -175,22 +220,30 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         route_queue.clear();
         action_queue.clear();
 
-        if (hash_table_[root_index_].sum_N >= next_print_node_num_) {
-            next_print_node_num_ += print_interval_;
-            printUSIInfo(false);
+        lock_node_[root_index_].lock();
+        auto now_time = std::chrono::steady_clock::now();
+        auto elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_).count();
+        if (elapsed_msec >= next_print_time_) {
+            next_print_time_ += next_print_time_;
+            printUSIInfo();
         }
+        lock_node_[root_index_].unlock();
 
         //評価要求を貯める
-        for (uint64_t i = 0; i < search_batch_size_ && !shouldStop(); i++) {
+        for (int64_t i = 0; i < usi_options_.search_batch_size && !shouldStop(); i++) {
             select(root, id);
+        }
+
+        if (shouldStop()) {
+            break;
         }
 
         //評価要求をGPUで計算
         if (!index_queue.empty()) {
-            lock_expand_.lock();
             torch::NoGradGuard no_grad_guard;
+            lock_gpu_.lock();
             auto y = evaluator_->policyAndValueBatch(input_queue);
-            lock_expand_.unlock();
+            lock_gpu_.unlock();
 
             //書き込み
             for (uint64_t i = 0; i < index_queue.size(); i++) {
@@ -227,6 +280,11 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
 
         if (hash_table_[index].moves.empty()) {
             //詰みの場合抜ける
+            break;
+        }
+
+        if (pos.turnNumber() > usi_options_.draw_turn) {
+            //手数が制限まで達している場合も抜ける
             break;
         }
 
@@ -268,6 +326,11 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
 
     //今の局面を展開・GPUに評価依頼を投げる
     auto leaf_index = expand(pos, curr_indices, curr_actions, id);
+    if (leaf_index == -1) {
+        //shouldStopがtrueになったということ
+        //基本的には置換表に空きがなかったということだと思われる
+        return;
+    }
 
     //葉の直前ノードを更新
     lock_node_[index].lock();
@@ -281,13 +344,16 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
 }
 
 Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id) {
-    //全体をロック.このノードだけではなく探す部分も含めてなので
-    std::unique_lock<std::mutex> lock(lock_expand_);
+    //置換表全体をロック
+    lock_all_table_.lock();
 
     uint64_t index = hash_table_.findSameHashIndex(pos);
 
-    // 合流先が検知できればそれを返す
+    //合流先が検知できればそれを返す
     if (index != hash_table_.size()) {
+        //置換表全体のロックはもういらないので開放
+        lock_all_table_.unlock();
+
         indices.push(index);
         if (hash_table_[index].evaled) {
             //評価済みならば,前回までのループでここへ違う経路で到達していたか,終端状態であるかのいずれか
@@ -307,11 +373,22 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
         return index;
     }
 
-    // 空のインデックスを探す
+    //空のインデックスを探す
     index = hash_table_.searchEmptyIndex(pos);
 
     //経路として記録
     indices.push(index);
+
+    //テーブル全体を使うのはここまで
+    lock_all_table_.unlock();
+
+    //空のインデックスが見つからなかった
+    if (index == hash_table_.size()) {
+        return -1;
+    }
+
+    //取得したノードをロック
+    lock_node_[index].lock();
 
     auto& curr_node = hash_table_[index];
 
@@ -344,6 +421,18 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
+        lock_node_[index].unlock();
+        backup(indices, actions);
+    } else if (pos.turnNumber() > usi_options_.draw_turn) {
+        FloatType value = (MAX_SCORE + MIN_SCORE) / 2;
+#ifdef USE_CATEGORICAL
+        curr_node.value = onehotDist(value);
+#else
+        curr_node.value = value;
+#endif
+        curr_node.evaled = true;
+        //GPUに送らないのでこのタイミングでバックアップを行う
+        lock_node_[index].unlock();
         backup(indices, actions);
     } else if (curr_node.moves.empty()) {
         //打ち歩詰めなら勝ち,そうでないなら負け
@@ -356,8 +445,11 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
+        lock_node_[index].unlock();
         backup(indices, actions);
     } else {
+        lock_node_[index].unlock();
+
         //GPUへ計算要求を投げる
         auto this_feature = pos.makeFeature();
         input_queues_[id].insert(input_queues_[id].end(), this_feature.begin(), this_feature.end());
@@ -372,10 +464,15 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 
 void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
     assert(indices.size() == actions.size() + 1);
+
     auto leaf = indices.top();
     indices.pop();
+    lock_node_[leaf].lock();
     auto value = hash_table_[leaf].value;
-    static constexpr float LAMBDA = 0.9;
+    lock_node_[leaf].unlock();
+
+    //毎回計算するのは無駄だけど仕方ないか
+    FloatType lambda = usi_options_.UCT_lambda_x1000 / 1000.0;
 
     //バックアップ
     while (!actions.empty()) {
@@ -403,10 +500,10 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
         node.virtual_N[action] = 0;
 
         //価値の更新
-        auto curr_v = node.value;
-        float alpha = 1.0f / (node.sum_N + 1);
+        ValueType curr_v = node.value;
+        FloatType alpha = 1.0f / (node.sum_N + 1);
         node.value += alpha * (value - curr_v);
-        value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
+        value = lambda * value + (1.0f - lambda) * curr_v;
 
         //最大バックアップ
 //#ifdef USE_CATEGORICAL

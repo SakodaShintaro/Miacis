@@ -14,6 +14,7 @@ void alphaZero() {
     settings.add("Q_dist_lambda",          0.0f, 1.0f);
     settings.add("C_PUCT",                 0.0f, 1e10f);
     settings.add("draw_turn",              0, (int64_t)1024);
+    settings.add("random_turn",            0, (int64_t)1024);
     settings.add("batch_size",             1, (int64_t)1e10);
     settings.add("thread_num",             1, (int64_t)std::thread::hardware_concurrency());
     settings.add("max_step_num",           1, (int64_t)1e10);
@@ -35,18 +36,22 @@ void alphaZero() {
     settings.load("alphazero_settings.txt");
 
     //値の取得
+    UsiOptions usi_options;
     float learn_rate                 = settings.get<float>("learn_rate");
     float momentum                   = settings.get<float>("momentum");
     float policy_loss_coeff          = settings.get<float>("policy_loss_coeff");
     float value_loss_coeff           = settings.get<float>("value_loss_coeff");
     float lambda                     = settings.get<float>("lambda");
     float alpha                      = settings.get<float>("alpha");
-    float Q_dist_temperature         = settings.get<float>("Q_dist_temperature");
     float Q_dist_lambda              = settings.get<float>("Q_dist_lambda");
-    float C_PUCT                     = settings.get<float>("C_PUCT");
-    int64_t draw_turn                = settings.get<int64_t>("draw_turn");
+    usi_options.temperature_x1000    = settings.get<float>("Q_dist_temperature") * 1000;
+    usi_options.C_PUCT_x1000         = settings.get<float>("C_PUCT") * 1000;
+    usi_options.draw_turn            = settings.get<int64_t>("draw_turn");
+    usi_options.random_turn          = settings.get<int64_t>("random_turn");
+    usi_options.thread_num           = settings.get<int64_t>("thread_num");
+    usi_options.search_limit         = settings.get<int64_t>("search_limit");
+    usi_options.search_batch_size    = settings.get<int64_t>("search_batch_size");
     int64_t batch_size               = settings.get<int64_t>("batch_size");
-    int64_t thread_num               = settings.get<int64_t>("thread_num");
     int64_t max_step_num             = settings.get<int64_t>("max_step_num");
     int64_t learn_rate_decay_step1   = settings.get<int64_t>("learn_rate_decay_step1");
     int64_t learn_rate_decay_step2   = settings.get<int64_t>("learn_rate_decay_step2");
@@ -55,8 +60,6 @@ void alphaZero() {
     int64_t batch_size_per_gen       = settings.get<int64_t>("batch_size_per_gen");
     int64_t max_stack_size           = settings.get<int64_t>("max_stack_size");
     int64_t first_wait               = settings.get<int64_t>("first_wait");
-    int64_t search_limit             = settings.get<int64_t>("search_limit");
-    int64_t search_batch_size        = settings.get<int64_t>("search_batch_size");
     int64_t output_interval          = settings.get<int64_t>("output_interval");
     int64_t validation_interval      = settings.get<int64_t>("validation_interval");
     int64_t validation_size          = settings.get<int64_t>("validation_size");
@@ -65,8 +68,8 @@ void alphaZero() {
     //値同士の制約関係を確認
     assert(validation_interval % update_interval == 0);
 
-    //学習スレッドをスリープさせる時間は生成速度から自動計算するので初期化は不要だが一応
-    int64_t sleep_msec = 1000;
+    //学習スレッドをスリープさせる時間は生成速度から自動計算するので不適な値で初期化
+    int64_t sleep_msec = -1;
 
     //探索のシグナルをオフにしておく
     Searcher::stop_signal = false;
@@ -118,8 +121,7 @@ void alphaZero() {
     //自己対局スレッドを生成.0番目のものはnnを使い、それ以外は上で生成したネットワークを使う
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     for (uint64_t i = 0; i < gpu_num; i++) {
-        generators[i] = std::make_unique<GameGenerator>(search_limit, draw_turn, thread_num, search_batch_size, Q_dist_temperature,
-                                                        Q_dist_lambda, C_PUCT, replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
+        generators[i] = std::make_unique<GameGenerator>(usi_options, Q_dist_lambda, replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
     }
 
     //生成開始.10^15個の(つまり無限に)棋譜を生成させる
