@@ -1,7 +1,8 @@
 ﻿#include"neural_network.hpp"
 
 static constexpr int32_t STATE_BLOCK_NUM = 10;
-static constexpr int32_t ACTION_BLOCK_NUM = 10;
+static constexpr int32_t ACTION_BLOCK_NUM = 4;
+static constexpr int32_t PREDICT_TRANSITION_BLOCK_NUM = 4;
 static constexpr int32_t CHANNEL_NUM = 64;
 static constexpr int32_t VALUE_HIDDEN_NUM = 256;
 static constexpr int32_t KERNEL_SIZE = 3;
@@ -55,7 +56,10 @@ torch::Tensor ResidualBlockImpl::forward(torch::Tensor& x) {
     return x;
 }
 
-NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), state_encoder_blocks_(STATE_BLOCK_NUM, nullptr), action_encoder_blocks_(ACTION_BLOCK_NUM, nullptr) {
+NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false),
+                                         state_encoder_blocks_(STATE_BLOCK_NUM, nullptr),
+                                         action_encoder_blocks_(ACTION_BLOCK_NUM, nullptr),
+                                         predict_transition_blocks_(PREDICT_TRANSITION_BLOCK_NUM, nullptr) {
     state_encoder_first_conv_and_norm_ = register_module("state_encoder_first_conv_and_norm_", Conv2DwithBatchNorm(STATE_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
     for (int32_t i = 0; i < STATE_BLOCK_NUM; i++) {
         state_encoder_blocks_[i] = register_module("state_encoder_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
@@ -64,6 +68,11 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
     action_encoder_first_conv_and_norm_ = register_module("action_encoder_first_conv_and_norm_", Conv2DwithBatchNorm(ACTION_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
     for (int32_t i = 0; i < ACTION_BLOCK_NUM; i++) {
         action_encoder_blocks_[i] = register_module("action_encoder_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
+    }
+
+    predict_transition_first_conv_and_norm_ = register_module("predict_transition_first_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM + CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
+    for (int32_t i = 0; i < PREDICT_TRANSITION_BLOCK_NUM; i++) {
+        predict_transition_blocks_[i] = register_module("predict_transition_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
 
     policy_conv_ = register_module("policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
@@ -116,7 +125,12 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
 
 torch::Tensor NeuralNetworkImpl::predictTransition(torch::Tensor& state_representations,
                                                    torch::Tensor& move_representations) {
-    return state_representations + move_representations;
+    torch::Tensor x = torch::cat({state_representations, move_representations}, 1);
+    x = predict_transition_first_conv_and_norm_->forward(x);
+    for (auto& blocks : predict_transition_blocks_) {
+        x = blocks->forward(x);
+    }
+    return x;
 }
 
 torch::Tensor NeuralNetworkImpl::encodeStates(const std::vector<float>& inputs) {
@@ -282,8 +296,11 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     }
     torch::Tensor action_representation = encodeActions(moves);
 
+    //次状態予測部分には勾配を流さない方が良いかもしれない
+    torch::Tensor detached_state_representation = state_representation.detach();
+
     //次状態を予測
-    torch::Tensor predicted_state_representation = predictTransition(state_representation, action_representation);
+    torch::Tensor predicted_state_representation = predictTransition(detached_state_representation, action_representation);
 
     //次状態の表現を取得
     torch::Tensor next_state_representation = encodeStates(next_state_features);
