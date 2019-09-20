@@ -45,6 +45,19 @@ Move SearcherUsingSimNet::think(Position &root, int64_t random_turn) {
     torch::Tensor values = evaluator_->decodeValue(predicted_next_state_representations).cpu();
     std::vector<FloatType> values_vec(values.data<FloatType>(), values.data<FloatType>() + moves.size());
 
+    //現局面について方策を推論
+    torch::Tensor root_representation = evaluator_->encodeStates(root_features);
+    torch::Tensor policy = evaluator_->decodePolicy(root_representation)[0];
+    std::vector<FloatType> policy_vec;
+    for (uint64_t i = 0; i < moves.size(); i++) {
+        policy_vec.push_back(policy[moves[i].toLabel()].item<FloatType>());
+    }
+    policy_vec = softmax(policy_vec);
+
+    //auto policy_and_value = evaluator_->policyAndValueBatch(root_features);
+    //policy_vec = policy_and_value.first[0];
+    //policy_vec = softmax(policy_vec);
+
     //真の状態表現から推論する価値
     torch::Tensor true_values = evaluator_->decodeValue(next_state_representations).cpu();
     std::vector<FloatType> true_values_vec(true_values.data<FloatType>(), true_values.data<FloatType>() + moves.size());
@@ -54,6 +67,7 @@ Move SearcherUsingSimNet::think(Position &root, int64_t random_turn) {
     for (uint64_t i = 0; i < moves.size(); i++) {
         std::cout << std::showpos << std::fixed << std::setprecision(4) << -values_vec[i] << " ";
         std::cout << std::showpos << std::fixed << std::setprecision(4) << -true_values_vec[i] << " ";
+        std::cout << std::showpos << std::fixed << std::setprecision(4) << policy_vec[i] << " ";
         std::cout << std::noshowpos;
         moves[i].print(); 
         //std::cout << std::endl;
