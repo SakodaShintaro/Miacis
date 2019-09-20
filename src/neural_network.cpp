@@ -303,7 +303,8 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     torch::Tensor predicted_state_representation = predictTransition(detached_state_representation, action_representation);
 
     //次状態の表現を取得
-    torch::Tensor next_state_representation = encodeStates(next_state_features);
+    //勾配を止める
+    torch::Tensor next_state_representation = encodeStates(next_state_features).detach();
 
     //損失を計算
     torch::Tensor transition_loss = transitionLoss(predicted_state_representation, next_state_representation);
@@ -320,10 +321,15 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
 torch::Tensor NeuralNetworkImpl::transitionLoss(torch::Tensor& predict, torch::Tensor& ground_truth) {
     //要素ごとの自乗誤差の和
     //最後にsqrtを取ればユークリッド距離になるが、取ったほうが良いかどうかは不明
+//    torch::Tensor diff = predict - ground_truth;
+//    torch::Tensor square = torch::pow(diff, 2);
+//    torch::Tensor sum = torch::sum(square, { 1, 2, 3 });
+//    return torch::sqrt(sum);
+
+    //平均自乗誤差にする
     torch::Tensor diff = predict - ground_truth;
     torch::Tensor square = torch::pow(diff, 2);
-    torch::Tensor sum = torch::sum(square, { 1, 2, 3 });
-    return torch::sqrt(sum);
+    return torch::mean(square, {1, 2, 3});
 }
 
 NeuralNetwork nn;
