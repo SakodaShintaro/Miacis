@@ -46,7 +46,7 @@ private:
 
     //展開
     void expand(const Position& pos, const std::vector<Move>& moves,
-                const std::vector<FloatType>& state_rep);
+                const std::vector<FloatType>& state_rep, bool force=false);
 
     //置換表
     std::map<std::vector<Move>, SimHashEntry> hash_table_;

@@ -88,7 +88,7 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
     torch::Tensor root_rep_tensor = evaluator_->encodeStates(root.makeFeature()).cpu();
     std::vector<FloatType> root_rep(root_rep_tensor.data<FloatType>(), root_rep_tensor.data<FloatType>() + 9 * 9 * 64);
 
-    expand(root, std::vector<Move>(), root_rep);
+    expand(root, std::vector<Move>(), root_rep, true);
 
     //合法手が0だったら投了
     if (hash_table_[std::vector<Move>()].moves.empty()) {
@@ -96,8 +96,7 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
     }
 
     //規定回数まで選択
-    constexpr int64_t PLAYOUT_LIMIT = 800;
-    for (int64_t i = 0; i < PLAYOUT_LIMIT; i++) {
+    for (int64_t i = 0; i < usi_options_.search_limit; i++) {
         Position pos = root;
         std::vector<FloatType> state_rep = root_rep;
         std::vector<Move> moves;
@@ -123,7 +122,7 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
                 break;
             }
 
-            if (hash_table_[moves].nn_policy.size() != hash_table_[moves].moves.size()) {
+            if (!moves.empty() && hash_table_[moves].nn_policy.size() != hash_table_[moves].moves.size()) {
                 //policyが展開されていなかったら抜ける
                 break;
             }
@@ -135,18 +134,20 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
         }
 
         //状態表現の遷移
-        state_rep = evaluator_->predictTransition(state_rep, moves.back());
+        if (!moves.empty()) {
+            state_rep = evaluator_->predictTransition(state_rep, moves.back());
+        }
 
         //リーフノードを展開
-        expand(pos, moves, state_rep);
+        expand(pos, moves, state_rep, false);
 
         FloatType value = hash_table_[moves].value;
 
-        Move last_move = moves.back();
-        moves.pop_back();
-
         //バックアップ
-        while (true) {
+        while (!moves.empty()) {
+            Move last_move = moves.back();
+            moves.pop_back();
+
             //手番が変わるので反転
 #ifdef USE_CATEGORICAL
             std::reverse(value.begin(), value.end());
@@ -160,11 +161,6 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
             ValueType curr_v = node.value;
             FloatType alpha = 1.0f / (node.sum_N + 1);
             node.value += alpha * (value - curr_v);
-            if (moves.empty()) {
-                break;
-            }
-            last_move = moves.back();
-            moves.pop_back();
         }
     }
 
@@ -189,29 +185,37 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
     }
     std::vector<FloatType> softmaxed_Q = softmax(Q, 0.02f);
 
-    std::vector<MoveWithInfo> moves_with_info(root_node.moves.size());
-    for (uint64_t i = 0; i < root_node.moves.size(); i++) {
-        moves_with_info[i].move = root_node.moves[i];
-        moves_with_info[i].nn_output_policy = root_node.nn_policy[i];
-        moves_with_info[i].N = root_node.N[i];
-        moves_with_info[i].Q = Q[i];
-        moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
+    if (usi_options_.print_policy_num) {
+        std::vector<MoveWithInfo> moves_with_info(root_node.moves.size());
+        for (uint64_t i = 0; i < root_node.moves.size(); i++) {
+            moves_with_info[i].move = root_node.moves[i];
+            moves_with_info[i].nn_output_policy = root_node.nn_policy[i];
+            moves_with_info[i].N = root_node.N[i];
+            moves_with_info[i].Q = Q[i];
+            moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
+        }
+
+        std::sort(moves_with_info.begin(), moves_with_info.end());
+
+        for (uint64_t i = std::max((int64_t) 0, (int64_t) root_node.moves.size() - usi_options_.print_policy_num);
+             i < root_node.moves.size(); i++) {
+            printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  ", root_node.moves.size() - i,
+                   moves_with_info[i].nn_output_policy * 100.0,
+                   moves_with_info[i].N * 100.0 / root_node.sum_N,
+                   moves_with_info[i].softmaxed_Q * 100,
+                   moves_with_info[i].Q);
+            moves_with_info[i].move.print();
+        }
+        std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
     }
 
-    std::sort(moves_with_info.begin(), moves_with_info.end());
-
-    for (uint64_t i = std::max((int64_t)0, (int64_t)root_node.moves.size() - usi_options_.print_policy_num);
-         i < root_node.moves.size(); i++) {
-        printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  ", root_node.moves.size() - i,
-               moves_with_info[i].nn_output_policy * 100.0,
-               moves_with_info[i].N * 100.0 / root_node.sum_N,
-               moves_with_info[i].softmaxed_Q * 100,
-               moves_with_info[i].Q);
-        moves_with_info[i].move.print();
+    //行動選択
+    if (root.turnNumber() < usi_options_.random_turn) {
+        return root_node.moves[randomChoose(softmaxed_Q)];
+    } else {
+        uint64_t max_index = std::max_element(root_node.N.begin(), root_node.N.end()) - root_node.N.begin();
+        return root_node.moves[max_index];
     }
-    std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
-    uint64_t max_index = std::max_element(root_node.N.begin(), root_node.N.end()) - root_node.N.begin();
-    return root_node.moves[max_index];
 }
 
 Move SearcherUsingSimNet::select(const std::vector<Move>& moves) {
@@ -251,7 +255,7 @@ Move SearcherUsingSimNet::select(const std::vector<Move>& moves) {
 }
 
 void SearcherUsingSimNet::expand(const Position& pos, const std::vector<Move>& moves,
-                                 const std::vector<FloatType>& state_rep) {
+                                 const std::vector<FloatType>& state_rep, bool force) {
     SimHashEntry& curr_node = hash_table_[moves];
     std::vector<FloatType> feature = pos.makeFeature();
     curr_node.moves = pos.generateAllMoves();
@@ -262,14 +266,14 @@ void SearcherUsingSimNet::expand(const Position& pos, const std::vector<Move>& m
 
     // ノードを評価
     Score repeat_score;
-    if (pos.isRepeating(repeat_score)) {
+    if (!force && pos.isRepeating(repeat_score)) {
         //繰り返し
 #ifdef USE_CATEGORICAL
         curr_node.value = onehotDist(repeat_score);
 #else
         curr_node.value = repeat_score;
 #endif
-    } else if (pos.turnNumber() > usi_options_.draw_turn) {
+    } else if (!force && pos.turnNumber() > usi_options_.draw_turn) {
         FloatType value = (MAX_SCORE + MIN_SCORE) / 2;
 #ifdef USE_CATEGORICAL
         curr_node.value = onehotDist(value);
@@ -277,7 +281,7 @@ void SearcherUsingSimNet::expand(const Position& pos, const std::vector<Move>& m
         curr_node.value = value;
 #endif
         curr_node.evaled = true;
-    } else if (curr_node.moves.empty()) {
+    } else if (!force && curr_node.moves.empty()) {
         //打ち歩詰めなら勝ち,そうでないなら負け
         auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
 
