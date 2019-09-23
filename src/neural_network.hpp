@@ -67,6 +67,9 @@ public:
     //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
+    //ある局面の表現を1次元vectorにしたものを受け取ってそれに対する評価を返す関数
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> decodePolicyAndValueBatch(const std::vector<float>& state_rep);
+
     //データから損失を計算する関数
     std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
 
@@ -87,6 +90,9 @@ public:
 
     //状態表現と行動表現から次状態の表現を予測する関数
     torch::Tensor predictTransition(const torch::Tensor& state_representations, const torch::Tensor& move_representations);
+
+    //状態表現(std::vector)と行動(Move一つ)から次状態の表現を予測する関数
+    std::vector<FloatType> predictTransition(const std::vector<FloatType>& state_rep, Move move);
 
     //状態表現の予測と実際の表現から損失を計算する関数
     torch::Tensor transitionLoss(const torch::Tensor& predict, const torch::Tensor& ground_truth);

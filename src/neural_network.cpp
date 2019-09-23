@@ -123,6 +123,48 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     return { policies, values };
 }
 
+std::pair<std::vector<PolicyType>, std::vector<ValueType>>
+NeuralNetworkImpl::decodePolicyAndValueBatch(const std::vector<float>& state_rep) {
+    int64_t batch_size = state_rep.size() / (SQUARE_NUM * CHANNEL_NUM);
+    torch::Tensor representation = torch::tensor(state_rep);
+    representation = representation.view({ batch_size, CHANNEL_NUM, 9, 9 }).to(device_);
+
+    std::vector<PolicyType> policies(batch_size);
+    std::vector<ValueType> values(batch_size);
+
+    //CPUに持ってくる
+    torch::Tensor policy = decodePolicy(representation).cpu();
+#ifdef USE_HALF_FLOAT
+    torch::Half* p = policy.data<torch::Half>();
+#else
+    float* p = policy.data<float>();
+#endif
+    for (int64_t i = 0; i < batch_size; i++) {
+        policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
+    }
+
+#ifdef USE_CATEGORICAL
+    torch::Tensor value = torch::softmax(decodeValue(representation), 1).cpu();
+#ifdef USE_HALF_FLOAT
+    torch::Half* value_p = value.data<torch::Half>();
+#else
+    float* value_p = value.data<float>();
+#endif
+    for (uint64_t i = 0; i < batch_size; i++) {
+        std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
+    }
+#else
+    //CPUに持ってくる
+    torch::Tensor value = decodeValue(representation).cpu();
+#ifdef USE_HALF_FLOAT
+    std::copy(value.data<torch::Half>(), value.data<torch::Half>() + batch_size, values.begin());
+#else
+    std::copy(value.data<float>(), value.data<float>() + batch_size, values.begin());
+#endif
+#endif
+    return { policies, values };
+}
+
 torch::Tensor NeuralNetworkImpl::predictTransition(const torch::Tensor& state_representations,
                                                    const torch::Tensor& move_representations) {
     torch::Tensor x = torch::cat({state_representations, move_representations}, 1);
@@ -131,6 +173,13 @@ torch::Tensor NeuralNetworkImpl::predictTransition(const torch::Tensor& state_re
         x = blocks->forward(x);
     }
     return x;
+}
+
+std::vector<FloatType> NeuralNetworkImpl::predictTransition(const std::vector<FloatType>& state_rep, Move move) {
+    torch::Tensor state_rep_tensor = torch::tensor(state_rep).view({ 1, CHANNEL_NUM, 9, 9 }).to(device_);
+    torch::Tensor move_rep_tensor = encodeActions({ move });
+    torch::Tensor predicted = predictTransition(state_rep_tensor, move_rep_tensor).cpu();
+    return std::vector<FloatType>(predicted.data<FloatType>(), predicted.data<FloatType>() + SQUARE_NUM * CHANNEL_NUM);
 }
 
 torch::Tensor NeuralNetworkImpl::encodeStates(const std::vector<float>& inputs) {

@@ -89,6 +89,7 @@ public:
     //比較演算子
     bool operator==(const Move& rhs) const { return (move_ == rhs.move_); }
     bool operator!=(const Move& rhs) const { return !(*this == rhs); }
+    bool operator< (const Move& rhs) const { return move_ < rhs.move_; }
 
     uint32_t toLabel() const;
 

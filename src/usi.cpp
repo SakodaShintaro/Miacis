@@ -103,7 +103,7 @@ void USI::setoption() {
 
 void USI::usinewgame() {
     if (usi_options_.use_sim_net) {
-        searcher_using_sim_net_ = std::make_unique<SearcherUsingSimNet>(nn);
+        searcher_using_sim_net_ = std::make_unique<SearcherUsingSimNet>(usi_options_, nn);
     } else {
         searcher_ = std::make_unique<SearcherForPlay>(usi_options_, nn);
     }
@@ -196,7 +196,7 @@ void USI::go() {
     //Ponderオンの場合、一度与えられた持ち時間でbestmoveを弾き出したあと無限の持ち時間で現局面についてPonderを行う
     //予想手を決めなくとも置換表を埋めていくだけで強くなるはず
     thread_ = std::thread([this, time_limit]() {
-        Move best_move = (usi_options_.use_sim_net ? searcher_using_sim_net_->think(root_, usi_options_.random_turn)
+        Move best_move = (usi_options_.use_sim_net ? searcher_using_sim_net_->thinkMCTS(root_, usi_options_.random_turn)
                                                    : searcher_->think(root_, time_limit - usi_options_.byoyomi_margin));
         std::cout << "bestmove " << best_move << std::endl;
         if (usi_options_.USI_Ponder && !usi_options_.use_sim_net) {

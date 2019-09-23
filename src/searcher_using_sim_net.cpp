@@ -81,3 +81,176 @@ Move SearcherUsingSimNet::think(Position &root, int64_t random_turn) {
 
     return moves[best_index];
 }
+
+Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
+    //ルート局面の状態を設定する
+    torch::Tensor root_rep_tensor = evaluator_->encodeStates(root.makeFeature()).cpu();
+    std::vector<FloatType> root_rep(root_rep_tensor.data<FloatType>(), root_rep_tensor.data<FloatType>() + 9 * 9 * 64);
+
+    expand(root, std::vector<Move>(), root_rep);
+
+    //規定回数まで選択
+    constexpr int64_t PLAYOUT_LIMIT = 800;
+    for (int64_t i = 0; i < PLAYOUT_LIMIT; i++) {
+        Position pos = root;
+        std::vector<FloatType> state_rep = root_rep;
+        std::vector<Move> moves;
+
+        //選択
+        while (hash_table_.count(moves)) {
+            //保存しておいた状態表現を取得
+            state_rep = hash_table_[moves].state_representation;
+
+            //行動を選んで遷移
+            Move move = select(moves);
+            moves.push_back(move);
+            pos.doMove(move);
+        }
+
+        //状態表現の遷移
+        state_rep = evaluator_->predictTransition(state_rep, moves.back());
+
+        //リーフノードを展開
+        expand(pos, moves, state_rep);
+
+        FloatType value = hash_table_[moves].value;
+
+        Move last_move = moves.back();
+        moves.pop_back();
+
+        //バックアップ
+        while (true) {
+            //手番が変わるので反転
+#ifdef USE_CATEGORICAL
+            std::reverse(value.begin(), value.end());
+#else
+            value = MAX_SCORE + MIN_SCORE - value;
+#endif
+
+            SimHashEntry& node = hash_table_[moves];
+            node.sum_N++;
+            node.N[std::find(node.moves.begin(), node.moves.end(), last_move) - node.moves.begin()]++;
+            ValueType curr_v = node.value;
+            FloatType alpha = 1.0f / (node.sum_N + 1);
+            node.value += alpha * (value - curr_v);
+            if (moves.empty()) {
+                break;
+            }
+            last_move = moves.back();
+            moves.pop_back();
+        }
+    }
+
+    SimHashEntry& root_node = hash_table_[std::vector<Move>()];
+
+    //ソートするために構造体を準備
+    struct MoveWithInfo {
+        Move move;
+        int32_t N;
+        FloatType nn_output_policy, Q, softmaxed_Q;
+        bool operator<(const MoveWithInfo& rhs) const {
+            return Q < rhs.Q;
+        }
+        bool operator>(const MoveWithInfo& rhs) const {
+            return Q > rhs.Q;
+        }
+    };
+
+    std::vector<FloatType> Q(root_node.moves.size());
+    for (uint64_t i = 0; i < root_node.moves.size(); i++) {
+        Q[i] = QfromNextValue(std::vector<Move>(), i);
+    }
+    std::vector<FloatType> softmaxed_Q = softmax(Q, 0.02f);
+
+    std::vector<MoveWithInfo> moves_with_info(root_node.moves.size());
+    for (uint64_t i = 0; i < root_node.moves.size(); i++) {
+        moves_with_info[i].move = root_node.moves[i];
+        moves_with_info[i].nn_output_policy = root_node.nn_policy[i];
+        moves_with_info[i].N = root_node.N[i];
+        moves_with_info[i].Q = Q[i];
+        moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
+    }
+
+    std::sort(moves_with_info.begin(), moves_with_info.end());
+
+    for (uint64_t i = std::max((int64_t)0, (int64_t)root_node.moves.size() - usi_options_.print_policy_num);
+         i < root_node.moves.size(); i++) {
+        printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  ", root_node.moves.size() - i,
+               moves_with_info[i].nn_output_policy * 100.0,
+               moves_with_info[i].N * 100.0 / root_node.sum_N,
+               moves_with_info[i].softmaxed_Q * 100,
+               moves_with_info[i].Q);
+        moves_with_info[i].move.print();
+    }
+    std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
+    uint64_t max_index = std::max_element(root_node.N.begin(), root_node.N.end()) - root_node.N.begin();
+    return root_node.moves[max_index];
+}
+
+Move SearcherUsingSimNet::select(const std::vector<Move>& moves) {
+    const SimHashEntry& node = hash_table_[moves];
+#ifdef USE_CATEGORICAL
+    int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
+    FloatType best_value = expOfValueDist(QfromNextValue(node, best_index));
+#endif
+
+    int32_t max_index = -1;
+    FloatType max_value = MIN_SCORE - 1;
+
+    const int32_t sum = node.sum_N;
+    for (uint64_t i = 0; i < node.moves.size(); i++) {
+        FloatType U = std::sqrt(sum + 1) / (node.N[i] + 1);
+
+#ifdef USE_CATEGORICAL
+        FloatType P = 0.0;
+        ValueType Q_dist = QfromNextValue(node, i);
+        FloatType Q = expOfValueDist(Q_dist);
+        for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
+            P += Q_dist[j];
+        }
+        FloatType ucb = Q_coeff_ * Q + C_PUCT_ * node.nn_policy[i] * U + P_coeff_ * P;
+#else
+        FloatType Q = (node.N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(moves, i));
+        FloatType ucb = Q + node.nn_policy[i] * U;
+#endif
+
+        if (ucb > max_value) {
+            max_value = ucb;
+            max_index = i;
+        }
+    }
+    assert(0 <= max_index && max_index < (int32_t)node.moves.size());
+    return node.moves[max_index];
+}
+
+void SearcherUsingSimNet::expand(const Position& pos, const std::vector<Move>& moves,
+                                 const std::vector<FloatType>& state_rep) {
+    SimHashEntry& entry = hash_table_[moves];
+    std::vector<FloatType> feature = pos.makeFeature();
+    entry.moves = pos.generateAllMoves();
+    //std::pair<std::vector<PolicyType>, std::vector<ValueType>> p_and_v = evaluator_->policyAndValueBatch(feature);
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> p_and_v = evaluator_->decodePolicyAndValueBatch(state_rep);
+    entry.value = p_and_v.second[0];
+    for (const Move& move : entry.moves) {
+        entry.nn_policy.push_back(p_and_v.first[0][move.toLabel()]);
+    }
+    entry.nn_policy = softmax(entry.nn_policy);
+    entry.sum_N = 0;
+    entry.evaled = true;
+    entry.N.assign(entry.moves.size(), 0);
+    entry.state_representation = state_rep;
+}
+
+ValueType SearcherUsingSimNet::QfromNextValue(std::vector<Move> moves, int32_t i) const {
+#ifdef USE_CATEGORICAL
+    auto v = hash_table_[node.child_indices[i]].value;
+    std::reverse(v.begin(), v.end());
+    return v;
+#else
+    moves.push_back(hash_table_.at(moves).moves[i]);
+    if (hash_table_.count(moves) == 0) {
+        return MIN_SCORE;
+    }
+    return MAX_SCORE + MIN_SCORE - hash_table_.at(moves).value;
+#endif
+}
