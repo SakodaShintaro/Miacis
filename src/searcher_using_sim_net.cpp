@@ -90,6 +90,11 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
 
     expand(root, std::vector<Move>(), root_rep);
 
+    //合法手が0だったら投了
+    if (hash_table_[std::vector<Move>()].moves.empty()) {
+        return NULL_MOVE;
+    }
+
     //規定回数まで選択
     constexpr int64_t PLAYOUT_LIMIT = 800;
     for (int64_t i = 0; i < PLAYOUT_LIMIT; i++) {
@@ -101,6 +106,27 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
         while (hash_table_.count(moves)) {
             //保存しておいた状態表現を取得
             state_rep = hash_table_[moves].state_representation;
+
+            if (hash_table_[moves].moves.empty()) {
+                //詰みの場合抜ける
+                break;
+            }
+
+            if (pos.turnNumber() > usi_options_.draw_turn) {
+                //手数が制限まで達している場合も抜ける
+                break;
+            }
+
+            Score repeat_score;
+            if (!moves.empty() && pos.isRepeating(repeat_score)) {
+                //繰り返しが発生している場合も抜ける
+                break;
+            }
+
+            if (hash_table_[moves].nn_policy.size() != hash_table_[moves].moves.size()) {
+                //policyが展開されていなかったら抜ける
+                break;
+            }
 
             //行動を選んで遷移
             Move move = select(moves);
@@ -226,20 +252,51 @@ Move SearcherUsingSimNet::select(const std::vector<Move>& moves) {
 
 void SearcherUsingSimNet::expand(const Position& pos, const std::vector<Move>& moves,
                                  const std::vector<FloatType>& state_rep) {
-    SimHashEntry& entry = hash_table_[moves];
+    SimHashEntry& curr_node = hash_table_[moves];
     std::vector<FloatType> feature = pos.makeFeature();
-    entry.moves = pos.generateAllMoves();
-    //std::pair<std::vector<PolicyType>, std::vector<ValueType>> p_and_v = evaluator_->policyAndValueBatch(feature);
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> p_and_v = evaluator_->decodePolicyAndValueBatch(state_rep);
-    entry.value = p_and_v.second[0];
-    for (const Move& move : entry.moves) {
-        entry.nn_policy.push_back(p_and_v.first[0][move.toLabel()]);
+    curr_node.moves = pos.generateAllMoves();
+    curr_node.sum_N = 0;
+    curr_node.evaled = true;
+    curr_node.N.assign(curr_node.moves.size(), 0);
+    curr_node.state_representation = state_rep;
+
+    // ノードを評価
+    Score repeat_score;
+    if (pos.isRepeating(repeat_score)) {
+        //繰り返し
+#ifdef USE_CATEGORICAL
+        curr_node.value = onehotDist(repeat_score);
+#else
+        curr_node.value = repeat_score;
+#endif
+    } else if (pos.turnNumber() > usi_options_.draw_turn) {
+        FloatType value = (MAX_SCORE + MIN_SCORE) / 2;
+#ifdef USE_CATEGORICAL
+        curr_node.value = onehotDist(value);
+#else
+        curr_node.value = value;
+#endif
+        curr_node.evaled = true;
+    } else if (curr_node.moves.empty()) {
+        //打ち歩詰めなら勝ち,そうでないなら負け
+        auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
+
+#ifdef USE_CATEGORICAL
+        curr_node.value = onehotDist(v);
+#else
+        curr_node.value = v;
+#endif
+        curr_node.evaled = true;
+    } else {
+        //GPUで計算
+        //std::pair<std::vector<PolicyType>, std::vector<ValueType>> p_and_v = evaluator_->policyAndValueBatch(feature);
+        std::pair<std::vector<PolicyType>, std::vector<ValueType>> p_and_v = evaluator_->decodePolicyAndValueBatch(state_rep);
+        curr_node.value = p_and_v.second[0];
+        for (const Move& move : curr_node.moves) {
+            curr_node.nn_policy.push_back(p_and_v.first[0][move.toLabel()]);
+        }
+        curr_node.nn_policy = softmax(curr_node.nn_policy);
     }
-    entry.nn_policy = softmax(entry.nn_policy);
-    entry.sum_N = 0;
-    entry.evaled = true;
-    entry.N.assign(entry.moves.size(), 0);
-    entry.state_representation = state_rep;
 }
 
 ValueType SearcherUsingSimNet::QfromNextValue(std::vector<Move> moves, int32_t i) const {
