@@ -84,6 +84,7 @@ Move SearcherUsingSimNet::think(Position &root, int64_t random_turn) {
 
 Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
     //ルート局面の状態を設定する
+    hash_table_.clear();
     torch::Tensor root_rep_tensor = evaluator_->encodeStates(root.makeFeature()).cpu();
     std::vector<FloatType> root_rep(root_rep_tensor.data<FloatType>(), root_rep_tensor.data<FloatType>() + 9 * 9 * 64);
 
