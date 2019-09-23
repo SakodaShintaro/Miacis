@@ -39,7 +39,7 @@ Move SearcherUsingSimNet::think(Position &root, int64_t random_turn) {
     //損失を計算
     torch::Tensor transition_loss = evaluator_->transitionLoss(predicted_next_state_representations,
                                                                          next_state_representations);
-    std::cout <<  transition_loss << std::endl;
+//    std::cout <<  transition_loss << std::endl;
 
     //推論した価値を予測
     torch::Tensor values = evaluator_->decodeValue(predicted_next_state_representations).cpu();
@@ -65,17 +65,19 @@ Move SearcherUsingSimNet::think(Position &root, int64_t random_turn) {
     FloatType best_value = MIN_SCORE - 1;
     uint64_t best_index = 0;
     for (uint64_t i = 0; i < moves.size(); i++) {
-        std::cout << std::showpos << std::fixed << std::setprecision(4) << -values_vec[i] << " ";
-        std::cout << std::showpos << std::fixed << std::setprecision(4) << -true_values_vec[i] << " ";
-        std::cout << std::showpos << std::fixed << std::setprecision(4) << policy_vec[i] << " ";
-        std::cout << std::noshowpos;
-        moves[i].print(); 
-        //std::cout << std::endl;
+//        std::cout << std::showpos << std::fixed << std::setprecision(4) << -values_vec[i] << " ";
+//        std::cout << std::showpos << std::fixed << std::setprecision(4) << -true_values_vec[i] << " ";
+//        std::cout << std::showpos << std::fixed << std::setprecision(4) << policy_vec[i] << " ";
+//        std::cout << std::noshowpos;
+//        moves[i].print();
+//        std::cout << std::endl;
         if (-true_values_vec[i] > best_value) {
             best_value = -true_values_vec[i];
             best_index = i;
         }
     }
+
+    std::cout << "info score cp " << (int64_t)(best_value * 1000) << std::endl;
 
     return moves[best_index];
 }
