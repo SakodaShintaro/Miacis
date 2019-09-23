@@ -27,9 +27,6 @@ USI::USI() : searcher_(nullptr) {
     command_["checkGenSpeed"]      = checkGenSpeed;
     command_["checkPredictSpeed"]  = checkPredictSpeed;
     command_["checkVal"]           = checkVal;
-
-    //positionでjoinしたいので最初にダミーの関数を動かす
-    thread_ = std::thread([](){});
 }
 
 void USI::loop() {
@@ -111,7 +108,9 @@ void USI::position() {
     //root_をthinkに参照で与えているのでposition構築前に止める必要がある
     //値渡しにすれば大丈夫だろうけど、別に棋力的に大差はないだろう
     Searcher::stop_signal = true;
-    thread_.join();
+    if (thread_.joinable()) {
+        thread_.join();
+    }
 
     //局面の構築
     std::string input, sfen;
@@ -201,7 +200,9 @@ void USI::go() {
 
 void USI::stop() {
     Searcher::stop_signal = true;
-    thread_.join();
+    if (thread_.joinable()) {
+        thread_.join();
+    }
 }
 
 void USI::quit() {
