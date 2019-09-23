@@ -26,8 +26,8 @@ Move SearcherUsingSimNet::think(Position &root, int64_t random_turn) {
 
     //真の次状態の特徴を取得
     std::vector<FloatType> next_features;
-    for (uint64_t i = 0; i < moves.size(); i++) {
-        root.doMove(moves[i]);
+    for (const Move& move : moves) {
+        root.doMove(move);
         std::vector<FloatType> next_feature = root.makeFeature();
         next_features.insert(next_features.end(), next_feature.begin(), next_feature.end());
         root.undo();
@@ -49,8 +49,8 @@ Move SearcherUsingSimNet::think(Position &root, int64_t random_turn) {
     torch::Tensor root_representation = evaluator_->encodeStates(root_features);
     torch::Tensor policy = evaluator_->decodePolicy(root_representation)[0];
     std::vector<FloatType> policy_vec;
-    for (uint64_t i = 0; i < moves.size(); i++) {
-        policy_vec.push_back(policy[moves[i].toLabel()].item<FloatType>());
+    for (const Move& move : moves) {
+        policy_vec.push_back(policy[move.toLabel()].item<FloatType>());
     }
     policy_vec = softmax(policy_vec);
 

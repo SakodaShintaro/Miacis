@@ -39,7 +39,7 @@ enum LossType {
 class Conv2DwithBatchNormImpl : public torch::nn::Module {
 public:
     Conv2DwithBatchNormImpl(int64_t input_ch, int64_t output_ch, int64_t kernel_size);
-    torch::Tensor forward(torch::Tensor& x);
+    torch::Tensor forward(const torch::Tensor& x);
 private:
     torch::nn::Conv2d    conv_{ nullptr };
     torch::nn::BatchNorm norm_{ nullptr };
@@ -50,7 +50,7 @@ TORCH_MODULE(Conv2DwithBatchNorm);
 class ResidualBlockImpl : public torch::nn::Module {
 public:
     ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, int64_t reduction);
-    torch::Tensor forward(torch::Tensor& x);
+    torch::Tensor forward(const torch::Tensor& x);
 private:
     Conv2DwithBatchNorm conv_and_norm0_{ nullptr };
     Conv2DwithBatchNorm conv_and_norm1_{ nullptr };
@@ -80,16 +80,16 @@ public:
     torch::Tensor encodeActions(const std::vector<Move>& moves);
 
     //状態表現から方策を得る関数
-    torch::Tensor decodePolicy(torch::Tensor& representation);
+    torch::Tensor decodePolicy(const torch::Tensor& representation);
 
     //状態表現から状態価値を得る関数
-    torch::Tensor decodeValue(torch::Tensor& representation);
+    torch::Tensor decodeValue(const torch::Tensor& representation);
 
     //状態表現と行動表現から次状態の表現を予測する関数
-    torch::Tensor predictTransition(torch::Tensor& state_representations, torch::Tensor& move_representations);
+    torch::Tensor predictTransition(const torch::Tensor& state_representations, const torch::Tensor& move_representations);
 
     //状態表現の予測と実際の表現から損失を計算する関数
-    torch::Tensor transitionLoss(torch::Tensor& predict, torch::Tensor& ground_truth);
+    torch::Tensor transitionLoss(const torch::Tensor& predict, const torch::Tensor& ground_truth);
 
     //評価パラメータを読み書きするファイルのprefix
     static const std::string MODEL_PREFIX;

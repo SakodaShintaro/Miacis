@@ -22,10 +22,10 @@ Conv2DwithBatchNormImpl::Conv2DwithBatchNormImpl(int64_t input_ch, int64_t outpu
     norm_ = register_module("norm_", torch::nn::BatchNorm(output_ch));
 }
 
-torch::Tensor Conv2DwithBatchNormImpl::forward(torch::Tensor& x) {
-    x = conv_->forward(x);
-    x = norm_->forward(x);
-    return x;
+torch::Tensor Conv2DwithBatchNormImpl::forward(const torch::Tensor& x) {
+    torch::Tensor r = conv_->forward(x);
+    r = norm_->forward(r);
+    return r;
 }
 
 ResidualBlockImpl::ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, int64_t reduction) {
@@ -35,25 +35,25 @@ ResidualBlockImpl::ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, i
     linear1_ = register_module("linear1_", torch::nn::Linear(torch::nn::LinearOptions(channel_num / reduction, channel_num).with_bias(false)));
 }
 
-torch::Tensor ResidualBlockImpl::forward(torch::Tensor& x) {
-    torch::Tensor t = x;
+torch::Tensor ResidualBlockImpl::forward(const torch::Tensor& x) {
+    torch::Tensor r = x;
 
-    x = conv_and_norm0_->forward(x);
-    x = torch::relu(x);
-    x = conv_and_norm1_->forward(x);
+    r = conv_and_norm0_->forward(r);
+    r = torch::relu(r);
+    r = conv_and_norm1_->forward(r);
 
     //SENet構造
-    auto y = torch::avg_pool2d(x, {9, 9});
+    torch::Tensor y = torch::avg_pool2d(r, {9, 9});
     y = y.view({-1, CHANNEL_NUM});
     y = linear0_->forward(y);
     y = torch::relu(y);
     y = linear1_->forward(y);
     y = torch::sigmoid(y);
     y = y.view({-1, CHANNEL_NUM, 1, 1});
-    x = x * y;
+    r = r * y;
 
-    x = torch::relu(x + t);
-    return x;
+    r = torch::relu(r + x);
+    return r;
 }
 
 NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false),
@@ -123,8 +123,8 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     return { policies, values };
 }
 
-torch::Tensor NeuralNetworkImpl::predictTransition(torch::Tensor& state_representations,
-                                                   torch::Tensor& move_representations) {
+torch::Tensor NeuralNetworkImpl::predictTransition(const torch::Tensor& state_representations,
+                                                   const torch::Tensor& move_representations) {
     torch::Tensor x = torch::cat({state_representations, move_representations}, 1);
     x = predict_transition_first_conv_and_norm_->forward(x);
     for (auto& blocks : predict_transition_blocks_) {
@@ -196,12 +196,12 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
     return x;
 }
 
-torch::Tensor NeuralNetworkImpl::decodePolicy(torch::Tensor& representation) {
+torch::Tensor NeuralNetworkImpl::decodePolicy(const torch::Tensor& representation) {
     torch::Tensor policy = policy_conv_->forward(representation);
     return policy.view({ -1, POLICY_DIM });
 }
 
-torch::Tensor NeuralNetworkImpl::decodeValue(torch::Tensor& representation) {
+torch::Tensor NeuralNetworkImpl::decodeValue(const torch::Tensor& representation) {
     torch::Tensor value = value_conv_and_norm_->forward(representation);
     value = torch::relu(value);
     value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
@@ -318,7 +318,7 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
     (fp16_ ? to(device_, torch::kHalf) : to(device_));
 }
 
-torch::Tensor NeuralNetworkImpl::transitionLoss(torch::Tensor& predict, torch::Tensor& ground_truth) {
+torch::Tensor NeuralNetworkImpl::transitionLoss(const torch::Tensor& predict, const torch::Tensor& ground_truth) {
     //要素ごとの自乗誤差の和
     //最後にsqrtを取ればユークリッド距離になるが、取ったほうが良いかどうかは不明
 //    torch::Tensor diff = predict - ground_truth;
