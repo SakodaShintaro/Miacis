@@ -83,11 +83,12 @@ Move SearcherUsingSimNet::think(Position &root, int64_t random_turn) {
 }
 
 Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
-    //ルート局面の状態を設定する
+    //前回の探索で使っている可能性があるので置換表をクリア
     hash_table_.clear();
+
+    //ルート局面の状態を設定する
     torch::Tensor root_rep_tensor = evaluator_->encodeStates(root.makeFeature()).cpu();
     std::vector<FloatType> root_rep(root_rep_tensor.data<FloatType>(), root_rep_tensor.data<FloatType>() + 9 * 9 * 64);
-
     expand(root, std::vector<Move>(), root_rep, true);
 
     //合法手が0だったら投了
@@ -257,7 +258,6 @@ Move SearcherUsingSimNet::select(const std::vector<Move>& moves) {
 void SearcherUsingSimNet::expand(const Position& pos, const std::vector<Move>& moves,
                                  const std::vector<FloatType>& state_rep, bool force) {
     SimHashEntry& curr_node = hash_table_[moves];
-    std::vector<FloatType> feature = pos.makeFeature();
     curr_node.moves = pos.generateAllMoves();
     curr_node.sum_N = 0;
     curr_node.evaled = true;
@@ -293,7 +293,6 @@ void SearcherUsingSimNet::expand(const Position& pos, const std::vector<Move>& m
         curr_node.evaled = true;
     } else {
         //GPUで計算
-        //std::pair<std::vector<PolicyType>, std::vector<ValueType>> p_and_v = evaluator_->policyAndValueBatch(feature);
         std::pair<std::vector<PolicyType>, std::vector<ValueType>> p_and_v = evaluator_->decodePolicyAndValueBatch(state_rep);
         curr_node.value = p_and_v.second[0];
         for (const Move& move : curr_node.moves) {
