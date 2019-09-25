@@ -131,7 +131,7 @@ void alphaZero() {
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames((int64_t)(1e15)); });
     }
 
-    for (int32_t step_num = 1; step_num <= max_step_num; step_num++) {
+    for (int64_t step_num = 1; step_num <= max_step_num; step_num++) {
         //バッチサイズ分データを選択
         std::vector<LearningData> curr_data = replay_buffer.makeBatch(batch_size);
 
@@ -148,8 +148,8 @@ void alphaZero() {
 
         //損失計算
         optimizer.zero_grad();
-        auto loss = learning_model->loss(curr_data);
-        auto loss_sum = (policy_loss_coeff * loss[POLICY_LOSS_INDEX] + value_loss_coeff * loss[VALUE_LOSS_INDEX]).cpu();
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data);
+        torch::Tensor loss_sum = (policy_loss_coeff * loss[POLICY_LOSS_INDEX] + value_loss_coeff * loss[VALUE_LOSS_INDEX]).cpu();
 
         //replay_bufferのpriorityを更新
         std::vector<float> loss_vec(loss_sum.data<float>(), loss_sum.data<float>() + batch_size);
