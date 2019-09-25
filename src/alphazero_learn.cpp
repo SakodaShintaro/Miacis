@@ -85,7 +85,8 @@ void alphaZero() {
 
     //データを取得
     std::vector<LearningData> validation_data = loadData(validation_kifu_path);
-    assert(validation_data.size() >= (uint64_t)validation_size);
+    std::cout << "validation_data.size() = " << validation_data.size() << std::endl;
+    validation_size = std::min((uint64_t)validation_size, validation_data.size());
 
     //データをシャッフルして必要量以外を削除
     std::mt19937_64 engine(0);

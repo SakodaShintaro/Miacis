@@ -23,9 +23,10 @@ Conv2DwithBatchNormImpl::Conv2DwithBatchNormImpl(int64_t input_ch, int64_t outpu
 }
 
 torch::Tensor Conv2DwithBatchNormImpl::forward(const torch::Tensor& x) {
-    torch::Tensor r = conv_->forward(x);
-    r = norm_->forward(r);
-    return r;
+    torch::Tensor t = x;
+    t = conv_->forward(t);
+    t = norm_->forward(t);
+    return t;
 }
 
 ResidualBlockImpl::ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, int64_t reduction) {
@@ -36,24 +37,24 @@ ResidualBlockImpl::ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, i
 }
 
 torch::Tensor ResidualBlockImpl::forward(const torch::Tensor& x) {
-    torch::Tensor r = x;
+    torch::Tensor t = x;
 
-    r = conv_and_norm0_->forward(r);
-    r = torch::relu(r);
-    r = conv_and_norm1_->forward(r);
+    t = conv_and_norm0_->forward(t);
+    t = torch::relu(t);
+    t = conv_and_norm1_->forward(t);
 
     //SENet構造
-    torch::Tensor y = torch::avg_pool2d(r, {9, 9});
+    auto y = torch::avg_pool2d(t, {9, 9});
     y = y.view({-1, CHANNEL_NUM});
     y = linear0_->forward(y);
     y = torch::relu(y);
     y = linear1_->forward(y);
     y = torch::sigmoid(y);
     y = y.view({-1, CHANNEL_NUM, 1, 1});
-    r = r * y;
+    t = t * y;
 
-    r = torch::relu(r + x);
-    return r;
+    t = torch::relu(x + t);
+    return t;
 }
 
 NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false),
