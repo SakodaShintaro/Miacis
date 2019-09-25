@@ -147,14 +147,13 @@ void alphaZero() {
 
         //損失計算
         optimizer.zero_grad();
-        auto loss = learning_model->loss(data);
-        auto loss_sum = (policy_loss_coeff * loss[POLICY_LOSS_INDEX] + value_loss_coeff * loss[VALUE_LOSS_INDEX] + 1.0 * loss[TRANS_LOSS_INDEX]).cpu();
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(data);
+        torch::Tensor loss_sum = (policy_loss_coeff * loss[POLICY_LOSS_INDEX] + value_loss_coeff * loss[VALUE_LOSS_INDEX] + 1.0 * loss[TRANS_LOSS_INDEX]).cpu();
 
         //replay_bufferのpriorityを更新
-        std::vector<float> loss_vec(loss_sum.data<float>(), loss_sum.data<float>() + batch_size);
-        replay_buffer.update(loss_vec);
+        replay_buffer.update({ loss_sum.data<float>(), loss_sum.data<float>() + batch_size });
 
-        //損失をバッチについて平均を取ったものに修正
+        //バッチについて損失の平均を取る
         loss_sum = loss_sum.mean();
 
         //学習
