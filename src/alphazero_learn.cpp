@@ -130,7 +130,7 @@ void alphaZero() {
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames((int64_t)(1e15)); });
     }
 
-    for (int32_t step_num = 1; step_num <= max_step_num; step_num++) {
+    for (int64_t step_num = 1; step_num <= max_step_num; step_num++) {
         //バッチサイズ分データを選択
         std::vector<LearningData> data = replay_buffer.makeBatch(batch_size);
 
@@ -193,7 +193,8 @@ void alphaZero() {
                                             << step_num << "\t"
                                             << policy_loss_coeff * val_loss[POLICY_LOSS_INDEX] + value_loss_coeff * val_loss[VALUE_LOSS_INDEX] << "\t"
                                             << val_loss[POLICY_LOSS_INDEX] << "\t"
-                                            << val_loss[VALUE_LOSS_INDEX] << std::endl;
+                                            << val_loss[VALUE_LOSS_INDEX] << "\t"
+                                            << val_loss[TRANS_LOSS_INDEX] << std::endl;
         }
 
         //学習率の減衰.AlphaZeroを意識して3回まで設定可能
