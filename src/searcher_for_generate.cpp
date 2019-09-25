@@ -22,9 +22,9 @@ void SearcherForGenerate::select(Position& pos) {
     if (hash_table_[root_index_].sum_N == 0) {
         //初回の探索をする前にノイズを加える
         //Alpha Zeroの論文と同じディリクレノイズ
-        auto& root_node = hash_table_[root_index_];
+        UctHashEntry& root_node = hash_table_[root_index_];
         constexpr double epsilon = 0.25;
-        auto dirichlet = dirichletDistribution(root_node.moves.size(), 0.15);
+        std::vector<double> dirichlet = dirichletDistribution(root_node.moves.size(), 0.15);
         for (uint64_t i = 0; i < root_node.moves.size(); i++) {
             root_node.nn_policy[i] = (FloatType) ((1.0 - epsilon) * root_node.nn_policy[i] + epsilon * dirichlet[i]);
         }
@@ -35,7 +35,7 @@ void SearcherForGenerate::select(Position& pos) {
     std::stack<Index> curr_indices;
     std::stack<int32_t> curr_actions;
 
-    auto index = root_index_;
+    Index index = root_index_;
     //ルートでは合法手が一つはあるはず
     assert(!hash_table_[index].moves.empty());
 
@@ -56,7 +56,7 @@ void SearcherForGenerate::select(Position& pos) {
         curr_indices.push(index);
 
         //選択
-        auto action = selectMaxUcbChild(hash_table_[index]);
+        int32_t action = selectMaxUcbChild(hash_table_[index]);
 
         //取った行動を記録
         curr_actions.push(action);
@@ -70,11 +70,11 @@ void SearcherForGenerate::select(Position& pos) {
 
     //expandNode内でこれらの情報は壊れる可能性があるので保存しておく
     index = curr_indices.top();
-    auto action = curr_actions.top();
-    auto move_num = curr_actions.size();
+    int32_t action = curr_actions.top();
+    uint64_t move_num = curr_actions.size();
 
     //今の局面を展開・GPUに評価依頼を投げる
-    auto leaf_index = expand(pos, curr_indices, curr_actions);
+    Index leaf_index = expand(pos, curr_indices, curr_actions);
 
     //葉の直前ノードを更新
     hash_table_[index].child_indices[action] = leaf_index;
@@ -99,7 +99,7 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
     // 空のインデックスを探す
     index = hash_table_.searchEmptyIndex(pos);
 
-    auto& curr_node = hash_table_[index];
+    UctHashEntry& curr_node = hash_table_[index];
 
     // 現在のノードの初期化
     curr_node.moves = pos.generateAllMoves();
@@ -135,7 +135,7 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
 //    } else
     if (curr_node.moves.empty()) {
         //打ち歩詰めなら勝ち,そうでないなら負け
-        auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
+        FloatType v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
 
 #ifdef USE_CATEGORICAL
         curr_node.value = onehotDist(v);
@@ -148,7 +148,7 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
         backup(indices, actions);
     } else {
         //特徴量の追加
-        auto this_feature = pos.makeFeature();
+        std::vector<FloatType> this_feature = pos.makeFeature();
         input_queue_.insert(input_queue_.end(), this_feature.begin(), this_feature.end());
 
         //インデックス,行動の履歴およびidを追加
@@ -163,17 +163,17 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
 
 void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
     assert(indices.size() == actions.size() + 1);
-    auto leaf = indices.top();
+    int32_t leaf = indices.top();
     indices.pop();
-    auto value = hash_table_[leaf].value;
+    ValueType value = hash_table_[leaf].value;
     static constexpr FloatType LAMBDA = 1.0;
 
     //バックアップ
     while (!actions.empty()) {
-        auto index = indices.top();
+        int32_t index = indices.top();
         indices.pop();
 
-        auto action = actions.top();
+        int32_t action = actions.top();
         actions.pop();
 
         //手番が変わるので反転
@@ -187,7 +187,7 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
         hash_table_[index].N[action]++;
         hash_table_[index].sum_N++;
 
-        auto curr_v = hash_table_[index].value;
+        ValueType curr_v = hash_table_[index].value;
         float alpha = 1.0f / (hash_table_[index].sum_N + 1);
         hash_table_[index].value += alpha * (value - curr_v);
         value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
@@ -197,10 +197,10 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
 }
 
 OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
-    const auto& root_node = hash_table_[root_index_];
+    const UctHashEntry& root_node = hash_table_[root_index_];
     assert(!root_node.moves.empty());
     assert(root_node.sum_N != 0);
-    const auto& N = root_node.N;
+    const std::vector<int32_t>& N = root_node.N;
 
     //探索回数最大の手を選択する
     int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
@@ -208,10 +208,10 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     //選択した着手の勝率の算出
     //詰みのときは未展開であることに注意する
 #ifdef USE_CATEGORICAL
-    auto best_value = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
+    FloatType best_value = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
                     expOfValueDist(QfromNextValue(root_node, best_index)));
 #else
-    auto best_value = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
+    FloatType best_value = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
                     QfromNextValue(root_node, best_index));
 #endif
 
