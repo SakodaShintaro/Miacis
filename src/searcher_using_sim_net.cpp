@@ -210,11 +210,14 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
         std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
     }
 
+    //評価値の出力
+    uint64_t max_index = std::max_element(root_node.N.begin(), root_node.N.end()) - root_node.N.begin();
+    std::cout << "info score cp " << (int64_t)(QfromNextValue(std::vector<Move>(), max_index) * 1000) << std::endl;
+
     //行動選択
     if (root.turnNumber() < usi_options_.random_turn) {
         return root_node.moves[randomChoose(softmaxed_Q)];
     } else {
-        uint64_t max_index = std::max_element(root_node.N.begin(), root_node.N.end()) - root_node.N.begin();
         return root_node.moves[max_index];
     }
 }
