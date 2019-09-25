@@ -142,7 +142,7 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
         //リーフノードを展開
         expand(pos, moves, state_rep, false);
 
-        FloatType value = hash_table_[moves].value;
+        ValueType value = hash_table_[moves].value;
 
         //バックアップ
         while (!moves.empty()) {
@@ -182,7 +182,11 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
 
     std::vector<FloatType> Q(root_node.moves.size());
     for (uint64_t i = 0; i < root_node.moves.size(); i++) {
+#ifdef USE_CATEGORICAL
+        Q[i] = expOfValueDist(QfromNextValue(std::vector<Move>(), i));
+#else
         Q[i] = QfromNextValue(std::vector<Move>(), i);
+#endif
     }
     std::vector<FloatType> softmaxed_Q = softmax(Q, 0.02f);
 
@@ -212,7 +216,12 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
 
     //評価値の出力
     uint64_t max_index = std::max_element(root_node.N.begin(), root_node.N.end()) - root_node.N.begin();
-    std::cout << "info score cp " << (int64_t)(QfromNextValue(std::vector<Move>(), max_index) * 1000) << std::endl;
+#ifdef USE_CATEGORICAL
+    FloatType best_value = expOfValueDist(QfromNextValue(std::vector<Move>(), max_index));
+#else
+    FloatType best_value = QfromNextValue(std::vector<Move>(), max_index);
+#endif
+    std::cout << "info score cp " << (int64_t)(best_value * 1000) << std::endl;
 
     //行動選択
     if (root.turnNumber() < usi_options_.random_turn) {
@@ -226,7 +235,7 @@ Move SearcherUsingSimNet::select(const std::vector<Move>& moves) {
     const SimHashEntry& node = hash_table_[moves];
 #ifdef USE_CATEGORICAL
     int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
-    FloatType best_value = expOfValueDist(QfromNextValue(node, best_index));
+    FloatType best_value = expOfValueDist(QfromNextValue(moves, best_index));
 #endif
 
     int32_t max_index = -1;
@@ -238,12 +247,12 @@ Move SearcherUsingSimNet::select(const std::vector<Move>& moves) {
 
 #ifdef USE_CATEGORICAL
         FloatType P = 0.0;
-        ValueType Q_dist = QfromNextValue(node, i);
+        ValueType Q_dist = QfromNextValue(moves, i);
         FloatType Q = expOfValueDist(Q_dist);
         for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
             P += Q_dist[j];
         }
-        FloatType ucb = Q_coeff_ * Q + C_PUCT_ * node.nn_policy[i] * U + P_coeff_ * P;
+        FloatType ucb = Q + node.nn_policy[i] * U + P;
 #else
         FloatType Q = (node.N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(moves, i));
         FloatType ucb = Q + node.nn_policy[i] * U;
@@ -307,7 +316,11 @@ void SearcherUsingSimNet::expand(const Position& pos, const std::vector<Move>& m
 
 ValueType SearcherUsingSimNet::QfromNextValue(std::vector<Move> moves, int32_t i) const {
 #ifdef USE_CATEGORICAL
-    auto v = hash_table_[node.child_indices[i]].value;
+    moves.push_back(hash_table_.at(moves).moves[i]);
+    if (hash_table_.count(moves) == 0) {
+        return onehotDist(MIN_SCORE);
+    }
+    ValueType v = hash_table_.at(moves).value;
     std::reverse(v.begin(), v.end());
     return v;
 #else
