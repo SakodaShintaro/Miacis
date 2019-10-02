@@ -1,9 +1,6 @@
 ﻿#include"learn.hpp"
-#include"game.hpp"
 #include"hyperparameter_manager.hpp"
-#include<fstream>
 #include<iostream>
-#include<cassert>
 
 void supervisedLearn() {
     HyperparameterManager settings;
@@ -12,6 +9,7 @@ void supervisedLearn() {
     settings.add("policy_loss_coeff",      0.0f, 1e10f);
     settings.add("value_loss_coeff",       0.0f, 1e10f);
     settings.add("trans_loss_coeff",       0.0f, 1e10f);
+    settings.add("reconstruct_loss_coeff", 0.0f, 1e10f);
     settings.add("max_epoch",              1, (int64_t)1e10);
     settings.add("batch_size",             1, (int64_t)1e10);
     settings.add("kifu_path");
@@ -26,6 +24,7 @@ void supervisedLearn() {
     loss_coeff[POLICY_LOSS_INDEX]      = settings.get<float>("policy_loss_coeff");
     loss_coeff[VALUE_LOSS_INDEX]       = settings.get<float>("value_loss_coeff");
     loss_coeff[TRANS_LOSS_INDEX]       = settings.get<float>("trans_loss_coeff");
+    loss_coeff[RECONSTRUCT_LOSS_INDEX] = settings.get<float>("reconstruct_loss_coeff");
     int64_t max_epoch       = settings.get<int64_t>("max_epoch");
     int64_t batch_size      = settings.get<int64_t>("batch_size");
     std::string kifu_path   = settings.get<std::string>("kifu_path");
@@ -71,14 +70,14 @@ void supervisedLearn() {
     auto start_time = std::chrono::steady_clock::now();
 
     //学習開始
-    for (int32_t epoch = 1; epoch <= max_epoch; epoch++) {
+    for (int64_t epoch = 1; epoch <= max_epoch; epoch++) {
         //データをシャッフル
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
         for (uint64_t step = 0; (step + 1) * batch_size <= data_buffer.size(); step++) {
             //バッチサイズ分データを確保
             std::vector<LearningData> curr_data;
-            for (int32_t b = 0; b < batch_size; b++) {
+            for (int64_t b = 0; b < batch_size; b++) {
                 curr_data.push_back(data_buffer[step * batch_size + b]);
             }
 
@@ -88,9 +87,10 @@ void supervisedLearn() {
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 loss[i] = loss[i].mean();
             }
-            torch::Tensor loss_sum = loss_coeff[POLICY_LOSS_INDEX] * loss[POLICY_LOSS_INDEX]
-                                   + loss_coeff[VALUE_LOSS_INDEX]  * loss[VALUE_LOSS_INDEX]
-                                   + loss_coeff[TRANS_LOSS_INDEX]  * loss[TRANS_LOSS_INDEX];
+            torch::Tensor loss_sum = loss_coeff[POLICY_LOSS_INDEX]      * loss[POLICY_LOSS_INDEX]
+                                   + loss_coeff[VALUE_LOSS_INDEX]       * loss[VALUE_LOSS_INDEX]
+                                   + loss_coeff[TRANS_LOSS_INDEX]       * loss[TRANS_LOSS_INDEX]
+                                   + loss_coeff[RECONSTRUCT_LOSS_INDEX] * loss[RECONSTRUCT_LOSS_INDEX];
             loss_sum.backward();
             optimizer.step();
 
@@ -101,7 +101,8 @@ void supervisedLearn() {
                                            << step + 1 << "\t"
                                            << loss[POLICY_LOSS_INDEX].item<float>() << "\t"
                                            << loss[VALUE_LOSS_INDEX].item<float>() << "\t"
-                                           << loss[TRANS_LOSS_INDEX].item<float>() << std::endl;
+                                           << loss[TRANS_LOSS_INDEX].item<float>() << "\t"
+                                           << loss[RECONSTRUCT_LOSS_INDEX].item<float>() << std::endl;
             }
         }
 
@@ -111,9 +112,10 @@ void supervisedLearn() {
 
         //validation_lossを計算
         std::array<float, LOSS_TYPE_NUM> validation_loss = validation(validation_data);
-        float sum_loss = loss_coeff[POLICY_LOSS_INDEX] * validation_loss[POLICY_LOSS_INDEX]
-                       + loss_coeff[VALUE_LOSS_INDEX]  * validation_loss[VALUE_LOSS_INDEX]
-                       + loss_coeff[TRANS_LOSS_INDEX]  * validation_loss[TRANS_LOSS_INDEX];
+        float sum_loss = 0;
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            sum_loss += loss_coeff[i] * validation_loss[i];
+        }
 
         //最小値が更新されていればパラメータを保存
         if (sum_loss < min_loss) {
@@ -127,6 +129,7 @@ void supervisedLearn() {
                                         << validation_loss[POLICY_LOSS_INDEX] << "\t"
                                         << validation_loss[VALUE_LOSS_INDEX] << "\t"
                                         << validation_loss[TRANS_LOSS_INDEX] << "\t"
+                                        << validation_loss[RECONSTRUCT_LOSS_INDEX] << "\t"
                                         << optimizer.options.learning_rate_ << std::endl;
 
         if (epoch == max_epoch / 2 || epoch == max_epoch * 3 / 4) {
