@@ -1074,11 +1074,10 @@ std::vector<float> Position::makeFeature() const {
 
     //持ち駒の特徴量:最大枚数で割って正規化する
     static constexpr std::array<Color, ColorNum> colors[2] = { { BLACK, WHITE }, { WHITE, BLACK} };
-    static constexpr int32_t HAND_PIECE_NUM = 7;
-    static constexpr std::array<Piece, HAND_PIECE_NUM> HAND_PIECES = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
-    static constexpr std::array<FloatType, HAND_PIECE_NUM> MAX_NUMS = { 18.0, 4.0, 4.0, 4.0, 4.0, 2.0, 2.0 };
+    static constexpr std::array<Piece, HAND_PIECE_KIND_NUM> HAND_PIECES = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
+    static constexpr std::array<FloatType, HAND_PIECE_KIND_NUM> MAX_NUMS = { 18.0, 4.0, 4.0, 4.0, 4.0, 2.0, 2.0 };
     for (int32_t c : colors[color_]) {
-        for (int32_t j = 0; j < HAND_PIECE_NUM; j++) {
+        for (uint32_t j = 0; j < HAND_PIECE_KIND_NUM; j++) {
             for (Square sq : SquareList) {
                 features[i * SQUARE_NUM + SquareToNum[sq]] = hand_[c].num(HAND_PIECES[j]) / MAX_NUMS[j];
             }
@@ -1091,4 +1090,36 @@ std::vector<float> Position::makeFeature() const {
 
 bool Position::isLastMoveDropPawn() const {
     return (lastMove().isDrop() && kind(lastMove().subject()) == PAWN);
+}
+
+std::pair<std::vector<float>, std::vector<float>> Position::makeReconstructTeacher() const {
+    //盤面の状態の教師
+    //空のマスも含めるのでPIECE_KIND_NUM * 2 + "1"次元のものを考える
+    std::vector<float> board_teacher(SQUARE_NUM * (PIECE_KIND_NUM * 2 + 1), 0);
+
+    //盤上の駒の特徴量
+    for (uint64_t i = 0; i < PieceList.size(); i++) {
+        //いま考慮している駒
+        Piece t = (color_ == BLACK ? PieceList[i] : oppositeColor(PieceList[i]));
+
+        //各マスについてそこにあるなら1,ないなら0とする
+        for (Square sq : SquareList) {
+            //後手のときは盤面を180度反転させる
+            Piece p = (color_ == BLACK ? board_[sq] : board_[InvSquare[sq]]);
+            board_teacher[i * SQUARE_NUM + SquareToNum[sq]] = (t == p ? 1 : 0);
+        }
+    }
+
+    static constexpr std::array<Color, ColorNum> colors[2] = { { BLACK, WHITE }, { WHITE, BLACK} };
+    static constexpr std::array<Piece, HAND_PIECE_KIND_NUM> HAND_PIECES = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
+
+    //持ち駒の状態の教師
+    std::vector<float> hand_teacher;
+    for (int32_t c : colors[color_]) {
+        for (uint32_t j = 0; j < HAND_PIECE_KIND_NUM; j++) {
+            hand_teacher.push_back(hand_[c].num(HAND_PIECES[j]));
+        }
+    }
+
+    return { board_teacher, hand_teacher };
 }

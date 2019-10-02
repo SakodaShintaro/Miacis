@@ -80,6 +80,9 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false),
     value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
     value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
+
+    reconstruct_board_conv_ = register_module("reconstruct_board_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, PIECE_KIND_NUM * 2 + 1, 3).padding(1).with_bias(true)));
+    reconstruct_hand_linear_ = register_module("reconstruct_hand_linear_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, HAND_PIECE_KIND_NUM * 2));
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
@@ -151,7 +154,7 @@ NeuralNetworkImpl::decodePolicyAndValueBatch(const std::vector<float>& state_rep
 #else
     float* value_p = value.data<float>();
 #endif
-    for (uint64_t i = 0; i < batch_size; i++) {
+    for (int64_t i = 0; i < batch_size; i++) {
         std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
     }
 #else
@@ -272,11 +275,22 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     //局面の特徴量を取得
     std::vector<float> curr_state_features;
     std::vector<float> next_state_features;
+
+    //再構成損失を計算する際の教師情報
+    //入力情報とはやや形式が違うものを使う
+    std::vector<FloatType> board_teacher_vec;
+    std::vector<FloatType> hand_teacher_vec;
+
     for (const LearningData& datum : data) {
         //現局面の特徴量を取得
         pos.loadSFEN(datum.SFEN);
         std::vector<float> curr_state_feature = pos.makeFeature();
         curr_state_features.insert(curr_state_features.end(), curr_state_feature.begin(), curr_state_feature.end());
+
+        //現局面の再構成損失の教師を取得
+        std::pair<std::vector<float>, std::vector<float>> reconstruct_teacher = pos.makeReconstructTeacher();
+        board_teacher_vec.insert(board_teacher_vec.end(), reconstruct_teacher.first.begin(), reconstruct_teacher.first.end());
+        hand_teacher_vec.insert(hand_teacher_vec.end(), reconstruct_teacher.second.begin(), reconstruct_teacher.second.end());
 
         //次局面の特徴量を取得
         pos.doMove(datum.move);
@@ -356,7 +370,41 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     //損失を計算
     torch::Tensor transition_loss = transitionLoss(predicted_state_representation, next_state_representation);
 
-    return { policy_loss, value_loss, transition_loss };
+    //--------------------
+    //  再構成損失の計算
+    //--------------------
+    //盤面の再構成
+    torch::Tensor board = reconstruct_board_conv_->forward(state_representation);
+    //各マスについて駒次元の方にSoftmaxを計算
+    board = torch::softmax(board, 3);
+    //実際の駒の配置と照らし合わせて損失計算
+    //教師Tensorの構成
+    torch::Tensor board_teacher = torch::tensor(board_teacher_vec);
+    board_teacher = board_teacher.view({ -1, 9, 9, PIECE_KIND_NUM * 2 + 1 }).to(device_);
+    torch::Tensor board_reconstruct_loss = board_teacher * torch::log(board);
+    //駒種方向に和を取ることで各マスについて交差エントロピーを計算したことになる
+    board_reconstruct_loss = board_reconstruct_loss.sum(3);
+    //各マスについての交差エントロピーを全マスについて平均化する
+    board_reconstruct_loss = board_reconstruct_loss.mean({1, 2});
+    std::cout << board_reconstruct_loss << std::endl;
+
+    //手駒の再構成
+    torch::Tensor hand = reconstruct_hand_linear_->forward(state_representation.flatten(1));
+    //シグモイド関数をかけて[0, 1]の範囲に収める
+    hand = torch::sigmoid(hand);
+    //各持ち駒のあり得る枚数かけて範囲を変える
+    //e.g.) 歩なら[0, 18], 銀なら[0, 4], 飛車なら[0, 2]
+    torch::Tensor hand_max_coeff = torch::tensor({18, 4, 4, 4, 4, 2, 2, 18, 4, 4, 4, 4, 2, 2});
+    hand = hand_max_coeff * hand;
+    //自乗誤差
+    torch::Tensor hand_teacher = torch::tensor(hand_teacher_vec);
+    hand_teacher = hand_teacher.view({ -1, 9, 9, HAND_PIECE_KIND_NUM * 2 }).to(device_);
+    torch::Tensor hand_reconstruct_loss = torch::mse_loss(hand, hand_teacher, Reduction::None);
+    std::cout << hand_reconstruct_loss << std::endl;
+
+    torch::Tensor reconstruct_loss = board_reconstruct_loss + hand_reconstruct_loss;
+
+    return { policy_loss, value_loss, transition_loss, reconstruct_loss };
 }
 
 void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {

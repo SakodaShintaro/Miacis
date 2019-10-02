@@ -32,7 +32,7 @@ struct LearningData {
 
 //損失の種類
 enum LossType {
-    POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, TRANS_LOSS_INDEX, LOSS_TYPE_NUM
+    POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, TRANS_LOSS_INDEX, RECONSTRUCT_LOSS_INDEX, LOSS_TYPE_NUM
 };
 
 //畳み込みとBatchNormalizationをまとめたユニット
@@ -127,6 +127,12 @@ private:
     Conv2DwithBatchNorm value_conv_and_norm_{nullptr};
     torch::nn::Linear value_linear0_{nullptr};
     torch::nn::Linear value_linear1_{nullptr};
+
+    //reconstructで使用
+    //盤面の状態を再構成
+    torch::nn::Conv2d reconstruct_board_conv_{nullptr};
+    //手駒の状態を再構成
+    torch::nn::Linear reconstruct_hand_linear_{nullptr};
 };
 TORCH_MODULE(NeuralNetwork);
 

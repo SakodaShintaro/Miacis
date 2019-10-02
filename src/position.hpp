@@ -30,6 +30,8 @@ public:
     //特徴量作成
     std::vector<float> makeFeature() const;
 
+    std::pair<std::vector<float>, std::vector<float>> makeReconstructTeacher() const;
+
     //toとfromしか与えられない状態から完全なMoveに変換する関数
     Move transformValidMove(Move move);
 
