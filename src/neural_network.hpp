@@ -95,7 +95,7 @@ public:
     std::vector<FloatType> predictTransition(const std::vector<FloatType>& state_rep, Move move);
 
     //状態表現の予測と実際の表現から損失を計算する関数
-    torch::Tensor transitionLoss(const torch::Tensor& predict, const torch::Tensor& ground_truth);
+    static torch::Tensor transitionLoss(const torch::Tensor& predict, const torch::Tensor& ground_truth);
 
     //評価パラメータを読み書きするファイルのprefix
     static const std::string MODEL_PREFIX;

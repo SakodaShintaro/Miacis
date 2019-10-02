@@ -346,11 +346,8 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     }
     torch::Tensor action_representation = encodeActions(moves);
 
-    //次状態予測部分には勾配を流さない方が良いかもしれない
-    torch::Tensor detached_state_representation = state_representation.detach();
-
     //次状態を予測
-    torch::Tensor predicted_state_representation = predictTransition(detached_state_representation, action_representation);
+    torch::Tensor predicted_state_representation = predictTransition(state_representation.detach(), action_representation);
 
     //次状態の表現を取得
     //勾配を止める
