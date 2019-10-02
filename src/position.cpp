@@ -1098,9 +1098,9 @@ std::pair<std::vector<float>, std::vector<float>> Position::makeReconstructTeach
     std::vector<float> board_teacher(SQUARE_NUM * (PIECE_KIND_NUM * 2 + 1), 0);
 
     //盤上の駒の特徴量
-    for (uint64_t i = 0; i < PieceList.size(); i++) {
+    for (uint64_t i = 0; i <= PieceList.size(); i++) {
         //いま考慮している駒
-        Piece t = (color_ == BLACK ? PieceList[i] : oppositeColor(PieceList[i]));
+        Piece t = (i == PieceList.size() ? EMPTY : (color_ == BLACK ? PieceList[i] : oppositeColor(PieceList[i])));
 
         //各マスについてそこにあるなら1,ないなら0とする
         for (Square sq : SquareList) {

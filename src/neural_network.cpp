@@ -380,13 +380,13 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     //実際の駒の配置と照らし合わせて損失計算
     //教師Tensorの構成
     torch::Tensor board_teacher = torch::tensor(board_teacher_vec);
-    board_teacher = board_teacher.view({ -1, 9, 9, PIECE_KIND_NUM * 2 + 1 }).to(device_);
-    torch::Tensor board_reconstruct_loss = board_teacher * torch::log(board);
+    board_teacher = board_teacher.view({ -1, PIECE_KIND_NUM * 2 + 1, 9, 9 }).to(device_);
+
+    torch::Tensor board_reconstruct_loss = -board_teacher * torch::log(board);
     //駒種方向に和を取ることで各マスについて交差エントロピーを計算したことになる
     board_reconstruct_loss = board_reconstruct_loss.sum(3);
     //各マスについての交差エントロピーを全マスについて平均化する
     board_reconstruct_loss = board_reconstruct_loss.mean({1, 2});
-    std::cout << board_reconstruct_loss << std::endl;
 
     //手駒の再構成
     torch::Tensor hand = reconstruct_hand_linear_->forward(state_representation.flatten(1));
@@ -394,13 +394,15 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     hand = torch::sigmoid(hand);
     //各持ち駒のあり得る枚数かけて範囲を変える
     //e.g.) 歩なら[0, 18], 銀なら[0, 4], 飛車なら[0, 2]
-    torch::Tensor hand_max_coeff = torch::tensor({18, 4, 4, 4, 4, 2, 2, 18, 4, 4, 4, 4, 2, 2});
+    torch::Tensor hand_max_coeff = torch::tensor({18, 4, 4, 4, 4, 2, 2, 18, 4, 4, 4, 4, 2, 2}, torch::dtype(torch::kFloat32)).to(device_);
+    hand_max_coeff = hand_max_coeff.view({ -1, HAND_PIECE_KIND_NUM * 2 });
+
     hand = hand_max_coeff * hand;
     //自乗誤差
     torch::Tensor hand_teacher = torch::tensor(hand_teacher_vec);
-    hand_teacher = hand_teacher.view({ -1, 9, 9, HAND_PIECE_KIND_NUM * 2 }).to(device_);
+    hand_teacher = hand_teacher.view({ -1, HAND_PIECE_KIND_NUM * 2 }).to(device_);
     torch::Tensor hand_reconstruct_loss = torch::mse_loss(hand, hand_teacher, Reduction::None);
-    std::cout << hand_reconstruct_loss << std::endl;
+    hand_reconstruct_loss = hand_reconstruct_loss.mean({1});
 
     torch::Tensor reconstruct_loss = board_reconstruct_loss + hand_reconstruct_loss;
 
