@@ -47,11 +47,11 @@ void supervisedLearn() {
 
     //学習推移のログファイル
     std::ofstream learn_log("supervised_learn_log.txt");
-    dout(std::cout, learn_log) << "time\tepoch\tstep\tpolicy_loss\tvalue_loss\ttrans_loss" << std::fixed << std::endl;
+    dout(std::cout, learn_log) << "time\tepoch\tstep\tpolicy_loss\tvalue_loss\ttrans_loss\treconstruct_loss" << std::fixed << std::endl;
 
     //validation結果のログファイル
     std::ofstream validation_log("supervised_learn_validation_log.txt");
-    validation_log << "time\tepoch\tsum_loss\tpolicy_loss\tvalue_loss\ttrans_loss\tlearning_rate" << std::fixed << std::endl;
+    validation_log << "time\tepoch\tsum_loss\tpolicy_loss\tvalue_loss\ttrans_loss\treconstruct_loss\tlearning_rate" << std::fixed << std::endl;
 
     //評価関数読み込み
     NeuralNetwork learning_model;
