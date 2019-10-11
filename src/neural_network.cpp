@@ -151,7 +151,7 @@ NeuralNetworkImpl::decodePolicyAndValueBatch(const std::vector<float>& state_rep
 #else
     float* value_p = value.data<float>();
 #endif
-    for (uint64_t i = 0; i < batch_size; i++) {
+    for (int64_t i = 0; i < batch_size; i++) {
         std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
     }
 #else

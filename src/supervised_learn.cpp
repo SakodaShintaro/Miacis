@@ -1,9 +1,6 @@
 ﻿#include"learn.hpp"
-#include"game.hpp"
 #include"hyperparameter_manager.hpp"
-#include<fstream>
 #include<iostream>
-#include<cassert>
 
 void supervisedLearn() {
     HyperparameterManager settings;
@@ -71,14 +68,14 @@ void supervisedLearn() {
     auto start_time = std::chrono::steady_clock::now();
 
     //学習開始
-    for (int32_t epoch = 1; epoch <= max_epoch; epoch++) {
+    for (int64_t epoch = 1; epoch <= max_epoch; epoch++) {
         //データをシャッフル
         std::shuffle(data_buffer.begin(), data_buffer.end(), engine);
 
         for (uint64_t step = 0; (step + 1) * batch_size <= data_buffer.size(); step++) {
             //バッチサイズ分データを確保
             std::vector<LearningData> curr_data;
-            for (int32_t b = 0; b < batch_size; b++) {
+            for (int64_t b = 0; b < batch_size; b++) {
                 curr_data.push_back(data_buffer[step * batch_size + b]);
             }
 
