@@ -195,7 +195,9 @@ void alphaZero() {
             auto val_loss = validation(validation_data);
             dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
                                             << step_num << "\t"
-                                            << policy_loss_coeff * val_loss[POLICY_LOSS_INDEX] + value_loss_coeff * val_loss[VALUE_LOSS_INDEX] << "\t"
+                                            << policy_loss_coeff * val_loss[POLICY_LOSS_INDEX]
+                                             + value_loss_coeff * val_loss[VALUE_LOSS_INDEX]
+                                             + trans_loss_coeff * val_loss[TRANS_LOSS_INDEX] << "\t"
                                             << val_loss[POLICY_LOSS_INDEX] << "\t"
                                             << val_loss[VALUE_LOSS_INDEX] << "\t"
                                             << val_loss[TRANS_LOSS_INDEX] << std::endl;
