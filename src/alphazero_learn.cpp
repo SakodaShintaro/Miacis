@@ -8,6 +8,7 @@ void alphaZero() {
     settings.add("momentum",               0.0f, 1.0f);
     settings.add("policy_loss_coeff",      0.0f, 1e10f);
     settings.add("value_loss_coeff",       0.0f, 1e10f);
+    settings.add("trans_loss_coeff",       0.0f, 1e10f);
     settings.add("lambda",                 0.0f, 1.0f);
     settings.add("alpha",                  0.0f, 1e10f);
     settings.add("Q_dist_temperature",     0.0f, 1e10f);
@@ -41,6 +42,7 @@ void alphaZero() {
     float momentum                   = settings.get<float>("momentum");
     float policy_loss_coeff          = settings.get<float>("policy_loss_coeff");
     float value_loss_coeff           = settings.get<float>("value_loss_coeff");
+    float trans_loss_coeff           = settings.get<float>("trans_loss_coeff");
     float lambda                     = settings.get<float>("lambda");
     float alpha                      = settings.get<float>("alpha");
     float Q_dist_lambda              = settings.get<float>("Q_dist_lambda");
@@ -149,7 +151,9 @@ void alphaZero() {
         //損失計算
         optimizer.zero_grad();
         std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(data);
-        torch::Tensor loss_sum = (policy_loss_coeff * loss[POLICY_LOSS_INDEX] + value_loss_coeff * loss[VALUE_LOSS_INDEX] + 1.0 * loss[TRANS_LOSS_INDEX]).cpu();
+        torch::Tensor loss_sum = (policy_loss_coeff * loss[POLICY_LOSS_INDEX]
+                                + value_loss_coeff * loss[VALUE_LOSS_INDEX]
+                                + trans_loss_coeff * loss[TRANS_LOSS_INDEX]).cpu();
 
         //replay_bufferのpriorityを更新
         replay_buffer.update({ loss_sum.data<float>(), loss_sum.data<float>() + batch_size });
