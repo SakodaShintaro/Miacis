@@ -263,3 +263,35 @@ void checkActionRepresentations() {
         std::cout << std::endl;
     }
 }
+
+void checkReconstruct() {
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::NoGradGuard no_grad_guard;
+
+    Position pos;
+
+    while (true) {
+        //現状態表現
+        torch::Tensor curr_state_rep = nn->encodeStates(pos.makeFeature());
+
+        //局面を表示して再構成と比較
+        pos.print();
+        nn->reconstruct(curr_state_rep);
+
+        //行動をランダムに選択
+        std::vector<Move> moves = pos.generateAllMoves();
+        if (moves.empty()) {
+            break;
+        }
+
+        auto y = nn->policyAndValueBatch(pos.makeFeature());
+        auto raw_policy = y.first[0];
+        std::vector<float> masked_policy(moves.size());
+        for (uint64_t j = 0; j < moves.size(); j++) {
+            masked_policy[j] = raw_policy[moves[j].toLabel()];
+        }
+        Move best_move = moves[std::max_element(masked_policy.begin(), masked_policy.end()) - masked_policy.begin()];
+        pos.doMove(best_move);
+
+    }
+}

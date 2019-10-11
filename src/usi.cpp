@@ -29,6 +29,7 @@ USI::USI() : searcher_(nullptr) {
     command_["checkVal"] = checkVal;
     command_["checkTransitionModel"] = checkTransitionModel;
     command_["checkActionRepresentations"] = checkActionRepresentations;
+    command_["checkReconstruct"] = checkReconstruct;
 }
 
 void USI::loop() {
