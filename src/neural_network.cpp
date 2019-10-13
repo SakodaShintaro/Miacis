@@ -392,14 +392,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     //手駒の再構成
     torch::Tensor hand = reconstruct_hand_conv_and_norm_->forward(state_representation);
     hand = reconstruct_hand_linear_->forward(hand.flatten(1));
-    //シグモイド関数をかけて[0, 1]の範囲に収める
-    hand = torch::sigmoid(hand);
-    //各持ち駒のあり得る枚数かけて範囲を変える
-    //e.g.) 歩なら[0, 18], 銀なら[0, 4], 飛車なら[0, 2]
-    torch::Tensor hand_max_coeff = torch::tensor({18, 4, 4, 4, 4, 2, 2, 18, 4, 4, 4, 4, 2, 2}, torch::dtype(torch::kFloat32)).to(device_);
-    hand_max_coeff = hand_max_coeff.view({ -1, HAND_PIECE_KIND_NUM * 2 });
 
-    hand = hand_max_coeff * hand;
     //自乗誤差
     torch::Tensor hand_teacher = torch::tensor(hand_teacher_vec);
     hand_teacher = hand_teacher.view({ -1, HAND_PIECE_KIND_NUM * 2 }).to(device_);
@@ -450,14 +443,6 @@ void NeuralNetworkImpl::reconstruct(const torch::Tensor& representation) {
     //手駒の再構成
     torch::Tensor hand = reconstruct_hand_conv_and_norm_->forward(representation);
     hand = reconstruct_hand_linear_->forward(hand.flatten(1));
-    //シグモイド関数をかけて[0, 1]の範囲に収める
-    hand = torch::sigmoid(hand);
-    //各持ち駒のあり得る枚数かけて範囲を変える
-    //e.g.) 歩なら[0, 18], 銀なら[0, 4], 飛車なら[0, 2]
-    torch::Tensor hand_max_coeff = torch::tensor({18, 4, 4, 4, 4, 2, 2, 18, 4, 4, 4, 4, 2, 2}, torch::dtype(torch::kFloat32)).to(device_);
-    hand_max_coeff = hand_max_coeff.view({ -1, HAND_PIECE_KIND_NUM * 2 });
-
-    hand = hand_max_coeff * hand;
 
     std::cout << std::fixed;
     for (int64_t color : { BLACK, WHITE }) {
