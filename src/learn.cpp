@@ -29,7 +29,7 @@ double elapsedHours(const std::chrono::steady_clock::time_point& start) {
 
 std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& data, uint64_t batch_size) {
     uint64_t index = 0;
-    float policy_loss = 0.0, value_loss = 0.0, trans_loss = 0.0;
+    std::array<float, LOSS_TYPE_NUM> losses{};
     torch::NoGradGuard no_grad_guard;
     while (index < data.size()) {
         std::vector<LearningData> curr_data;
@@ -40,10 +40,14 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& dat
         }
 
         //計算
-        auto loss = nn->loss(curr_data);
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = nn->loss(curr_data);
 
-        policy_loss += loss[POLICY_LOSS_INDEX].sum().item<float>();
-        trans_loss += loss[TRANS_LOSS_INDEX].sum().item<float>();
+        //value以外は普通に和を取る
+        losses[POLICY_LOSS_INDEX]      += loss[POLICY_LOSS_INDEX].sum().item<float>();
+        losses[TRANS_LOSS_INDEX]       += loss[TRANS_LOSS_INDEX].sum().item<float>();
+        losses[RECONSTRUCT_LOSS_INDEX] += loss[RECONSTRUCT_LOSS_INDEX].sum().item<float>();
+
+        //valueだけは特別処理
 #ifdef USE_CATEGORICAL
         //categoricalモデルのときは冗長だがもう一度順伝播を行って損失を手動で計算
         std::vector<FloatType> inputs;
@@ -58,20 +62,20 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& dat
         for (uint64_t i = 0; i < values.size(); i++) {
             auto e = expOfValueDist(values[i]);
             auto vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
-            value_loss += (e - vt) * (e - vt);
+            losses[VALUE_LOSS_INDEX] += (e - vt) * (e - vt);
         }
 #else
         //scalarモデルのときはそのまま損失を加える
-        value_loss += loss[VALUE_LOSS_INDEX].sum().item<float>();
+        losses[VALUE_LOSS_INDEX] += loss[VALUE_LOSS_INDEX].sum().item<float>();
 #endif
     }
 
-    //平均を求める
-    policy_loss /= data.size();
-    value_loss /= data.size();
-    trans_loss /= data.size();
+    //データサイズで割って平均化
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        losses[i] /= data.size();
+    }
 
-    return { policy_loss, value_loss, trans_loss };
+    return losses;
 }
 
 std::vector<LearningData> loadData(const std::string& file_path) {
