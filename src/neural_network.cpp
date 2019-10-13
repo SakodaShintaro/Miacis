@@ -82,7 +82,8 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false),
     value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 
     reconstruct_board_conv_ = register_module("reconstruct_board_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, PIECE_KIND_NUM * 2 + 1, 3).padding(1).with_bias(true)));
-    reconstruct_hand_linear_ = register_module("reconstruct_hand_linear_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, HAND_PIECE_KIND_NUM * 2));
+    reconstruct_hand_conv_and_norm_ = register_module("reconstruct_hand_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, 1, 1));
+    reconstruct_hand_linear_ = register_module("reconstruct_hand_linear_", torch::nn::Linear(SQUARE_NUM, HAND_PIECE_KIND_NUM * 2));
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
@@ -389,7 +390,8 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     board_reconstruct_loss = board_reconstruct_loss.mean({1, 2});
 
     //手駒の再構成
-    torch::Tensor hand = reconstruct_hand_linear_->forward(state_representation.flatten(1));
+    torch::Tensor hand = reconstruct_hand_conv_and_norm_->forward(state_representation);
+    hand = reconstruct_hand_linear_->forward(hand.flatten(1));
     //シグモイド関数をかけて[0, 1]の範囲に収める
     hand = torch::sigmoid(hand);
     //各持ち駒のあり得る枚数かけて範囲を変える
@@ -446,7 +448,8 @@ void NeuralNetworkImpl::reconstruct(const torch::Tensor& representation) {
     }
 
     //手駒の再構成
-    torch::Tensor hand = reconstruct_hand_linear_->forward(representation.flatten(1));
+    torch::Tensor hand = reconstruct_hand_conv_and_norm_->forward(representation);
+    hand = reconstruct_hand_linear_->forward(hand.flatten(1));
     //シグモイド関数をかけて[0, 1]の範囲に収める
     hand = torch::sigmoid(hand);
     //各持ち駒のあり得る枚数かけて範囲を変える

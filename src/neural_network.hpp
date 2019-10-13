@@ -135,6 +135,7 @@ private:
     //盤面の状態を再構成
     torch::nn::Conv2d reconstruct_board_conv_{nullptr};
     //手駒の状態を再構成
+    Conv2DwithBatchNorm reconstruct_hand_conv_and_norm_{nullptr};
     torch::nn::Linear reconstruct_hand_linear_{nullptr};
 };
 TORCH_MODULE(NeuralNetwork);
