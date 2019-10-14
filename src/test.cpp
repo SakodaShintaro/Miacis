@@ -276,7 +276,7 @@ void checkReconstruct() {
 
         //局面を表示して再構成と比較
         pos.print();
-        nn->reconstruct(curr_state_rep);
+        nn->reconstruct(curr_state_rep, pos.color());
 
         //行動をランダムに選択
         std::vector<Move> moves = pos.generateAllMoves();
@@ -291,7 +291,12 @@ void checkReconstruct() {
             masked_policy[j] = raw_policy[moves[j].toLabel()];
         }
         Move best_move = moves[std::max_element(masked_policy.begin(), masked_policy.end()) - masked_policy.begin()];
+        std::cout << "best_move = "; best_move.print();
         pos.doMove(best_move);
 
+        //遷移を予想したもの
+        torch::Tensor move_rep = nn->encodeActions({best_move});
+        torch::Tensor next_rep = nn->predictTransition(curr_state_rep, move_rep);
+        nn->reconstruct(next_rep, pos.color());
     }
 }

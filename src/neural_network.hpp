@@ -89,7 +89,7 @@ public:
     torch::Tensor decodeValue(const torch::Tensor& representation);
 
     //状態表現から盤面を再構成して表示する関数
-    void reconstruct(const torch::Tensor& representation);
+    void reconstruct(const torch::Tensor& representation, Color color);
 
     //状態表現と行動表現から次状態の表現を予測する関数
     torch::Tensor predictTransition(const torch::Tensor& state_representations, const torch::Tensor& move_representations);

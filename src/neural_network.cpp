@@ -424,7 +424,7 @@ torch::Tensor NeuralNetworkImpl::transitionLoss(const torch::Tensor& predict, co
     return torch::mean(square, {1, 2, 3});
 }
 
-void NeuralNetworkImpl::reconstruct(const torch::Tensor& representation) {
+void NeuralNetworkImpl::reconstruct(const torch::Tensor& representation, Color color) {
     //盤面の再構成
     torch::Tensor board = reconstruct_board_conv_->forward(representation);
 
@@ -433,8 +433,14 @@ void NeuralNetworkImpl::reconstruct(const torch::Tensor& representation) {
 
     for (int64_t rank = 0; rank < 9; rank++) {
         for (int64_t file = 8; file >= 0; file--) {
-            int64_t value = piece[0][file][rank].item<int64_t>();
+            //後手番のときは反転されているので逆側を参照
+            int64_t value = (color == BLACK ? piece[0][file][rank].item<int64_t>()
+                                            : piece[0][8 - file][8 - rank].item<int64_t>());
             Piece p = (value == PieceList.size() ? EMPTY : PieceList[value]);
+
+            if (color == WHITE) {
+                p = oppositeColor(p);
+            }
             std::cout << PieceToSfenStr[p];
         }
         std::cout << std::endl;
@@ -445,10 +451,10 @@ void NeuralNetworkImpl::reconstruct(const torch::Tensor& representation) {
     hand = reconstruct_hand_linear_->forward(hand.flatten(1));
 
     std::cout << std::fixed;
-    for (int64_t color : { BLACK, WHITE }) {
-        std::cout << (color == BLACK ? "先手: " : "後手: ");
+    for (int64_t c : { BLACK, WHITE }) {
+        std::cout << (c == BLACK ? "先手: " : "後手: ");
         for (int64_t i = 0; i < HAND_PIECE_KIND_NUM; i++) {
-            std::cout << PieceToStr[i + 1] << hand[0][color * HAND_PIECE_KIND_NUM + i].item<float>() << " ";
+            std::cout << PieceToStr[i + 1] << std::setw(5) << std::setprecision(2) << hand[0][c * HAND_PIECE_KIND_NUM + i].item<float>() << " ";
         }
         std::cout << std::endl;
     }
