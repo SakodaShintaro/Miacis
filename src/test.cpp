@@ -249,6 +249,8 @@ void checkActionRepresentations() {
     moves.emplace_back(SQ54, SQ55, false, false, BLACK_KNIGHT_PROMOTE, EMPTY);
     moves.emplace_back(SQ24, SQ28, false, false, BLACK_ROOK, EMPTY);
     moves.emplace_back(SQ22, SQ88, false, false, BLACK_BISHOP, EMPTY);
+    moves.emplace_back(SQ22, SQ88, false, true,  BLACK_BISHOP, EMPTY);
+
 
     for (uint64_t i = 0; i < moves.size(); i++) {
         moves[i].print();

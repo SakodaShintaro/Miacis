@@ -454,7 +454,7 @@ void NeuralNetworkImpl::reconstruct(const torch::Tensor& representation, Color c
     for (int64_t c : { BLACK, WHITE }) {
         std::cout << (c == BLACK ? "先手: " : "後手: ");
         for (int64_t i = 0; i < HAND_PIECE_KIND_NUM; i++) {
-            std::cout << PieceToStr[i + 1] << std::setw(5) << std::setprecision(2) << hand[0][c * HAND_PIECE_KIND_NUM + i].item<float>() << " ";
+            std::cout << PieceToStr[i + 1] << std::setw(5) << std::setprecision(2) << hand[0][(c != color) * HAND_PIECE_KIND_NUM + i].item<float>() << " ";
         }
         std::cout << std::endl;
     }
