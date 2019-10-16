@@ -6,9 +6,6 @@ void alphaZero() {
     HyperparameterManager settings;
     settings.add("learn_rate",             0.0f, 100.0f);
     settings.add("momentum",               0.0f, 1.0f);
-    settings.add("policy_loss_coeff",      0.0f, 1e10f);
-    settings.add("value_loss_coeff",       0.0f, 1e10f);
-    settings.add("trans_loss_coeff",       0.0f, 1e10f);
     settings.add("lambda",                 0.0f, 1.0f);
     settings.add("alpha",                  0.0f, 1e10f);
     settings.add("Q_dist_temperature",     0.0f, 1e10f);
@@ -32,6 +29,9 @@ void alphaZero() {
     settings.add("validation_interval",    1, (int64_t)1e10);
     settings.add("validation_size",        0, (int64_t)1e10);
     settings.add("validation_kifu_path");
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
+    }
 
     //設定をファイルからロード
     settings.load("alphazero_settings.txt");
@@ -40,9 +40,6 @@ void alphaZero() {
     UsiOptions usi_options;
     float learn_rate                 = settings.get<float>("learn_rate");
     float momentum                   = settings.get<float>("momentum");
-    float policy_loss_coeff          = settings.get<float>("policy_loss_coeff");
-    float value_loss_coeff           = settings.get<float>("value_loss_coeff");
-    float trans_loss_coeff           = settings.get<float>("trans_loss_coeff");
     float lambda                     = settings.get<float>("lambda");
     float alpha                      = settings.get<float>("alpha");
     float Q_dist_lambda              = settings.get<float>("Q_dist_lambda");
@@ -67,6 +64,11 @@ void alphaZero() {
     int64_t validation_size          = settings.get<int64_t>("validation_size");
     std::string validation_kifu_path = settings.get<std::string>("validation_kifu_path");
 
+    std::array<float, LOSS_TYPE_NUM> coefficients{};
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        coefficients[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
+    }
+
     //値同士の制約関係を確認
     assert(validation_interval % update_interval == 0);
 
@@ -82,8 +84,14 @@ void alphaZero() {
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");
     std::ofstream validation_log("alphazero_validation_log.txt");
-    dout(std::cout, learn_log) << "time\tstep\tsum_loss\tpolicy_loss\tvalue_loss\ttrans_loss" << std::fixed << std::endl;
-    validation_log             << "time\tstep\tsum_loss\tpolicy_loss\tvalue_loss\ttrans_loss" << std::fixed << std::endl;
+    dout(std::cout, learn_log) << "time\tstep";
+    validation_log             << "time\tstep";
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        dout(std::cout, learn_log) << "\t" + LOSS_TYPE_NAME[i] + "_loss";
+        validation_log             << "\t" + LOSS_TYPE_NAME[i] + "_loss";
+    }
+    dout(std::cout, learn_log) << "time\tstep" << std::fixed << std::endl;
+    validation_log             << "time\tstep" << std::fixed << std::endl;
 
     //データを取得
     std::vector<LearningData> validation_data = loadData(validation_kifu_path);
@@ -151,9 +159,10 @@ void alphaZero() {
         //損失計算
         optimizer.zero_grad();
         std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(data);
-        torch::Tensor loss_sum = (policy_loss_coeff * loss[POLICY_LOSS_INDEX]
-                                + value_loss_coeff * loss[VALUE_LOSS_INDEX]
-                                + trans_loss_coeff * loss[TRANS_LOSS_INDEX]).cpu();
+        torch::Tensor loss_sum = torch::zeros({batch_size});
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            loss_sum += coefficients[i] * loss[i].cpu();
+        }
 
         //replay_bufferのpriorityを更新
         replay_buffer.update({ loss_sum.data<float>(), loss_sum.data<float>() + batch_size });
@@ -168,12 +177,10 @@ void alphaZero() {
 
         //1回のvalidationまで10回表示
         if (step_num % (validation_interval / 10) == 0) {
-            dout(std::cout, learn_log) << elapsedTime(start_time) << "\t"
-                                       << step_num << "\t"
-                                       << loss_sum.item<float>() << "\t"
-                                       << loss[POLICY_LOSS_INDEX].mean().item<float>() << "\t"
-                                       << loss[VALUE_LOSS_INDEX].mean().item<float>() << "\t"
-                                       << loss[TRANS_LOSS_INDEX].mean().item<float>() << std::endl;
+            dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << loss_sum.item<float>() << "\t";
+            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+                dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
+            }
         }
 
         //一定間隔でモデルの読み込んでActorのパラメータをLearnerと同期
@@ -192,15 +199,15 @@ void alphaZero() {
             //パラメータをステップ付きで保存
             torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
 
-            auto val_loss = validation(validation_data);
-            dout(std::cout, validation_log) << elapsedTime(start_time) << "\t"
-                                            << step_num << "\t"
-                                            << policy_loss_coeff * val_loss[POLICY_LOSS_INDEX]
-                                             + value_loss_coeff * val_loss[VALUE_LOSS_INDEX]
-                                             + trans_loss_coeff * val_loss[TRANS_LOSS_INDEX] << "\t"
-                                            << val_loss[POLICY_LOSS_INDEX] << "\t"
-                                            << val_loss[VALUE_LOSS_INDEX] << "\t"
-                                            << val_loss[TRANS_LOSS_INDEX] << std::endl;
+            std::array<float, LOSS_TYPE_NUM> valid_loss = validation(validation_data);
+            float valid_loss_sum = 0.0;
+            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+                valid_loss_sum += coefficients[i] * valid_loss[i];
+            }
+            dout(std::cout, validation_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << valid_loss_sum << "\t";
+            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+                dout(std::cout, validation_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
+            }
         }
 
         //学習率の減衰.AlphaZeroを意識して3回まで設定可能
