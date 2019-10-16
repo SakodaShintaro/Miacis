@@ -29,7 +29,7 @@ double elapsedHours(const std::chrono::steady_clock::time_point& start) {
 
 std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& validation_data, uint64_t batch_size) {
     uint64_t index = 0;
-    float policy_loss = 0.0, value_loss = 0.0;
+    std::array<float, LOSS_TYPE_NUM> losses{};
     torch::NoGradGuard no_grad_guard;
     Position pos;
     while (index < validation_data.size()) {
@@ -40,9 +40,16 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& val
         }
 
         //計算
-        auto loss = nn->loss(curr_data);
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = nn->loss(curr_data);
 
-        policy_loss += loss[POLICY_LOSS_INDEX].sum().item<float>();
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            if (i == VALUE_LOSS_INDEX) {
+                //valueだけは別計算する
+                continue;
+            }
+            losses[i] += loss[i].sum().item<float>();
+        }
+
 #ifdef USE_CATEGORICAL
         //categoricalモデルのときは冗長だがもう一度順伝播を行って損失を手動で計算
         std::vector<FloatType> inputs;
@@ -56,19 +63,20 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& val
         for (uint64_t i = 0; i < values.size(); i++) {
             auto e = expOfValueDist(values[i]);
             auto vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
-            value_loss += (e - vt) * (e - vt);
+            losses[VALUE_LOSS_INDEX] += (e - vt) * (e - vt);
         }
 #else
         //scalarモデルのときはそのまま損失を加える
-        value_loss += loss[VALUE_LOSS_INDEX].sum().item<float>();
+        losses[VALUE_LOSS_INDEX] += loss[VALUE_LOSS_INDEX].sum().item<float>();
 #endif
     }
 
-    //平均を求める
-    policy_loss /= validation_data.size();
-    value_loss /= validation_data.size();
+    //データサイズで割って平均
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        losses[i] /= validation_data.size();
+    }
 
-    return { policy_loss, value_loss };
+    return losses;
 }
 
 std::vector<LearningData> loadData(const std::string& file_path) {
@@ -99,30 +107,40 @@ std::vector<LearningData> loadData(const std::string& file_path) {
 
 void searchLearningRate() {
     HyperparameterManager settings;
-    settings.add("learn_rate",             0.0f, 100.0f);
-    settings.add("momentum",               0.0f, 1.0f);
-    settings.add("learn_rate_decay",       0.0f, 1.0f);
-    settings.add("policy_loss_coeff",      0.0f, 1e10f);
-    settings.add("value_loss_coeff",       0.0f, 1e10f);
-    settings.add("batch_size",             1, (int64_t)1e10);
-    settings.add("patience_limit",         1, (int64_t)1e10);
-    settings.add("kifu_path");
+    settings.add("learn_rate",        0.0f, 100.0f);
+    settings.add("momentum",          0.0f, 1.0f);
+    settings.add("weight_decay",      0.0f, 100.0f);
+    settings.add("batch_size",        1, (int64_t)1e10);
+    settings.add("max_epoch",         1, (int64_t)1e10);
+    settings.add("lr_decay_epoch1",   1, (int64_t)1e10);
+    settings.add("lr_decay_epoch2",   1, (int64_t)1e10);
+    settings.add("train_kifu_path");
+    settings.add("valid_kifu_path");
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
+    }
 
-    //設定をファイルからロード.教師あり学習のものを流用する
+    //設定をファイルからロード
     settings.load("supervised_learn_settings.txt");
 
     //値の取得
-    //float learn_rate        = settings.get<float>("learn_rate");
-    float momentum          = settings.get<float>("momentum");
-    //float learn_rate_decay  = settings.get<float>("learn_rate_decay");
-    float policy_loss_coeff = settings.get<float>("policy_loss_coeff");
-    float value_loss_coeff  = settings.get<float>("value_loss_coeff");
-    int64_t batch_size      = settings.get<int64_t>("batch_size");
-    //int64_t patience_limit  = settings.get<int64_t>("patience_limit");
-    std::string kifu_path   = settings.get<std::string>("kifu_path");
+    float learn_rate            = settings.get<float>("learn_rate");
+    float momentum              = settings.get<float>("momentum");
+    float weight_decay          = settings.get<float>("weight_decay");
+    int64_t batch_size          = settings.get<int64_t>("batch_size");
+    int64_t max_epoch           = settings.get<int64_t>("max_epoch");
+    int64_t lr_decay_epoch1     = settings.get<int64_t>("lr_decay_epoch1");
+    int64_t lr_decay_epoch2     = settings.get<int64_t>("lr_decay_epoch2");
+    std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
+    std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
+
+    std::array<float, LOSS_TYPE_NUM> coefficients{};
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        coefficients[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
+    }
 
     //学習データを取得
-    std::vector<LearningData> data_buffer = loadData(kifu_path);
+    std::vector<LearningData> data_buffer = loadData(train_kifu_path);
 
     //データをシャッフル
     std::mt19937_64 engine(0);
@@ -157,14 +175,17 @@ void searchLearningRate() {
         for (uint64_t step = 0; (step + 1) * batch_size <= data_buffer.size() && optimizer.options.learning_rate_ <= 1; step++) {
             //バッチサイズ分データを確保
             std::vector<LearningData> curr_data;
-            for (int32_t b = 0; b < batch_size; b++) {
+            for (int64_t b = 0; b < batch_size; b++) {
                 curr_data.push_back(data_buffer[step * batch_size + b]);
             }
 
             //学習
             optimizer.zero_grad();
-            auto loss = learning_model->loss(curr_data);
-            auto loss_sum = policy_loss_coeff * loss[POLICY_LOSS_INDEX] + value_loss_coeff * loss[VALUE_LOSS_INDEX];
+            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data);
+            torch::Tensor loss_sum = torch::zeros({ batch_size });
+            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+                loss_sum += coefficients[i] * loss[i];
+            }
             loss_sum.backward();
             optimizer.step();
 
