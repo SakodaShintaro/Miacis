@@ -100,12 +100,10 @@ void supervisedLearn() {
             loss_sum.mean().backward();
             optimizer.step();
 
-            //1エポックにつき10回出力
-            if ((step + 1) % (train_data.size() / batch_size / 10) == 0) {
-                dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << step + 1 << "\t";
-                for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                    dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
-                }
+            //表示
+            dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << step + 1 << "\t";
+            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+                dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
             }
         }
 
