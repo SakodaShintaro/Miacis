@@ -165,7 +165,7 @@ void SearcherForPlay::printUSIInfo() const {
             Q[i] = QfromNextValue(curr_node, i);
 #endif
         }
-        std::vector<FloatType> softmaxed_Q = softmax(Q, 0.02f);
+        std::vector<FloatType> softmaxed_Q = softmax(Q, usi_options_.temperature_x1000 / 1000.f);
 
         //ソートするために構造体を準備
         struct MoveWithInfo {

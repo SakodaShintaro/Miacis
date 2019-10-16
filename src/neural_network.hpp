@@ -35,6 +35,11 @@ enum LossType {
     POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, TRANS_LOSS_INDEX, RECONSTRUCT_LOSS_INDEX, LOSS_TYPE_NUM
 };
 
+//各損失の名前を示す文字列
+const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{
+    "policy", "value"
+};
+
 //畳み込みとBatchNormalizationをまとめたユニット
 class Conv2DwithBatchNormImpl : public torch::nn::Module {
 public:
