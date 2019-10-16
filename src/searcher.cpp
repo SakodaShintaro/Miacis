@@ -60,7 +60,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
         }
         FloatType ucb = Q_coeff_ * Q + C_PUCT_ * node.nn_policy[i] * U + P_coeff_ * P;
 #else
-        FloatType Q = (node.N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(node, i));
+        FloatType Q = (node.N[i] == 0 ? MIN_SCORE : QfromNextValue(node, i));
         FloatType ucb = Q_coeff_ * Q + C_PUCT_ * node.nn_policy[i] * U;
 #endif
 
