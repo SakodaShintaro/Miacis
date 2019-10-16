@@ -37,7 +37,7 @@ enum LossType {
 
 //各損失の名前を示す文字列
 const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{
-    "policy", "value"
+    "policy", "value", "trans", "reconstruct"
 };
 
 //畳み込みとBatchNormalizationをまとめたユニット
