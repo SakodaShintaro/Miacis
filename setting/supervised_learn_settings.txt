@@ -1,8 +1,12 @@
 learn_rate        0.02
 momentum          0.9
+weight_decay      0.0
 policy_loss_coeff 1.0
 value_loss_coeff  1.0
 trans_loss_coeff  1.0
-max_epoch         50
 batch_size        512
-kifu_path         /home/sakoda/floodgate_all
+max_epoch         50
+lr_decay_epoch1   50
+lr_decay_epoch2   50
+train_kifu_path   /root/training_kifu
+valid_kifu_path   /root/validation_kifu

@@ -25,4 +25,4 @@ search_batch_size      128
 output_interval        100
 validation_interval    100000
 validation_size        4096000
-validation_kifu_path   /root/2016
+validation_kifu_path   /root/validation_kifu
