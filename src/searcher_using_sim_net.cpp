@@ -188,7 +188,7 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
         Q[i] = QfromNextValue(std::vector<Move>(), i);
 #endif
     }
-    std::vector<FloatType> softmaxed_Q = softmax(Q, 0.02f);
+    std::vector<FloatType> softmaxed_Q = softmax(Q, usi_options_.temperature_x1000 / 1000.0f);
 
     if (usi_options_.print_policy_num) {
         std::vector<MoveWithInfo> moves_with_info(root_node.moves.size());
@@ -254,7 +254,7 @@ Move SearcherUsingSimNet::select(const std::vector<Move>& moves) {
         }
         FloatType ucb = Q + node.nn_policy[i] * U + P;
 #else
-        FloatType Q = (node.N[i] == 0 ? (MAX_SCORE + MIN_SCORE) / 2 : QfromNextValue(moves, i));
+        FloatType Q = (node.N[i] == 0 ? MIN_SCORE : QfromNextValue(moves, i));
         FloatType ucb = Q + node.nn_policy[i] * U;
 #endif
 
