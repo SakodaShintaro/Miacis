@@ -72,7 +72,7 @@ void supervisedLearn() {
     //optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
-    //sgd_option.weight_decay(weight_decay);
+    sgd_option.weight_decay(weight_decay);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
     //学習開始時間の設定
@@ -131,7 +131,7 @@ void supervisedLearn() {
         }
         dout(std::cout, validation_log) << optimizer.options.learning_rate_ << std::endl;
 
-        if (epoch == max_epoch / 2 || epoch == max_epoch * 3 / 4) {
+        if (epoch == lr_decay_epoch1 || epoch == lr_decay_epoch2) {
             optimizer.options.learning_rate_ /= 10;
         }
     }
