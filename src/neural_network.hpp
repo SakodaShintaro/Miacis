@@ -24,20 +24,37 @@ using ValueTeacherType = float;
 #endif
 
 //学習データの型
+constexpr int64_t LEARNING_RANGE = 2;
 struct LearningData {
     std::string SFEN;
-    Move move;
-    ValueTeacherType value;
+    std::array<Move, LEARNING_RANGE> moves;
+    std::array<ValueTeacherType, LEARNING_RANGE> value;
 };
 
 //損失の種類
 enum LossType {
-    POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, TRANS_LOSS_INDEX, RECONSTRUCT_LOSS_INDEX, LOSS_TYPE_NUM
+    //基本の3種。1つの表現ベクトルに対してこの3つが計算できる
+    POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, RECONSTRUCT_LOSS_INDEX,
+
+    //遷移損失。ここから下のものはLEARNING_RANGE - 1個だけ計算ができる
+    TRANS_LOSS_INDEX,
+
+    //遷移予測後の表現ベクトルからやっぱり上の3つが計算できる
+    NEXT_POLICY_LOSS_INDEX, NEXT_VALUE_LOSS_INDEX, NEXT_RECONSTRUCT_LOSS_INDEX,
+
+    //これらのPrimitiveなロスの数
+    STANDARD_LOSS_TYPE_NUM
 };
+
+//LEARNING_RANGEも考慮した損失の数
+constexpr int64_t LOSS_TYPE_NUM = STANDARD_LOSS_TYPE_NUM * (LEARNING_RANGE - 1) + TRANS_LOSS_INDEX;
 
 //各損失の名前を示す文字列
 const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{
-    "policy", "value", "trans", "reconstruct"
+    "curr_policy", "curr_value", "curr_reconstruct",
+    "trans",
+    "sim_next_policy", "sim_next_value", "sim_next_reconstruct",
+    "next_policy", "next_value", "next_reconstruct",
 };
 
 //畳み込みとBatchNormalizationをまとめたユニット
@@ -112,6 +129,12 @@ public:
     static const std::string DEFAULT_MODEL_NAME;
 
 private:
+    //各種損失を求める関数
+    torch::Tensor policyLoss(const torch::Tensor& state_representation, const std::vector<int64_t>& policy_teacher);
+    torch::Tensor valueLoss(const torch::Tensor& state_representation, const std::vector<ValueTeacherType>& value_teacher);
+    torch::Tensor reconstructLoss(const torch::Tensor& state_representation,
+                                  const std::vector<FloatType>& board_teacher, const std::vector<FloatType>& hand_teacher);
+
     //このネットワークが計算されるGPU or CPU
     torch::Device device_;
     bool fp16_;

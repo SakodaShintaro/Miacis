@@ -23,7 +23,7 @@ std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
     //データを取得
     std::vector<LearningData> data;
     pre_indices_.clear();
-    for (int32_t i = 0; i < batch_size; i++) {
+    for (int64_t i = 0; i < batch_size; i++) {
         //データの取り出し及びインデックスを保存
         uint64_t index = segment_tree_.getIndex(dist(engine));
         data.push_back(data_[index]);
@@ -79,11 +79,14 @@ void ReplayBuffer::push(Game &game) {
         //このデータを入れる位置を取得
         int64_t change_index = segment_tree_.getIndexToPush();
 
+        //ここの実装は面倒くさくてやってなーい！
+        assert(false);
+
         //そこのデータを入れ替える
-        data_[change_index].move = e.move;
-        data_[change_index].SFEN = pos.toSFEN();
-        //data_[change_index].policy = e.policy_teacher;
-        data_[change_index].value = e.value_teacher;
+//        data_[change_index].moves = e.move;
+//        data_[change_index].SFEN = pos.toSFEN();
+//        //data_[change_index].policy = e.policy_teacher;
+//        data_[change_index].value = e.value_teacher;
 
         //priorityを計算
         float priority = 0.0f;

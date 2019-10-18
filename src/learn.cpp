@@ -42,35 +42,34 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& dat
         //計算
         std::array<torch::Tensor, LOSS_TYPE_NUM> loss = nn->loss(curr_data);
 
-        //valueだけは特別処理
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            if (i == VALUE_LOSS_INDEX) {
-                //valueだけは別計算する
-                continue;
-            }
             losses[i] += loss[i].sum().item<float>();
         }
 
-#ifdef USE_CATEGORICAL
-        //categoricalモデルのときは冗長だがもう一度順伝播を行って損失を手動で計算
-        std::vector<FloatType> inputs;
-        Position pos;
-        for (const LearningData& datum : curr_data) {
-            pos.loadSFEN(datum.SFEN);
-            auto feature = pos.makeFeature();
-            inputs.insert(inputs.end(), feature.begin(), feature.end());
-        }
-        auto y = nn->policyAndValueBatch(inputs);
-        const auto& values = y.second;
-        for (uint64_t i = 0; i < values.size(); i++) {
-            auto e = expOfValueDist(values[i]);
-            auto vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
-            losses[VALUE_LOSS_INDEX] += (e - vt) * (e - vt);
-        }
-#else
-        //scalarモデルのときはそのまま損失を加える
-        losses[VALUE_LOSS_INDEX] += loss[VALUE_LOSS_INDEX].sum().item<float>();
-#endif
+        //Valueの特別処理があまりにも面倒くさかったので廃棄した
+        //Categoricalのときどうするかなぁ
+        //なんか別に計算してしまうのもありかもしれないがそれも面倒くさいか
+        //うーむ
+//#ifdef USE_CATEGORICAL
+//        //categoricalモデルのときは冗長だがもう一度順伝播を行って損失を手動で計算
+//        std::vector<FloatType> inputs;
+//        Position pos;
+//        for (const LearningData& datum : curr_data) {
+//            pos.loadSFEN(datum.SFEN);
+//            auto feature = pos.makeFeature();
+//            inputs.insert(inputs.end(), feature.begin(), feature.end());
+//        }
+//        auto y = nn->policyAndValueBatch(inputs);
+//        const auto& values = y.second;
+//        for (uint64_t i = 0; i < values.size(); i++) {
+//            auto e = expOfValueDist(values[i]);
+//            auto vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
+//            losses[VALUE_LOSS_INDEX] += (e - vt) * (e - vt);
+//        }
+//#else
+//        //scalarモデルのときはそのまま損失を加える
+//        losses[VALUE_LOSS_INDEX] += loss[VALUE_LOSS_INDEX].sum().item<float>();
+//#endif
     }
 
     //データサイズで割って平均化
@@ -83,23 +82,26 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& dat
 
 std::vector<LearningData> loadData(const std::string& file_path) {
     //棋譜を読み込めるだけ読み込む
-    auto games = loadGames(file_path, 100000);
+    std::vector<Game> games = loadGames(file_path, 100000);
 
     //データを局面単位にバラす
     std::vector<LearningData> data;
-    for (const auto& game : games) {
+    for (const Game& game : games) {
         Position pos;
-        for (const auto& e : game.elements) {
+        for (uint64_t i = 0; i + LEARNING_RANGE < game.elements.size(); i++) {
             LearningData datum;
             datum.SFEN = pos.toSFEN();
-            datum.move = e.move;
+
+            for (uint64_t j = 0; j < LEARNING_RANGE; j++) {
+                datum.moves[j] = game.elements[i + j].move;
 #ifdef USE_CATEGORICAL
-            datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
+                datum.value[j] = valueToIndex(((pos.color() + j) % 2 == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
 #else
-            datum.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
+                datum.value[j] = (float) ((pos.color() + j) % 2 == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
 #endif
+            }
             data.push_back(datum);
-            pos.doMove(e.move);
+            pos.doMove(game.elements[i].move);
         }
     }
 

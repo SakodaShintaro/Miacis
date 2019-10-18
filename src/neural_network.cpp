@@ -274,134 +274,90 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     static Position pos;
 
     //局面の特徴量を取得
-    std::vector<float> curr_state_features;
-    std::vector<float> next_state_features;
+    std::array<std::vector<float>, LEARNING_RANGE> state_features;
 
     //再構成損失を計算する際の教師情報
     //入力情報とはやや形式が違うものを使う
-    std::vector<FloatType> board_teacher_vec;
-    std::vector<FloatType> hand_teacher_vec;
+    std::array<std::vector<FloatType>, LEARNING_RANGE> board_teacher_vec;
+    std::array<std::vector<FloatType>, LEARNING_RANGE> hand_teacher_vec;
+
+    //Policyの教師
+    std::array<std::vector<int64_t>, LEARNING_RANGE> move_teachers;
+
+    //Valueの教師
+    std::array<std::vector<ValueTeacherType>, LEARNING_RANGE> value_teachers;
+
+    //行動の表現
+    std::array<std::vector<Move>, LEARNING_RANGE> moves;
 
     for (const LearningData& datum : data) {
         //現局面の特徴量を取得
         pos.loadSFEN(datum.SFEN);
-        std::vector<float> curr_state_feature = pos.makeFeature();
-        curr_state_features.insert(curr_state_features.end(), curr_state_feature.begin(), curr_state_feature.end());
 
-        //現局面の再構成損失の教師を取得
-        std::pair<std::vector<float>, std::vector<float>> reconstruct_teacher = pos.makeReconstructTeacher();
-        board_teacher_vec.insert(board_teacher_vec.end(), reconstruct_teacher.first.begin(), reconstruct_teacher.first.end());
-        hand_teacher_vec.insert(hand_teacher_vec.end(), reconstruct_teacher.second.begin(), reconstruct_teacher.second.end());
+        for (int64_t i = 0; i < LEARNING_RANGE; i++) {
+            std::vector<float> curr_state_feature = pos.makeFeature();
+            state_features[i].insert(state_features[i].end(), curr_state_feature.begin(), curr_state_feature.end());
 
-        //次局面の特徴量を取得
-        pos.doMove(datum.move);
-        std::vector<float> next_state_feature = pos.makeFeature();
-        next_state_features.insert(next_state_features.end(), next_state_feature.begin(), next_state_feature.end());
+            //現局面の再構成損失の教師を取得
+            std::pair<std::vector<float>, std::vector<float>> reconstruct_teacher = pos.makeReconstructTeacher();
+            board_teacher_vec[i].insert(board_teacher_vec[i].end(), reconstruct_teacher.first.begin(),
+                                        reconstruct_teacher.first.end());
+            hand_teacher_vec[i].insert(hand_teacher_vec[i].end(), reconstruct_teacher.second.begin(),
+                                       reconstruct_teacher.second.end());
+
+            //Policyの教師
+            move_teachers[i].push_back(datum.moves[i].toLabel());
+
+            //Valueの教師
+            value_teachers[i].push_back(datum.value[i]);
+
+            //行動の表現取得のため
+            moves[i].push_back(datum.moves[i]);
+
+            //次の局面へ遷移
+            pos.doMove(datum.moves[i]);
+        }
     }
 
-    //現局面の特徴を表現に変換
-    torch::Tensor state_representation = encodeStates(curr_state_features);
+    std::array<torch::Tensor, LOSS_TYPE_NUM> losses{};
 
-    //---------------------
-    //  Policyの損失計算
-    //---------------------
-    //Policyを取得
-    torch::Tensor policy = decodePolicy(state_representation);
+    //まずは現局面で初期化
+    torch::Tensor next_state_representation = encodeStates(state_features[0]);
 
-    //Policyの教師を構築
-    std::vector<int64_t> move_teachers;
-    for (const LearningData& d : data) {
-        move_teachers.push_back(d.move.toLabel());
+    for (int64_t i = 0; i < LEARNING_RANGE; i++) {
+        //i == 0のときはすぐ上の行で、それ以外のときは下のループ中で状態をエンコードしているのでそれを再利用
+        torch::Tensor state_representation = next_state_representation;
+
+        losses[i * STANDARD_LOSS_TYPE_NUM + POLICY_LOSS_INDEX] = policyLoss(state_representation, move_teachers[i]);
+        losses[i * STANDARD_LOSS_TYPE_NUM + VALUE_LOSS_INDEX] = valueLoss(state_representation, value_teachers[i]);
+        losses[i * STANDARD_LOSS_TYPE_NUM + RECONSTRUCT_LOSS_INDEX] = reconstructLoss(state_representation, board_teacher_vec[i], hand_teacher_vec[i]);
+
+        if (i < LEARNING_RANGE - 1) {
+            //----------------------
+            //  遷移予測の損失計算
+            //----------------------
+            //行動の表現を取得
+            torch::Tensor action_representation = encodeActions(moves[i]);
+
+            //次状態を予測
+            torch::Tensor predicted_state_representation = predictTransition(state_representation, action_representation);
+
+            //次状態の表現を取得
+            next_state_representation = encodeStates(state_features[i + 1]);
+
+            //損失を計算
+            losses[i * STANDARD_LOSS_TYPE_NUM + TRANS_LOSS_INDEX] = transitionLoss(predicted_state_representation, next_state_representation);
+
+            //--------------------------------------
+            //  遷移後の表現から予測するPolicyの損失
+            //--------------------------------------
+            losses[i * STANDARD_LOSS_TYPE_NUM + NEXT_POLICY_LOSS_INDEX] = policyLoss(predicted_state_representation, move_teachers[i + 1]);
+            losses[i * STANDARD_LOSS_TYPE_NUM + NEXT_VALUE_LOSS_INDEX] = valueLoss(predicted_state_representation, value_teachers[i + 1]);
+            losses[i * STANDARD_LOSS_TYPE_NUM + NEXT_RECONSTRUCT_LOSS_INDEX] = reconstructLoss(predicted_state_representation, board_teacher_vec[i + 1], hand_teacher_vec[i + 1]);
+        }
     }
-    torch::Tensor move_teachers_tensor = torch::tensor(move_teachers).to(device_);
 
-    //損失を計算
-    torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(policy, 1), move_teachers_tensor, {},
-                                                Reduction::None);
-
-    //--------------------
-    //  Valueの損失計算
-    //--------------------
-    //Valueを取得
-    torch::Tensor value = decodeValue(state_representation);
-
-    //Valueの教師を構築
-    std::vector<ValueTeacherType> value_teachers;
-    for (const LearningData& d : data) {
-        value_teachers.push_back(d.value);
-    }
-
-    //損失を計算
-#ifdef USE_CATEGORICAL
-    torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_);
-    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_teachers_tensor);
-#else
-#ifdef USE_HALF_FLOAT
-    torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_, torch::kHalf);
-#else
-    torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_);
-#endif
-
-    value = value.view(-1);
-#ifdef USE_SIGMOID
-    torch::Tensor value_loss = -value_teachers_tensor * torch::log(value)
-                        - (1 - value_teachers_tensor) * torch::log(1 - value);
-#else
-    torch::Tensor value_loss = torch::mse_loss(value, value_teachers_tensor, Reduction::None);
-#endif
-#endif
-
-    //----------------------
-    //  遷移予測の損失計算
-    //----------------------
-    //行動の表現を取得
-    std::vector<Move> moves;
-    for (const LearningData& d : data) {
-        moves.push_back(d.move);
-    }
-    torch::Tensor action_representation = encodeActions(moves);
-
-    //次状態を予測
-    torch::Tensor predicted_state_representation = predictTransition(state_representation.detach(), action_representation);
-
-    //次状態の表現を取得
-    //勾配を止める
-    torch::Tensor next_state_representation = encodeStates(next_state_features).detach();
-
-    //損失を計算
-    torch::Tensor transition_loss = transitionLoss(predicted_state_representation, next_state_representation);
-
-    //--------------------
-    //  再構成損失の計算
-    //--------------------
-    //盤面の再構成
-    torch::Tensor board = reconstruct_board_conv_->forward(state_representation);
-    //各マスについて駒次元の方にSoftmaxを計算
-    board = torch::softmax(board, 1);
-    //実際の駒の配置と照らし合わせて損失計算
-    //教師Tensorの構成
-    torch::Tensor board_teacher = torch::tensor(board_teacher_vec);
-    board_teacher = board_teacher.view({ -1, PIECE_KIND_NUM * 2 + 1, 9, 9 }).to(device_);
-
-    torch::Tensor board_reconstruct_loss = -board_teacher * torch::log(board);
-    //駒種方向に和を取ることで各マスについて交差エントロピーを計算したことになる
-    board_reconstruct_loss = board_reconstruct_loss.sum(1);
-    //各マスについての交差エントロピーを全マスについて平均化する
-    board_reconstruct_loss = board_reconstruct_loss.mean({1, 2});
-
-    //手駒の再構成
-    torch::Tensor hand = reconstruct_hand_conv_and_norm_->forward(state_representation);
-    hand = reconstruct_hand_linear_->forward(hand.flatten(1));
-
-    //自乗誤差
-    torch::Tensor hand_teacher = torch::tensor(hand_teacher_vec);
-    hand_teacher = hand_teacher.view({ -1, HAND_PIECE_KIND_NUM * 2 }).to(device_);
-    torch::Tensor hand_reconstruct_loss = torch::mse_loss(hand, hand_teacher, Reduction::None);
-    hand_reconstruct_loss = hand_reconstruct_loss.mean({1});
-
-    torch::Tensor reconstruct_loss = board_reconstruct_loss + hand_reconstruct_loss;
-
-    return { policy_loss, value_loss, transition_loss, reconstruct_loss };
+    return losses;
 }
 
 void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
@@ -458,6 +414,71 @@ void NeuralNetworkImpl::reconstruct(const torch::Tensor& representation, Color c
         }
         std::cout << std::endl;
     }
+}
+
+torch::Tensor NeuralNetworkImpl::policyLoss(const torch::Tensor& state_representation, const std::vector<int64_t>& policy_teacher) {
+    torch::Tensor policy = decodePolicy(state_representation);
+    torch::Tensor policy_teacher_tensor = torch::tensor(policy_teacher).to(device_);
+    return torch::nll_loss(torch::log_softmax(policy, 1), policy_teacher_tensor, {}, Reduction::None);
+}
+
+torch::Tensor NeuralNetworkImpl::valueLoss(const torch::Tensor& state_representation, const std::vector<ValueTeacherType>& value_teacher) {
+    //Valueを取得
+    torch::Tensor value = decodeValue(state_representation).view(-1);
+
+    //教師の構築
+#ifdef USE_CATEGORICAL
+    torch::Tensor value_teacher_tensor = torch::tensor(value_teacher).to(device_);
+#else
+#ifdef USE_HALF_FLOAT
+    torch::Tensor value_teacher_tensor = torch::tensor(value_teacher).to(device_, torch::kHalf);
+#else
+    torch::Tensor value_teacher_tensor = torch::tensor(value_teacher).to(device_);
+#endif
+#endif
+
+    //損失計算
+#ifdef USE_CATEGORICAL
+    return torch::nll_loss(torch::log_softmax(value, 1), value_teacher_tensor);
+#else
+#ifdef USE_SIGMOID
+    return -value_teacher_tensor * torch::log(value) - (1 - value_teacher_tensor) * torch::log(1 - value);
+#else
+    return torch::mse_loss(value, value_teacher_tensor, Reduction::None);
+#endif
+#endif
+}
+
+torch::Tensor NeuralNetworkImpl::reconstructLoss(const torch::Tensor& state_representation,
+                                                 const std::vector<FloatType>& board_teacher,
+                                                 const std::vector<FloatType>& hand_teacher) {
+    //盤面の再構成
+    torch::Tensor board = reconstruct_board_conv_->forward(state_representation);
+    //各マスについて駒次元の方にSoftmaxを計算
+    board = torch::softmax(board, 1);
+    //実際の駒の配置と照らし合わせて損失計算
+    //教師Tensorの構成
+    torch::Tensor board_teacher_tensor = torch::tensor(board_teacher)
+            .view({ -1, PIECE_KIND_NUM * 2 + 1, 9, 9 })
+            .to(device_);
+
+    torch::Tensor board_reconstruct_loss = -board_teacher_tensor * torch::log(board);
+    //駒種方向に和を取ることで各マスについて交差エントロピーを計算したことになる
+    board_reconstruct_loss = board_reconstruct_loss.sum(1);
+    //各マスについての交差エントロピーを全マスについて平均化する
+    board_reconstruct_loss = board_reconstruct_loss.mean({1, 2});
+
+    //手駒の再構成
+    torch::Tensor hand = reconstruct_hand_conv_and_norm_->forward(state_representation);
+    hand = reconstruct_hand_linear_->forward(hand.flatten(1));
+
+    //自乗誤差
+    torch::Tensor hand_teacher_tensor = torch::tensor(hand_teacher).view({ -1, HAND_PIECE_KIND_NUM * 2 }).to(device_);
+
+    //バッチ以外だけ平均化したいのを上手くやる方法がわからないのでReductionはNoneで手動meanを取っている
+    torch::Tensor hand_reconstruct_loss = torch::mse_loss(hand, hand_teacher_tensor, Reduction::None).mean({ 1});
+
+    return board_reconstruct_loss + hand_reconstruct_loss;
 }
 
 NeuralNetwork nn;
