@@ -271,14 +271,23 @@ void checkReconstruct() {
     torch::NoGradGuard no_grad_guard;
 
     Position pos;
+    torch::Tensor pre_simulated_rep;
+
+    std::vector<float> mean_of_rep, diff_abs_vec;
 
     while (true) {
         //現状態表現
         torch::Tensor curr_state_rep = nn->encodeStates(pos.makeFeature());
 
+        if (pos.turnNumber() != 0) {
+            torch::Tensor diff_abs = torch::abs(pre_simulated_rep - curr_state_rep).mean();
+            mean_of_rep.push_back(curr_state_rep.mean().item<float>());
+            diff_abs_vec.push_back(diff_abs.item<float>());
+        }
+
         //局面を表示して再構成と比較
-        pos.print();
-        nn->reconstruct(curr_state_rep, pos.color());
+        //pos.print();
+        //nn->reconstruct(curr_state_rep, pos.color());
 
         //行動をランダムに選択
         std::vector<Move> moves = pos.generateAllMoves();
@@ -299,6 +308,22 @@ void checkReconstruct() {
         //遷移を予想したもの
         torch::Tensor move_rep = nn->encodeActions({best_move});
         torch::Tensor next_rep = nn->predictTransition(curr_state_rep, move_rep);
-        nn->reconstruct(next_rep, pos.color());
+        //nn->reconstruct(next_rep, pos.color());
+        pre_simulated_rep = next_rep;
     }
+
+    std::cout << std::fixed;
+    float mean_of_mean_of_rep = 0.0, mean_of_diff_abs = 0.0, mean_of_rate = 0.0;
+    for (uint64_t i = 0; i < mean_of_rep.size(); i++) {
+        std::cout << mean_of_rep[i] << " " << diff_abs_vec[i] << " " << diff_abs_vec[i] / mean_of_rep[i] << std::endl;
+        mean_of_mean_of_rep += mean_of_rep[i];
+        mean_of_diff_abs += diff_abs_vec[i];
+        mean_of_rate += diff_abs_vec[i] / mean_of_rep[i];
+    }
+    mean_of_mean_of_rep /= mean_of_rep.size();
+    mean_of_diff_abs /= mean_of_rep.size();
+    mean_of_rate /= mean_of_rep.size();
+
+    std::cout << "平均値" << std::endl;
+    std::cout << mean_of_mean_of_rep << " " << mean_of_diff_abs << " " << mean_of_rate << std::endl;
 }
