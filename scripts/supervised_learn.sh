@@ -1,4 +1,4 @@
 cp ../../Miacis_scalar .
 cp ../../../../setting/supervised_learn_settings.txt .
 git show -s > git_commit_id.txt
-echo "initParams\nsupervisedLearn\nquit\n" | ./Miacis_scalar
+echo -e "initParams\nsupervisedLearn\nquit\n" | ./Miacis_scalar
