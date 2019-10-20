@@ -207,7 +207,7 @@ void alphaZero() {
             }
             dout(std::cout, validation_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << valid_loss_sum << "\t";
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, validation_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
+                dout(std::cout, validation_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
             }
         }
 
