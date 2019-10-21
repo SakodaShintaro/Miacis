@@ -180,15 +180,16 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
         }
     };
 
-    std::vector<FloatType> Q(root_node.moves.size());
+    std::vector<FloatType> Q_dist(root_node.moves.size()), N_dist(root_node.moves.size());
     for (uint64_t i = 0; i < root_node.moves.size(); i++) {
 #ifdef USE_CATEGORICAL
-        Q[i] = expOfValueDist(QfromNextValue(std::vector<Move>(), i));
+        Q_dist[i] = expOfValueDist(QfromNextValue(std::vector<Move>(), i));
 #else
-        Q[i] = QfromNextValue(std::vector<Move>(), i);
+        Q_dist[i] = QfromNextValue(std::vector<Move>(), i);
 #endif
+        N_dist[i] = FloatType(root_node.N[i]) / root_node.sum_N;
     }
-    std::vector<FloatType> softmaxed_Q = softmax(Q, usi_options_.temperature_x1000 / 1000.0f);
+    std::vector<FloatType> softmaxed_Q = softmax(Q_dist, usi_options_.temperature_x1000 / 1000.0f);
 
     if (usi_options_.print_policy_num) {
         std::vector<MoveWithInfo> moves_with_info(root_node.moves.size());
@@ -196,7 +197,7 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
             moves_with_info[i].move = root_node.moves[i];
             moves_with_info[i].nn_output_policy = root_node.nn_policy[i];
             moves_with_info[i].N = root_node.N[i];
-            moves_with_info[i].Q = Q[i];
+            moves_with_info[i].Q = Q_dist[i];
             moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
         }
 
@@ -225,7 +226,12 @@ Move SearcherUsingSimNet::thinkMCTS(Position& root, int64_t random_turn) {
 
     //行動選択
     if (root.turnNumber() < usi_options_.random_turn) {
-        return root_node.moves[randomChoose(softmaxed_Q)];
+        //ランダム行動選択で用いるpolicy
+        std::vector<FloatType> policy = (usi_options_.search_limit == 1 ? root_node.nn_policy :
+                                         usi_options_.temperature_x1000 == 0 ? N_dist :
+                                         softmaxed_Q);
+
+        return root_node.moves[randomChoose(policy)];
     } else {
         return root_node.moves[max_index];
     }
