@@ -27,7 +27,6 @@ void alphaZero() {
     settings.add("search_batch_size",      1, (int64_t)1e10);
     settings.add("output_interval",        1, (int64_t)1e10);
     settings.add("validation_interval",    1, (int64_t)1e10);
-    settings.add("validation_size",        0, (int64_t)1e10);
     settings.add("validation_kifu_path");
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
@@ -61,7 +60,6 @@ void alphaZero() {
     int64_t first_wait               = settings.get<int64_t>("first_wait");
     int64_t output_interval          = settings.get<int64_t>("output_interval");
     int64_t validation_interval      = settings.get<int64_t>("validation_interval");
-    int64_t validation_size          = settings.get<int64_t>("validation_size");
     std::string validation_kifu_path = settings.get<std::string>("validation_kifu_path");
 
     std::array<float, LOSS_TYPE_NUM> coefficients{};
@@ -96,13 +94,10 @@ void alphaZero() {
     //データを取得
     std::vector<LearningData> validation_data = loadData(validation_kifu_path);
     std::cout << "validation_data.size() = " << validation_data.size() << std::endl;
-    validation_size = std::min((uint64_t)validation_size, validation_data.size());
 
     //データをシャッフルして必要量以外を削除
     std::mt19937_64 engine(0);
     std::shuffle(validation_data.begin(), validation_data.end(), engine);
-    validation_data.erase(validation_data.begin() + validation_size, validation_data.end());
-    validation_data.shrink_to_fit();
 
     //モデル読み込み
     NeuralNetwork learning_model;
