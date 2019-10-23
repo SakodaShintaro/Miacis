@@ -343,10 +343,10 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
             torch::Tensor predicted_state_representation = predictTransition(state_representation.detach(), action_representation);
 
             //次状態の表現を取得
-            next_state_representation = encodeStates(state_features[i + 1]).detach();
+            next_state_representation = encodeStates(state_features[i + 1]);
 
             //損失を計算
-            losses[i * STANDARD_LOSS_TYPE_NUM + TRANS_LOSS_INDEX] = transitionLoss(predicted_state_representation, next_state_representation);
+            losses[i * STANDARD_LOSS_TYPE_NUM + TRANS_LOSS_INDEX] = transitionLoss(predicted_state_representation, next_state_representation.detach());
 
             //--------------------------------------
             //  遷移後の表現から予測するPolicyの損失
