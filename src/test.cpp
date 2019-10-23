@@ -275,9 +275,13 @@ void checkReconstruct() {
 
     std::vector<float> mean_of_rep, diff_abs_vec;
 
+    std::vector<torch::Tensor> state_reps;
+
     while (true) {
         //現状態表現
         torch::Tensor curr_state_rep = nn->encodeStates(pos.makeFeature());
+
+        state_reps.push_back(curr_state_rep);
 
         if (pos.turnNumber() != 0) {
             torch::Tensor diff_abs = torch::abs(pre_simulated_rep - curr_state_rep).mean();
@@ -326,4 +330,13 @@ void checkReconstruct() {
 
     std::cout << "平均値" << std::endl;
     std::cout << mean_of_mean_of_rep << " " << mean_of_diff_abs << " " << mean_of_rate << std::endl;
+
+    std::cout << std::setprecision(3);
+    for (uint64_t i = 0; i < state_reps.size(); i++) {
+        for (uint64_t j = 0; j < state_reps.size(); j++) {
+            torch::Tensor diff = torch::abs(state_reps[i] - state_reps[j]);
+            std::cout << diff.mean().item<float>() << " ";
+        }
+        std::cout << std::endl;
+    }
 }
