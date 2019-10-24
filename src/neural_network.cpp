@@ -454,15 +454,12 @@ torch::Tensor NeuralNetworkImpl::reconstructLoss(const torch::Tensor& state_repr
                                                  const std::vector<FloatType>& hand_teacher) {
     //盤面の再構成
     torch::Tensor board = reconstruct_board_conv_->forward(state_representation);
-    //各マスについて駒次元の方にSoftmaxを計算
-    board = torch::softmax(board, 1);
-    //実際の駒の配置と照らし合わせて損失計算
     //教師Tensorの構成
     torch::Tensor board_teacher_tensor = torch::tensor(board_teacher)
             .view({ -1, PIECE_KIND_NUM * 2 + 1, 9, 9 })
             .to(device_);
 
-    torch::Tensor board_reconstruct_loss = -board_teacher_tensor * torch::log(board);
+    torch::Tensor board_reconstruct_loss = -board_teacher_tensor * torch::log_softmax(board, 1);
     //駒種方向に和を取ることで各マスについて交差エントロピーを計算したことになる
     board_reconstruct_loss = board_reconstruct_loss.sum(1);
     //各マスについての交差エントロピーを全マスについて平均化する
