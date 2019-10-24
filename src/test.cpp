@@ -270,73 +270,63 @@ void checkReconstruct() {
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     torch::NoGradGuard no_grad_guard;
 
-    Position pos;
-    torch::Tensor pre_simulated_rep;
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
 
-    std::vector<float> mean_of_rep, diff_abs_vec;
+    //何局検証するか
+    constexpr int64_t GAME_NUM = 3;
 
-    std::vector<torch::Tensor> state_reps;
+    std::vector<Game> games = loadGames(path, GAME_NUM);
 
-    while (true) {
-        //現状態表現
-        torch::Tensor curr_state_rep = nn->encodeStates(pos.makeFeature());
+    //2つの対局に対して検証
+    std::array<std::vector<torch::Tensor>, GAME_NUM> state_reps;
 
-        state_reps.push_back(curr_state_rep);
+    for (uint64_t i = 0; i < games.size(); i++) {
+        Position pos;
+        torch::Tensor pre_simulated_rep;
+        std::vector<float> mean_of_rep, diff_abs_vec;
+        for (const OneTurnElement& element : games[i].elements) {
+            //現状態表現を計算
+            torch::Tensor curr_state_rep = nn->encodeStates(pos.makeFeature());
 
-        if (pos.turnNumber() != 0) {
-            torch::Tensor diff_abs = torch::abs(pre_simulated_rep - curr_state_rep).mean();
-            mean_of_rep.push_back(curr_state_rep.mean().item<float>());
-            diff_abs_vec.push_back(diff_abs.item<float>());
+            state_reps[i].push_back(curr_state_rep);
+
+            if (pos.turnNumber() != 0) {
+                torch::Tensor diff_abs = torch::abs(pre_simulated_rep - curr_state_rep).mean();
+                mean_of_rep.push_back(curr_state_rep.mean().item<float>());
+                diff_abs_vec.push_back(diff_abs.item<float>());
+            }
+
+            //局面を表示して再構成と比較
+            //pos.print();
+            //nn->reconstruct(curr_state_rep);
+
+            //行動の表示
+            element.move.print();
+
+            //遷移を予想したもの
+            torch::Tensor move_rep = nn->encodeActions({ element.move });
+            torch::Tensor next_rep = nn->predictTransition(curr_state_rep, move_rep);
+            //nn->reconstruct(next_rep);
+            pre_simulated_rep = next_rep;
+
+            pos.doMove(element.move);
         }
-
-        //局面を表示して再構成と比較
-        //pos.print();
-        //nn->reconstruct(curr_state_rep, pos.color());
-
-        //行動をランダムに選択
-        std::vector<Move> moves = pos.generateAllMoves();
-        if (moves.empty()) {
-            break;
-        }
-
-        auto y = nn->policyAndValueBatch(pos.makeFeature());
-        auto raw_policy = y.first[0];
-        std::vector<float> masked_policy(moves.size());
-        for (uint64_t j = 0; j < moves.size(); j++) {
-            masked_policy[j] = raw_policy[moves[j].toLabel()];
-        }
-        Move best_move = moves[std::max_element(masked_policy.begin(), masked_policy.end()) - masked_policy.begin()];
-        std::cout << "best_move = "; best_move.print();
-        pos.doMove(best_move);
-
-        //遷移を予想したもの
-        torch::Tensor move_rep = nn->encodeActions({best_move});
-        torch::Tensor next_rep = nn->predictTransition(curr_state_rep, move_rep);
-        //nn->reconstruct(next_rep, pos.color());
-        pre_simulated_rep = next_rep;
     }
 
-    std::cout << std::fixed;
-    float mean_of_mean_of_rep = 0.0, mean_of_diff_abs = 0.0, mean_of_rate = 0.0;
-    for (uint64_t i = 0; i < mean_of_rep.size(); i++) {
-        std::cout << mean_of_rep[i] << " " << diff_abs_vec[i] << " " << diff_abs_vec[i] / mean_of_rep[i] << std::endl;
-        mean_of_mean_of_rep += mean_of_rep[i];
-        mean_of_diff_abs += diff_abs_vec[i];
-        mean_of_rate += diff_abs_vec[i] / mean_of_rep[i];
-    }
-    mean_of_mean_of_rep /= mean_of_rep.size();
-    mean_of_diff_abs /= mean_of_rep.size();
-    mean_of_rate /= mean_of_rep.size();
-
-    std::cout << "平均値" << std::endl;
-    std::cout << mean_of_mean_of_rep << " " << mean_of_diff_abs << " " << mean_of_rate << std::endl;
-
-    std::cout << std::setprecision(3);
-    for (uint64_t i = 0; i < state_reps.size(); i++) {
-        for (uint64_t j = 0; j < state_reps.size(); j++) {
-            torch::Tensor diff = torch::abs(state_reps[i] - state_reps[j]);
-            std::cout << diff.mean().item<float>() << " ";
+    std::cout << std::fixed << std::setprecision(3);
+    for (uint64_t game1 = 0; game1 < games.size(); game1++) {
+        for (uint64_t game2 = 0; game2 < games.size(); game2++) {
+            std::ofstream ofs(std::to_string(game1) + "-" + std::to_string(game2) + ".txt");
+            for (uint64_t j = 0; j < state_reps[game1].size(); j++) {
+                for (uint64_t k = 0; k < state_reps[game2].size(); k++) {
+                    torch::Tensor dist = torch::sum(torch::pow(state_reps[game1][j] - state_reps[game2][k], 2));
+                    dist = torch::sqrt(dist);
+                    ofs << dist.item<float>() << " ";
+                }
+                ofs << std::endl;
+            }
         }
-        std::cout << std::endl;
     }
 }
