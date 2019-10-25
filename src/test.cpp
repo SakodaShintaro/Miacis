@@ -104,8 +104,10 @@ void checkVal() {
     data.erase(data.begin() + 40960, data.end());
     data.shrink_to_fit();
 
-    auto v = validation(data, 32);
-    printf("%f\t%f\t%f\n", v[0], v[1], v[2]);
+    std::array<float, LOSS_TYPE_NUM> v = validation(data, 32);
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
+    }
 }
 
 void checkPredictSpeed() {
