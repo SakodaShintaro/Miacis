@@ -10,5 +10,6 @@ void checkSegmentTree();
 void checkTransitionModel();
 void checkActionRepresentations();
 void checkReconstruct();
+void checkRepresentationDist();
 
 #endif // !TEST_HPP

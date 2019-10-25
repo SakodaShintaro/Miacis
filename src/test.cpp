@@ -332,3 +332,40 @@ void checkReconstruct() {
         }
     }
 }
+
+void checkRepresentationDist() {
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::NoGradGuard no_grad_guard;
+
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
+
+    //何局検証するか
+    constexpr int64_t GAME_NUM = 3;
+
+    std::vector<Game> games = loadGames(path, GAME_NUM);
+
+    std::cout << std::fixed << std::endl;
+
+    for (const Game& game : games) {
+        Position pos;
+        pos.print();
+        for (const OneTurnElement& element : game.elements) {
+            std::map<int64_t, uint64_t> histogram;
+            torch::Tensor representation = nn->encodeStates(pos.makeFeature()).view({-1}).cpu();
+            for (int64_t i = 0; i < representation.size(0); i++) {
+                float value = representation[i].item<float>();
+                int64_t bin = std::round(value);
+                histogram[bin]++;
+            }
+
+            for (int64_t i = 0; i < 20; i++) {
+                std::cout << std::setw(4) << histogram[i] << " ";
+            }
+            std::cout << torch::sqrt(torch::sum(torch::pow(representation, 2))).item<float>() << std::endl;
+
+            pos.doMove(element.move);
+        }
+    }
+}
