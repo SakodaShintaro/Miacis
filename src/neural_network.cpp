@@ -181,7 +181,8 @@ torch::Tensor NeuralNetworkImpl::predictTransition(const torch::Tensor& state_re
     //手番が変わることを考慮して180度ひっくり返す
     x = torch::rot90(x, 2, { 2, 3 });
 
-    return x;
+    //差分計算する
+    return torch::rot90(state_representations, 2, { 2, 3 }) + x;
 }
 
 std::vector<FloatType> NeuralNetworkImpl::predictTransition(const std::vector<FloatType>& state_rep, Move move) {
