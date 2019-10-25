@@ -6,7 +6,7 @@ static constexpr int32_t PREDICT_TRANSITION_BLOCK_NUM = 4;
 static constexpr int32_t CHANNEL_NUM = 64;
 static constexpr int32_t VALUE_HIDDEN_NUM = 256;
 static constexpr int32_t KERNEL_SIZE = 3;
-static constexpr int32_t ACTION_FEATURE_CHANNEL_NUM = 32;
+static constexpr int32_t ACTION_FEATURE_CHANNEL_NUM = 4 + 18;
 static constexpr int32_t REDUCTION = 8;
 
 #ifdef USE_CATEGORICAL
@@ -210,8 +210,12 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
         //各moveにつき9×9×MOVE_FEATURE_CHANNEL_NUMの特徴マップを得る
         std::vector<float> curr_move_feature(9 * 9 * ACTION_FEATURE_CHANNEL_NUM, 0.0);
 
+        //この行動の手番
+        Color color = pieceToColor(move.subject());
+
         //1ch:toの位置に1を立てる
-        curr_move_feature[SquareToNum[move.to()]] = 1;
+        Square to = (color == BLACK ? move.to() : InvSquare[move.to()]);
+        curr_move_feature[SquareToNum[to]] = 1;
 
         //2ch:fromの位置に1を立てる.持ち駒から打つ手ならなし
         //3ch:持ち駒から打つ手なら全て1
@@ -220,7 +224,8 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
                 curr_move_feature[2 * SQUARE_NUM + SquareToNum[sq]] = 1;
             }
         } else {
-            curr_move_feature[SQUARE_NUM + SquareToNum[move.from()]] = 1;
+            Square from = (color == BLACK ? move.from() : InvSquare[move.from()]);
+            curr_move_feature[SQUARE_NUM + SquareToNum[from]] = 1;
         }
 
         //4ch:成りなら全て1
@@ -232,7 +237,8 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
 
         //5ch以降:駒の種類に合わせたところだけ全て1
         for (Square sq : SquareList) {
-            curr_move_feature[(4 + PieceToNum[move.subject()]) * SQUARE_NUM + SquareToNum[sq]] = 1;
+            Piece p = (color == BLACK ? move.subject() : oppositeColor(move.subject()));
+            curr_move_feature[(4 + PieceToNum[p]) * SQUARE_NUM + SquareToNum[sq]] = 1;
         }
 
         move_features.insert(move_features.end(), curr_move_feature.begin(), curr_move_feature.end());
@@ -244,7 +250,7 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
 #endif
     move_features_tensor = move_features_tensor.view({ -1, ACTION_FEATURE_CHANNEL_NUM, 9, 9 });
     torch::Tensor x = action_encoder_first_conv_and_norm_->forward(move_features_tensor);
-    for (auto& block : action_encoder_blocks_) {
+    for (ResidualBlock& block : action_encoder_blocks_) {
         x = block->forward(x);
     }
     return x;
