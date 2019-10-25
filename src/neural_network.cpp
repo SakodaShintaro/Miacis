@@ -177,6 +177,10 @@ torch::Tensor NeuralNetworkImpl::predictTransition(const torch::Tensor& state_re
     for (auto& blocks : predict_transition_blocks_) {
         x = blocks->forward(x);
     }
+
+    //手番が変わることを考慮して180度ひっくり返す
+    x = torch::rot90(x, 2, { 2, 3 });
+
     return x;
 }
 
