@@ -71,7 +71,7 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false),
         action_encoder_blocks_[i] = register_module("action_encoder_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
 
-    predict_transition_first_conv_and_norm_ = register_module("predict_transition_first_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM + ACTION_FEATURE_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
+    predict_transition_first_conv_and_norm_ = register_module("predict_transition_first_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM + CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
     for (int32_t i = 0; i < PREDICT_TRANSITION_BLOCK_NUM; i++) {
         predict_transition_blocks_[i] = register_module("predict_transition_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
@@ -253,7 +253,11 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
     torch::Tensor move_features_tensor = torch::tensor(move_features).to(device_);
 #endif
     move_features_tensor = move_features_tensor.view({ -1, ACTION_FEATURE_CHANNEL_NUM, 9, 9 });
-    return move_features_tensor;
+    torch::Tensor x = action_encoder_first_conv_and_norm_->forward(move_features_tensor);
+    for (ResidualBlock& block : action_encoder_blocks_) {
+        x = block->forward(x);
+    }
+    return x;
 }
 
 torch::Tensor NeuralNetworkImpl::decodePolicy(const torch::Tensor& representation) {
