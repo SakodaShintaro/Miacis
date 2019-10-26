@@ -11,5 +11,6 @@ void checkTransitionModel();
 void checkActionRepresentations();
 void checkReconstruct();
 void checkRepresentationDist();
+void checkReconstructAccuracy();
 
 #endif // !TEST_HPP

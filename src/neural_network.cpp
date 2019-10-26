@@ -488,4 +488,47 @@ torch::Tensor NeuralNetworkImpl::reconstructLoss(const torch::Tensor& state_repr
     return board_reconstruct_loss + hand_reconstruct_loss;
 }
 
+int64_t NeuralNetworkImpl::reconstructAccuracy(const torch::Tensor& representation, const Position& pos) {
+    //0ならミスなし、1なら盤面にミス、2なら手駒にミス、3なら両方とする
+    int64_t ans = 0;
+
+    //盤面の再構成
+    torch::Tensor board = reconstruct_board_conv_->forward(representation);
+
+    //最大のものを取得
+    torch::Tensor piece = torch::argmax(board, 1).view({-1});
+
+    for (const Square sq : SquareList) {
+        //後手番のときは反転されているので逆側を参照
+        int64_t value = (pos.color() == BLACK ? piece[SquareToNum[sq]].item<int64_t>()
+                                              : piece[SquareToNum[InvSquare[sq]]].item<int64_t>());
+        Piece p = (value == PieceList.size() ? EMPTY : PieceList[value]);
+        if (pos.color() == WHITE) {
+            p = oppositeColor(p);
+        }
+
+        if (p != pos.on(sq)) {
+            ans += 1;
+            break;
+        }
+    }
+
+    //手駒の再構成
+    torch::Tensor hand = reconstruct_hand_conv_and_norm_->forward(representation);
+    hand = reconstruct_hand_linear_->forward(hand.flatten(1));
+    hand = torch::round(hand);
+    for (int64_t c : { BLACK, WHITE }) {
+        for (int64_t i = 0; i < HAND_PIECE_KIND_NUM; i++) {
+            int64_t num = hand[0][(c != pos.color()) * HAND_PIECE_KIND_NUM + i].item<float>();
+            if (num != pos.hand(Color(c)).num(Piece(i + 1))) {
+                ans += 2;
+                goto END;
+            }
+        }
+    }
+
+END:
+    return ans;
+}
+
 NeuralNetwork nn;

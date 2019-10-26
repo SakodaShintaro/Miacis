@@ -50,6 +50,7 @@ public:
     Color color() const { return color_; }
     int64_t hashValue() const { return hash_value_; }
     Piece on(const Square sq) const { return board_[sq]; }
+    Hand hand(Color c) const { return hand_[c]; }
     bool isChecked() { return is_checked_; }
 private:
     //--------------------

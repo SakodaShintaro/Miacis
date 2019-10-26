@@ -30,6 +30,7 @@ USI::USI() : searcher_(nullptr) {
     command_["checkTransitionModel"] = checkTransitionModel;
     command_["checkActionRepresentations"] = checkActionRepresentations;
     command_["checkReconstruct"] = checkReconstruct;
+    command_["checkReconstructAccuracy"] = checkReconstructAccuracy;
     command_["checkRepresentationDist"] = checkRepresentationDist;
 }
 

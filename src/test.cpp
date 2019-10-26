@@ -333,6 +333,50 @@ void checkReconstruct() {
     }
 }
 
+void checkReconstructAccuracy() {
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::NoGradGuard no_grad_guard;
+
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
+    std::cout << std::endl << std::fixed;
+
+    //何局検証するか
+    constexpr int64_t GAME_NUM = 3000000000;
+
+    std::vector<Game> games = loadGames(path, GAME_NUM);
+
+    std::array<int64_t, 4> curr_num{}, next_num{};
+
+    for (uint64_t i = 0; i < games.size(); i++) {
+        Position pos;
+        for (const OneTurnElement& element : games[i].elements) {
+            //現状態表現を計算
+            torch::Tensor curr_state_rep = nn->encodeStates(pos.makeFeature());
+            curr_num[nn->reconstructAccuracy(curr_state_rep, pos)]++;
+
+            //遷移を予想したもの
+            torch::Tensor move_rep = nn->encodeActions({ element.move });
+            torch::Tensor next_rep = nn->predictTransition(curr_state_rep, move_rep);
+            pos.doMove(element.move);
+            next_num[nn->reconstructAccuracy(next_rep, pos)]++;
+        }
+
+        std::cout << i + 1 << " / " << games.size() << std::endl;
+        int64_t curr_sum = std::accumulate(curr_num.begin(), curr_num.end(), 0LL);
+        int64_t next_sum = std::accumulate(next_num.begin(), next_num.end(), 0LL);
+        std::cout << curr_num[0] << "(" << 100.0 * curr_num[0] / curr_sum << "%)"
+                  << curr_num[1] << "(" << 100.0 * curr_num[1] / curr_sum << "%)"
+                  << curr_num[2] << "(" << 100.0 * curr_num[2] / curr_sum << "%)"
+                  << curr_num[3] << "(" << 100.0 * curr_num[3] / curr_sum << "%)" << std::endl;
+        std::cout << next_num[0] << "(" << 100.0 * next_num[0] / next_sum << "%)"
+                  << next_num[1] << "(" << 100.0 * next_num[1] / next_sum << "%)"
+                  << next_num[2] << "(" << 100.0 * next_num[2] / next_sum << "%)"
+                  << next_num[3] << "(" << 100.0 * next_num[3] / next_sum << "%)" << std::endl;
+    }
+}
+
 void checkRepresentationDist() {
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     torch::NoGradGuard no_grad_guard;
