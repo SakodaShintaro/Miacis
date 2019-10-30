@@ -338,8 +338,8 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
         //i == 0のときはすぐ上の行で、それ以外のときは下のループ中で状態をエンコードしているのでそれを再利用
         torch::Tensor state_representation = next_state_representation;
 
-        losses[i * STANDARD_LOSS_TYPE_NUM + POLICY_LOSS_INDEX] = policyLoss(state_representation, move_teachers[i]);
-        losses[i * STANDARD_LOSS_TYPE_NUM + VALUE_LOSS_INDEX] = valueLoss(state_representation, value_teachers[i]);
+        losses[i * STANDARD_LOSS_TYPE_NUM + POLICY_LOSS_INDEX] = policyLoss(state_representation.detach(), move_teachers[i]);
+        losses[i * STANDARD_LOSS_TYPE_NUM + VALUE_LOSS_INDEX] = valueLoss(state_representation.detach(), value_teachers[i]);
         losses[i * STANDARD_LOSS_TYPE_NUM + RECONSTRUCT_LOSS_INDEX] = reconstructLoss(state_representation, board_teacher_vec[i], hand_teacher_vec[i]);
 
         if (i < LEARNING_RANGE - 1) {
@@ -350,19 +350,19 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
             torch::Tensor action_representation = encodeActions(moves[i]);
 
             //次状態を予測
-            torch::Tensor predicted_state_representation = predictTransition(state_representation.detach(), action_representation);
+            torch::Tensor predicted_state_representation = predictTransition(state_representation, action_representation);
 
             //次状態の表現を取得
             next_state_representation = encodeStates(state_features[i + 1]);
 
             //損失を計算
-            losses[i * STANDARD_LOSS_TYPE_NUM + TRANS_LOSS_INDEX] = transitionLoss(predicted_state_representation, next_state_representation.detach());
+            losses[i * STANDARD_LOSS_TYPE_NUM + TRANS_LOSS_INDEX] = transitionLoss(predicted_state_representation, next_state_representation);
 
             //--------------------------------------
             //  遷移後の表現から予測するPolicyの損失
             //--------------------------------------
-            losses[i * STANDARD_LOSS_TYPE_NUM + NEXT_POLICY_LOSS_INDEX] = policyLoss(predicted_state_representation, move_teachers[i + 1]);
-            losses[i * STANDARD_LOSS_TYPE_NUM + NEXT_VALUE_LOSS_INDEX] = valueLoss(predicted_state_representation, value_teachers[i + 1]);
+            losses[i * STANDARD_LOSS_TYPE_NUM + NEXT_POLICY_LOSS_INDEX] = policyLoss(predicted_state_representation.detach(), move_teachers[i + 1]);
+            losses[i * STANDARD_LOSS_TYPE_NUM + NEXT_VALUE_LOSS_INDEX] = valueLoss(predicted_state_representation.detach(), value_teachers[i + 1]);
             losses[i * STANDARD_LOSS_TYPE_NUM + NEXT_RECONSTRUCT_LOSS_INDEX] = reconstructLoss(predicted_state_representation, board_teacher_vec[i + 1], hand_teacher_vec[i + 1]);
         }
     }
