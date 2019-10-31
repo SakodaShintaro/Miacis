@@ -24,7 +24,7 @@ using ValueTeacherType = float;
 #endif
 
 //学習データの型
-constexpr int64_t LEARNING_RANGE = 2;
+constexpr int64_t LEARNING_RANGE = 3;
 struct LearningData {
     std::string SFEN;
     std::array<Move, LEARNING_RANGE> moves;
@@ -55,6 +55,9 @@ const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{
     "trans",
     "sim_next_policy", "sim_next_value", "sim_next_reconstruct",
     "next_policy", "next_value", "next_reconstruct",
+    "next_trans",
+    "sim_next_next_policy", "sim_next_next_value", "sim_next_next_reconstruct",
+    "next_next_policy", "next_next_value", "next_next_reconstruct",
 };
 
 //畳み込みとBatchNormalizationをまとめたユニット
