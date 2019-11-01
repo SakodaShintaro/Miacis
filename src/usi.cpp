@@ -32,6 +32,7 @@ USI::USI() : searcher_(nullptr) {
     command_["checkReconstruct"] = checkReconstruct;
     command_["checkReconstructAccuracy"] = checkReconstructAccuracy;
     command_["checkRepresentationDist"] = checkRepresentationDist;
+    command_["checkPlayRepeat"] = checkPlayRepeat;
 }
 
 void USI::loop() {

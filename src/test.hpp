@@ -12,5 +12,6 @@ void checkActionRepresentations();
 void checkReconstruct();
 void checkRepresentationDist();
 void checkReconstructAccuracy();
+void checkPlayRepeat();
 
 #endif // !TEST_HPP

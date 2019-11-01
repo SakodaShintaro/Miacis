@@ -1,6 +1,7 @@
 ﻿#include"test.hpp"
 #include"game_generator.hpp"
 #include"searcher_for_play.hpp"
+#include"searcher_using_sim_net.hpp"
 #include"learn.hpp"
 
 void test() {
@@ -410,6 +411,45 @@ void checkRepresentationDist() {
             std::cout << torch::sqrt(torch::sum(torch::pow(representation, 2))).item<float>() << std::endl;
 
             pos.doMove(element.move);
+        }
+    }
+}
+
+void checkPlayRepeat() {
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::NoGradGuard no_grad_guard;
+
+    UsiOptions usi_options;
+    usi_options.byoyomi_margin = 0;
+    usi_options.random_turn = 30;
+    usi_options.draw_turn = 256;
+    usi_options.print_interval = 1000000;
+    usi_options.USI_Hash = 4096;
+    usi_options.UCT_lambda_x1000 = 1000;
+    usi_options.C_PUCT_x1000 = 2500;
+    usi_options.P_coeff_x1000 = 0;
+    usi_options.Q_coeff_x1000 = 1000;
+    usi_options.thread_num = 1;
+    usi_options.search_batch_size = 1;
+    usi_options.search_limit = 1;
+    usi_options.temperature_x1000 = 0;
+    usi_options.use_sim_net = true;
+    constexpr int64_t time_limit = 10000;
+
+    SearcherUsingSimNet searcher(usi_options, nn);
+
+    for (int64_t i = 0; i < 1000000; i++) {
+        Position pos;
+        while (true) {
+            std::vector<Move> moves = pos.generateAllMoves();
+            if (moves.empty() || pos.turnNumber() > usi_options.draw_turn) {
+                pos.print();
+                break;
+            }
+
+            Move best_move = searcher.thinkMCTS(pos, time_limit);
+
+            pos.doMove(best_move);
         }
     }
 }
