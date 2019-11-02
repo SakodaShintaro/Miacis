@@ -13,9 +13,6 @@ void supervisedLearn() {
     settings.add("lr_decay_epoch2",   1, (int64_t)1e10);
     settings.add("train_kifu_path");
     settings.add("valid_kifu_path");
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
-    }
 
     //設定をファイルからロード
     settings.load("supervised_learn_settings.txt");
@@ -31,11 +28,6 @@ void supervisedLearn() {
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
 
-    std::array<float, LOSS_TYPE_NUM> coefficients{};
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        coefficients[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
-    }
-
     //データを取得
     std::vector<LearningData> train_data = loadData(train_kifu_path);
     std::vector<LearningData> valid_data = loadData(valid_kifu_path);
@@ -49,16 +41,17 @@ void supervisedLearn() {
 
     //学習推移のログファイル
     std::ofstream learn_log("supervised_learn_log.txt");
-    dout(std::cout, learn_log) << std::fixed << "time\tepoch\tstep\t";
+    dout(std::cout, learn_log) << std::fixed << "time epoch step ";
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        dout(std::cout, learn_log) << LOSS_TYPE_NAME[i] + "_loss" << "\t\n"[i == LOSS_TYPE_NUM - 1];
+        dout(std::cout, learn_log) << std::to_string((i + 3) / STANDARD_LOSS_TYPE_NUM) + LOSS_TYPE_NAME[i % STANDARD_LOSS_TYPE_NUM] + "_loss" << " \n"[i == LOSS_TYPE_NUM - 1];
     }
 
     //validation結果のログファイル
     std::ofstream validation_log("supervised_learn_validation_log.txt");
-    validation_log << std::fixed << "time\tepoch\tsum_loss\t";
+    validation_log << std::fixed << "time epoch sum_loss ";
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        validation_log << LOSS_TYPE_NAME[i] + "_loss" << "\t";
+
+        validation_log << std::to_string((i + 3) / STANDARD_LOSS_TYPE_NUM) + LOSS_TYPE_NAME[i % STANDARD_LOSS_TYPE_NUM] + "_loss ";
     }
     validation_log << "learning_rate" << std::endl;
 
@@ -95,15 +88,15 @@ void supervisedLearn() {
             std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data);
             torch::Tensor loss_sum = torch::zeros({batch_size});
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                loss_sum += coefficients[i] * loss[i].cpu();
+                loss_sum += loss[i].cpu();
             }
             loss_sum.mean().backward();
             optimizer.step();
 
             //表示
-            dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << step + 1 << "\t";
+            dout(std::cout, learn_log) << elapsedTime(start_time) << " " << epoch << " " << step + 1 << " ";
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
+                dout(std::cout, learn_log) << loss[i].mean().item<float>() << " \n"[i == LOSS_TYPE_NUM - 1];
             }
         }
 
@@ -114,7 +107,7 @@ void supervisedLearn() {
         std::array<float, LOSS_TYPE_NUM> valid_loss = validation(valid_data);
         float sum_loss = 0;
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            sum_loss += coefficients[i] * valid_loss[i];
+            sum_loss += valid_loss[i];
         }
 
         //最小値が更新されていればパラメータを保存
@@ -123,9 +116,9 @@ void supervisedLearn() {
             torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_supervised_best.model");
         }
 
-        dout(std::cout, validation_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << sum_loss << "\t";
+        dout(std::cout, validation_log) << elapsedTime(start_time) << " " << epoch << " " << sum_loss << " ";
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            dout(std::cout, validation_log) << valid_loss[i] << "\t";
+            dout(std::cout, validation_log) << valid_loss[i] << " ";
         }
         dout(std::cout, validation_log) << optimizer.options.learning_rate_ << std::endl;
 
