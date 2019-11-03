@@ -172,6 +172,9 @@ void SearcherForPlay::printUSIInfo() const {
             Move move;
             int32_t N;
             FloatType nn_output_policy, Q, softmaxed_Q;
+#ifdef USE_CATEGORICAL
+            FloatType prob_over_best_Q;
+#endif
             bool operator<(const MoveWithInfo& rhs) const {
                 return Q < rhs.Q;
             }
@@ -187,6 +190,12 @@ void SearcherForPlay::printUSIInfo() const {
             moves_with_info[i].N = curr_node.N[i];
             moves_with_info[i].Q = Q[i];
             moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
+#ifdef USE_CATEGORICAL
+            moves_with_info[i].prob_over_best_Q = 0;
+            for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
+                moves_with_info[i].prob_over_best_Q += QfromNextValue(curr_node, i)[j];
+            }
+#endif
         }
         std::sort(moves_with_info.begin(), moves_with_info.end());
 
@@ -194,14 +203,27 @@ void SearcherForPlay::printUSIInfo() const {
         //GUIを通すと後に出力したものが上に来るので昇順ソートしたものを出力すれば上から降順になる
         for (uint64_t i = std::max((int64_t)0, (int64_t)curr_node.moves.size() - usi_options_.print_policy_num);
                       i < curr_node.moves.size(); i++) {
+#ifdef USE_CATEGORICAL
+            printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  %05.1f ", curr_node.moves.size() - i,
+                   moves_with_info[i].nn_output_policy * 100.0,
+                   moves_with_info[i].N * 100.0 / curr_node.sum_N,
+                   moves_with_info[i].softmaxed_Q * 100,
+                   moves_with_info[i].Q,
+                   moves_with_info[i].prob_over_best_Q * 100);
+#else
             printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  ", curr_node.moves.size() - i,
                                                                           moves_with_info[i].nn_output_policy * 100.0,
                                                                           moves_with_info[i].N * 100.0 / curr_node.sum_N,
                                                                           moves_with_info[i].softmaxed_Q * 100,
                                                                           moves_with_info[i].Q);
+#endif
             moves_with_info[i].move.print();
         }
+#ifdef USE_CATEGORICAL
+        std::cout << "info string 順位 NN出力 探索割合 価値分布 価値 最善超え確率" << std::endl;
+#else
         std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
+#endif
     }
 }
 
