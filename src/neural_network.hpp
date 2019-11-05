@@ -24,7 +24,7 @@ using ValueTeacherType = float;
 #endif
 
 //学習データの型
-constexpr int64_t LEARNING_RANGE = 2;
+constexpr int64_t LEARNING_RANGE = 3;
 struct LearningData {
     std::string SFEN;
     std::array<Move, LEARNING_RANGE> moves;
@@ -50,11 +50,10 @@ enum LossType {
 constexpr int64_t LOSS_TYPE_NUM = STANDARD_LOSS_TYPE_NUM * (LEARNING_RANGE - 1) + TRANS_LOSS_INDEX;
 
 //各損失の名前を示す文字列
-const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{
-    "curr_policy", "curr_value", "curr_reconstruct",
-    "trans",
-    "sim_next_policy", "sim_next_value", "sim_next_reconstruct",
-    "next_policy", "next_value", "next_reconstruct",
+const std::array<std::string, STANDARD_LOSS_TYPE_NUM> LOSS_TYPE_NAME{
+    "_policy", "_value", "_reconstruct",
+    "_trans",
+    "_sim_policy", "_sim_value", "_sim_reconstruct",
 };
 
 //畳み込みとBatchNormalizationをまとめたユニット

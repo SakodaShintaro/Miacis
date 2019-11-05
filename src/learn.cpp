@@ -119,9 +119,6 @@ void searchLearningRate() {
     settings.add("lr_decay_epoch2",   1, (int64_t)1e10);
     settings.add("train_kifu_path");
     settings.add("valid_kifu_path");
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
-    }
 
     //設定をファイルからロード
     settings.load("supervised_learn_settings.txt");
@@ -136,11 +133,6 @@ void searchLearningRate() {
     int64_t lr_decay_epoch2     = settings.get<int64_t>("lr_decay_epoch2");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
-
-    std::array<float, LOSS_TYPE_NUM> coefficients{};
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        coefficients[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
-    }
 
     //学習データを取得
     std::vector<LearningData> data_buffer = loadData(train_kifu_path);
@@ -188,7 +180,7 @@ void searchLearningRate() {
             std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data);
             torch::Tensor loss_sum = torch::zeros({ batch_size });
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                loss_sum += coefficients[i] * loss[i];
+                loss_sum += loss[i];
             }
             loss_sum.backward();
             optimizer.step();

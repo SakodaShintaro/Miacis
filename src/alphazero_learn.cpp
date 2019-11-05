@@ -29,9 +29,6 @@ void alphaZero() {
     settings.add("validation_interval",    1, (int64_t)1e10);
     settings.add("validation_size",        0, (int64_t)1e10);
     settings.add("validation_kifu_path");
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
-    }
 
     //設定をファイルからロード
     settings.load("alphazero_settings.txt");
@@ -63,12 +60,7 @@ void alphaZero() {
     int64_t validation_interval      = settings.get<int64_t>("validation_interval");
     int64_t validation_size          = settings.get<int64_t>("validation_size");
     std::string validation_kifu_path = settings.get<std::string>("validation_kifu_path");
-
-    std::array<float, LOSS_TYPE_NUM> coefficients{};
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        coefficients[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
-    }
-
+    
     //値同士の制約関係を確認
     assert(validation_interval % update_interval == 0);
 
@@ -84,14 +76,14 @@ void alphaZero() {
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");
     std::ofstream validation_log("alphazero_validation_log.txt");
-    dout(std::cout, learn_log) << "time\tstep";
-    validation_log             << "time\tstep";
+    dout(std::cout, learn_log) << "time step";
+    validation_log             << "time step";
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        dout(std::cout, learn_log) << "\t" + LOSS_TYPE_NAME[i] + "_loss";
-        validation_log             << "\t" + LOSS_TYPE_NAME[i] + "_loss";
+        dout(std::cout, learn_log) << " " + std::to_string((i + 3) / STANDARD_LOSS_TYPE_NUM) + LOSS_TYPE_NAME[i % STANDARD_LOSS_TYPE_NUM] + "_loss";
+        validation_log             << " " + std::to_string((i + 3) / STANDARD_LOSS_TYPE_NUM) + LOSS_TYPE_NAME[i % STANDARD_LOSS_TYPE_NUM] + "_loss";
     }
-    dout(std::cout, learn_log) << "time\tstep" << std::fixed << std::endl;
-    validation_log             << "time\tstep" << std::fixed << std::endl;
+    dout(std::cout, learn_log) << "time step" << std::fixed << std::endl;
+    validation_log             << "time step" << std::fixed << std::endl;
 
     //データを取得
     std::vector<LearningData> validation_data = loadData(validation_kifu_path);
@@ -161,7 +153,7 @@ void alphaZero() {
         std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(data);
         torch::Tensor loss_sum = torch::zeros({batch_size});
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            loss_sum += coefficients[i] * loss[i].cpu();
+            loss_sum += loss[i].cpu();
         }
 
         //replay_bufferのpriorityを更新
@@ -177,9 +169,9 @@ void alphaZero() {
 
         //1回のvalidationまで10回表示
         if (step_num % (validation_interval / 10) == 0) {
-            dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << loss_sum.item<float>() << "\t";
+            dout(std::cout, learn_log) << elapsedTime(start_time) << " " << step_num << " " << loss_sum.item<float>() << " ";
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
+                dout(std::cout, learn_log) << loss[i].mean().item<float>() << " \n"[i == LOSS_TYPE_NUM - 1];
             }
         }
 
@@ -202,11 +194,11 @@ void alphaZero() {
             std::array<float, LOSS_TYPE_NUM> valid_loss = validation(validation_data);
             float valid_loss_sum = 0.0;
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                valid_loss_sum += coefficients[i] * valid_loss[i];
+                valid_loss_sum += valid_loss[i];
             }
-            dout(std::cout, validation_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << valid_loss_sum << "\t";
+            dout(std::cout, validation_log) << elapsedTime(start_time) << " " << step_num << " " << valid_loss_sum << " ";
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, validation_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
+                dout(std::cout, validation_log) << loss[i].mean().item<float>() << " \n"[i == LOSS_TYPE_NUM - 1];
             }
         }
 
