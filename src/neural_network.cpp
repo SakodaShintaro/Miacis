@@ -282,11 +282,6 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     //局面の特徴量を取得
     std::array<std::vector<float>, LEARNING_RANGE> state_features;
 
-    //再構成損失を計算する際の教師情報
-    //入力情報とはやや形式が違うものを使う
-    std::array<std::vector<FloatType>, LEARNING_RANGE> board_teacher_vec;
-    std::array<std::vector<FloatType>, LEARNING_RANGE> hand_teacher_vec;
-
     //Policyの教師
     std::array<std::vector<int64_t>, LEARNING_RANGE> move_teachers;
 
@@ -303,13 +298,6 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
         for (int64_t i = 0; i < LEARNING_RANGE; i++) {
             std::vector<float> curr_state_feature = pos.makeFeature();
             state_features[i].insert(state_features[i].end(), curr_state_feature.begin(), curr_state_feature.end());
-
-            //現局面の再構成損失の教師を取得
-            std::pair<std::vector<float>, std::vector<float>> reconstruct_teacher = pos.makeReconstructTeacher();
-            board_teacher_vec[i].insert(board_teacher_vec[i].end(), reconstruct_teacher.first.begin(),
-                                        reconstruct_teacher.first.end());
-            hand_teacher_vec[i].insert(hand_teacher_vec[i].end(), reconstruct_teacher.second.begin(),
-                                       reconstruct_teacher.second.end());
 
             //Policyの教師
             move_teachers[i].push_back(datum.moves[i].toLabel());
