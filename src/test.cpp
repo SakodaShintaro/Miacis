@@ -1,6 +1,7 @@
 ﻿#include"test.hpp"
 #include"game_generator.hpp"
 #include"searcher_for_play.hpp"
+#include"searcher_using_sim_net.hpp"
 #include"learn.hpp"
 
 void test() {
@@ -104,8 +105,10 @@ void checkVal() {
     data.erase(data.begin() + 40960, data.end());
     data.shrink_to_fit();
 
-    auto v = validation(data, 32);
-    printf("%f\t%f\t%f\n", v[0], v[1], v[2]);
+    std::array<float, LOSS_TYPE_NUM> v = validation(data, 32);
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
+    }
 }
 
 void checkPredictSpeed() {
@@ -249,6 +252,8 @@ void checkActionRepresentations() {
     moves.emplace_back(SQ54, SQ55, false, false, BLACK_KNIGHT_PROMOTE, EMPTY);
     moves.emplace_back(SQ24, SQ28, false, false, BLACK_ROOK, EMPTY);
     moves.emplace_back(SQ22, SQ88, false, false, BLACK_BISHOP, EMPTY);
+    moves.emplace_back(SQ22, SQ88, false, true,  BLACK_BISHOP, EMPTY);
+
 
     for (uint64_t i = 0; i < moves.size(); i++) {
         moves[i].print();
@@ -261,5 +266,81 @@ void checkActionRepresentations() {
             std::cout << loss.item<float>() << " ";
         }
         std::cout << std::endl;
+    }
+}
+
+void checkRepresentationDist() {
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::NoGradGuard no_grad_guard;
+
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
+
+    //何局検証するか
+    constexpr int64_t GAME_NUM = 3;
+
+    std::vector<Game> games = loadGames(path, GAME_NUM);
+
+    std::cout << std::fixed << std::endl;
+
+    for (const Game& game : games) {
+        Position pos;
+        pos.print();
+        for (const OneTurnElement& element : game.elements) {
+            std::map<int64_t, uint64_t> histogram;
+            torch::Tensor representation = nn->encodeStates(pos.makeFeature()).view({-1}).cpu();
+            for (int64_t i = 0; i < representation.size(0); i++) {
+                float value = representation[i].item<float>();
+                int64_t bin = std::round(value);
+                histogram[bin]++;
+            }
+
+            for (int64_t i = 0; i < 20; i++) {
+                std::cout << std::setw(4) << histogram[i] << " ";
+            }
+            std::cout << torch::sqrt(torch::sum(torch::pow(representation, 2))).item<float>() << std::endl;
+
+            pos.doMove(element.move);
+        }
+    }
+}
+
+void checkPlayRepeat() {
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::NoGradGuard no_grad_guard;
+
+    UsiOptions usi_options;
+    usi_options.byoyomi_margin = 0;
+    usi_options.random_turn = 30;
+    usi_options.draw_turn = 256;
+    usi_options.print_interval = 1000000;
+    usi_options.USI_Hash = 4096;
+    usi_options.UCT_lambda_x1000 = 1000;
+    usi_options.C_PUCT_x1000 = 2500;
+    usi_options.P_coeff_x1000 = 0;
+    usi_options.Q_coeff_x1000 = 1000;
+    usi_options.thread_num = 1;
+    usi_options.search_batch_size = 1;
+    usi_options.search_limit = 1;
+    usi_options.temperature_x1000 = 0;
+    usi_options.use_sim_net = true;
+    constexpr int64_t time_limit = 10000;
+
+    SearcherUsingSimNet searcher(usi_options, nn);
+
+    for (int64_t i = 0; i < 1000000; i++) {
+        Position pos;
+        while (true) {
+            std::vector<Move> moves = pos.generateAllMoves();
+            if (moves.empty() || pos.turnNumber() > usi_options.draw_turn) {
+                pos.print();
+                break;
+            }
+
+            Move best_move = searcher.thinkMCTS(pos, time_limit);
+
+            pos.doMove(best_move);
+        }
     }
 }

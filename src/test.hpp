@@ -9,5 +9,7 @@ void checkVal();
 void checkSegmentTree();
 void checkTransitionModel();
 void checkActionRepresentations();
+void checkRepresentationDist();
+void checkPlayRepeat();
 
 #endif // !TEST_HPP

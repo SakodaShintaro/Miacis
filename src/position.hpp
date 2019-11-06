@@ -30,6 +30,8 @@ public:
     //特徴量作成
     std::vector<float> makeFeature() const;
 
+    std::pair<std::vector<float>, std::vector<float>> makeReconstructTeacher() const;
+
     //toとfromしか与えられない状態から完全なMoveに変換する関数
     Move transformValidMove(Move move);
 
@@ -48,6 +50,7 @@ public:
     Color color() const { return color_; }
     int64_t hashValue() const { return hash_value_; }
     Piece on(const Square sq) const { return board_[sq]; }
+    Hand hand(Color c) const { return hand_[c]; }
     bool isChecked() { return is_checked_; }
 private:
     //--------------------

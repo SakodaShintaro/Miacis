@@ -16,20 +16,6 @@ const ArrayMap<int32_t, PieceNum> PieceToNum({
     { BLACK_SILVER_PROMOTE, 11 },
     { BLACK_BISHOP_PROMOTE, 12 },
     { BLACK_ROOK_PROMOTE,   13 },
-    { WHITE_PAWN,    14 },
-    { WHITE_LANCE,   15 },
-    { WHITE_KNIGHT,  16 },
-    { WHITE_SILVER,  17 },
-    { WHITE_GOLD,    18 },
-    { WHITE_BISHOP,  19 },
-    { WHITE_ROOK,    20 },
-    { WHITE_KING,    21 },
-    { WHITE_PAWN_PROMOTE,   22 },
-    { WHITE_LANCE_PROMOTE,  23 },
-    { WHITE_KNIGHT_PROMOTE, 24 },
-    { WHITE_SILVER_PROMOTE, 25 },
-    { WHITE_BISHOP_PROMOTE, 26 },
-    { WHITE_ROOK_PROMOTE,   27 }
 });
 
 

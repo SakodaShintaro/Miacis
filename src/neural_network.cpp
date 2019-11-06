@@ -6,7 +6,7 @@ static constexpr int32_t PREDICT_TRANSITION_BLOCK_NUM = 4;
 static constexpr int32_t CHANNEL_NUM = 64;
 static constexpr int32_t VALUE_HIDDEN_NUM = 256;
 static constexpr int32_t KERNEL_SIZE = 3;
-static constexpr int32_t ACTION_FEATURE_CHANNEL_NUM = 32;
+static constexpr int32_t ACTION_FEATURE_CHANNEL_NUM = 4 + 18;
 static constexpr int32_t REDUCTION = 8;
 
 #ifdef USE_CATEGORICAL
@@ -173,6 +173,10 @@ torch::Tensor NeuralNetworkImpl::predictTransition(const torch::Tensor& state_re
     for (auto& blocks : predict_transition_blocks_) {
         x = blocks->forward(x);
     }
+
+    //手番が変わることを考慮して180度ひっくり返す
+    x = torch::rot90(x, 2, { 2, 3 });
+
     return x;
 }
 
@@ -206,8 +210,12 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
         //各moveにつき9×9×MOVE_FEATURE_CHANNEL_NUMの特徴マップを得る
         std::vector<float> curr_move_feature(9 * 9 * ACTION_FEATURE_CHANNEL_NUM, 0.0);
 
+        //この行動の手番
+        Color color = pieceToColor(move.subject());
+
         //1ch:toの位置に1を立てる
-        curr_move_feature[SquareToNum[move.to()]] = 1;
+        Square to = (color == BLACK ? move.to() : InvSquare[move.to()]);
+        curr_move_feature[SquareToNum[to]] = 1;
 
         //2ch:fromの位置に1を立てる.持ち駒から打つ手ならなし
         //3ch:持ち駒から打つ手なら全て1
@@ -216,7 +224,8 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
                 curr_move_feature[2 * SQUARE_NUM + SquareToNum[sq]] = 1;
             }
         } else {
-            curr_move_feature[SQUARE_NUM + SquareToNum[move.from()]] = 1;
+            Square from = (color == BLACK ? move.from() : InvSquare[move.from()]);
+            curr_move_feature[SQUARE_NUM + SquareToNum[from]] = 1;
         }
 
         //4ch:成りなら全て1
@@ -228,7 +237,8 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
 
         //5ch以降:駒の種類に合わせたところだけ全て1
         for (Square sq : SquareList) {
-            curr_move_feature[(4 + PieceToNum[move.subject()]) * SQUARE_NUM + SquareToNum[sq]] = 1;
+            Piece p = (color == BLACK ? move.subject() : oppositeColor(move.subject()));
+            curr_move_feature[(4 + PieceToNum[p]) * SQUARE_NUM + SquareToNum[sq]] = 1;
         }
 
         move_features.insert(move_features.end(), curr_move_feature.begin(), curr_move_feature.end());
@@ -240,7 +250,7 @@ torch::Tensor NeuralNetworkImpl::encodeActions(const std::vector<Move>& moves) {
 #endif
     move_features_tensor = move_features_tensor.view({ -1, ACTION_FEATURE_CHANNEL_NUM, 9, 9 });
     torch::Tensor x = action_encoder_first_conv_and_norm_->forward(move_features_tensor);
-    for (auto& block : action_encoder_blocks_) {
+    for (ResidualBlock& block : action_encoder_blocks_) {
         x = block->forward(x);
     }
     return x;
@@ -270,93 +280,91 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     static Position pos;
 
     //局面の特徴量を取得
-    std::vector<float> curr_state_features;
-    std::vector<float> next_state_features;
+    std::array<std::vector<float>, LEARNING_RANGE> state_features;
+
+    //再構成損失を計算する際の教師情報
+    //入力情報とはやや形式が違うものを使う
+    std::array<std::vector<FloatType>, LEARNING_RANGE> board_teacher_vec;
+    std::array<std::vector<FloatType>, LEARNING_RANGE> hand_teacher_vec;
+
+    //Policyの教師
+    std::array<std::vector<int64_t>, LEARNING_RANGE> move_teachers;
+
+    //Valueの教師
+    std::array<std::vector<ValueTeacherType>, LEARNING_RANGE> value_teachers;
+
+    //行動の表現
+    std::array<std::vector<Move>, LEARNING_RANGE> moves;
+
     for (const LearningData& datum : data) {
         //現局面の特徴量を取得
         pos.loadSFEN(datum.SFEN);
-        std::vector<float> curr_state_feature = pos.makeFeature();
-        curr_state_features.insert(curr_state_features.end(), curr_state_feature.begin(), curr_state_feature.end());
 
-        //次局面の特徴量を取得
-        pos.doMove(datum.move);
-        std::vector<float> next_state_feature = pos.makeFeature();
-        next_state_features.insert(next_state_features.end(), next_state_feature.begin(), next_state_feature.end());
+        for (int64_t i = 0; i < LEARNING_RANGE; i++) {
+            std::vector<float> curr_state_feature = pos.makeFeature();
+            state_features[i].insert(state_features[i].end(), curr_state_feature.begin(), curr_state_feature.end());
+
+            //現局面の再構成損失の教師を取得
+            std::pair<std::vector<float>, std::vector<float>> reconstruct_teacher = pos.makeReconstructTeacher();
+            board_teacher_vec[i].insert(board_teacher_vec[i].end(), reconstruct_teacher.first.begin(),
+                                        reconstruct_teacher.first.end());
+            hand_teacher_vec[i].insert(hand_teacher_vec[i].end(), reconstruct_teacher.second.begin(),
+                                       reconstruct_teacher.second.end());
+
+            //Policyの教師
+            move_teachers[i].push_back(datum.moves[i].toLabel());
+
+            //Valueの教師
+            value_teachers[i].push_back(datum.value[i]);
+
+            //行動の表現取得のため
+            moves[i].push_back(datum.moves[i]);
+
+            //次の局面へ遷移
+            pos.doMove(datum.moves[i]);
+        }
     }
 
-    //現局面の特徴を表現に変換
-    torch::Tensor state_representation = encodeStates(curr_state_features);
+    std::array<torch::Tensor, LOSS_TYPE_NUM> losses{};
 
-    //---------------------
-    //  Policyの損失計算
-    //---------------------
-    //Policyを取得
-    torch::Tensor policy = decodePolicy(state_representation);
+    //まずは現局面で初期化
+    torch::Tensor next_state_representation = encodeStates(state_features[0]);
 
-    //Policyの教師を構築
-    std::vector<int64_t> move_teachers;
-    for (const LearningData& d : data) {
-        move_teachers.push_back(d.move.toLabel());
+    //遷移予測した表現。これも最初は現局面の表現で初期化
+    torch::Tensor simulated_representation = next_state_representation;
+
+    for (int64_t i = 0; i < LEARNING_RANGE; i++) {
+        //i == 0のときはすぐ上の行で、それ以外のときは下のループ中で状態をエンコードしているのでそれを再利用
+        torch::Tensor state_representation = next_state_representation;
+
+        losses[i * STANDARD_LOSS_TYPE_NUM + POLICY_LOSS_INDEX] = policyLoss(state_representation, move_teachers[i]);
+        losses[i * STANDARD_LOSS_TYPE_NUM + VALUE_LOSS_INDEX] = valueLoss(state_representation, value_teachers[i]);
+
+        if (i < LEARNING_RANGE - 1) {
+            //----------------------
+            //  遷移予測の損失計算
+            //----------------------
+            //行動の表現を取得
+            torch::Tensor action_representation = encodeActions(moves[i]);
+
+            //次状態を予測
+            simulated_representation = predictTransition(simulated_representation, action_representation);
+
+            //次状態の表現を取得
+            next_state_representation = encodeStates(state_features[i + 1]);
+
+            //損失を計算
+            losses[i * STANDARD_LOSS_TYPE_NUM + TRANS_LOSS_INDEX] = transitionLoss(simulated_representation, next_state_representation);
+
+            //--------------------------------------
+            //  遷移後の表現から予測するPolicyの損失
+            //--------------------------------------
+            losses[i * STANDARD_LOSS_TYPE_NUM + NEXT_POLICY_LOSS_INDEX] = policyLoss(simulated_representation, move_teachers[i + 1]);
+            losses[i * STANDARD_LOSS_TYPE_NUM + NEXT_VALUE_LOSS_INDEX] = valueLoss(simulated_representation, value_teachers[i + 1]);
+        }
     }
-    torch::Tensor move_teachers_tensor = torch::tensor(move_teachers).to(device_);
 
-    //損失を計算
-    torch::Tensor policy_loss = torch::nll_loss(torch::log_softmax(policy, 1), move_teachers_tensor, {},
-                                                Reduction::None);
-
-    //--------------------
-    //  Valueの損失計算
-    //--------------------
-    //Valueを取得
-    torch::Tensor value = decodeValue(state_representation);
-
-    //Valueの教師を構築
-    std::vector<ValueTeacherType> value_teachers;
-    for (const LearningData& d : data) {
-        value_teachers.push_back(d.value);
-    }
-
-    //損失を計算
-#ifdef USE_CATEGORICAL
-    torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_);
-    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_teachers_tensor);
-#else
-#ifdef USE_HALF_FLOAT
-    torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_, torch::kHalf);
-#else
-    torch::Tensor value_teachers_tensor = torch::tensor(value_teachers).to(device_);
-#endif
-
-    value = value.view(-1);
-#ifdef USE_SIGMOID
-    torch::Tensor value_loss = -value_teachers_tensor * torch::log(value)
-                        - (1 - value_teachers_tensor) * torch::log(1 - value);
-#else
-    torch::Tensor value_loss = torch::mse_loss(value, value_teachers_tensor, Reduction::None);
-#endif
-#endif
-
-    //----------------------
-    //  遷移予測の損失計算
-    //----------------------
-    //行動の表現を取得
-    std::vector<Move> moves;
-    for (const LearningData& d : data) {
-        moves.push_back(d.move);
-    }
-    torch::Tensor action_representation = encodeActions(moves);
-
-    //次状態を予測
-    torch::Tensor predicted_state_representation = predictTransition(state_representation.detach(), action_representation);
-
-    //次状態の表現を取得
-    //勾配を止める
-    torch::Tensor next_state_representation = encodeStates(next_state_features).detach();
-
-    //損失を計算
-    torch::Tensor transition_loss = transitionLoss(predicted_state_representation, next_state_representation);
-
-    return { policy_loss, value_loss, transition_loss };
+    return losses;
 }
 
 void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
@@ -377,6 +385,39 @@ torch::Tensor NeuralNetworkImpl::transitionLoss(const torch::Tensor& predict, co
     torch::Tensor diff = predict - ground_truth;
     torch::Tensor square = torch::pow(diff, 2);
     return torch::mean(square, {1, 2, 3});
+}
+
+torch::Tensor NeuralNetworkImpl::policyLoss(const torch::Tensor& state_representation, const std::vector<int64_t>& policy_teacher) {
+    torch::Tensor policy = decodePolicy(state_representation);
+    torch::Tensor policy_teacher_tensor = torch::tensor(policy_teacher).to(device_);
+    return torch::nll_loss(torch::log_softmax(policy, 1), policy_teacher_tensor, {}, Reduction::None);
+}
+
+torch::Tensor NeuralNetworkImpl::valueLoss(const torch::Tensor& state_representation, const std::vector<ValueTeacherType>& value_teacher) {
+    //Valueを取得
+    torch::Tensor value = decodeValue(state_representation).view(-1);
+
+    //教師の構築
+#ifdef USE_CATEGORICAL
+    torch::Tensor value_teacher_tensor = torch::tensor(value_teacher).to(device_);
+#else
+#ifdef USE_HALF_FLOAT
+    torch::Tensor value_teacher_tensor = torch::tensor(value_teacher).to(device_, torch::kHalf);
+#else
+    torch::Tensor value_teacher_tensor = torch::tensor(value_teacher).to(device_);
+#endif
+#endif
+
+    //損失計算
+#ifdef USE_CATEGORICAL
+    return torch::nll_loss(torch::log_softmax(value, 1), value_teacher_tensor);
+#else
+#ifdef USE_SIGMOID
+    return -value_teacher_tensor * torch::log(value) - (1 - value_teacher_tensor) * torch::log(1 - value);
+#else
+    return torch::mse_loss(value, value_teacher_tensor, Reduction::None);
+#endif
+#endif
 }
 
 NeuralNetwork nn;
