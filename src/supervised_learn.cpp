@@ -112,9 +112,8 @@ void supervisedLearn() {
                 //表示
                 dout(std::cout, validation_log) << elapsedTime(start_time) << " " << epoch << " " << sum_of_training_step << " ";
                 for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                    dout(std::cout, validation_log) << valid_loss[i] << " ";
+                    dout(std::cout, validation_log) << valid_loss[i] << " \n"[i == LOSS_TYPE_NUM - 1];
                 }
-                dout(std::cout, validation_log) << optimizer.options.learning_rate_ << std::endl;
             }
 
             if (sum_of_training_step == max_step) {
