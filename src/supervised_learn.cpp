@@ -4,13 +4,12 @@
 
 void supervisedLearn() {
     HyperparameterManager settings;
-    settings.add("learn_rate",        0.0f, 100.0f);
-    settings.add("momentum",          0.0f, 1.0f);
-    settings.add("weight_decay",      0.0f, 100.0f);
-    settings.add("batch_size",        1, (int64_t)1e10);
-    settings.add("max_epoch",         1, (int64_t)1e10);
-    settings.add("lr_decay_epoch1",   1, (int64_t)1e10);
-    settings.add("lr_decay_epoch2",   1, (int64_t)1e10);
+    settings.add("learn_rate",          0.0f, 100.0f);
+    settings.add("momentum",            0.0f, 1.0f);
+    settings.add("weight_decay",        0.0f, 100.0f);
+    settings.add("batch_size",          1, (int64_t)1e10);
+    settings.add("max_step",            1, (int64_t)1e10);
+    settings.add("validation_interval", 1, (int64_t)1e10);
     settings.add("train_kifu_path");
     settings.add("valid_kifu_path");
 
@@ -22,9 +21,8 @@ void supervisedLearn() {
     float momentum              = settings.get<float>("momentum");
     float weight_decay          = settings.get<float>("weight_decay");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
-    int64_t max_epoch           = settings.get<int64_t>("max_epoch");
-    int64_t lr_decay_epoch1     = settings.get<int64_t>("lr_decay_epoch1");
-    int64_t lr_decay_epoch2     = settings.get<int64_t>("lr_decay_epoch2");
+    int64_t max_step            = settings.get<int64_t>("max_step");
+    int64_t validation_interval = settings.get<int64_t>("validation_interval");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
 
@@ -35,9 +33,6 @@ void supervisedLearn() {
 
     //データをシャッフルするためのengine
     std::mt19937_64 engine(0);
-
-    //最小値を更新した場合のみパラメータを保存する
-    float min_loss = INT_MAX;
 
     //学習推移のログファイル
     std::ofstream learn_log("supervised_learn_log.txt");
@@ -67,11 +62,14 @@ void supervisedLearn() {
     sgd_option.weight_decay(weight_decay);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
+    //累計学習ステップ数
+    int64_t sum_of_training_step = 0;
+
     //学習開始時間の設定
     auto start_time = std::chrono::steady_clock::now();
 
     //学習開始
-    for (int64_t epoch = 1; epoch <= max_epoch; epoch++) {
+    for (int64_t epoch = 1; epoch <= INT_MAX; epoch++) {
         //データをシャッフル
         std::shuffle(train_data.begin(), train_data.end(), engine);
 
@@ -91,38 +89,38 @@ void supervisedLearn() {
             }
             loss_sum.mean().backward();
             optimizer.step();
+            sum_of_training_step++;
 
             //表示
-            dout(std::cout, learn_log) << elapsedTime(start_time) << " " << epoch << " " << step + 1 << " ";
+            dout(std::cout, learn_log) << elapsedTime(start_time) << " " << epoch << " " << sum_of_training_step << " ";
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 dout(std::cout, learn_log) << loss[i].mean().item<float>() << " \n"[i == LOSS_TYPE_NUM - 1];
             }
-        }
 
-        //学習中のパラメータを書き出して推論用のモデルで読み込む
-        torch::save(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-        torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+            //validation
+            if (sum_of_training_step % validation_interval == 0) {
+                //学習中のパラメータを書き出して推論用のモデルで読み込む
+                torch::save(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+                torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
-        std::array<float, LOSS_TYPE_NUM> valid_loss = validation(valid_data);
-        float sum_loss = 0;
-        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            sum_loss += valid_loss[i];
-        }
+                //ステップごとに別名でもパラメータを保存
+                torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(sum_of_training_step) + "_.model");
 
-        //最小値が更新されていればパラメータを保存
-        if (sum_loss < min_loss) {
-            min_loss = sum_loss;
-            torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_supervised_best.model");
-        }
+                //検証損失を計算
+                std::array<float, LOSS_TYPE_NUM> valid_loss = validation(valid_data);
 
-        dout(std::cout, validation_log) << elapsedTime(start_time) << " " << epoch << " " << sum_loss << " ";
-        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            dout(std::cout, validation_log) << valid_loss[i] << " ";
-        }
-        dout(std::cout, validation_log) << optimizer.options.learning_rate_ << std::endl;
+                //表示
+                dout(std::cout, validation_log) << elapsedTime(start_time) << " " << epoch << " " << sum_of_training_step << " ";
+                for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+                    dout(std::cout, validation_log) << valid_loss[i] << " ";
+                }
+                dout(std::cout, validation_log) << optimizer.options.learning_rate_ << std::endl;
+            }
 
-        if (epoch == lr_decay_epoch1 || epoch == lr_decay_epoch2) {
-            optimizer.options.learning_rate_ /= 10;
+            if (sum_of_training_step == max_step) {
+                epoch = INT_MAX;
+                break;
+            }
         }
     }
 
