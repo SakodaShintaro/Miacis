@@ -43,11 +43,10 @@ void supervisedLearn() {
 
     //validation結果のログファイル
     std::ofstream validation_log("supervised_learn_validation_log.txt");
-    validation_log << std::fixed << "time epoch sum_loss ";
+    dout(std::cout, learn_log) << std::fixed << "time epoch step ";
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        validation_log << std::to_string((i + 3) / STANDARD_LOSS_TYPE_NUM) + LOSS_TYPE_NAME[i % STANDARD_LOSS_TYPE_NUM] + "_loss ";
+        validation_log << std::to_string((i + 3) / STANDARD_LOSS_TYPE_NUM) + LOSS_TYPE_NAME[i % STANDARD_LOSS_TYPE_NUM] + "_loss" << " \n"[i == LOSS_TYPE_NUM - 1];
     }
-    validation_log << "learning_rate" << std::endl;
 
     //評価関数読み込み
     NeuralNetwork learning_model;
@@ -104,7 +103,7 @@ void supervisedLearn() {
                 torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
                 //ステップごとに別名でもパラメータを保存
-                torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(sum_of_training_step) + "_.model");
+                torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(sum_of_training_step) + ".model");
 
                 //検証損失を計算
                 std::array<float, LOSS_TYPE_NUM> valid_loss = validation(valid_data);
