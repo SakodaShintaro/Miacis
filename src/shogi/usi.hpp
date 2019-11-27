@@ -1,9 +1,9 @@
 ﻿#ifndef USI_HPP
 #define USI_HPP
 
-#include"shogi/position_shogi.hpp"
-#include"searcher_for_play.hpp"
-#include"usi_options.hpp"
+#include"position.hpp"
+#include"../searcher_for_play.hpp"
+#include"../usi_options.hpp"
 #include<thread>
 #include<functional>
 
@@ -22,7 +22,7 @@ public:
     void gameover();
 private:
     std::unordered_map<std::string, std::function<void()>> command_;
-    ShogiPosition root_;
+    Position root_;
     std::unique_ptr<SearcherForPlay> searcher_;
     std::thread thread_;
     UsiOptions usi_options_;

@@ -7,8 +7,8 @@
 #include<iostream>
 #include<fstream>
 #include<cassert>
-#include"types.hpp"
-#include"array_map.hpp"
+#include"../types.hpp"
+#include"../array_map.hpp"
 
 enum Piece{
     PROMOTE_BIT = 5,
@@ -77,9 +77,9 @@ inline int operator<<(Piece p, int shift) { return static_cast<int>(p) << shift;
 
 inline static Color operator~(Color c) { return (c == BLACK) ? WHITE : BLACK; }
 
-constexpr uint32_t PIECE_KIND_NUM = 14;
-constexpr uint32_t HAND_PIECE_KIND_NUM = 7;
-constexpr uint32_t INPUT_CHANNEL_NUM = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2;
+constexpr int64_t PIECE_KIND_NUM = 14;
+constexpr int64_t HAND_PIECE_KIND_NUM = 7;
+constexpr int64_t INPUT_CHANNEL_NUM = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2;
 
 extern const std::array<Piece, PIECE_KIND_NUM * 2> PieceList;
 extern const std::array<std::array<Piece, 3>, 2> ColoredJumpPieceList;

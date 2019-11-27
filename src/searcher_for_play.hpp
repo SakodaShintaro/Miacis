@@ -26,7 +26,7 @@ public:
     }
 
     //探索を行って一番良い指し手を返す関数
-    Move think(ShogiPosition& root, int64_t time_limit);
+    Move think(Position& root, int64_t time_limit);
 
 private:
     //--------------------------
@@ -42,13 +42,13 @@ private:
     void printUSIInfo() const;
 
     //各スレッドに割り当てられる探索関数
-    void parallelUctSearch(ShogiPosition root, int32_t id);
+    void parallelUctSearch(Position root, int32_t id);
 
     //再帰しない探索関数
-    void select(ShogiPosition& pos, int32_t id);
+    void select(Position& pos, int32_t id);
 
     //ノードを展開する関数
-    Index expand(ShogiPosition& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id);
+    Index expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id);
 
     //バックアップ
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);

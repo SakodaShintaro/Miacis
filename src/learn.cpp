@@ -1,8 +1,10 @@
 ﻿#include"learn.hpp"
 #include"game.hpp"
 #include"hyperparameter_manager.hpp"
+#include"include_switch.hpp"
 #include<sstream>
 #include<iomanip>
+#include<random>
 
 std::string elapsedTime(const std::chrono::steady_clock::time_point& start) {
     auto elapsed = std::chrono::steady_clock::now() - start;
@@ -31,7 +33,7 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& val
     uint64_t index = 0;
     std::array<float, LOSS_TYPE_NUM> losses{};
     torch::NoGradGuard no_grad_guard;
-    ShogiPosition pos;
+    Position pos;
     while (index < validation_data.size()) {
         //バッチサイズ分データを確保
         std::vector<LearningData> curr_data;
@@ -54,8 +56,8 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& val
         //categoricalモデルのときは冗長だがもう一度順伝播を行って損失を手動で計算
         std::vector<FloatType> inputs;
         for (const LearningData& datum : curr_data) {
-            pos.loadSFEN(datum.SFEN);
-            auto feature = pos.makeFeature();
+            pos.fromStr(datum.position_str);
+            std::vector<float> feature = pos.makeFeature();
             inputs.insert(inputs.end(), feature.begin(), feature.end());
         }
         auto y = nn->policyAndValueBatch(inputs);
@@ -85,10 +87,10 @@ std::vector<LearningData> loadData(const std::string& file_path) {
 
     //データを局面単位にバラす
     std::vector<LearningData> data_buffer;
-    for (const auto& game : games) {
-        ShogiPosition pos;
-        for (const auto& e : game.elements) {
-            const auto& move = e.move;
+    for (const Game& game : games) {
+        Position pos;
+        for (const OneTurnElement& e : game.elements) {
+            const Move& move = e.move;
             LearningData datum{};
             datum.policy.push_back({move.toLabel(), 1.0});
 #ifdef USE_CATEGORICAL
@@ -96,7 +98,7 @@ std::vector<LearningData> loadData(const std::string& file_path) {
 #else
             datum.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
 #endif
-            datum.SFEN = pos.toSFEN();
+            datum.position_str = pos.toStr();
             data_buffer.push_back(datum);
             pos.doMove(move);
         }

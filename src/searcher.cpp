@@ -73,7 +73,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
     return max_index;
 }
 
-bool Searcher::mateSearchForAttacker(ShogiPosition& pos, int32_t depth) {
+bool Searcher::mateSearchForAttacker(Position& pos, int32_t depth) {
     assert(depth % 2 == 1);
     if (shouldStop()) {
         return false;
@@ -90,7 +90,7 @@ bool Searcher::mateSearchForAttacker(ShogiPosition& pos, int32_t depth) {
     return false;
 }
 
-bool Searcher::mateSearchForEvader(ShogiPosition& pos, int32_t depth) {
+bool Searcher::mateSearchForEvader(Position& pos, int32_t depth) {
     assert(depth % 2 == 0);
     if (shouldStop() || !pos.isChecked()) {
         return false;
@@ -115,7 +115,7 @@ bool Searcher::mateSearchForEvader(ShogiPosition& pos, int32_t depth) {
     return !pos.isLastMoveDropPawn();
 }
 
-void Searcher::mateSearch(ShogiPosition pos, int32_t depth_limit) {
+void Searcher::mateSearch(Position pos, int32_t depth_limit) {
     auto& curr_node = hash_table_[root_index_];
     for (int32_t depth = 1; !shouldStop() && depth <= depth_limit; depth += 2) {
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {

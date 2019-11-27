@@ -2,6 +2,7 @@
 #define UCT_HASH_ENTRY_HPP
 
 #include"neural_network.hpp"
+#include"include_switch.hpp"
 
 using Index = int32_t;
 
@@ -47,16 +48,16 @@ public:
     }
 
     //未使用のインデックスを探して返す関数(開番地法)
-    Index searchEmptyIndex(const ShogiPosition& pos);
+    Index searchEmptyIndex(const Position& pos);
 
     //この局面に対応するインデックスがあるか調べて返す関数
-    Index findSameHashIndex(const ShogiPosition& pos);
+    Index findSameHashIndex(const Position& pos);
 
     //posの局面をindexへ保存する関数
-    void saveUsedHash(ShogiPosition& pos, Index index);
+    void saveUsedHash(Position& pos, Index index);
 
     //現在の局面,及びそこから到達できる局面以外を削除する関数
-    void deleteOldHash(ShogiPosition& root, bool leave_root);
+    void deleteOldHash(Position& root, bool leave_root);
 
     double getUsageRate() const {
         return (double)used_num_ / table_.size();

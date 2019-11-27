@@ -1,6 +1,8 @@
 ﻿#include"replay_buffer.hpp"
+#include"include_switch.hpp"
 #include<thread>
 #include<iomanip>
+#include<random>
 
 const std::string ReplayBuffer::save_dir = "./learn_kifu/";
 
@@ -38,7 +40,7 @@ std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
 void ReplayBuffer::push(Game &game) {
     mutex_.lock();
 
-    ShogiPosition pos;
+    Position pos;
 
     static int64_t num = 0;
     if (++num % output_interval_ == 0) {
@@ -80,7 +82,7 @@ void ReplayBuffer::push(Game &game) {
         int64_t change_index = segment_tree_.getIndexToPush();
 
         //そこのデータを入れ替える
-        data_[change_index].SFEN = pos.toSFEN();
+        data_[change_index].position_str = pos.toStr();
         data_[change_index].policy = e.policy_teacher;
         data_[change_index].value = e.value_teacher;
 

@@ -1,7 +1,7 @@
 ﻿#ifndef GAME_HPP
 #define GAME_HPP
 
-#include"move.hpp"
+#include"include_switch.hpp"
 #include"neural_network.hpp"
 #include<string>
 #include<vector>

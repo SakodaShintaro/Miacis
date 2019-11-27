@@ -12,13 +12,12 @@ enum Color {
 //強化学習の報酬としては[-1, 1]とした方が自然に思えるので基本はオフ
 //#define USE_SIGMOID
 
-using Score = float;
-constexpr Score MAX_SCORE = 1.0;
+constexpr float MAX_SCORE = 1.0;
 
 #ifdef USE_SIGMOID
-constexpr Score MIN_SCORE = 0.0;
+constexpr float MIN_SCORE = 0.0;
 #else
-constexpr Score MIN_SCORE = -MAX_SCORE;
+constexpr float MIN_SCORE = -MAX_SCORE;
 #endif
 
 template<class T, size_t SIZE>

@@ -1,8 +1,8 @@
 ﻿#include"usi.hpp"
-#include"game.hpp"
-#include"test.hpp"
-#include"neural_network.hpp"
-#include"learn.hpp"
+#include"../game.hpp"
+#include"../test.hpp"
+#include"../neural_network.hpp"
+#include"../learn.hpp"
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数
@@ -124,7 +124,7 @@ void USI::position() {
         }
     }
     root_.init();
-    root_.loadSFEN(sfen);
+    root_.fromStr(sfen);
 
     std::cin >> input;  //input == "moves" or "go"となる
     if (input != "go") {

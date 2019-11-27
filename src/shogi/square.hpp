@@ -17,8 +17,9 @@ enum Square {
     WALL90, SQ91, SQ92, SQ93, SQ94, SQ95, SQ96, SQ97, SQ98, SQ99, WALL9A,
     WALLA0, WALLA1, WALLA2, WALLA3, WALLA4, WALLA5, WALLA6, WALLA7, WALLA8, WALLA9, WALLAA,
     SquareNum,
-    SQUARE_NUM = 81
 };
+
+constexpr int64_t SQUARE_NUM = 81;
 
 enum File {
     File0, File1, File2, File3, File4, File5, File6, File7, File8, File9, FileA, FileNum,

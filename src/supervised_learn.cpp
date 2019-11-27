@@ -1,6 +1,7 @@
 ﻿#include"learn.hpp"
 #include"hyperparameter_manager.hpp"
 #include<iostream>
+#include<random>
 
 void supervisedLearn() {
     HyperparameterManager settings;

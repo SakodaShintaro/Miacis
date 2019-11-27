@@ -1,6 +1,6 @@
 ﻿#include"uct_hash_table.hpp"
 
-Index UctHashTable::searchEmptyIndex(const ShogiPosition& pos) {
+Index UctHashTable::searchEmptyIndex(const Position& pos) {
     auto hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
@@ -23,7 +23,7 @@ Index UctHashTable::searchEmptyIndex(const ShogiPosition& pos) {
     }
 }
 
-Index UctHashTable::findSameHashIndex(const ShogiPosition& pos) {
+Index UctHashTable::findSameHashIndex(const Position& pos) {
     auto hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
@@ -45,7 +45,7 @@ Index UctHashTable::findSameHashIndex(const ShogiPosition& pos) {
     }
 }
 
-void UctHashTable::saveUsedHash(ShogiPosition& pos, Index index) {
+void UctHashTable::saveUsedHash(Position& pos, Index index) {
     table_[index].age = age_;
     used_num_++;
 
@@ -60,7 +60,7 @@ void UctHashTable::saveUsedHash(ShogiPosition& pos, Index index) {
     }
 }
 
-void UctHashTable::deleteOldHash(ShogiPosition& root, bool leave_root) {
+void UctHashTable::deleteOldHash(Position& root, bool leave_root) {
     uint64_t root_index = findSameHashIndex(root);
 
     used_num_ = 0;

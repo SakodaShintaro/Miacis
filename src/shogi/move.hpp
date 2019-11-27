@@ -3,7 +3,7 @@
 
 #include"square.hpp"
 #include"piece.hpp"
-#include"types.hpp"
+#include"../types.hpp"
 #include<unordered_map>
 #include<iostream>
 
@@ -36,22 +36,22 @@ public:
     explicit Move(int32_t x) : move_(x) {}
 
     Move(Square to, Square from) : move_(from << MOVE_FROM_SHIFT
-                                       | to << MOVE_TO_SHIFT) {}
+                                         | to << MOVE_TO_SHIFT) {}
 
     Move(Square to, Square from, bool isDrop) : move_(isDrop << MOVE_DROP_SHIFT
-                                                    | from << MOVE_FROM_SHIFT
-                                                    | to << MOVE_TO_SHIFT) {}
+                                                      | from << MOVE_FROM_SHIFT
+                                                      | to << MOVE_TO_SHIFT) {}
 
     Move(Square to, Square from, bool isDrop, bool isPromote) : move_(isPromote << MOVE_PROMOTE_SHIFT
-                                                                    | isDrop << MOVE_DROP_SHIFT
-                                                                    | from << MOVE_FROM_SHIFT
-                                                                    | to << MOVE_TO_SHIFT) {}
+                                                                      | isDrop << MOVE_DROP_SHIFT
+                                                                      | from << MOVE_FROM_SHIFT
+                                                                      | to << MOVE_TO_SHIFT) {}
 
     Move(Square to, Square from, bool isDrop, bool isPromote, Piece subject) : move_(subject << MOVE_SUBJECT_SHIFT
-                                                                                   | isPromote << MOVE_PROMOTE_SHIFT
-                                                                                   | isDrop << MOVE_DROP_SHIFT
-                                                                                   | from << MOVE_FROM_SHIFT
-                                                                                   | to << MOVE_TO_SHIFT) {}
+                                                                                     | isPromote << MOVE_PROMOTE_SHIFT
+                                                                                     | isDrop << MOVE_DROP_SHIFT
+                                                                                     | from << MOVE_FROM_SHIFT
+                                                                                     | to << MOVE_TO_SHIFT) {}
 
     Move(Square to, Square from, bool isDrop, bool isPromote, Piece subject, Piece capture) : move_(
               capture << MOVE_CAPTURE_SHIFT

@@ -1,14 +1,14 @@
 ﻿#ifndef POSITION_HPP
 #define POSITION_HPP
 
-#include"../move.hpp"
-#include"../hand.hpp"
-#include"../bitboard.hpp"
+#include"move.hpp"
+#include"hand.hpp"
+#include"bitboard.hpp"
 
-class ShogiPosition {
+class Position {
 public:
     //コンストラクタ
-    ShogiPosition();
+    Position();
 
     //初期化
     void init();
@@ -25,7 +25,7 @@ public:
     bool isLastMoveDropPawn() const;
 
     //千日手の判定
-    bool isRepeating(Score& score) const;
+    bool isRepeating(float& score) const;
 
     //特徴量作成
     std::vector<float> makeFeature() const;
@@ -37,8 +37,8 @@ public:
     std::vector<Move> generateAllMoves() const;
 
     //sfenの入出力
-    void loadSFEN(std::string sfen);
-    std::string toSFEN() const;
+    void fromStr(std::string sfen);
+    std::string toStr() const;
 
     //ハッシュ
     static void initHashSeed();
@@ -114,7 +114,7 @@ private:
 
         Bitboard pinners;
 
-        StateInfo(ShogiPosition& pos) :
+        StateInfo(Position& pos) :
             board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), is_checked(pos.is_checked_), pinners(pos.pinners_) {
             hand[BLACK] = pos.hand_[BLACK];
             hand[WHITE] = pos.hand_[WHITE];

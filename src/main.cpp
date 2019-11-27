@@ -1,5 +1,4 @@
-﻿#include"usi.hpp"
-#include"test.hpp"
+﻿#include"shogi/usi.hpp"
 #include"neural_network.hpp"
 
 int main()
@@ -10,7 +9,7 @@ int main()
     nn->setGPU(0);
     nn->eval();
 
-    ShogiPosition::initHashSeed();
+    Position::initHashSeed();
 
     Bitboard::init();
 

@@ -21,7 +21,7 @@ Game loadGameFromCSA(const sys::path& p) {
         { "RY", ROOK_PROMOTE },
     };
 
-    ShogiPosition pos;
+    Position pos;
     Game game;
     std::ifstream ifs(p);
     std::string buf;
@@ -142,7 +142,7 @@ void Game::writeKifuFile(const std::string& dir_path) const {
     }
     ofs << std::fixed;
 
-    ShogiPosition pos;
+    Position pos;
 
     for (uint64_t i = 0; i < elements.size(); i++) {
         Move m = elements[i].move;

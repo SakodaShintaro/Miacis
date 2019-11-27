@@ -1,12 +1,8 @@
 ﻿#ifndef MIACIS_NEURAL_NETWORK_HPP
 #define MIACIS_NEURAL_NETWORK_HPP
 
-#include"shogi/position_shogi.hpp"
+#include"types.hpp"
 #include<torch/torch.h>
-
-//ネットワーク構造によらない定数
-constexpr int32_t POLICY_CHANNEL_NUM = 27;
-constexpr int32_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM;
 
 //型のエイリアス
 using FloatType = float;
@@ -14,7 +10,7 @@ using PolicyType = std::vector<float>;
 using PolicyTeacherType = std::vector<std::pair<int32_t, float>>;
 #ifdef USE_CATEGORICAL
 constexpr int32_t BIN_SIZE = 51;
-constexpr double VALUE_WIDTH = (MAX_SCORE - MIN_SCORE) / BIN_SIZE;
+constexpr float VALUE_WIDTH = (MAX_SCORE - MIN_SCORE) / BIN_SIZE;
 using ValueType = std::array<float, BIN_SIZE>;
 using ValueTeacherType = int64_t;
 #else
@@ -25,7 +21,7 @@ using ValueTeacherType = float;
 
 //学習データの型
 struct LearningData {
-    std::string SFEN;
+    std::string position_str;
     PolicyTeacherType policy;
     ValueTeacherType value;
 };
@@ -116,8 +112,8 @@ inline ValueType onehotDist(double value) {
     return result;
 }
 
-inline double expOfValueDist(ValueType dist) {
-    double exp = 0.0;
+inline float expOfValueDist(ValueType dist) {
+    float exp = 0.0;
     for (int32_t i = 0; i < BIN_SIZE; i++) {
         //i番目の要素が示す値はMIN_SCORE + (i + 0.5) * VALUE_WIDTH
         exp += (MIN_SCORE + (i + 0.5) * VALUE_WIDTH) * dist[i];

@@ -1,4 +1,5 @@
 ﻿#include"neural_network.hpp"
+#include"include_switch.hpp"
 
 //ネットワークの設定
 static constexpr int32_t BLOCK_NUM = 10;
@@ -148,13 +149,13 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
-    static ShogiPosition pos;
+    static Position pos;
     std::vector<FloatType> inputs;
     std::vector<PolicyTeacherType> policy_teachers;
     std::vector<ValueTeacherType> value_teachers;
     for (const LearningData& datum : data) {
-        pos.loadSFEN(datum.SFEN);
-        const auto feature = pos.makeFeature();
+        pos.fromStr(datum.position_str);
+        const std::vector<float> feature = pos.makeFeature();
         inputs.insert(inputs.end(), feature.begin(), feature.end());
         policy_teachers.push_back(datum.policy);
         value_teachers.push_back(datum.value);

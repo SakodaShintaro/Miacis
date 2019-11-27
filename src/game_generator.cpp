@@ -32,7 +32,7 @@ void GameGenerator::genSlave() {
 
     //このスレッドが管理するデータら
     std::vector<Game> games(usi_options_.search_batch_size);
-    std::vector<ShogiPosition> positions(usi_options_.search_batch_size);
+    std::vector<Position> positions(usi_options_.search_batch_size);
 
     //探索クラスの生成,初期局面を探索する準備
     std::vector<SearcherForGenerate> searchers;

@@ -10,16 +10,16 @@ list(APPEND CMAKE_PREFIX_PATH ~/libtorch)
 find_package(Torch REQUIRED)
 
 #使用するソースも共通なので変数でまとめる
-set(SRCS bitboard.cpp
+set(SRCS shogi/bitboard.cpp
          game.cpp
          main.cpp
-         move.cpp
-         piece.cpp
-        shogi/position_shogi.cpp
-         square.cpp
+        shogi/move.cpp
+        shogi/piece.cpp
+        shogi/position.cpp
+        shogi/square.cpp
          test.cpp
          uct_hash_table.cpp
-         usi.cpp
+        shogi/usi.cpp
          replay_buffer.cpp
          game_generator.cpp
          neural_network.cpp

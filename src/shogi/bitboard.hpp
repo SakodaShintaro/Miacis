@@ -2,7 +2,7 @@
 #define BITBOARD_HPP
 
 #include"square.hpp"
-#include"common.hpp"
+#include"../common.hpp"
 #include<bitset>
 #include<functional>
 
