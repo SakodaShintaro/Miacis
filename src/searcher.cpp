@@ -73,6 +73,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
     return max_index;
 }
 
+#ifdef SHOGI
 bool Searcher::mateSearchForAttacker(Position& pos, int32_t depth) {
     assert(depth % 2 == 1);
     if (shouldStop()) {
@@ -145,6 +146,7 @@ void Searcher::mateSearch(Position pos, int32_t depth_limit) {
         }
     }
 }
+#endif
 
 ValueType Searcher::QfromNextValue(const UctHashEntry& node, int32_t i) const {
 #ifdef USE_CATEGORICAL

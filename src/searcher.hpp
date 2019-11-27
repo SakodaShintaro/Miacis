@@ -22,10 +22,12 @@ protected:
     //node局面におけるi番目の指し手の行動価値を返す関数
     ValueType QfromNextValue(const UctHashEntry& node, int32_t i) const;
 
+#ifdef SHOGI
     //詰み探索
     void mateSearch(Position pos, int32_t depth_limit);
     bool mateSearchForAttacker(Position& pos, int32_t depth);
     bool mateSearchForEvader(Position& pos, int32_t depth);
+#endif
 
     //置換表
     UctHashTable hash_table_;

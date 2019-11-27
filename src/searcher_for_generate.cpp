@@ -10,10 +10,12 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     std::stack<int32_t> actions;
     root_index_ = expand(root, indices, actions);
 
+#ifdef SHOGI
     if (root.turnNumber() >= 50) {
         //5手詰めまで探索
         mateSearch(root, 5);
     }
+#endif
 
     //合法手が0かどうかを判定して返す
     return !hash_table_[root_index_].moves.empty();

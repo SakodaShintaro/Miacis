@@ -36,6 +36,9 @@ public:
     //合法手生成
     std::vector<Move> generateAllMoves() const;
 
+    //終了判定
+    bool isFinish(float& score) const;
+
     //ハッシュ
     static void initHashSeed();
 

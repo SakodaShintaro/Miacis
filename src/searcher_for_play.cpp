@@ -51,8 +51,10 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     curr_node.nn_policy = softmax(curr_node.nn_policy);
     curr_node.value = y.second[0];
 
+#ifdef SHOGI
     //詰み探索立ち上げ
     std::thread mate_thread(&SearcherForPlay::mateSearch, this, root, LLONG_MAX);
+#endif
 
     //workerを立ち上げ
     std::vector<std::thread> threads(usi_options_.thread_num);
@@ -61,7 +63,9 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     }
 
     //終了を待つ
+#ifdef SHOGI
     mate_thread.join();
+#endif
     for (auto& t : threads) {
         t.join();
     }

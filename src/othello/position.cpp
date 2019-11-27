@@ -277,3 +277,44 @@ void Position::fromStr(const std::string& str) {
         board_[SquareList[i]] = (str[i] == 'x' ? BLACK_PIECE : str[i] == 'o' ? WHITE_PIECE : EMPTY);
     }
 }
+
+bool Position::isFinish(float& score) const {
+    bool is_there_empty = false;
+
+    std::array<int64_t, ColorNum> piece_num;
+
+    for (Square sq : SquareList) {
+        if (board_[sq] == EMPTY) {
+            is_there_empty = true;
+        } else {
+            piece_num[board_[sq]]++;
+        }
+    }
+
+    score = (piece_num[color_] == piece_num[WHITE - color_] ? (MAX_SCORE + MIN_SCORE) / 2 :
+             piece_num[color_] >  piece_num[WHITE - color_] ? MAX_SCORE : MIN_SCORE);
+
+    return !is_there_empty;
+}
+
+std::vector<float> Position::makeFeature() const {
+    std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
+
+    //盤上の駒の特徴量
+    for (uint64_t i = 0; i < ColorNum; i++) {
+        //いま考慮している駒
+        Piece target = (i == 0 ? BLACK_PIECE : WHITE_PIECE);
+        if (color_ == WHITE) {
+            //後手のときは逆順に見る
+            //つまり1ch目は自分の駒の位置,2ch目は相手の駒の位置ということで統一
+            target = oppositeColor(target);
+        }
+
+        //各マスについてそこにあるなら1,ないなら0とする
+        for (Square sq : SquareList) {
+            features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[sq] == target ? 1 : 0);
+        }
+    }
+
+    return features;
+}
