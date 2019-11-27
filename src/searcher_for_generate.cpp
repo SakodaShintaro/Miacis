@@ -225,8 +225,6 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
             //探索回数を正規化
             N_dist[i] = (FloatType)N[i] / root_node.sum_N;
 
-            std::cout << N_dist[i] << std::endl;
-
             //選択回数が0ならMIN_SCORE
             //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
             //その他は普通に計算
