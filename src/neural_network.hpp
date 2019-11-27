@@ -1,7 +1,7 @@
 ﻿#ifndef MIACIS_NEURAL_NETWORK_HPP
 #define MIACIS_NEURAL_NETWORK_HPP
 
-#include"position.hpp"
+#include"position_shogi.hpp"
 #include<torch/torch.h>
 
 //ネットワーク構造によらない定数

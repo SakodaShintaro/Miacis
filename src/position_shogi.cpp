@@ -1,4 +1,4 @@
-﻿#include"position.hpp"
+﻿#include"position_shogi.hpp"
 #include"neural_network.hpp"
 
 int64_t Position::HashSeed[PieceNum][SquareNum];

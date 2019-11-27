@@ -2,7 +2,7 @@
 #define BOOK_HPP
 
 #include"move.hpp"
-#include"position.hpp"
+#include"position_shogi.hpp"
 #include<random>
 
 //ある局面に対する定跡手のデータ
