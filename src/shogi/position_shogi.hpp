@@ -1,9 +1,9 @@
 ﻿#ifndef POSITION_HPP
 #define POSITION_HPP
 
-#include"move.hpp"
-#include"hand.hpp"
-#include"bitboard.hpp"
+#include"../move.hpp"
+#include"../hand.hpp"
+#include"../bitboard.hpp"
 
 class ShogiPosition {
 public:

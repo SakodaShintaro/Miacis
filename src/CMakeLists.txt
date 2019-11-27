@@ -15,7 +15,7 @@ set(SRCS bitboard.cpp
          main.cpp
          move.cpp
          piece.cpp
-         position_shogi.cpp
+        shogi/position_shogi.cpp
          square.cpp
          test.cpp
          uct_hash_table.cpp

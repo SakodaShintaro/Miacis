@@ -1,7 +1,7 @@
 ﻿#ifndef USI_HPP
 #define USI_HPP
 
-#include"position_shogi.hpp"
+#include"shogi/position_shogi.hpp"
 #include"searcher_for_play.hpp"
 #include"usi_options.hpp"
 #include<thread>

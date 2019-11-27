@@ -1,5 +1,5 @@
 ﻿#include"position_shogi.hpp"
-#include"neural_network.hpp"
+#include"../neural_network.hpp"
 
 int64_t ShogiPosition::HashSeed[PieceNum][SquareNum];
 int64_t ShogiPosition::HandHashSeed[ColorNum][PieceNum][19];
