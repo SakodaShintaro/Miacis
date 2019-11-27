@@ -9,17 +9,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 list(APPEND CMAKE_PREFIX_PATH ~/libtorch)
 find_package(Torch REQUIRED)
 
-#使用するソースも共通なので変数でまとめる
-set(SRCS shogi/bitboard.cpp
-         game.cpp
-         main.cpp
-        shogi/move.cpp
-        shogi/piece.cpp
-        shogi/position.cpp
-        shogi/square.cpp
-         test.cpp
-         uct_hash_table.cpp
-        shogi/usi.cpp
+#各ゲームで共通する部分のソース
+set(SRCS uct_hash_table.cpp
          replay_buffer.cpp
          game_generator.cpp
          neural_network.cpp
@@ -32,9 +23,35 @@ set(SRCS shogi/bitboard.cpp
          hyperparameter_manager.cpp
          segment_tree.cpp)
 
-add_executable(Miacis_scalar      ${SRCS})
-add_executable(Miacis_categorical ${SRCS})
-target_compile_definitions(Miacis_categorical PUBLIC USE_CATEGORICAL)
+#将棋用のバイナリをコンパイルするのに必要なソース
+set(SHOGI_SRCS shogi/main.cpp
+               shogi/test.cpp
+               shogi/bitboard.cpp
+               shogi/move.cpp
+               shogi/piece.cpp
+               shogi/position.cpp
+               shogi/square.cpp
+               shogi/usi.cpp
+               shogi/load_game.cpp)
 
-target_link_libraries(Miacis_scalar      pthread stdc++fs "${TORCH_LIBRARIES}")
-target_link_libraries(Miacis_categorical pthread stdc++fs "${TORCH_LIBRARIES}")
+#オセロ用のバイナリをコンパイルするのに必要なソース
+set(OTHELLO_SRCS othello/position.cpp
+                 othello/square.cpp
+                 othello/piece.cpp)
+
+add_executable(Miacis_shogi_scalar      ${SRCS} ${SHOGI_SRCS})
+add_executable(Miacis_shogi_categorical ${SRCS} ${SHOGI_SRCS})
+target_compile_definitions(Miacis_shogi_scalar      PUBLIC SHOGI)
+target_compile_definitions(Miacis_shogi_categorical PUBLIC SHOGI)
+target_compile_definitions(Miacis_shogi_categorical PUBLIC USE_CATEGORICAL)
+
+add_executable(Miacis_othello_scalar      ${SRCS} ${OTHELLO_SRCS})
+add_executable(Miacis_othello_categorical ${SRCS} ${OTHELLO_SRCS})
+target_compile_definitions(Miacis_othello_scalar      PUBLIC OTHELLO)
+target_compile_definitions(Miacis_othello_categorical PUBLIC OTHELLO)
+target_compile_definitions(Miacis_othello_categorical PUBLIC USE_CATEGORICAL)
+
+target_link_libraries(Miacis_shogi_scalar      pthread stdc++fs "${TORCH_LIBRARIES}")
+target_link_libraries(Miacis_shogi_categorical pthread stdc++fs "${TORCH_LIBRARIES}")
+target_link_libraries(Miacis_othello_scalar      pthread stdc++fs "${TORCH_LIBRARIES}")
+target_link_libraries(Miacis_othello_categorical pthread stdc++fs "${TORCH_LIBRARIES}")

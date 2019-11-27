@@ -1,7 +1,7 @@
 ﻿#include"test.hpp"
-#include"game_generator.hpp"
-#include"searcher_for_play.hpp"
-#include"learn.hpp"
+#include"../game_generator.hpp"
+#include"../searcher_for_play.hpp"
+#include"../learn.hpp"
 
 void test() {
     UsiOptions usi_options;

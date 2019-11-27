@@ -1,24 +1,24 @@
-﻿#include"game.hpp"
+#include "load_game.hpp"
 
 namespace sys = std::experimental::filesystem;
 
 Game loadGameFromCSA(const sys::path& p) {
     //対応関係をunordered_mapで引けるようにしておく
     static std::unordered_map<std::string, Piece> CSAstringToPiece = {
-        { "FU", PAWN },
-        { "KY", LANCE },
-        { "KE", KNIGHT },
-        { "GI", SILVER },
-        { "KI", GOLD },
-        { "KA", BISHOP },
-        { "HI", ROOK },
-        { "OU", KING },
-        { "TO", PAWN_PROMOTE },
-        { "NY", LANCE_PROMOTE },
-        { "NK", KNIGHT_PROMOTE },
-        { "NG", SILVER_PROMOTE },
-        { "UM", BISHOP_PROMOTE },
-        { "RY", ROOK_PROMOTE },
+            { "FU", PAWN },
+            { "KY", LANCE },
+            { "KE", KNIGHT },
+            { "GI", SILVER },
+            { "KI", GOLD },
+            { "KA", BISHOP },
+            { "HI", ROOK },
+            { "OU", KING },
+            { "TO", PAWN_PROMOTE },
+            { "NY", LANCE_PROMOTE },
+            { "NK", KNIGHT_PROMOTE },
+            { "NG", SILVER_PROMOTE },
+            { "UM", BISHOP_PROMOTE },
+            { "RY", ROOK_PROMOTE },
     };
 
     Position pos;

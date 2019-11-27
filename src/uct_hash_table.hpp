@@ -2,6 +2,7 @@
 #define UCT_HASH_ENTRY_HPP
 
 #include"neural_network.hpp"
+#include"common.hpp"
 #include"include_switch.hpp"
 
 using Index = int32_t;

@@ -83,7 +83,9 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& val
 
 std::vector<LearningData> loadData(const std::string& file_path) {
     //棋譜を読み込めるだけ読み込む
-    auto games = loadGames(file_path, 100000);
+    //auto games = loadGames(file_path, 100000);
+    std::vector<Game> games;
+    assert(false);
 
     //データを局面単位にバラす
     std::vector<LearningData> data_buffer;

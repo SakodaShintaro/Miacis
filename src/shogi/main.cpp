@@ -1,5 +1,5 @@
-﻿#include"shogi/usi.hpp"
-#include"neural_network.hpp"
+﻿#include"usi.hpp"
+#include"../neural_network.hpp"
 
 int main()
 {

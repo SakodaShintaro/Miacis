@@ -28,6 +28,10 @@ enum MoveConst {
     MOVE_CAPTURE_MASK = 0xff << MOVE_CAPTURE_SHIFT,
 };
 
+//行動の次元数
+constexpr int64_t POLICY_CHANNEL_NUM = 27;
+constexpr int64_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM;
+
 class Move {
 public:
     //コンストラクタ

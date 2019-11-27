@@ -1,8 +1,9 @@
 ﻿#include"usi.hpp"
 #include"../game.hpp"
-#include"../test.hpp"
+#include"test.hpp"
 #include"../neural_network.hpp"
 #include"../learn.hpp"
+#include "load_game.hpp"
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数
