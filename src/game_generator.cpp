@@ -99,7 +99,7 @@ void GameGenerator::genSlave() {
                     return;
                 }
                 //探索結果を取得して次の局面へ遷移
-                auto result = searchers[i].resultForCurrPos(positions[i]);
+                OneTurnElement result = searchers[i].resultForCurrPos(positions[i]);
                 positions[i].doMove(result.move);
                 games[i].elements.push_back(result);
 
@@ -112,6 +112,12 @@ void GameGenerator::genSlave() {
                     //投了
                     games[i].result = (positions[i].color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
                     curr_game_finish = true;
+                }
+
+                float score;
+                if (positions[i].isFinish(score)) {
+                    curr_game_finish = true;
+                    games[i].result = (positions[i].color() == BLACK ? score : -score);
                 }
 
                 if (curr_game_finish) {

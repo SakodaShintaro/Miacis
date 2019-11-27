@@ -9,7 +9,8 @@
 
 //行動の次元数
 constexpr int64_t POLICY_CHANNEL_NUM = 1;
-constexpr int64_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM;
+//PASSを含める
+constexpr int64_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM + 1;
 
 class Move {
 public:
@@ -35,7 +36,7 @@ public:
     bool operator!=(const Move &rhs) const { return !(*this == rhs); }
 
     int32_t toLabel() const {
-        return (color() == BLACK ? SquareToNum[to()] : SquareToNum[InvSquare[to()]]);
+        return (move == 0 ? SQUARE_NUM : color() == BLACK ? SquareToNum[to()] : SquareToNum[InvSquare[to()]]);
     }
 
     //探索時にSearcherクラスから気軽にアクセスできるようpublicにおいてるけど
