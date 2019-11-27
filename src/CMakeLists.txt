@@ -35,9 +35,12 @@ set(SHOGI_SRCS shogi/main.cpp
                shogi/load_game.cpp)
 
 #オセロ用のバイナリをコンパイルするのに必要なソース
-set(OTHELLO_SRCS othello/position.cpp
+set(OTHELLO_SRCS othello/main.cpp
+                 othello/position.cpp
                  othello/square.cpp
-                 othello/piece.cpp othello/game.cpp othello/main.cpp)
+                 othello/piece.cpp
+                 othello/game.cpp
+        othello/interface.cpp)
 
 add_executable(Miacis_shogi_scalar      ${SRCS} ${SHOGI_SRCS})
 add_executable(Miacis_shogi_categorical ${SRCS} ${SHOGI_SRCS})

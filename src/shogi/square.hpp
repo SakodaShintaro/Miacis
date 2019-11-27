@@ -19,6 +19,7 @@ enum Square {
     SquareNum,
 };
 
+constexpr int64_t BOARD_WIDTH = 9;
 constexpr int64_t SQUARE_NUM = 81;
 
 enum File {

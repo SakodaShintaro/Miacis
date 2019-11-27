@@ -1,5 +1,5 @@
 #include"../neural_network.hpp"
-#include"position.hpp"
+#include"interface.hpp"
 
 int main()
 {
@@ -11,5 +11,6 @@ int main()
 
     Position::initHashSeed();
 
-    std::cout << "ここでUSI的なものを起動してなんなりとやる" << std::endl;
+    Interface interface;
+    interface.loop();
 }

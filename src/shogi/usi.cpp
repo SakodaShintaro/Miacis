@@ -7,7 +7,7 @@
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数
-    command_["usi"]        = std::bind(&USI::usi,        this);
+    command_["printOption"]        = std::bind(&USI::usi,        this);
     command_["isready"]    = std::bind(&USI::isready,    this);
     command_["setoption"]  = std::bind(&USI::setoption,  this);
     command_["usinewgame"] = std::bind(&USI::usinewgame, this);

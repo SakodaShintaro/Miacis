@@ -43,7 +43,7 @@ torch::Tensor ResidualBlockImpl::forward(const torch::Tensor& x) {
     t = conv_and_norm1_->forward(t);
 
     //SENet構造
-    auto y = torch::avg_pool2d(t, {9, 9});
+    auto y = torch::avg_pool2d(t, {BOARD_WIDTH, BOARD_WIDTH});
     y = y.view({-1, CHANNEL_NUM});
     y = linear0_->forward(y);
     y = torch::relu(y);
@@ -69,7 +69,7 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
 
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    x = x.view({ -1, INPUT_CHANNEL_NUM, 9, 9 });
+    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     x = state_first_conv_and_norm_->forward(x);
     x = torch::relu(x);
 
