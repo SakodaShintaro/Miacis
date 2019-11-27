@@ -28,7 +28,6 @@ public:
 
     //合法性に関する関数
     bool isLegalMove(const Move move) const;
-    bool isFinish() const;
 
     //特徴量作成
     std::vector<float> makeFeature() const;

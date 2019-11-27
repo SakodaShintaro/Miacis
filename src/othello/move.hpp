@@ -56,14 +56,13 @@ inline std::ostream& operator<<(std::ostream& os, Move m) {
     return os;
 }
 
-//これコンストラクタとかで書いた方がいい気がするけどうまく書き直せなかった
-//まぁ動けばいいのかなぁ
-static Move stringToMove(std::string input) {
-    if (input == "PA") {
-        return NULL_MOVE;
-    }
-    Square to = FRToSquare[File8 - (input[0] - 'A')][input[1] - '0'];
-    return Move(to);
-}
+//警告が出まくるのがウザいので一時的に消すが、後で使いそうな気がするのでコメントアウトに留める
+//static Move stringToMove(std::string input) {
+//    if (input == "PA") {
+//        return NULL_MOVE;
+//    }
+//    Square to = FRToSquare[File8 - (input[0] - 'A')][input[1] - '0'];
+//    return Move(to);
+//}
 
 #endif //MIACIS_MOVE_HPP

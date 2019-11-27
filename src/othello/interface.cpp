@@ -87,13 +87,13 @@ void Interface::play() {
     printf("readyok\n");
     searcher_ = std::make_unique<SearcherForPlay>(options_, nn);
 
-    while (!root_.isFinish()) {
-        root_.print();
-
+    float score;
+    while (!root_.isFinish(score)) {
         Move best_move = searcher_->think(root_, options_.byoyomi_margin);
         std::cout << "bestmove " << best_move << std::endl;
 
         root_.doMove(best_move);
+        root_.print();
     }
 }
 
