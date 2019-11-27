@@ -47,16 +47,16 @@ public:
     }
 
     //未使用のインデックスを探して返す関数(開番地法)
-    Index searchEmptyIndex(const Position& pos);
+    Index searchEmptyIndex(const ShogiPosition& pos);
 
     //この局面に対応するインデックスがあるか調べて返す関数
-    Index findSameHashIndex(const Position& pos);
+    Index findSameHashIndex(const ShogiPosition& pos);
 
     //posの局面をindexへ保存する関数
-    void saveUsedHash(Position& pos, Index index);
+    void saveUsedHash(ShogiPosition& pos, Index index);
 
     //現在の局面,及びそこから到達できる局面以外を削除する関数
-    void deleteOldHash(Position& root, bool leave_root);
+    void deleteOldHash(ShogiPosition& root, bool leave_root);
 
     double getUsageRate() const {
         return (double)used_num_ / table_.size();

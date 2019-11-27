@@ -1,7 +1,7 @@
 ﻿#include "searcher_for_play.hpp"
 #include <thread>
 
-Move SearcherForPlay::think(Position& root, int64_t time_limit) {
+Move SearcherForPlay::think(ShogiPosition& root, int64_t time_limit) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
 
@@ -227,7 +227,7 @@ void SearcherForPlay::printUSIInfo() const {
     }
 }
 
-void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
+void SearcherForPlay::parallelUctSearch(ShogiPosition root, int32_t id) {
     //このスレッドに対するキューを参照で取る
     auto& input_queue = input_queues_[id];
     auto& index_queue = index_queues_[id];
@@ -288,7 +288,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
     }
 }
 
-void SearcherForPlay::select(Position& pos, int32_t id) {
+void SearcherForPlay::select(ShogiPosition& pos, int32_t id) {
     std::stack<Index> curr_indices;
     std::stack<int32_t> curr_actions;
 
@@ -365,7 +365,7 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
     }
 }
 
-Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id) {
+Index SearcherForPlay::expand(ShogiPosition& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id) {
     //置換表全体をロック
     lock_all_table_.lock();
 

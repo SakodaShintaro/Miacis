@@ -22,7 +22,7 @@ public:
     void gameover();
 private:
     std::unordered_map<std::string, std::function<void()>> command_;
-    Position root_;
+    ShogiPosition root_;
     std::unique_ptr<SearcherForPlay> searcher_;
     std::thread thread_;
     UsiOptions usi_options_;

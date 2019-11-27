@@ -11,7 +11,7 @@ void test() {
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     SearcherForPlay searcher(usi_options, nn);
 
-    Position pos;
+    ShogiPosition pos;
     Game game;
 
     auto start = std::chrono::steady_clock::now();
@@ -81,7 +81,7 @@ void checkSearchSpeed() {
     UsiOptions usi_options;
     usi_options.USI_Hash = 2048;
     constexpr int64_t time_limit = 10000;
-    Position pos;
+    ShogiPosition pos;
     for (usi_options.search_batch_size = 64; usi_options.search_batch_size <= 512; usi_options.search_batch_size *= 2) {
         std::cout << "search_batch_size = " << usi_options.search_batch_size << std::endl;
         for (usi_options.thread_num = 1; usi_options.thread_num <= 3; usi_options.thread_num++) {
@@ -111,7 +111,7 @@ void checkVal() {
 }
 
 void checkPredictSpeed() {
-    Position pos;
+    ShogiPosition pos;
     constexpr int64_t REPEAT_NUM = 1000;
     std::cout << std::fixed;
     std::mt19937_64 engine(0);

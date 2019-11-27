@@ -1,6 +1,6 @@
 ﻿#include "searcher_for_generate.hpp"
 
-bool SearcherForGenerate::prepareForCurrPos(Position& root) {
+bool SearcherForGenerate::prepareForCurrPos(ShogiPosition& root) {
     //古いハッシュを削除
     hash_table_.deleteOldHash(root, false);
 
@@ -18,7 +18,7 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
     return !hash_table_[root_index_].moves.empty();
 }
 
-void SearcherForGenerate::select(Position& pos) {
+void SearcherForGenerate::select(ShogiPosition& pos) {
     if (hash_table_[root_index_].sum_N == 0) {
         //初回の探索をする前にノイズを加える
         //Alpha Zeroの論文と同じディリクレノイズ
@@ -85,7 +85,7 @@ void SearcherForGenerate::select(Position& pos) {
     }
 }
 
-Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
+Index SearcherForGenerate::expand(ShogiPosition& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
     uint64_t index = hash_table_.findSameHashIndex(pos);
 
     // 合流先が検知できればそれを返す
@@ -196,7 +196,7 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
     }
 }
 
-OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
+OneTurnElement SearcherForGenerate::resultForCurrPos(ShogiPosition& root) {
     const UctHashEntry& root_node = hash_table_[root_index_];
     assert(!root_node.moves.empty());
     assert(root_node.sum_N != 0);

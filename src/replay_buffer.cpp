@@ -38,7 +38,7 @@ std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
 void ReplayBuffer::push(Game &game) {
     mutex_.lock();
 
-    Position pos;
+    ShogiPosition pos;
 
     static int64_t num = 0;
     if (++num % output_interval_ == 0) {

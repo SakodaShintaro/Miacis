@@ -5,10 +5,10 @@
 #include"hand.hpp"
 #include"bitboard.hpp"
 
-class Position {
+class ShogiPosition {
 public:
     //コンストラクタ
-    Position();
+    ShogiPosition();
 
     //初期化
     void init();
@@ -114,7 +114,7 @@ private:
 
         Bitboard pinners;
 
-        StateInfo(Position& pos) :
+        StateInfo(ShogiPosition& pos) :
             board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), is_checked(pos.is_checked_), pinners(pos.pinners_) {
             hand[BLACK] = pos.hand_[BLACK];
             hand[WHITE] = pos.hand_[WHITE];

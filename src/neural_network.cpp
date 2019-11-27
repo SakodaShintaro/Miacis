@@ -148,7 +148,7 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
-    static Position pos;
+    static ShogiPosition pos;
     std::vector<FloatType> inputs;
     std::vector<PolicyTeacherType> policy_teachers;
     std::vector<ValueTeacherType> value_teachers;

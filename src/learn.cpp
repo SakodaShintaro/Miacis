@@ -31,7 +31,7 @@ std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& val
     uint64_t index = 0;
     std::array<float, LOSS_TYPE_NUM> losses{};
     torch::NoGradGuard no_grad_guard;
-    Position pos;
+    ShogiPosition pos;
     while (index < validation_data.size()) {
         //バッチサイズ分データを確保
         std::vector<LearningData> curr_data;
@@ -86,7 +86,7 @@ std::vector<LearningData> loadData(const std::string& file_path) {
     //データを局面単位にバラす
     std::vector<LearningData> data_buffer;
     for (const auto& game : games) {
-        Position pos;
+        ShogiPosition pos;
         for (const auto& e : game.elements) {
             const auto& move = e.move;
             LearningData datum{};

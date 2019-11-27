@@ -10,7 +10,7 @@ int main()
     nn->setGPU(0);
     nn->eval();
 
-    Position::initHashSeed();
+    ShogiPosition::initHashSeed();
 
     Bitboard::init();
 

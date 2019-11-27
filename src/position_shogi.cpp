@@ -1,14 +1,14 @@
 ﻿#include"position_shogi.hpp"
 #include"neural_network.hpp"
 
-int64_t Position::HashSeed[PieceNum][SquareNum];
-int64_t Position::HandHashSeed[ColorNum][PieceNum][19];
+int64_t ShogiPosition::HashSeed[PieceNum][SquareNum];
+int64_t ShogiPosition::HandHashSeed[ColorNum][PieceNum][19];
 
-Position::Position(){
+ShogiPosition::ShogiPosition(){
     init();
 }
 
-void Position::init() {
+void ShogiPosition::init() {
     //盤上の初期化
     for (Piece& p : board_) p = WALL;
     for (Square sq : SquareList) board_[sq] = EMPTY;
@@ -99,7 +99,7 @@ void Position::init() {
     is_checked_ = false;
 }
 
-void Position::print() const {
+void ShogiPosition::print() const {
     //盤上
     std::printf("９８７６５４３２１\n");
     std::printf("------------------\n");
@@ -134,7 +134,7 @@ void Position::print() const {
     printf("ハッシュ値:%llx\n", (unsigned long long)hash_value_);
 }
 
-void Position::doMove(const Move move) {
+void ShogiPosition::doMove(const Move move) {
     //動かす前の状態を残しておく
     stack_.emplace_back(*this);
 
@@ -243,7 +243,7 @@ void Position::doMove(const Move move) {
     hash_value_ |= color_;
 }
 
-void Position::undo() {
+void ShogiPosition::undo() {
     const Move last_move = kifu_.back();
     kifu_.pop_back();
 
@@ -339,7 +339,7 @@ void Position::undo() {
     stack_.pop_back();
 }
 
-bool Position::isLegalMove(const Move move) const {
+bool ShogiPosition::isLegalMove(const Move move) const {
     //違法の場合だけ早くfalseで返す.合法手は一番最後の行でtrueが返る
 
     //NULL_MOVE
@@ -452,13 +452,13 @@ bool Position::isLegalMove(const Move move) const {
     return flag;
 }
 
-bool Position::canDropPawn(const Square to) const {
+bool ShogiPosition::canDropPawn(const Square to) const {
     //2歩の判定を入れる
     //打ち歩詰めは探索時点で弾くのでチェック不要
     return !(FILE_BB[SquareToFile[to]] & pieces_bb_[color_ == BLACK ? toBlack(PAWN) : toWhite(PAWN)]);
 }
 
-void Position::loadSFEN(std::string sfen) {
+void ShogiPosition::loadSFEN(std::string sfen) {
     //初期化
     for (Piece& p : board_) p = WALL;
     for (Square sq : SquareList) board_[sq] = EMPTY;
@@ -582,7 +582,7 @@ void Position::loadSFEN(std::string sfen) {
     kifu_.reserve(512);
 }
 
-std::string Position::toSFEN() const {
+std::string ShogiPosition::toSFEN() const {
     std::string result;
     for (int64_t r = Rank1; r <= Rank9; r++) {
         int64_t empty_num = 0;
@@ -636,7 +636,7 @@ std::string Position::toSFEN() const {
     return result;
 }
 
-void Position::initHashSeed() {
+void ShogiPosition::initHashSeed() {
     std::mt19937_64 rnd(5981793);
     for (int piece = BLACK_PAWN; piece <= WHITE_ROOK_PROMOTE; piece++) {
         for (Square sq : SquareList) {
@@ -652,7 +652,7 @@ void Position::initHashSeed() {
     }
 }
 
-void Position::generateEvasionMoves(std::vector<Move>& move_buf) const {
+void ShogiPosition::generateEvasionMoves(std::vector<Move>& move_buf) const {
     //王手への対応は(a)玉が逃げる、(b)王手してきた駒を取る、(c)飛び利きの王手には合駒
 
     //手番のほうの玉の位置を設定
@@ -728,7 +728,7 @@ void Position::generateEvasionMoves(std::vector<Move>& move_buf) const {
     generateDropMoves(between, move_buf);
 }
 
-void Position::generateNormalMoves(std::vector<Move>& move_buf) const {
+void ShogiPosition::generateNormalMoves(std::vector<Move>& move_buf) const {
     //よく使うのでエイリアスを取る
     const Square& k_sq = king_sq_[color_];
 
@@ -778,7 +778,7 @@ void Position::generateNormalMoves(std::vector<Move>& move_buf) const {
     generateDropMoves(drop_to_bb, move_buf);
 }
 
-inline bool Position::canPromote(Move move) const {
+inline bool ShogiPosition::canPromote(Move move) const {
     if (move.isDrop()                        //打つ手だったらダメ
         || board_[move.from()] & PROMOTE     //すでに成っている駒を動かす手だったらダメ
         || kind(board_[move.from()]) == GOLD //動かす駒が金だったらダメ
@@ -795,7 +795,7 @@ inline bool Position::canPromote(Move move) const {
     }
 }
 
-void Position::pushMove(const Move move, std::vector<Move>& move_buf) const {
+void ShogiPosition::pushMove(const Move move, std::vector<Move>& move_buf) const {
     //成る手が可能だったら先に生成
     if (canPromote(move)) {
         move_buf.push_back(promotiveMove(move));
@@ -819,7 +819,7 @@ void Position::pushMove(const Move move, std::vector<Move>& move_buf) const {
     move_buf.push_back(move);
 }
 
-void Position::generateDropMoves(const Bitboard& to_bb, std::vector<Move>& move_buf) const {
+void ShogiPosition::generateDropMoves(const Bitboard& to_bb, std::vector<Move>& move_buf) const {
     static const Piece ColorToFlag[ColorNum] = { BLACK_FLAG, WHITE_FLAG };
 
     //歩を打つ手
@@ -858,11 +858,11 @@ void Position::generateDropMoves(const Bitboard& to_bb, std::vector<Move>& move_
     }
 }
 
-Bitboard Position::attackersTo(const Color c, const Square sq) const {
+Bitboard ShogiPosition::attackersTo(const Color c, const Square sq) const {
     return attackersTo(c, sq, occupied_all_);
 }
 
-Bitboard Position::attackersTo(const Color c, const Square sq, const Bitboard & occupied) const {
+Bitboard ShogiPosition::attackersTo(const Color c, const Square sq, const Bitboard & occupied) const {
     //sqへ利きを持っている駒の位置を示すbitboardを返す
     //sqから相手側の駒として利きを求めてみて、その範囲にc側の駒があるなら利きがある
     Bitboard result(0, 0);
@@ -921,7 +921,7 @@ Bitboard Position::attackersTo(const Color c, const Square sq, const Bitboard & 
     return result;
 }
 
-void Position::computePinners() {
+void ShogiPosition::computePinners() {
     //pinners
     pinners_ = Bitboard(0, 0);
     //香・角(馬)・飛車(竜)に対してピンのチェック
@@ -942,7 +942,7 @@ void Position::computePinners() {
     }
 }
 
-std::vector<Move> Position::generateAllMoves() const {
+std::vector<Move> ShogiPosition::generateAllMoves() const {
     constexpr int32_t MAX_MOVE_LIST_SIZE = 593;
     std::vector<Move> move_buf;
     move_buf.reserve(MAX_MOVE_LIST_SIZE);
@@ -956,7 +956,7 @@ std::vector<Move> Position::generateAllMoves() const {
     return move_buf;
 }
 
-inline bool Position::isLastMoveCheck() {
+inline bool ShogiPosition::isLastMoveCheck() {
     Move move = lastMove();
     if (controlBB(move.to(), board_[move.to()], occupied_all_) & SQUARE_BB[king_sq_[color_]]) {
         //直接王手だったら即返す
@@ -1003,7 +1003,7 @@ inline bool Position::isLastMoveCheck() {
     return false;
 }
 
-bool Position::isRepeating(Score& score) const {
+bool ShogiPosition::isRepeating(Score& score) const {
     //千日手or連続王手の千日手だったらtrueを返してscoreに適切な値を入れる(技巧と似た実装)
     for (int32_t index = (int32_t)stack_.size() - 4; index > 0 && (index > ((int32_t)stack_.size() - 32)); index -= 2) {
         if (board_hash_ != stack_[index].board_hash) {
@@ -1034,7 +1034,7 @@ bool Position::isRepeating(Score& score) const {
     return false;
 }
 
-Move Position::transformValidMove(const Move move) {
+Move ShogiPosition::transformValidMove(const Move move) {
     //stringToMoveではどっちの手番かがわからない
     //つまりsubjectが完全には入っていないので手番付きの駒を入れる
     return (move.isDrop() ?
@@ -1042,7 +1042,7 @@ Move Position::transformValidMove(const Move move) {
             Move(move.to(), move.from(), false, move.isPromote(), board_[move.from()], board_[move.to()]));
 }
 
-void Position::initHashValue() {
+void ShogiPosition::initHashValue() {
     hash_value_ = 0;
     board_hash_ = 0;
     hand_hash_ = 0;
@@ -1057,7 +1057,7 @@ void Position::initHashValue() {
     hash_value_ &= ~1; //これで1bit目が0になる(先手番を表す)
 }
 
-std::vector<float> Position::makeFeature() const {
+std::vector<float> ShogiPosition::makeFeature() const {
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
 
     uint64_t i;
@@ -1092,6 +1092,6 @@ std::vector<float> Position::makeFeature() const {
     return features;
 }
 
-bool Position::isLastMoveDropPawn() const {
+bool ShogiPosition::isLastMoveDropPawn() const {
     return (lastMove().isDrop() && kind(lastMove().subject()) == PAWN);
 }

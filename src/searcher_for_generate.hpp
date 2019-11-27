@@ -35,19 +35,19 @@ private:
     friend class GameGenerator;
 
     //root局面を探索する準備を行う関数
-    bool prepareForCurrPos(Position& root);
+    bool prepareForCurrPos(ShogiPosition& root);
 
     //探索1回を行う関数
-    void select(Position& pos);
+    void select(ShogiPosition& pos);
 
     //ノードを展開する関数
-    Index expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
+    Index expand(ShogiPosition& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
     //GPUの計算結果をルートノードまでバックアップする関数
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
     //現局面の探索結果を返す関数
-    OneTurnElement resultForCurrPos(Position& root);
+    OneTurnElement resultForCurrPos(ShogiPosition& root);
 
     //ディリクレ分布に従ったものを返す関数
     static std::vector<double> dirichletDistribution(uint64_t k, double alpha);
