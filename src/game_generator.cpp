@@ -51,10 +51,10 @@ void GameGenerator::genSlave() {
     auto evalWithGPU = [&](){
         gpu_mutex.lock();
         torch::NoGradGuard no_grad_guard;
-        auto result = evaluator_->policyAndValueBatch(features);
+        std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = evaluator_->policyAndValueBatch(features);
         gpu_mutex.unlock();
-        auto policies = result.first;
-        auto values = result.second;
+        const std::vector<PolicyType>& policies = result.first;
+        const std::vector<ValueType>& values = result.second;
 
         for (uint64_t i = 0; i < hash_indices.size(); i++) {
             //何番目のsearcherが持つハッシュテーブルのどの位置に書き込むかを取得
