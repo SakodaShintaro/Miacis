@@ -1095,3 +1095,20 @@ std::vector<float> Position::makeFeature() const {
 bool Position::isLastMoveDropPawn() const {
     return (lastMove().isDrop() && kind(lastMove().subject()) == PAWN);
 }
+
+bool Position::isFinish(float& score) const {
+    //詰みの確認
+    std::vector<Move> moves = generateAllMoves();
+    if (moves.empty()) {
+        //打ち歩詰めなら手番側（詰まされた側）が勝ち、そうでないなら手番側が負け
+        score = isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE;
+        return true;
+    }
+
+    //千日手の確認
+    if (isRepeating(score)) {
+        return true;
+    }
+
+    return false;
+}

@@ -121,27 +121,12 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
 #endif
 
     // ノードを評価
-//    Score repeat_score;
-//    if (pos.isRepeating(repeat_score)) {
-//        //繰り返し
-//#ifdef USE_CATEGORICAL
-//        curr_node.value = onehotDist(repeat_score);
-//#else
-//        curr_node.value = repeat_score;
-//#endif
-//        curr_node.evaled = true;
-//        //GPUに送らないのでこのタイミングでバックアップを行う
-//        indices.push(index);
-//        backup(indices, actions);
-//    } else
-    if (curr_node.moves.empty()) {
-        //打ち歩詰めなら勝ち,そうでないなら負け
-        FloatType v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
-
+    float score;
+    if (pos.isFinish(score)) {
 #ifdef USE_CATEGORICAL
-        curr_node.value = onehotDist(v);
+        curr_node.value = onehotDist(score);
 #else
-        curr_node.value = v;
+        curr_node.value = score;
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う

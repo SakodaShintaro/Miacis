@@ -300,18 +300,13 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
     while (index != UctHashTable::NOT_EXPANDED) {
         std::unique_lock<std::mutex> lock(lock_node_[index]);
 
-        if (hash_table_[index].moves.empty()) {
-            //詰みの場合抜ける
-            break;
-        }
-
         if (pos.turnNumber() > usi_options_.draw_turn) {
             //手数が制限まで達している場合も抜ける
             break;
         }
 
-        float repeat_score;
-        if (index != root_index_ && pos.isRepeating(repeat_score)) {
+        float score;
+        if (index != root_index_ && pos.isFinish(score)) {
             //繰り返しが発生している場合も抜ける
             break;
         }
@@ -432,14 +427,13 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     curr_node.value = 0.0;
 #endif
 
-    // ノードを評価
-    float repeat_score;
-    if (pos.isRepeating(repeat_score)) {
-        //繰り返し
+    //ノードを評価
+    float finish_score;
+    if (pos.isFinish(finish_score)) {
 #ifdef USE_CATEGORICAL
-        curr_node.value = onehotDist(repeat_score);
+        curr_node.value = onehotDist(finish_score);
 #else
-        curr_node.value = repeat_score;
+        curr_node.value = finish_score;
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
@@ -451,19 +445,6 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
         curr_node.value = onehotDist(value);
 #else
         curr_node.value = value;
-#endif
-        curr_node.evaled = true;
-        //GPUに送らないのでこのタイミングでバックアップを行う
-        lock_node_[index].unlock();
-        backup(indices, actions);
-    } else if (curr_node.moves.empty()) {
-        //打ち歩詰めなら勝ち,そうでないなら負け
-        auto v = (pos.isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE);
-
-#ifdef USE_CATEGORICAL
-        curr_node.value = onehotDist(v);
-#else
-        curr_node.value = v;
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う

@@ -23,8 +23,8 @@ void test() {
             game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
             break;
         }
-        float repeat_score;
-        if (pos.isRepeating(repeat_score) && repeat_score == (MAX_SCORE + MIN_SCORE) / 2) {
+        float finish_score;
+        if (pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2) {
             //千日手
             game.result = Game::RESULT_DRAW_REPEAT;
             break;
