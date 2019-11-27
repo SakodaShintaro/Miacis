@@ -13,7 +13,7 @@ std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
     while (first_wait_ > 0) {
         mutex_.unlock();
         std::cout << "wait_remain = " << first_wait_ << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(first_wait_ / 100 + 10));
+        std::this_thread::sleep_for(std::chrono::seconds(first_wait_ / 200 + 20));
         mutex_.lock();
     }
     
