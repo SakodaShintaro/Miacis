@@ -25,7 +25,7 @@ std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
     //データを取得
     std::vector<LearningData> data;
     pre_indices_.clear();
-    for (int32_t i = 0; i < batch_size; i++) {
+    for (int64_t i = 0; i < batch_size; i++) {
         //データの取り出し及びインデックスを保存
         uint64_t index = segment_tree_.getIndex(dist(engine));
         data.push_back(data_[index]);

@@ -44,16 +44,11 @@ void SearcherForGenerate::select(Position& pos) {
 
     //未展開の局面に至るまで遷移を繰り返す
     while(index != UctHashTable::NOT_EXPANDED) {
-        if (hash_table_[index].moves.empty()) {
-            //詰みの場合抜ける
+        float score;
+        if (pos.isFinish(score)) {
+            //局面が終了している場合抜ける
             break;
         }
-
-//        Score repeat_score;
-//        if (index != root_index_ && pos.isRepeating(repeat_score)) {
-//            //繰り返しが発生している場合も抜ける
-//            break;
-//        }
 
         //状態を記録
         curr_indices.push(index);
@@ -229,6 +224,8 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
 
             //探索回数を正規化
             N_dist[i] = (FloatType)N[i] / root_node.sum_N;
+
+            std::cout << N_dist[i] << std::endl;
 
             //選択回数が0ならMIN_SCORE
             //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
