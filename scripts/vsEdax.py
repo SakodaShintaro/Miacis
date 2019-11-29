@@ -23,7 +23,7 @@ class EdaxManager:
         while True:
             pre_line = curr_line
             curr_line = self.proc.stdout.readline()
-            # print(curr_line, end="")
+            print(curr_line, end="")
 
             if "Edax plays" in curr_line:
                 best_move = curr_line[-3:-1]
@@ -61,6 +61,9 @@ class MiacisManager:
         self.proc.stdin.write(message + "\n")
         self.proc.stdin.flush()
 
+    def send_option(self, name, value):
+        self.send("set " + str(name) + " " + str(value))
+
     def send_init(self):
         self.send("init")
 
@@ -80,6 +83,11 @@ def main():
     edax_manager = EdaxManager()
     miacis_manager = MiacisManager()
 
+    miacis_manager.send_option("search_limit", 800)
+    miacis_manager.send_option("byoyomi_margin", 10000000)
+    miacis_manager.send_option("search_batch_size", 1)
+    miacis_manager.send_option("thread_num", 1)
+
     result_dict = {
         "Black": 0,
         None: 1,
@@ -93,7 +101,7 @@ def main():
 
     messages = [
         "set verbose 1",
-        "set level 10",
+        "set level 1",
         "set book-randomness 10",
     ]
 
@@ -101,7 +109,7 @@ def main():
     for msg in messages:
         edax_manager.send_message(msg)
 
-    for game_num in range(100):
+    for game_num in range(10):
         # 局面を初期化
         miacis_manager.send_init()
         best_move, game_over, win_color = edax_manager.send_message("init")

@@ -12,7 +12,10 @@ public:
     Interface();
     void loop();
     void printOption();
-    void setoption();
+    void set();
+
+    //テストで思考する関数
+    void think();
 
     //盤面を初期状態に戻す関数
     void init();

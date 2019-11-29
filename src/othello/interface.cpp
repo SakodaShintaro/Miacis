@@ -6,7 +6,8 @@
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
     command_["printOption"] = std::bind(&Interface::printOption, this);
-    command_["setoption"]   = std::bind(&Interface::setoption,   this);
+    command_["set"]         = std::bind(&Interface::set,         this);
+    command_["think"]       = std::bind(&Interface::think,       this);
     command_["init"]        = std::bind(&Interface::init,        this);
     command_["play"]        = std::bind(&Interface::play,        this);
     command_["go"]          = std::bind(&Interface::go,          this);
@@ -53,15 +54,12 @@ void Interface::printOption() {
     printf("usiok\n");
 }
 
-void Interface::setoption() {
+void Interface::set() {
     std::string input;
-    std::cin >> input;
-    assert(input == "name");
     std::cin >> input;
 
     for (auto& pair : options_.check_options) {
         if (input == pair.first) {
-            std::cin >> input;
             std::cin >> input;
             pair.second.value = (input == "true");
             return;
@@ -69,18 +67,31 @@ void Interface::setoption() {
     }
     for (auto& pair : options_.spin_options) {
         if (input == pair.first) {
-            std::cin >> input;
             std::cin >> pair.second.value;
             return;
         }
     }
     for (auto& pair : options_.filename_options) {
         if (input == pair.first) {
-            std::cin >> input;
             std::cin >> pair.second.value;
             return;
         }
     }
+}
+
+void Interface::think() {
+    root_.init();
+
+    //対局の準備
+    torch::load(nn, options_.model_name);
+    nn->setGPU(0);
+    searcher_ = std::make_unique<SearcherForPlay>(options_, nn);
+
+    options_.search_limit = 80000;
+    options_.search_batch_size = 1;
+    options_.thread_num = 1;
+
+    searcher_->think(root_, 1000000);
 }
 
 void Interface::init() {
@@ -100,7 +111,7 @@ void Interface::play() {
 }
 
 void Interface::go() {
-    Move best_move = searcher_->think(root_, options_.byoyomi_margin + 10);
+    Move best_move = searcher_->think(root_, options_.byoyomi_margin);
     std::cout << "best_move " << best_move << std::endl;
     root_.doMove(best_move);
 }
