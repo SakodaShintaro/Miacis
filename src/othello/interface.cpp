@@ -108,4 +108,3 @@ void Interface::quit() {
     stop();
     exit(0);
 }
-
