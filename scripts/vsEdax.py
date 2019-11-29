@@ -23,7 +23,7 @@ class EdaxManager:
         while True:
             pre_line = curr_line
             curr_line = self.proc.stdout.readline()
-            print(curr_line, end="")
+            # print(curr_line, end="")
 
             if "Edax plays" in curr_line:
                 best_move = curr_line[-3:-1]
@@ -83,16 +83,19 @@ def main():
     edax_manager = EdaxManager()
     miacis_manager = MiacisManager()
 
-    miacis_manager.send_option("search_limit", 800)
+    miacis_manager.send_option("search_limit", 8)
     miacis_manager.send_option("byoyomi_margin", 10000000)
     miacis_manager.send_option("search_batch_size", 1)
     miacis_manager.send_option("thread_num", 1)
+    miacis_manager.send_option("random_turn", 1000)
 
     result_dict = {
         "Black": 0,
         None: 1,
         "White": 2
     }
+
+    moves_set = set()
 
     total_result = [0, 0, 0]
 
@@ -102,30 +105,46 @@ def main():
     messages = [
         "set verbose 1",
         "set level 1",
-        "set book-randomness 10",
     ]
 
     # 設定の送信
     for msg in messages:
         edax_manager.send_message(msg)
 
-    for game_num in range(10):
+    game_num = 0
+    while game_num < 100:
         # 局面を初期化
         miacis_manager.send_init()
         best_move, game_over, win_color = edax_manager.send_message("init")
+
+        # 行動のリストを初期化
+        moves = list()
 
         is_miacis_white = (game_num % 2 == 1)
         for turn_num in range(1000):
             if (turn_num + is_miacis_white) % 2 == 0:
                 # Miacisのターン
                 best_move = miacis_manager.send_go()
-                best_move, game_over, win_color = edax_manager.send_message("play " + best_move)
+                _, game_over, win_color = edax_manager.send_message("play " + best_move)
             else:
                 # Edaxのターン
                 best_move, game_over, win_color = edax_manager.send_message("go")
                 miacis_manager.send_play(best_move)
+            moves.append(best_move)
             if game_over:
                 break
+
+        moves = tuple(moves)
+
+        if moves in moves_set:
+            # 以前の対局と重複があったということなので飛ばす
+            print("重複発生")
+            continue
+
+        print(moves)
+
+        game_num += 1
+        moves_set.add(moves)
 
         result = result_dict[win_color]
         if is_miacis_white:
