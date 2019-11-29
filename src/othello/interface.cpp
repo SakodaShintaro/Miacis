@@ -97,15 +97,6 @@ void Interface::play() {
     std::cin >> input;
     Move move = stringToMove(input);
     root_.doMove(move);
-
-    float score;
-    while (!root_.isFinish(score)) {
-        Move best_move = searcher_->think(root_, options_.byoyomi_margin);
-        std::cout << "bestmove " << best_move << std::endl;
-
-        root_.doMove(best_move);
-        root_.print();
-    }
 }
 
 void Interface::go() {
