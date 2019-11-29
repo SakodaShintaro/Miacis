@@ -100,7 +100,7 @@ void Interface::play() {
 }
 
 void Interface::go() {
-    Move best_move = searcher_->think(root_, options_.byoyomi_margin);
+    Move best_move = searcher_->think(root_, options_.byoyomi_margin + 10);
     std::cout << "best_move " << best_move << std::endl;
     root_.doMove(best_move);
 }

@@ -128,11 +128,6 @@ static inline bool isOnBoard(Square pos) {
     return (Rank1 <= SquareToRank[pos] && SquareToRank[pos] <= Rank9 && File1 <= SquareToFile[pos] && SquareToFile[pos] <= File9);
 }
 
-static Dir DirList[8] = {
-        //前から時計回りに
-        U, RU, R, RD, D, LD, L, LU
-};
-
 inline static Dir oppositeDir(const Dir d) {
     return static_cast<Dir>(-d);
 }
@@ -170,6 +165,7 @@ inline static int operator<<(Square sq, int shift) {
 extern const std::array<Square, 64> SquareList;
 extern const int SquareToNum[];
 extern const Square InvSquare[];
+extern const Dir DirList[8];
 
 extern const ArrayMap<std::string, FileNum> fileToString;
 extern const ArrayMap<std::string, RankNum> rankToString;

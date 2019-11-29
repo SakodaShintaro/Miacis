@@ -73,3 +73,8 @@ const ArrayMap<std::string, RankNum> rankToString({
     { Rank7, "7" },
     { Rank8, "8" },
 });
+
+const Dir DirList[8] = {
+    //前から時計回りに
+    U, RU, R, RD, D, LD, L, LU
+};
