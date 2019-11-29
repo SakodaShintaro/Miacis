@@ -7,7 +7,9 @@ Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
     command_["printOption"] = std::bind(&Interface::printOption, this);
     command_["setoption"]   = std::bind(&Interface::setoption,   this);
+    command_["init"]        = std::bind(&Interface::init,        this);
     command_["play"]        = std::bind(&Interface::play,        this);
+    command_["go"]          = std::bind(&Interface::go,          this);
     command_["stop"]        = std::bind(&Interface::stop,        this);
     command_["quit"]        = std::bind(&Interface::quit,        this);
 
@@ -81,11 +83,20 @@ void Interface::setoption() {
     }
 }
 
-void Interface::play() {
+void Interface::init() {
+    root_.init();
+
+    //対局の準備
     torch::load(nn, options_.model_name);
     nn->setGPU(0);
-    printf("readyok\n");
     searcher_ = std::make_unique<SearcherForPlay>(options_, nn);
+}
+
+void Interface::play() {
+    std::string input;
+    std::cin >> input;
+    Move move = stringToMove(input);
+    root_.doMove(move);
 
     float score;
     while (!root_.isFinish(score)) {
@@ -95,6 +106,12 @@ void Interface::play() {
         root_.doMove(best_move);
         root_.print();
     }
+}
+
+void Interface::go() {
+    Move best_move = searcher_->think(root_, options_.byoyomi_margin);
+    std::cout << "best_move " << best_move << std::endl;
+    root_.doMove(best_move);
 }
 
 void Interface::stop() {
