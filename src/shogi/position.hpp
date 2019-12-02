@@ -26,7 +26,7 @@ public:
 
     //この局面が詰み、千日手等で終わっているか確認する関数
     //終わっている場合は手番側から見た点数を引数に書き込んでtrueを返す
-    bool isFinish(float& score) const;
+    bool isFinish(float& score);
 
     //特徴量作成
     std::vector<float> makeFeature() const;
@@ -35,7 +35,7 @@ public:
     Move transformValidMove(Move move);
 
     //合法手生成
-    std::vector<Move> generateAllMoves() const;
+    std::vector<Move> generateAllMoves();
 
     //sfenの入出力
     void fromStr(std::string sfen);
@@ -105,6 +105,11 @@ private:
 
     //現局面までの指し手履歴
     std::vector<Move> kifu_;
+
+    //現局面の合法手
+    std::vector<Move> moves_;
+
+    bool already_generated_moves_;
 
     //現局面のハッシュ値
     int64_t hash_value_, board_hash_, hand_hash_;

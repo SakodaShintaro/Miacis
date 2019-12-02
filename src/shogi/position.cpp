@@ -97,6 +97,9 @@ void Position::init() {
     computePinners();
 
     is_checked_ = false;
+
+    //合法手生成のフラグを降ろす
+    already_generated_moves_ = false;
 }
 
 void Position::print() const {
@@ -241,6 +244,9 @@ void Position::doMove(const Move move) {
     hash_value_ &= ~1;
     //手番が先手だったら1bitは0のまま,後手だったら1bit目は1になる
     hash_value_ |= color_;
+
+    //合法手生成のフラグを降ろす
+    already_generated_moves_ = false;
 }
 
 void Position::undo() {
@@ -337,6 +343,9 @@ void Position::undo() {
 
     //Stack更新
     stack_.pop_back();
+
+    //合法手生成のフラグを降ろす
+    already_generated_moves_ = false;
 }
 
 bool Position::isLegalMove(const Move move) const {
@@ -942,18 +951,25 @@ void Position::computePinners() {
     }
 }
 
-std::vector<Move> Position::generateAllMoves() const {
+std::vector<Move> Position::generateAllMoves() {
     constexpr int32_t MAX_MOVE_LIST_SIZE = 593;
-    std::vector<Move> move_buf;
-    move_buf.reserve(MAX_MOVE_LIST_SIZE);
+
+    if (already_generated_moves_) {
+        return moves_;
+    }
+    already_generated_moves_ = true;
+
+    moves_.clear();
+    moves_.reserve(MAX_MOVE_LIST_SIZE);
+
     //手番側に王手がかかっていたら逃れる手だけを生成
     if (is_checked_) {
-        generateEvasionMoves(move_buf);
+        generateEvasionMoves(moves_);
     } else {
-        generateNormalMoves(move_buf);
+        generateNormalMoves(moves_);
     }
 
-    return move_buf;
+    return moves_;
 }
 
 inline bool Position::isLastMoveCheck() {
@@ -1096,7 +1112,7 @@ bool Position::isLastMoveDropPawn() const {
     return (lastMove().isDrop() && kind(lastMove().subject()) == PAWN);
 }
 
-bool Position::isFinish(float& score) const {
+bool Position::isFinish(float& score) {
     //詰みの確認
     std::vector<Move> moves = generateAllMoves();
     if (moves.empty()) {
