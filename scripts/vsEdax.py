@@ -83,7 +83,7 @@ def main():
     edax_manager = EdaxManager()
     miacis_manager = MiacisManager()
 
-    miacis_manager.send_option("search_limit", 8)
+    miacis_manager.send_option("search_limit", 3)
     miacis_manager.send_option("byoyomi_margin", 10000000)
     miacis_manager.send_option("search_batch_size", 1)
     miacis_manager.send_option("thread_num", 1)

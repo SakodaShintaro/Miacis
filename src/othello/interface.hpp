@@ -17,6 +17,12 @@ public:
     //テストで思考する関数
     void think();
 
+    //テストで自己対局する関数
+    void test();
+
+    //人間と対局する関数
+    void battle();
+
     //盤面を初期状態に戻す関数
     void init();
 

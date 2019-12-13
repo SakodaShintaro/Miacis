@@ -8,6 +8,8 @@ Interface::Interface() : searcher_(nullptr) {
     command_["printOption"] = std::bind(&Interface::printOption, this);
     command_["set"]         = std::bind(&Interface::set,         this);
     command_["think"]       = std::bind(&Interface::think,       this);
+    command_["test"]        = std::bind(&Interface::test,        this);
+    command_["battle"]      = std::bind(&Interface::battle,      this);
     command_["init"]        = std::bind(&Interface::init,        this);
     command_["play"]        = std::bind(&Interface::play,        this);
     command_["go"]          = std::bind(&Interface::go,          this);
@@ -85,13 +87,86 @@ void Interface::think() {
     //対局の準備
     torch::load(nn, options_.model_name);
     nn->setGPU(0);
-    searcher_ = std::make_unique<SearcherForPlay>(options_, nn);
 
     options_.search_limit = 80000;
+    options_.print_interval = INT_MAX;
+    options_.print_policy_num = 800;
     options_.search_batch_size = 1;
     options_.thread_num = 1;
+    searcher_ = std::make_unique<SearcherForPlay>(options_, nn);
 
     searcher_->think(root_, 1000000);
+}
+
+void Interface::test() {
+    root_.init();
+
+    //対局の準備
+    torch::load(nn, options_.model_name);
+    nn->setGPU(0);
+    options_.search_limit = 800;
+    options_.search_batch_size = 1;
+    options_.thread_num = 1;
+    options_.print_interval = INT_MAX;
+    options_.print_policy_num = 800;
+    searcher_ = std::make_unique<SearcherForPlay>(options_, nn);
+
+    while (true) {
+        float score;
+        root_.print();
+        if (root_.isFinish(score)) {
+            std::cout << "score = " << score << std::endl;
+            break;
+        }
+
+        Move best_move = searcher_->think(root_, 1000000);
+        root_.doMove(best_move);
+    }
+}
+
+void Interface::battle() {
+    root_.init();
+
+    //手番の入力
+    std::cout << "人間の手番(0 or 1): ";
+    int64_t turn;
+    std::cin >> turn;
+
+    //対局の準備
+    torch::load(nn, options_.model_name);
+    nn->setGPU(0);
+    options_.search_limit = 800;
+    options_.search_batch_size = 1;
+    options_.thread_num = 1;
+    options_.print_interval = INT_MAX;
+    options_.print_policy_num = 800;
+    searcher_ = std::make_unique<SearcherForPlay>(options_, nn);
+
+    while (true) {
+        float score;
+        root_.print();
+        if (root_.isFinish(score)) {
+            std::cout << "score = " << score << std::endl;
+            break;
+        }
+
+        if (root_.turnNumber() % 2 == turn) {
+            while (true) {
+                std::string input;
+                std::cin >> input;
+                Move move = stringToMove(input);
+                if (root_.isLegalMove(move)) {
+                    root_.doMove(move);
+                    break;
+                } else {
+                    std::cout << "非合法手" << std::endl;
+                }
+            }
+        } else {
+            Move best_move = searcher_->think(root_, 1000000);
+            root_.doMove(best_move);
+        }
+    }
 }
 
 void Interface::init() {

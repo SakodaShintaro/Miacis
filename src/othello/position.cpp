@@ -275,7 +275,7 @@ void Position::fromStr(const std::string& str) {
 bool Position::isFinish(float& score) const {
     bool is_there_empty = false;
 
-    std::array<int64_t, ColorNum> piece_num;
+    std::array<int64_t, ColorNum> piece_num{};
 
     for (Square sq : SquareList) {
         if (board_[sq] == EMPTY) {
