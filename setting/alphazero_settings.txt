@@ -22,5 +22,4 @@ first_wait             524288
 search_limit           800
 search_batch_size      128
 output_interval        100
-validation_interval    100000
-validation_kifu_path   /root/validation_kifu
+save_interval          100000

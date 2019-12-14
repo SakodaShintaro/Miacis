@@ -26,8 +26,7 @@ void alphaZero() {
     settings.add("search_limit",           1, (int64_t)1e10);
     settings.add("search_batch_size",      1, (int64_t)1e10);
     settings.add("output_interval",        1, (int64_t)1e10);
-    settings.add("validation_interval",    1, (int64_t)1e10);
-    settings.add("validation_kifu_path");
+    settings.add("save_interval",          1, (int64_t)1e10);
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
     }
@@ -59,8 +58,7 @@ void alphaZero() {
     int64_t max_stack_size           = settings.get<int64_t>("max_stack_size");
     int64_t first_wait               = settings.get<int64_t>("first_wait");
     int64_t output_interval          = settings.get<int64_t>("output_interval");
-    int64_t validation_interval      = settings.get<int64_t>("validation_interval");
-    std::string validation_kifu_path = settings.get<std::string>("validation_kifu_path");
+    int64_t save_interval            = settings.get<int64_t>("save_interval");
 
     std::array<float, LOSS_TYPE_NUM> coefficients{};
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
@@ -68,7 +66,7 @@ void alphaZero() {
     }
 
     //値同士の制約関係を確認
-    assert(validation_interval % update_interval == 0);
+    assert(save_interval % update_interval == 0);
 
     //学習スレッドをスリープさせる時間は生成速度から自動計算するので不適な値で初期化
     int64_t sleep_msec = -1;
@@ -90,14 +88,6 @@ void alphaZero() {
     }
     dout(std::cout, learn_log) << "time\tstep" << std::fixed << std::endl;
     validation_log             << "time\tstep" << std::fixed << std::endl;
-
-    //データを取得
-    std::vector<LearningData> validation_data = loadData(validation_kifu_path);
-    std::cout << "validation_data.size() = " << validation_data.size() << std::endl;
-
-    //データをシャッフルして必要量以外を削除
-    std::mt19937_64 engine(0);
-    std::shuffle(validation_data.begin(), validation_data.end(), engine);
 
     //モデル読み込み
     NeuralNetwork learning_model;
@@ -171,15 +161,15 @@ void alphaZero() {
         optimizer.step();
         torch::save(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
-        //1回のvalidationまで10回表示
-        if (step_num % (validation_interval / 10) == 0) {
+        //1回パラメータ保存する間隔につき10回表示
+        if (step_num % (save_interval / 10) == 0) {
             dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << loss_sum.item<float>() << "\t";
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
             }
         }
 
-        //一定間隔でモデルの読み込んでActorのパラメータをLearnerと同期
+        //一定間隔でモデルを読み込んでActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
             torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
             for (uint64_t i = 0; i < gpu_num - 1; i++) {
@@ -190,20 +180,9 @@ void alphaZero() {
             }
         }
 
-        //validation
-        if (step_num % validation_interval == 0) {
-            //パラメータをステップ付きで保存
+        //パラメータをステップ付きで保存
+        if (step_num % save_interval == 0) {
             torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
-
-            std::array<float, LOSS_TYPE_NUM> valid_loss = validation(validation_data);
-            float valid_loss_sum = 0.0;
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                valid_loss_sum += coefficients[i] * valid_loss[i];
-            }
-            dout(std::cout, validation_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << valid_loss_sum << "\t";
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, validation_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
-            }
         }
 
         //学習率の減衰.AlphaZeroを意識して3回まで設定可能
