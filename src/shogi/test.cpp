@@ -66,7 +66,7 @@ void checkGenSpeed() {
         std::thread t(&GameGenerator::genGames, &generator, (int64_t)1e15);
         double pre_gen_speed = 0;
         while (true) {
-            std::this_thread::sleep_for(std::chrono::seconds(10));
+            std::this_thread::sleep_for(std::chrono::seconds(200));
             auto curr_time = std::chrono::steady_clock::now();
             auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
             double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
