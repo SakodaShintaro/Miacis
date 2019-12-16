@@ -74,7 +74,7 @@ void checkGenSpeed() {
                       << ",  elapsed = " << std::setw(12) << ela.count()
                       << ",  totalNum = " << std::setw(7) << buffer.totalNum()
                       << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec" << std::endl;
-            if (gen_speed_per_sec != 0 && gen_speed_per_sec == pre_gen_speed) {
+            if (gen_speed_per_sec != 0 && std::abs(gen_speed_per_sec - pre_gen_speed) < 1e4) {
                 break;
             }
             pre_gen_speed = gen_speed_per_sec;
