@@ -50,7 +50,7 @@ void test() {
 void checkGenSpeed() {
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
-    constexpr int64_t buffer_size = 20000;
+    constexpr int64_t buffer_size = 200000;
     UsiOptions usi_options;
     usi_options.search_limit = 800;
     usi_options.draw_turn = 256;
@@ -63,17 +63,15 @@ void checkGenSpeed() {
         auto start = std::chrono::steady_clock::now();
         GameGenerator generator(usi_options, Q_dist_lambda, buffer, nn);
         std::thread t(&GameGenerator::genGames, &generator, (int64_t)1e15);
-        while (buffer.size() < buffer_size) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+        while (buffer.totalNum() < buffer_size) {
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+            auto curr_time = std::chrono::steady_clock::now();
+            auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
+            std::cout << "search_batch_size = " << std::setw(4) << usi_options.search_batch_size
+                      << ", elapsed = " << ela.count()
+                      << ", totalNum = " << buffer.totalNum()
+                      << ", speed = " << (buffer.totalNum() * 1000.0) / ela.count() << " pos / sec" << std::endl;
         }
-        auto end = std::chrono::steady_clock::now();
-        Searcher::stop_signal = true;
-        t.join();
-        auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        std::cout << "search_batch_size = " << std::setw(4) << usi_options.search_batch_size
-                  << ", elapsed = " << ela.count()
-                  << ", size = " << buffer.size()
-                  << ", speed = " << (buffer.size() * 1000.0) / ela.count() << " pos / sec" << std::endl;
     }
 }
 

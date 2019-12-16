@@ -15,7 +15,7 @@
 class ReplayBuffer{
 public:
     ReplayBuffer(int64_t first_wait, int64_t max_size, int64_t output_interval, double lambda, double alpha) :
-        data_(max_size), segment_tree_(max_size), first_wait_(first_wait), max_size_(max_size),
+        data_(max_size), segment_tree_(max_size), first_wait_(first_wait), max_size_(max_size), total_num_(0),
         output_interval_(output_interval), lambda_(lambda),  alpha_(alpha) {
         //棋譜を保存するディレクトリの削除
         std::experimental::filesystem::remove_all(save_dir);
@@ -38,7 +38,7 @@ public:
     void update(const std::vector<float>& loss);
 
     //checkGenSpeedで使うもの
-    int64_t size() { return data_.size(); }
+    int64_t totalNum() { return total_num_; }
 
 private:
     //実際のデータ
@@ -52,6 +52,9 @@ private:
 
     //最大サイズ
     int64_t max_size_;
+
+    //今までに追加されたデータの総数
+    int64_t total_num_;
 
     //棋譜に書き出す間隔
     int64_t output_interval_;

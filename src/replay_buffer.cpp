@@ -42,8 +42,8 @@ void ReplayBuffer::push(Game &game) {
 
     Position pos;
 
-    static int64_t num = 0;
-    if (++num % output_interval_ == 0) {
+    static int64_t total_kifu_num = 0;
+    if (++total_kifu_num % output_interval_ == 0) {
         game.writeKifuFile(save_dir);
     }
 
@@ -104,6 +104,9 @@ void ReplayBuffer::push(Game &game) {
 #endif
         //segment_treeのpriorityを更新
         segment_tree_.update(change_index, std::pow(priority * 2, alpha_));
+
+        //データを加えた数をカウント
+        total_num_++;
 
         if (first_wait_ > 0) {
             first_wait_--;
