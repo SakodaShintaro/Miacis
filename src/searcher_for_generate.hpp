@@ -35,7 +35,7 @@ private:
     friend class GameGenerator;
 
     //root局面を探索する準備を行う関数
-    bool prepareForCurrPos(Position& root);
+    void prepareForCurrPos(Position& root);
 
     //探索1回を行う関数
     void select(Position& pos);

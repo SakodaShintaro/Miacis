@@ -103,35 +103,31 @@ void GameGenerator::genSlave() {
                 positions[i].doMove(result.move);
                 games[i].elements.push_back(result);
 
-                bool curr_game_finish = false;
-                if (positions[i].turnNumber() > usi_options_.draw_turn) {
-                    //長手数による引き分け
-                    games[i].result = (MAX_SCORE + MIN_SCORE) / 2;
-                    curr_game_finish = true;
-                } else if (!searchers[i].prepareForCurrPos(positions[i])) { //次局面を展開
-                    //投了
-                    games[i].result = (positions[i].color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
-                    curr_game_finish = true;
-                }
-
                 float score;
                 if (positions[i].isFinish(score)) {
-                    curr_game_finish = true;
+                    //決着したので最終結果を設定
                     games[i].result = (positions[i].color() == BLACK ? score : -score);
-                }
 
-                if (curr_game_finish) {
                     //データを送る
                     rb_.push(games[i]);
 
                     //次の対局へ向かう
+                    //まず担当するゲームのidを取得
                     nums[i] = game_num_--;
-                    positions[i].init();
-                    games[i].elements.clear();
-
                     if (nums[i] > 0) {
+                        //0より大きい場合のみ継続
+                        //局面の初期化
+                        positions[i].init();
+
+                        //初期化。内部のvector<OneTurnElement>がどうなるのかよくわからない
+                        games[i] = Game();
+
+                        //次のルート局面の展開
                         searchers[i].prepareForCurrPos(positions[i]);
                     }
+                } else {
+                    //次のルート局面を展開
+                    searchers[i].prepareForCurrPos(positions[i]);
                 }
             } else {
                 //引き続き同じ局面について探索

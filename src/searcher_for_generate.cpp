@@ -1,7 +1,7 @@
 ﻿#include "searcher_for_generate.hpp"
 #include "include_switch.hpp"
 
-bool SearcherForGenerate::prepareForCurrPos(Position& root) {
+void SearcherForGenerate::prepareForCurrPos(Position& root) {
     //古いハッシュを削除
     hash_table_.deleteOldHash(root, false);
 
@@ -16,9 +16,6 @@ bool SearcherForGenerate::prepareForCurrPos(Position& root) {
         mateSearch(root, 5);
     }
 #endif
-
-    //合法手が0かどうかを判定して返す
-    return !hash_table_[root_index_].moves.empty();
 }
 
 void SearcherForGenerate::select(Position& pos) {

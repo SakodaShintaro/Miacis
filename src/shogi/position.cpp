@@ -1126,5 +1126,12 @@ bool Position::isFinish(float& score) {
         return true;
     }
 
+    //長手数による打ち切り
+    //TODO:usi_optionを参照して引き分け手数を変更できるようにする
+    if (turn_number_ > 512) {
+        score = (MAX_SCORE + MIN_SCORE) / 2;
+        return true;
+    }
+
     return false;
 }
