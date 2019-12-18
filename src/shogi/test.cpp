@@ -51,6 +51,7 @@ void checkGenSpeed() {
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
     constexpr int64_t buffer_size = 200000;
+    constexpr int64_t N = 4;
     UsiOptions usi_options;
     usi_options.search_limit = 800;
     usi_options.draw_turn = 512;
@@ -64,20 +65,28 @@ void checkGenSpeed() {
             auto start = std::chrono::steady_clock::now();
             GameGenerator generator(usi_options, Q_dist_lambda, buffer, nn);
             std::thread t(&GameGenerator::genGames, &generator, (int64_t) 1e15);
-            double pre_gen_speed = 0;
+            std::vector<double> gen_speeds;
             while (true) {
-                std::this_thread::sleep_for(std::chrono::seconds(100));
+                std::this_thread::sleep_for(std::chrono::seconds(60));
                 auto curr_time = std::chrono::steady_clock::now();
                 auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
                 double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
-                std::cout << "search_batch_size = " << std::setw(4) << usi_options.search_batch_size
+                std::cout << "thread_num = " << usi_options.thread_num
+                          << "batch_size = " << std::setw(4) << usi_options.search_batch_size
                           << ",  totalNum = " << std::setw(7) << buffer.totalNum()
                           << ",  elapsed_sec = " << std::setw(9) << ela.count() / 1000
                           << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec" << std::endl;
-                if (gen_speed_per_sec != 0 && std::abs(gen_speed_per_sec - pre_gen_speed) < 1e-2) {
+                gen_speeds.push_back(gen_speed_per_sec);
+                if (gen_speeds.size() < N) {
+                    continue;
+                }
+
+                //直近N回を見て、その中の最大値と最小値が1e-2以下だったら収束したと判定して打ち切る
+                double min_value = *std::min_element(gen_speeds.end() - N, gen_speeds.end());
+                double max_value = *std::max_element(gen_speeds.end() - N, gen_speeds.end());
+                if (min_value != 0 && (max_value - min_value) < 1e-2) {
                     break;
                 }
-                pre_gen_speed = gen_speed_per_sec;
             }
             Searcher::stop_signal = true;
             t.join();
