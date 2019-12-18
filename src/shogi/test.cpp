@@ -72,7 +72,7 @@ void checkGenSpeed() {
                 auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
                 double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
                 std::cout << "thread_num = " << usi_options.thread_num
-                          << "batch_size = " << std::setw(4) << usi_options.search_batch_size
+                          << ",  batch_size = " << std::setw(4) << usi_options.search_batch_size
                           << ",  totalNum = " << std::setw(7) << buffer.totalNum()
                           << ",  elapsed_sec = " << std::setw(9) << ela.count() / 1000
                           << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec" << std::endl;
