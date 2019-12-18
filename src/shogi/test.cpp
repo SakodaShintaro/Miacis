@@ -79,6 +79,8 @@ void checkGenSpeed() {
                 }
                 pre_gen_speed = gen_speed_per_sec;
             }
+            Searcher::stop_signal = true;
+            t.join();
         }
     }
 }
