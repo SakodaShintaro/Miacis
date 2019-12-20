@@ -3,6 +3,7 @@
 
 #include"uct_hash_table.hpp"
 #include<chrono>
+#include <stack>
 
 class Searcher {
 public:
@@ -26,6 +27,9 @@ protected:
     //node局面におけるi番目の指し手の行動価値(期待値)を返す関数
     //Scalarのときは実数をそのまま返し、Categoricalのときはその期待値を返す
     FloatType expQfromNext(const UctHashEntry& node, int32_t i) const;
+
+    //バックアップ
+    void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
 #ifdef SHOGI
     //詰み探索

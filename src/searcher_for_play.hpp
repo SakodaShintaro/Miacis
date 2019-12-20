@@ -49,9 +49,6 @@ private:
     //ノードを展開する関数
     Index expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id);
 
-    //バックアップ
-    void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
-
     //mutex
     std::mutex lock_gpu_;
 

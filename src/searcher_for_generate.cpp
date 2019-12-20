@@ -142,47 +142,6 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
     return index;
 }
 
-void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
-    if (indices.size() != (actions.size() + 1)) {
-        std::cout << "indices.size() != (actions.size() + 1)" << std::endl;
-        std::exit(1);
-    }
-    int32_t leaf = indices.top();
-    indices.pop();
-    ValueType value = hash_table_[leaf].value;
-    static constexpr FloatType LAMBDA = 1.0;
-
-    //バックアップ
-    while (!actions.empty()) {
-        int32_t index = indices.top();
-        indices.pop();
-
-        int32_t action = actions.top();
-        actions.pop();
-
-        //手番が変わるので反転
-#ifdef USE_CATEGORICAL
-        std::reverse(value.begin(), value.end());
-#else
-        value = MAX_SCORE + MIN_SCORE - value;
-#endif
-
-        // 探索結果の反映
-        hash_table_[index].N[action]++;
-        hash_table_[index].sum_N++;
-
-        ValueType curr_v = hash_table_[index].value;
-        float alpha = 1.0f / (hash_table_[index].sum_N + 1);
-        hash_table_[index].value += alpha * (value - curr_v);
-        value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
-
-        if (hash_table_[index].moves.empty()) {
-            std::cout << "in backup(), hash_table_[index].moves.empty()" << std::endl;
-            std::exit(1);
-        }
-    }
-}
-
 OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     const UctHashEntry& root_node = hash_table_[root_index_];
     if (root_node.moves.empty()) {

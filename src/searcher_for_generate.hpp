@@ -43,9 +43,6 @@ private:
     //ノードを展開する関数
     Index expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
-    //GPUの計算結果をルートノードまでバックアップする関数
-    void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
-
     //現局面の探索結果を返す関数
     OneTurnElement resultForCurrPos(Position& root);
 
