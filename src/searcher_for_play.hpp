@@ -18,7 +18,6 @@ public:
             usi_options_(usi_options),
             next_print_time_(LLONG_MAX),
             evaluator_(std::move(evaluator)) {
-        lock_node_ = std::vector<std::mutex>(hash_table_.size());
         input_queues_.resize(usi_options.thread_num);
         index_queues_.resize(usi_options.thread_num);
         route_queues_.resize(usi_options.thread_num);
@@ -54,8 +53,6 @@ private:
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
     //mutex
-    std::vector<std::mutex> lock_node_;
-    std::mutex lock_all_table_;
     std::mutex lock_gpu_;
 
     //複数のオプションをバラバラにまた設定するのではなくUsiオプションへのconst参照をまるごと持ってしまうのがわかりやすそう

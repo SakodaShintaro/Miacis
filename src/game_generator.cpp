@@ -35,10 +35,10 @@ void GameGenerator::genSlave() {
     std::vector<Position> positions(usi_options_.search_batch_size);
 
     //探索クラスの生成,初期局面を探索する準備
-    std::vector<SearcherForGenerate> searchers;
+    std::vector<std::unique_ptr<SearcherForGenerate>> searchers;
     for (int32_t i = 0; i < usi_options_.search_batch_size; i++) {
-        searchers.emplace_back(i, usi_options_, Q_dist_lambda_, features, hash_indices, actions, ids);
-        searchers[i].prepareForCurrPos(positions[i]);
+        searchers.emplace_back(std::make_unique<SearcherForGenerate>( i, usi_options_, Q_dist_lambda_, features, hash_indices, actions, ids));
+        searchers[i]->prepareForCurrPos(positions[i]);
     }
 
     //今からi番目のものが担当する番号を初期化
@@ -58,7 +58,7 @@ void GameGenerator::genSlave() {
 
         for (uint64_t i = 0; i < hash_indices.size(); i++) {
             //何番目のsearcherが持つハッシュテーブルのどの位置に書き込むかを取得
-            auto& current_node = searchers[ids[i]].hash_table_[hash_indices[i].top()];
+            auto& current_node = searchers[ids[i]]->hash_table_[hash_indices[i].top()];
 
             //policyを設定
             std::vector<float> legal_moves_policy(current_node.moves.size());
@@ -74,7 +74,7 @@ void GameGenerator::genSlave() {
             //これいらない気がするけどハッシュテーブル自体の構造は変えたくないので念の為
             current_node.evaled = true;
 
-            searchers[ids[i]].backup(hash_indices[i], actions[i]);
+            searchers[ids[i]]->backup(hash_indices[i], actions[i]);
         }
     };
 
@@ -94,12 +94,12 @@ void GameGenerator::genSlave() {
                 continue;
             }
 
-            if (searchers[i].shouldStop()) {
+            if (searchers[i]->shouldStop()) {
                 if (Searcher::stop_signal) {
                     return;
                 }
                 //探索結果を取得して次の局面へ遷移
-                OneTurnElement result = searchers[i].resultForCurrPos(positions[i]);
+                OneTurnElement result = searchers[i]->resultForCurrPos(positions[i]);
                 positions[i].doMove(result.move);
                 games[i].elements.push_back(result);
 
@@ -123,16 +123,16 @@ void GameGenerator::genSlave() {
                         games[i] = Game();
 
                         //次のルート局面の展開
-                        searchers[i].prepareForCurrPos(positions[i]);
+                        searchers[i]->prepareForCurrPos(positions[i]);
                     }
                 } else {
                     //次のルート局面を展開
-                    searchers[i].prepareForCurrPos(positions[i]);
+                    searchers[i]->prepareForCurrPos(positions[i]);
                 }
             } else {
                 //引き続き同じ局面について探索
                 //1回分探索してGPUキューへ評価要求を貯める
-                searchers[i].select(positions[i]);
+                searchers[i]->select(positions[i]);
             }
         }
 

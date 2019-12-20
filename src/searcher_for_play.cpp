@@ -234,14 +234,14 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
         route_queue.clear();
         action_queue.clear();
 
-        lock_node_[root_index_].lock();
+        hash_table_[root_index_].mutex.lock();
         auto now_time = std::chrono::steady_clock::now();
         auto elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_).count();
         if (elapsed_msec >= next_print_time_) {
             next_print_time_ += next_print_time_;
             printUSIInfo();
         }
-        lock_node_[root_index_].unlock();
+        hash_table_[root_index_].mutex.unlock();
 
         //評価要求を貯める
         for (int64_t i = 0; i < usi_options_.search_batch_size && !shouldStop(); i++) {
@@ -261,7 +261,7 @@ void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
 
             //書き込み
             for (uint64_t i = 0; i < index_queue.size(); i++) {
-                std::unique_lock<std::mutex> lock(lock_node_[index_queue[i]]);
+                std::unique_lock<std::mutex> lock(hash_table_[index_queue[i]].mutex);
                 auto& curr_node = hash_table_[index_queue[i]];
                 curr_node.nn_policy.resize(curr_node.moves.size());
                 for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
@@ -290,7 +290,7 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
 
     //未展開の局面に至るまで遷移を繰り返す
     while (index != UctHashTable::NOT_EXPANDED) {
-        std::unique_lock<std::mutex> lock(lock_node_[index]);
+        std::unique_lock<std::mutex> lock(hash_table_[index].mutex);
 
         if (pos.turnNumber() > usi_options_.draw_turn) {
             //手数が制限まで達している場合も抜ける
@@ -343,9 +343,9 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
     }
 
     //葉の直前ノードを更新
-    lock_node_[index].lock();
+    hash_table_[index].mutex.lock();
     hash_table_[index].child_indices[action] = leaf_index;
-    lock_node_[index].unlock();
+    hash_table_[index].mutex.unlock();
 
     //バックアップはGPU計算後にやるので局面だけ戻す
     for (uint64_t i = 0; i < move_num; i++) {
@@ -355,14 +355,14 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
 
 Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id) {
     //置換表全体をロック
-    lock_all_table_.lock();
+    hash_table_.mutex.lock();
 
     uint64_t index = hash_table_.findSameHashIndex(pos);
 
     //合流先が検知できればそれを返す
     if (index != hash_table_.size()) {
-        //置換表全体のロックはもういらないので開放
-        lock_all_table_.unlock();
+        //置換表全体のロックはもういらないので解放
+        hash_table_.mutex.unlock();
 
         indices.push(index);
         if (hash_table_[index].evaled) {
@@ -390,7 +390,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     indices.push(index);
 
     //テーブル全体を使うのはここまで
-    lock_all_table_.unlock();
+    hash_table_.mutex.unlock();
 
     //空のインデックスが見つからなかった
     if (index == hash_table_.size()) {
@@ -398,7 +398,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     }
 
     //取得したノードをロック
-    lock_node_[index].lock();
+    hash_table_[index].mutex.lock();
 
     auto& curr_node = hash_table_[index];
 
@@ -426,7 +426,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
-        lock_node_[index].unlock();
+        hash_table_[index].mutex.unlock();
         backup(indices, actions);
     } else if (pos.turnNumber() > usi_options_.draw_turn) {
         FloatType value = (MAX_SCORE + MIN_SCORE) / 2;
@@ -437,10 +437,10 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
-        lock_node_[index].unlock();
+        hash_table_[index].mutex.unlock();
         backup(indices, actions);
     } else {
-        lock_node_[index].unlock();
+        hash_table_[index].mutex.unlock();
 
         //GPUへ計算要求を投げる
         auto this_feature = pos.makeFeature();
@@ -459,9 +459,9 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
 
     auto leaf = indices.top();
     indices.pop();
-    lock_node_[leaf].lock();
+    hash_table_[leaf].mutex.lock();
     auto value = hash_table_[leaf].value;
-    lock_node_[leaf].unlock();
+    hash_table_[leaf].mutex.unlock();
 
     //毎回計算するのは無駄だけど仕方ないか
     FloatType lambda = usi_options_.UCT_lambda_x1000 / 1000.0;
@@ -481,7 +481,7 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
         value = MAX_SCORE + MIN_SCORE - value;
 #endif
         // 探索結果の反映
-        lock_node_[index].lock();
+        hash_table_[index].mutex.lock();
 
         UctHashEntry& node = hash_table_[index];
 
@@ -513,6 +513,6 @@ void SearcherForPlay::backup(std::stack<int32_t>& indices, std::stack<int32_t>& 
 //        }
 //#endif
 
-        lock_node_[index].unlock();
+        hash_table_[index].mutex.unlock();
     }
 }

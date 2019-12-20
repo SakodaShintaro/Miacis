@@ -18,6 +18,8 @@ struct UctHashEntry {
     ValueType value;
     bool evaled;
 
+    std::mutex mutex;
+
     //識別用データ
     //ハッシュ値だけでは衝突が発生するので手数も持つ
     int64_t hash;
@@ -74,6 +76,8 @@ public:
 
     // 未展開のノードのインデックス
     static constexpr Index NOT_EXPANDED = -1;
+
+    std::mutex mutex;
 
 private:
     Index hashToIndex(int64_t hash) {
