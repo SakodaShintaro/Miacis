@@ -305,6 +305,7 @@ void SearcherForPlay::select(Position& pos, int32_t id) {
 
         if (hash_table_[index].nn_policy.size() != hash_table_[index].moves.size()) {
             //policyが展開されていなかったら抜ける
+            //ここに来るのはこのselectループ内で先に展開されたがまだGPU計算が行われていないノードに達したとき
             break;
         }
 
