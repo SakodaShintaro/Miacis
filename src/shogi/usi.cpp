@@ -191,7 +191,7 @@ void USI::go() {
     //Ponderオンの場合、一度与えられた持ち時間でbestmoveを弾き出したあと無限の持ち時間で現局面についてPonderを行う
     //予想手を決めなくとも置換表を埋めていくだけで強くなるはず
     thread_ = std::thread([this, time_limit]() {
-        Move best_move = searcher_->think(root_, time_limit - usi_options_.byoyomi_margin);
+        Move best_move = (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - usi_options_.byoyomi_margin));
         std::cout << "bestmove " << best_move << std::endl;
         if (usi_options_.USI_Ponder) {
             searcher_->think(root_, LLONG_MAX);

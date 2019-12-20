@@ -26,6 +26,7 @@ enum MoveConst {
     MOVE_PROMOTE_MASK = 1 << MOVE_PROMOTE_SHIFT,
     MOVE_SUBJECT_MASK = 0xff << MOVE_SUBJECT_SHIFT,
     MOVE_CAPTURE_MASK = 0xff << MOVE_CAPTURE_SHIFT,
+    MOVE_DECLARE = -1,
 };
 
 //行動の次元数
@@ -67,6 +68,9 @@ public:
 
     //日本語での表示
     void print() const {
+        if (move_ == MOVE_DECLARE) {
+            std::cout << "入玉宣言" << std::endl;
+        }
         std::cout << SquareToFile[to()] << SquareToRank[to()] << PieceToStr[subject()];
         if (isPromote()) {
             std::cout << "成";
@@ -112,10 +116,17 @@ inline Move promotiveMove(Move non_promotive_move) {
 //比較用
 const Move NULL_MOVE(0);
 
+//宣言
+const Move DECLARE_MOVE(MOVE_DECLARE);
+
 //sfen形式で出力するオーバーロード
 inline std::ostream& operator<<(std::ostream& os, Move m) {
     if (m == NULL_MOVE) {
         os << "resign";
+        return os;
+    }
+    if (m == DECLARE_MOVE) {
+        os << "win";
         return os;
     }
     if (m.isDrop()) {

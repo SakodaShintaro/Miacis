@@ -23,6 +23,7 @@ public:
     //合法性に関する関数
     bool isLegalMove(Move move) const;
     bool isLastMoveDropPawn() const;
+    bool canWinDeclare() const;
 
     //この局面が詰み、千日手等で終わっているか確認する関数
     //終わっている場合は手番側から見た点数を引数に書き込んでtrueを返す

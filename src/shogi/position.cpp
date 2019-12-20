@@ -1126,6 +1126,12 @@ bool Position::isFinish(float& score) {
         return true;
     }
 
+    //宣言勝ち
+    if (canWinDeclare()){
+        score = MAX_SCORE;
+        return true;
+    }
+
     //長手数による打ち切り
     //TODO:usi_optionを参照して引き分け手数を変更できるようにする
     if (turn_number_ > 512) {
@@ -1134,4 +1140,52 @@ bool Position::isFinish(float& score) {
     }
 
     return false;
+}
+
+bool Position::canWinDeclare() const {
+    //手番側が入玉宣言できるかどうか
+    //WCSC29のルールに準拠
+    //1. 宣言側の手番である
+    //   手番側で考えるのでこれは自明
+    //2. 宣言側の玉が敵陣三段目以内に入っている
+    Rank rank = SquareToRank[king_sq_[color_]];
+    if ((color_ == BLACK && rank > Rank3)
+     || (color_ == WHITE && rank < Rank7)) {
+        return false;
+    }
+
+    //5. 宣言側の玉に王手がかかっていない
+    if (is_checked_) {
+        return false;
+    }
+    //6. 宣言側の持ち時間が残っている
+    //   これは自明なものとする
+
+    //3. 宣言側が大駒5点小駒1点で計算して
+    //   ・先手の場合28点以上の持点がある
+    //   ・後手の場合27点以上の持点がある
+    //   ・点数の対象となるのは、宣言側の持駒と敵陣三段目以内に存在する玉を除く宣言側の駒のみである
+    //4. 宣言側の敵陣三段目以内の駒は、玉を除いて10枚以上存在する
+    constexpr int64_t SCORE_TABLE[KING] = {0, 1, 1, 1, 1, 1, 5, 5};
+    constexpr int64_t THRESHOLD[ColorNum] = {28, 27};
+    constexpr int64_t LOWER_BOUND[ColorNum] = {Rank1, Rank7};
+    constexpr int64_t UPPER_BOUND[ColorNum] = {Rank3, Rank9};
+    int64_t score = 0, num = 0;
+    for (int64_t r = LOWER_BOUND[color_]; r <= UPPER_BOUND[color_]; r++) {
+        for (int64_t f = File1; f <= File9; f++) {
+            Piece p = board_[FRToSquare[f][r]];
+            if (pieceToColor(p) != color_ || kind(p) == KING) {
+                continue;
+            }
+            score += SCORE_TABLE[kind(p)];
+            num++;
+        }
+    }
+
+    //持ち駒
+    for (int64_t p = PAWN; p < KING; p++) {
+        score += SCORE_TABLE[p] * hand_[color_].num(Piece(p));
+    }
+
+    return (score >= THRESHOLD[color_] && num >= 10);
 }
