@@ -6,17 +6,15 @@
 #include<stack>
 #include<mutex>
 
-class SearcherForPlay : public Searcher {
+class SearcherForPlay {
 public:
     SearcherForPlay(const UsiOptions& usi_options, NeuralNetwork evaluator) :
             //ハッシュ容量はMByte単位になっているので個数に変換する
             Searcher(usi_options.USI_Hash * 1024 * 1024 / 10000, usi_options),
             next_print_time_(LLONG_MAX),
             evaluator_(std::move(evaluator)) {
-        input_queues_.resize(usi_options.thread_num);
-        index_queues_.resize(usi_options.thread_num);
-        route_queues_.resize(usi_options.thread_num);
-        action_queues_.resize(usi_options.thread_num);
+        //置換表を1つ受け取る
+        //gpu_queueをn本, searcherをnインスタンス生成して置換表に対して思考させる
     }
 
     //探索を行って一番良い指し手を返す関数
@@ -52,12 +50,6 @@ private:
 
     //局面評価に用いるネットワーク
     NeuralNetwork evaluator_;
-
-    //キュー
-    std::vector<std::vector<float>> input_queues_;
-    std::vector<std::vector<Index>> index_queues_;
-    std::vector<std::vector<std::stack<Index>>> route_queues_;
-    std::vector<std::vector<std::stack<int32_t>>> action_queues_;
 };
 
 #endif //MIACIS_SEARCHER_FOR_PLAY_HPP

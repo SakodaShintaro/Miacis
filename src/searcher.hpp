@@ -6,17 +6,29 @@
 #include<chrono>
 #include<stack>
 
+//GPUに対する評価要求を溜めるキュー
+//hash_tableのindexに相当する入力inputを計算して適切な場所に書き込むことを要求する
+struct GPUQueue {
+    std::vector<float> inputs;
+    std::vector<std::reference_wrapper<UctHashTable>> hash_tables;
+    std::vector<Index> indices;
+};
+
+//評価要求を受けた後バックアップすべく情報を溜めておくキュー
+//探索木を降りていった順にノードのindexと行動のindexを保存しておく
+struct BackupQueue {
+    std::vector<std::stack<Index>> indices;
+    std::vector<std::stack<int32_t>> actions;
+};
+
 class Searcher {
 public:
     static bool stop_signal;
 
-protected:
-    explicit Searcher(int64_t hash_size, const UsiOptions& usi_options)
-                       : hash_table_(hash_size), usi_options_(usi_options),
-                         Q_coeff_(usi_options.Q_coeff_x1000 / 1000.0),
-                         C_PUCT_(usi_options.C_PUCT_x1000 / 1000.0),
-                         P_coeff_(usi_options.P_coeff_x1000 / 1000.0),
-                         root_index_(UctHashTable::NOT_EXPANDED), time_limit_(LLONG_MAX), node_limit_(LLONG_MAX) {}
+private:
+    explicit Searcher(const UsiOptions& usi_options, UctHashTable& hash_table, GPUQueue& gpu_queue)
+                       : hash_table_(hash_table), usi_options_(usi_options), root_index_(UctHashTable::NOT_EXPANDED),
+                         time_limit_(LLONG_MAX), node_limit_(LLONG_MAX), gpu_queue_(gpu_queue) {}
 
     //時間制限含め探索を続けるかどうかを判定する関数
     bool shouldStop();
@@ -32,6 +44,12 @@ protected:
     //Scalarのときは実数をそのまま返し、Categoricalのときはその期待値を返す
     FloatType expQfromNext(const UctHashEntry& node, int32_t i) const;
 
+    //再帰しない探索関数
+    void select(Position& pos);
+
+    //ノードを展開する関数
+    Index expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
+
     //バックアップ
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
@@ -41,21 +59,13 @@ protected:
     bool mateSearchForAttacker(Position& pos, int32_t depth);
     bool mateSearchForEvader(Position& pos, int32_t depth);
 #endif
+    //VIRTUAL_LOSSの大きさ
+    static constexpr int32_t VIRTUAL_LOSS = 1;
 
     //置換表
-    UctHashTable hash_table_;
+    UctHashTable& hash_table_;
 
     const UsiOptions& usi_options_;
-
-    //Qにかける係数:scalarのときは意味がない気もするがそうでもない？
-    //             categoricalのときに使うのがメイン
-    const FloatType Q_coeff_;
-
-    //C_PUCT
-    const FloatType C_PUCT_;
-
-    //Pにかける係数:scalarのときは使わない
-    const FloatType P_coeff_;
 
     //時間
     std::chrono::steady_clock::time_point start_;
@@ -66,6 +76,9 @@ protected:
     //時間制限(msec),ノード数制限
     int64_t time_limit_;
     int64_t node_limit_;
+
+    GPUQueue& gpu_queue_;
+    BackupQueue backup_queue_;
 };
 
 #endif //MIACIS_SEARCHER_HPP

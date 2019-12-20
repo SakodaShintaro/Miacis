@@ -5,7 +5,7 @@
 #include "game.hpp"
 #include <stack>
 
-class SearcherForGenerate : public Searcher {
+class SearcherForGenerate {
 public:
     //コンストラクタ
     SearcherForGenerate(int32_t id,

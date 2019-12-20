@@ -236,3 +236,178 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         hash_table_[index].mutex.unlock();
     }
 }
+
+void Searcher::select(Position& pos) {
+    std::stack<Index> curr_indices;
+    std::stack<int32_t> curr_actions;
+
+    auto index = root_index_;
+    //ルートでは合法手が一つはあるはず
+    assert(!hash_table_[index].moves.empty());
+
+    //未展開の局面に至るまで遷移を繰り返す
+    while (index != UctHashTable::NOT_EXPANDED) {
+        std::unique_lock<std::mutex> lock(hash_table_[index].mutex);
+
+        if (pos.turnNumber() > usi_options_.draw_turn) {
+            //手数が制限まで達している場合も抜ける
+            break;
+        }
+
+        float score;
+        if (index != root_index_ && pos.isFinish(score)) {
+            //繰り返しが発生している場合も抜ける
+            break;
+        }
+
+        if (hash_table_[index].nn_policy.size() != hash_table_[index].moves.size()) {
+            //policyが展開されていなかったら抜ける
+            //ここに来るのはこのselectループ内で先に展開されたがまだGPU計算が行われていないノードに達したとき
+            break;
+        }
+
+        //状態を記録
+        curr_indices.push(index);
+
+        //選択
+        auto action = selectMaxUcbChild(hash_table_[index]);
+
+        //取った行動を記録
+        curr_actions.push(action);
+
+        //VIRTUAL_LOSSの追加
+        hash_table_[index].virtual_N[action] += VIRTUAL_LOSS;
+        hash_table_[index].virtual_sum_N += VIRTUAL_LOSS;
+
+        //遷移
+        pos.doMove(hash_table_[index].moves[action]);
+
+        //index更新
+        index = hash_table_[index].child_indices[action];
+    }
+
+    //expandNode内でこれらの情報は壊れる可能性があるので保存しておく
+    index = curr_indices.top();
+    int32_t action = curr_actions.top();
+    uint64_t move_num = curr_actions.size();
+
+    //今の局面を展開・GPUに評価依頼を投げる
+    Index leaf_index = expand(pos, curr_indices, curr_actions);
+    if (leaf_index == -1) {
+        //shouldStopがtrueになったということ
+        //基本的には置換表に空きがなかったということだと思われる
+        return;
+    }
+
+    //葉の直前ノードを更新
+    hash_table_[index].mutex.lock();
+    hash_table_[index].child_indices[action] = leaf_index;
+    hash_table_[index].mutex.unlock();
+
+    //バックアップはGPU計算後にやるので局面だけ戻す
+    for (uint64_t i = 0; i < move_num; i++) {
+        pos.undo();
+    }
+}
+
+Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
+    //置換表全体をロック
+    hash_table_.mutex.lock();
+
+    uint64_t index = hash_table_.findSameHashIndex(pos);
+
+    //合流先が検知できればそれを返す
+    if (index != hash_table_.size()) {
+        //置換表全体のロックはもういらないので解放
+        hash_table_.mutex.unlock();
+
+        indices.push(index);
+        if (hash_table_[index].evaled) {
+            //評価済みならば,前回までのループでここへ違う経路で到達していたか,終端状態であるかのいずれか
+            //どちらの場合でもバックアップして良い,と思う
+            //GPUに送らないのでこのタイミングでバックアップを行う
+            backup(indices, actions);
+        } else {
+            //評価済みではないけどここへ到達したならば,同じループの中で同じ局面へ到達があったということ
+            //全く同じ経路のものがあるかどうか確認
+            auto itr = std::find(backup_queue_.indices.begin(), backup_queue_.indices.end(), indices);
+            if (itr == backup_queue_.indices.end()) {
+                //同じものがなかったならばバックアップ要求を追加
+                backup_queue_.indices.push_back(indices);
+                backup_queue_.actions.push_back(actions);
+            }
+        }
+        return index;
+    }
+
+    //空のインデックスを探す
+    index = hash_table_.searchEmptyIndex(pos);
+
+    //経路として記録
+    indices.push(index);
+
+    //テーブル全体を使うのはここまで
+    hash_table_.mutex.unlock();
+
+    //空のインデックスが見つからなかった
+    if (index == hash_table_.size()) {
+        return -1;
+    }
+
+    //取得したノードをロック
+    hash_table_[index].mutex.lock();
+
+    auto& curr_node = hash_table_[index];
+
+    // 候補手の展開
+    curr_node.moves = pos.generateAllMoves();
+    curr_node.moves.shrink_to_fit();
+    curr_node.child_indices.assign(curr_node.moves.size(), UctHashTable::NOT_EXPANDED);
+    curr_node.child_indices.shrink_to_fit();
+    curr_node.N.assign(curr_node.moves.size(), 0);
+    curr_node.N.shrink_to_fit();
+    curr_node.virtual_N.assign(curr_node.moves.size(), 0);
+    curr_node.virtual_N.shrink_to_fit();
+    curr_node.sum_N = 0;
+    curr_node.virtual_sum_N = 0;
+    curr_node.evaled = false;
+    curr_node.value = ValueType{};
+
+    //ノードを評価
+    float finish_score;
+    if (pos.isFinish(finish_score)) {
+#ifdef USE_CATEGORICAL
+        curr_node.value = onehotDist(finish_score);
+#else
+        curr_node.value = finish_score;
+#endif
+        curr_node.evaled = true;
+        //GPUに送らないのでこのタイミングでバックアップを行う
+        hash_table_[index].mutex.unlock();
+        backup(indices, actions);
+    } else if (pos.turnNumber() > usi_options_.draw_turn) {
+        FloatType value = (MAX_SCORE + MIN_SCORE) / 2;
+#ifdef USE_CATEGORICAL
+        curr_node.value = onehotDist(value);
+#else
+        curr_node.value = value;
+#endif
+        curr_node.evaled = true;
+        //GPUに送らないのでこのタイミングでバックアップを行う
+        hash_table_[index].mutex.unlock();
+        backup(indices, actions);
+    } else {
+        hash_table_[index].mutex.unlock();
+
+        //GPUへの計算要求を追加
+        std::vector<FloatType> this_feature = pos.makeFeature();
+        gpu_queue_.inputs.insert(gpu_queue_.inputs.end(), this_feature.begin(), this_feature.end());
+        gpu_queue_.hash_tables.push_back(hash_table_);
+        gpu_queue_.indices.push_back(index);
+        //バックアップ要求も追加
+        backup_queue_.indices.push_back(indices);
+        backup_queue_.actions.push_back(actions);
+    }
+
+    return index;
+}
