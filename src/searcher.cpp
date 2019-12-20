@@ -163,3 +163,11 @@ ValueType Searcher::QfromNextValue(const UctHashEntry& node, int32_t i) const {
     return MAX_SCORE + MIN_SCORE - hash_table_[node.child_indices[i]].value;
 #endif
 }
+
+FloatType Searcher::expQfromNext(const UctHashEntry& node, int32_t i) const {
+#ifdef USE_CATEGORICAL
+    return expOfValueDist(QfromNextValue(node, i));
+#else
+    return QfromNextValue(node, i);
+#endif
+}

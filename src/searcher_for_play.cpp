@@ -86,11 +86,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
             //価値のソフトマックス分布に従って行動選択
             std::vector<FloatType> Q(curr_node.moves.size());
             for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-#ifdef USE_CATEGORICAL
-                Q[i] = expOfValueDist(QfromNextValue(curr_node, i));
-#else
-                Q[i] = QfromNextValue(curr_node, i);
-#endif
+                Q[i] = expQfromNext(curr_node, i);
             }
             distribution = softmax(Q, usi_options_.temperature_x1000 / 1000.0f);
         }
@@ -121,11 +117,7 @@ void SearcherForPlay::printUSIInfo() const {
     int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
 
     //選択した着手の勝率の算出
-#ifdef USE_CATEGORICAL
-    auto best_value = expOfValueDist(QfromNextValue(curr_node, best_index));
-#else
-    auto best_value = QfromNextValue(curr_node, best_index);
-#endif
+    FloatType best_value = expQfromNext(curr_node, best_index);
 
 #ifdef USE_CATEGORICAL
     //分布の表示
@@ -163,11 +155,7 @@ void SearcherForPlay::printUSIInfo() const {
         //まず各指し手の価値を取得
         std::vector<FloatType> Q(curr_node.moves.size());
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-#ifdef USE_CATEGORICAL
-            Q[i] = expOfValueDist(QfromNextValue(curr_node, i));
-#else
-            Q[i] = QfromNextValue(curr_node, i);
-#endif
+            Q[i] = expQfromNext(curr_node, i);
         }
         std::vector<FloatType> softmaxed_Q = softmax(Q, usi_options_.temperature_x1000 / 1000.f);
 
@@ -425,11 +413,7 @@ Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::
     curr_node.sum_N = 0;
     curr_node.virtual_sum_N = 0;
     curr_node.evaled = false;
-#ifdef USE_CATEGORICAL
-    curr_node.value = std::array<float, BIN_SIZE>{};
-#else
-    curr_node.value = 0.0;
-#endif
+    curr_node.value = ValueType{};
 
     //ノードを評価
     float finish_score;

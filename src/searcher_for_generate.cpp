@@ -108,11 +108,7 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
     curr_node.sum_N = 0;
     curr_node.virtual_sum_N = 0;
     curr_node.evaled = false;
-#ifdef USE_CATEGORICAL
-    curr_node.value = std::array<float, BIN_SIZE>{};
-#else
-    curr_node.value = 0.0;
-#endif
+    curr_node.value = ValueType{};
 
     // ノードを評価
     float score;
@@ -187,13 +183,8 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
 
     //選択した着手の勝率の算出
     //詰みのときは未展開であることに注意する
-#ifdef USE_CATEGORICAL
     FloatType best_value = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
-                    expOfValueDist(QfromNextValue(root_node, best_index)));
-#else
-    FloatType best_value = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
-                    QfromNextValue(root_node, best_index));
-#endif
+                    expQfromNext(root_node, best_index));
 
     //教師データを作成
     OneTurnElement element;
@@ -225,11 +216,7 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
             //選択回数が0ならMIN_SCORE
             //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
             //その他は普通に計算
-#ifdef USE_CATEGORICAL
-            Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : expOfValueDist(QfromNextValue(root_node, i)));
-#else
-            Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : QfromNextValue(root_node, i));
-#endif
+            Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : expQfromNext(root_node, i));
         }
         Q_dist = softmax(Q_dist, usi_options_.temperature_x1000 / 1000.0f);
 
