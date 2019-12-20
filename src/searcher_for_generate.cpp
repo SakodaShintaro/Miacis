@@ -12,8 +12,8 @@ void SearcherForGenerate::prepareForCurrPos(Position& root) {
 
 #ifdef SHOGI
     if (root.turnNumber() >= 50) {
-        //5手詰めまで探索
-        mateSearch(root, 5);
+        //3手詰めまで探索
+        mateSearch(root, 3);
     }
 #endif
 }
