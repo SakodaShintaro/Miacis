@@ -50,7 +50,7 @@ private:
     OneTurnElement resultForCurrPos(Position& root);
 
     //ディリクレ分布に従ったものを返す関数
-    static std::vector<double> dirichletDistribution(uint64_t k, double alpha);
+    static std::vector<FloatType> dirichletDistribution(uint64_t k, FloatType alpha);
 
     //このスレッドのid
     int32_t id_;

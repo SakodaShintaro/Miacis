@@ -23,8 +23,8 @@ void SearcherForGenerate::select(Position& pos) {
         //初回の探索をする前にノイズを加える
         //Alpha Zeroの論文と同じディリクレノイズ
         UctHashEntry& root_node = hash_table_[root_index_];
-        constexpr double epsilon = 0.25;
-        std::vector<double> dirichlet = dirichletDistribution(root_node.moves.size(), 0.15);
+        constexpr FloatType epsilon = 0.25;
+        std::vector<FloatType> dirichlet = dirichletDistribution(root_node.moves.size(), 0.15);
         for (uint64_t i = 0; i < root_node.moves.size(); i++) {
             root_node.nn_policy[i] = (FloatType) ((1.0 - epsilon) * root_node.nn_policy[i] + epsilon * dirichlet[i]);
         }
@@ -265,15 +265,15 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     return element;
 }
 
-std::vector<double> SearcherForGenerate::dirichletDistribution(uint64_t k, double alpha) {
-    static std::random_device seed;
-    static std::default_random_engine engine(seed());
-    static constexpr double eps = 0.000000001;
-    std::gamma_distribution<double> gamma(alpha, 1.0);
-    std::vector<double> dirichlet(k);
-    double sum = 0.0;
+std::vector<FloatType> SearcherForGenerate::dirichletDistribution(uint64_t k, FloatType alpha) {
+    static std::default_random_engine engine(std::random_device{}());
+    std::gamma_distribution<FloatType> gamma(alpha, 1.0);
+    std::vector<FloatType> dirichlet(k);
+
+    //kが小さく、不運が重なるとsum = 0となり0除算が発生してしまうことがあるので小さい値で初期化
+    FloatType sum = 1e-6;
     for (uint64_t i = 0; i < k; i++) {
-        sum += (dirichlet[i] = std::max(gamma(engine), eps));
+        sum += (dirichlet[i] = gamma(engine));
     }
     for (uint64_t i = 0; i < k; i++) {
         dirichlet[i] /= sum;
