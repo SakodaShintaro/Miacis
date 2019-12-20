@@ -2,16 +2,20 @@
 #define MIACIS_SEARCHER_HPP
 
 #include"uct_hash_table.hpp"
+#include"usi_options.hpp"
 #include<chrono>
-#include <stack>
+#include<stack>
 
 class Searcher {
 public:
     static bool stop_signal;
 
 protected:
-    explicit Searcher(int64_t hash_size, FloatType Q_coeff, FloatType C_PUCT, FloatType P_coeff)
-                       : hash_table_(hash_size), Q_coeff_(Q_coeff), C_PUCT_(C_PUCT), P_coeff_(P_coeff),
+    explicit Searcher(int64_t hash_size, const UsiOptions& usi_options)
+                       : hash_table_(hash_size), usi_options_(usi_options),
+                         Q_coeff_(usi_options.Q_coeff_x1000 / 1000.0),
+                         C_PUCT_(usi_options.C_PUCT_x1000 / 1000.0),
+                         P_coeff_(usi_options.P_coeff_x1000 / 1000.0),
                          root_index_(UctHashTable::NOT_EXPANDED), time_limit_(LLONG_MAX), node_limit_(LLONG_MAX) {}
 
     //時間制限含め探索を続けるかどうかを判定する関数
@@ -40,6 +44,8 @@ protected:
 
     //置換表
     UctHashTable hash_table_;
+
+    const UsiOptions& usi_options_;
 
     //Qにかける係数:scalarのときは意味がない気もするがそうでもない？
     //             categoricalのときに使うのがメイン

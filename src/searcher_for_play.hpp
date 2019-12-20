@@ -3,7 +3,6 @@
 
 #include"searcher.hpp"
 #include"neural_network.hpp"
-#include"usi_options.hpp"
 #include<stack>
 #include<mutex>
 
@@ -11,11 +10,7 @@ class SearcherForPlay : public Searcher {
 public:
     SearcherForPlay(const UsiOptions& usi_options, NeuralNetwork evaluator) :
             //ハッシュ容量はMByte単位になっているので個数に変換する
-            Searcher(usi_options.USI_Hash * 1024 * 1024 / 10000,
-                     usi_options.Q_coeff_x1000 / 1000.0,
-                     usi_options.C_PUCT_x1000 / 1000.0,
-                     usi_options.P_coeff_x1000 / 1000.0),
-            usi_options_(usi_options),
+            Searcher(usi_options.USI_Hash * 1024 * 1024 / 10000, usi_options),
             next_print_time_(LLONG_MAX),
             evaluator_(std::move(evaluator)) {
         input_queues_.resize(usi_options.thread_num);
@@ -51,10 +46,6 @@ private:
 
     //mutex
     std::mutex lock_gpu_;
-
-    //複数のオプションをバラバラにまた設定するのではなくUsiオプションへのconst参照をまるごと持ってしまうのがわかりやすそう
-    //多少探索には関係ないものもあるけど、どうせUsiオプションで設定するものってほとんどが探索で用いるパラメータ等の設定だし
-    const UsiOptions& usi_options_;
 
     //次に表示する経過時間
     int64_t next_print_time_;
