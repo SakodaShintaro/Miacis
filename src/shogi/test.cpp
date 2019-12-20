@@ -205,3 +205,26 @@ void checkSegmentTree() {
         std::cout << std::setw(5) << i << " " << 1.0 * freq[i] / sample_num << std::endl;
     }
 }
+
+void checkDoAndUndo() {
+    std::mt19937_64 engine(std::random_device{}());
+    for (int64_t i = 0; i < 1000000000000; i++) {
+        Position pos;
+        float score;
+        while (!pos.isFinish(score)) {
+            std::vector<Move> moves = pos.generateAllMoves();
+            std::uniform_int_distribution<int64_t> dist(0, moves.size() - 1);
+            int64_t index = dist(engine);
+            pos.doMove(moves[index]);
+            std::uniform_real_distribution<float> dist2(0, 100);
+            float p = dist2(engine);
+            if (p < 0.5) {
+                pos.undo();
+            }
+        }
+        while (pos.turnNumber() > 1) {
+            pos.undo();
+        }
+        std::cout << i << std::endl;
+    }
+}

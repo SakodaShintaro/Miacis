@@ -7,5 +7,6 @@ void checkGenSpeed();
 void checkPredictSpeed();
 void checkVal();
 void checkSegmentTree();
+void checkDoAndUndo();
 
 #endif // !TEST_HPP
