@@ -214,11 +214,7 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     OneTurnElement element;
 
     //valueのセット
-#ifdef USE_CATEGORICAL
-    element.value_teacher = valueToIndex(best_value);
-#else
-    element.value_teacher = (FloatType)best_value;
-#endif
+    element.score = best_value;
 
     //policyのセット
     if (root.turnNumber() < usi_options_.random_turn) {
@@ -263,8 +259,6 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
         element.policy_teacher.push_back({ root_node.moves[best_index].toLabel(), 1.0f });
         element.move = root_node.moves[best_index];
     }
-
-    element.score = best_value;
 
     //priorityを計算する用にNNの出力をセットする
     element.nn_output_policy.resize(POLICY_DIM, 0.0);

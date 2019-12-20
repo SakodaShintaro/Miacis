@@ -13,7 +13,6 @@ struct OneTurnElement {
     PolicyType nn_output_policy;
     PolicyTeacherType policy_teacher;
     ValueType nn_output_value;
-    ValueTeacherType value_teacher;
 };
 
 struct Game {
