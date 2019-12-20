@@ -39,8 +39,8 @@ set(OTHELLO_SRCS othello/main.cpp
                  othello/position.cpp
                  othello/square.cpp
                  othello/piece.cpp
-                 othello/game.cpp
-        othello/interface.cpp)
+                 othello/interface.cpp
+                 othello/load_game.cpp)
 
 add_executable(Miacis_shogi_scalar      ${SRCS} ${SHOGI_SRCS})
 add_executable(Miacis_shogi_categorical ${SRCS} ${SHOGI_SRCS})

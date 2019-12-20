@@ -1,4 +1,23 @@
-#include "../game.hpp"
+#include "load_game.hpp"
+
+namespace sys = std::experimental::filesystem;
+
+std::vector<Game> loadGames(const std::string& path, int64_t num) {
+    const sys::path dir(path);
+    std::vector<Game> games;
+    //必要であればここに読み込み関数を実装する
+    return games;
+}
+
+void cleanGames() {
+    std::cout << "棋譜のあるフォルダへのパス : ";
+    std::string path;
+    std::cin >> path;
+
+    //必要に応じて実装する
+
+    std::cout << "finish cleanGames" << std::endl;
+}
 
 void Game::writeKifuFile(const std::string& dir_path) const {
     static std::atomic<int64_t> id;
