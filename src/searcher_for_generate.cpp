@@ -36,8 +36,13 @@ void SearcherForGenerate::select(Position& pos) {
     std::stack<int32_t> curr_actions;
 
     Index index = root_index_;
+
     //ルートでは合法手が一つはあるはず
-    assert(!hash_table_[index].moves.empty());
+    if (hash_table_[index].moves.empty()) {
+        pos.print();
+        std::cout << "ルートノードで合法手が0" << std::endl;
+        std::exit(1);
+    }
 
     //未展開の局面に至るまで遷移を繰り返す
     while(index != UctHashTable::NOT_EXPANDED) {
@@ -138,7 +143,10 @@ Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, s
 }
 
 void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
-    assert(indices.size() == actions.size() + 1);
+    if (indices.size() != (actions.size() + 1)) {
+        std::cout << "indices.size() != (actions.size() + 1)" << std::endl;
+        std::exit(1);
+    }
     int32_t leaf = indices.top();
     indices.pop();
     ValueType value = hash_table_[leaf].value;
@@ -168,15 +176,31 @@ void SearcherForGenerate::backup(std::stack<int32_t>& indices, std::stack<int32_
         hash_table_[index].value += alpha * (value - curr_v);
         value = LAMBDA * value + (1.0f - LAMBDA) * curr_v;
 
-        assert(!hash_table_[index].moves.empty());
+        if (hash_table_[index].moves.empty()) {
+            std::cout << "in backup(), hash_table_[index].moves.empty()" << std::endl;
+            std::exit(1);
+        }
     }
 }
 
 OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     const UctHashEntry& root_node = hash_table_[root_index_];
-    assert(!root_node.moves.empty());
-    assert(root_node.sum_N != 0);
+    if (root_node.moves.empty()) {
+        root.print();
+        std::cout << "in resultForCurrPos(), root_node.moves.empty()" << std::endl;
+        std::exit(1);
+    }
+    if (root_node.sum_N == 0) {
+        root.print();
+        std::cout << "in resultForCurrPos(), root_node.sum_N == 0" << std::endl;
+        std::exit(1);
+    }
+
     const std::vector<int32_t>& N = root_node.N;
+    if (root_node.sum_N != std::accumulate(N.begin(), N.end(), 0)) {
+        std::cout << "root_node.sum_N != std::accumulate(N.begin(), N.end(), 0)" << std::endl;
+        std::exit(1);
+    }
 
     //探索回数最大の手を選択する
     int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
@@ -197,8 +221,6 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
 #endif
 
     //policyのセット
-    assert(root_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
-
     if (root.turnNumber() < usi_options_.random_turn) {
         //分布に従ってランダムに行動選択
         //探索回数を正規化した分布
@@ -206,9 +228,11 @@ OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
         std::vector<FloatType> N_dist(root_node.moves.size());
         //行動価値のsoftmaxを取った分布
         std::vector<FloatType> Q_dist(root_node.moves.size());
-        assert(root_node.sum_N == std::accumulate(N.begin(), N.end(), 0));
         for (uint64_t i = 0; i < root_node.moves.size(); i++) {
-            assert(0 <= N[i] && N[i] <= root_node.sum_N);
+            if (N[i] < 0 || N[i] > root_node.sum_N) {
+                std::cout << "N[i] < 0 || N[i] > root_node.sum_N" << std::endl;
+                std::exit(1);
+            }
 
             //探索回数を正規化
             N_dist[i] = (FloatType)N[i] / root_node.sum_N;
