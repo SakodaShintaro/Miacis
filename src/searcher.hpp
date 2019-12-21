@@ -25,7 +25,7 @@ class Searcher {
 public:
     static bool stop_signal;
     explicit Searcher(const SearchOptions& usi_options, UctHashTable& hash_table, GPUQueue& gpu_queue)
-            : hash_table_(hash_table), usi_options_(usi_options), root_index_(UctHashTable::NOT_EXPANDED),
+            : hash_table_(hash_table), usi_options_(usi_options),
               time_limit_(LLONG_MAX), node_limit_(LLONG_MAX), gpu_queue_(gpu_queue) {}
 
     //時間制限含め探索を続けるかどうかを判定する関数
@@ -64,9 +64,6 @@ private:
 
     //時間
     std::chrono::steady_clock::time_point start_;
-
-    //ルート局面のインデックス
-    Index root_index_;
 
     //時間制限(msec),ノード数制限
     int64_t time_limit_;

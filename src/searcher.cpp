@@ -34,7 +34,7 @@ bool Searcher::shouldStop() {
 //    int32_t remainder = node_limit_ - (hash_table_[root_index_].sum_N + hash_table_[root_index_].virtual_sum_N);
 //    return max1 - max2 >= remainder;
 
-    int32_t search_num = hash_table_[root_index_].sum_N + hash_table_[root_index_].virtual_sum_N;
+    int32_t search_num = hash_table_[hash_table_.root_index].sum_N + hash_table_[hash_table_.root_index].virtual_sum_N;
     return search_num >= node_limit_;
 }
 
@@ -120,7 +120,7 @@ bool Searcher::mateSearchForEvader(Position& pos, int32_t depth) {
 }
 
 void Searcher::mateSearch(Position pos, int32_t depth_limit) {
-    auto& curr_node = hash_table_[root_index_];
+    auto& curr_node = hash_table_[hash_table_.root_index];
     for (int32_t depth = 1; !shouldStop() && depth <= depth_limit; depth += 2) {
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
             pos.doMove(curr_node.moves[i]);
@@ -155,7 +155,7 @@ void Searcher::select(Position& pos) {
     std::stack<Index> curr_indices;
     std::stack<int32_t> curr_actions;
 
-    auto index = root_index_;
+    Index index = hash_table_.root_index;
     //ルートでは合法手が一つはあるはず
     assert(!hash_table_[index].moves.empty());
 
@@ -169,7 +169,7 @@ void Searcher::select(Position& pos) {
         }
 
         float score;
-        if (index != root_index_ && pos.isFinish(score)) {
+        if (index != hash_table_.root_index && pos.isFinish(score)) {
             //繰り返しが発生している場合も抜ける
             break;
         }
@@ -271,7 +271,7 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
     //取得したノードをロック
     hash_table_[index].mutex.lock();
 
-    auto& curr_node = hash_table_[index];
+    UctHashEntry& curr_node = hash_table_[index];
 
     // 候補手の展開
     curr_node.moves = pos.generateAllMoves();
@@ -327,7 +327,7 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
 }
 
 void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
-    assert(indices.size() == actions.size() + 1);
+    assert(actions.empty() || indices.size() == actions.size() + 1);
 
     auto leaf = indices.top();
     indices.pop();
@@ -394,4 +394,6 @@ void Searcher::backupAll() {
     for (uint64_t i = 0; i < backup_queue_.indices.size(); i++) {
         backup(backup_queue_.indices[i], backup_queue_.actions[i]);
     }
+    backup_queue_.indices.clear();
+    backup_queue_.actions.clear();
 }

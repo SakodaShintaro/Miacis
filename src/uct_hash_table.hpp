@@ -40,7 +40,8 @@ struct UctHashEntry {
 
 class UctHashTable {
 public:
-    explicit UctHashTable(int64_t hash_size) : used_num_(0), age_(1), table_(1ull << (MSB64(hash_size) + 1)) {}
+    explicit UctHashTable(int64_t hash_size) : root_index(UctHashTable::NOT_EXPANDED), used_num_(0), age_(1),
+                                               table_(1ull << (MSB64(hash_size) + 1)) {}
 
     UctHashEntry& operator[](Index i) {
         return table_[i];
@@ -86,6 +87,8 @@ public:
     static constexpr Index NOT_EXPANDED = -1;
 
     std::mutex mutex;
+
+    Index root_index;
 
 private:
     Index hashToIndex(int64_t hash) {

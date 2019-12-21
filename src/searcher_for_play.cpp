@@ -12,9 +12,11 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& usi_options)
     }
 
     //GPUに対するmutexを準備
-    gpu_mutexes_ = std::vector<std::mutex>();
+    gpu_mutexes_ = std::vector<std::mutex>(usi_options.gpu_num);
 
     //gpu_queueとsearchersを準備
+    gpu_queues_.resize(usi_options.gpu_num);
+    searchers_.resize(usi_options.gpu_num);
     for (int64_t i = 0; i < usi_options.gpu_num; i++) {
         for (int64_t j = 0; j < usi_options.thread_num; j++) {
             gpu_queues_[i].emplace_back();
@@ -49,8 +51,8 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     //ルートノードの展開:[0][0]番目のsearcherを使う。[0][0]番目のキューに溜まる
     std::stack<Index> dummy;
     std::stack<int32_t> dummy2;
-    root_index_ = searchers_[0][0].expand(root, dummy, dummy2);
-    UctHashEntry& curr_node = hash_table_[root_index_];
+    hash_table_.root_index = searchers_[0][0].expand(root, dummy, dummy2);
+    UctHashEntry& curr_node = hash_table_[hash_table_.root_index];
 
     //合法手が0だったら投了
     if (curr_node.moves.empty()) {
@@ -140,7 +142,7 @@ bool SearcherForPlay::shouldStop() {
 //    int32_t remainder = node_limit_ - (hash_table_[root_index_].sum_N + hash_table_[root_index_].virtual_sum_N);
 //    return max1 - max2 >= remainder;
 
-    int32_t search_num = hash_table_[root_index_].sum_N + hash_table_[root_index_].virtual_sum_N;
+    int32_t search_num = hash_table_[hash_table_.root_index].sum_N + hash_table_[hash_table_.root_index].virtual_sum_N;
     return search_num >= node_limit_;
 }
 
@@ -168,14 +170,14 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
         gpu_queue.hash_tables.clear();
         gpu_queue.indices.clear();
 
-        hash_table_[root_index_].mutex.lock();
+        hash_table_[hash_table_.root_index].mutex.lock();
         auto now_time = std::chrono::steady_clock::now();
         auto elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_).count();
         if (elapsed_msec >= next_print_time_) {
             next_print_time_ += next_print_time_;
             printUSIInfo();
         }
-        hash_table_[root_index_].mutex.unlock();
+        hash_table_[hash_table_.root_index].mutex.unlock();
 
         //評価要求を貯める
         for (int64_t i = 0; i < usi_options_.search_batch_size && !shouldStop(); i++) {
@@ -214,7 +216,7 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
 
 std::vector<Move> SearcherForPlay::getPV() const {
     std::vector<Move> pv;
-    for (Index index = root_index_; index != UctHashTable::NOT_EXPANDED && !hash_table_[index].moves.empty();) {
+    for (Index index = hash_table_.root_index; index != UctHashTable::NOT_EXPANDED && !hash_table_[index].moves.empty();) {
         const auto& N = hash_table_[index].N;
         Index next_index = (int32_t) (std::max_element(N.begin(), N.end()) - N.begin());
         pv.push_back(hash_table_[index].moves[next_index]);
@@ -225,7 +227,7 @@ std::vector<Move> SearcherForPlay::getPV() const {
 }
 
 void SearcherForPlay::printUSIInfo() const {
-    const auto& curr_node = hash_table_[root_index_];
+    const auto& curr_node = hash_table_[hash_table_.root_index];
 
     int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
 

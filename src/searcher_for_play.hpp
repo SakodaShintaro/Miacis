@@ -48,9 +48,6 @@ private:
     std::vector<std::vector<GPUQueue>> gpu_queues_;
     std::vector<std::vector<Searcher>> searchers_;
 
-    //ルート局面のインデックス
-    Index root_index_;
-
     //時間
     std::chrono::steady_clock::time_point start_;
 
