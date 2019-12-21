@@ -41,7 +41,7 @@ bool Searcher::shouldStop() {
 int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
 #ifdef USE_CATEGORICAL
     int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
-    FloatType best_value = expOfValueDist(QfromNextValue(node, best_index));
+    FloatType best_value = expOfValueDist(hash_table_.QfromNextValue(node, best_index));
 #endif
 
     int32_t max_index = -1;
@@ -53,7 +53,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
 
 #ifdef USE_CATEGORICAL
         FloatType P = 0.0;
-        ValueType Q_dist = QfromNextValue(node, i);
+        ValueType Q_dist = hash_table_.QfromNextValue(node, i);
         FloatType Q = expOfValueDist(Q_dist);
         for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
             P += Q_dist[j];
@@ -62,7 +62,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
                       + usi_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
                       + usi_options_.P_coeff_x1000 / 1000.0 * P;
 #else
-        FloatType Q = (node.N[i] == 0 ? MIN_SCORE : QfromNextValue(node, i));
+        FloatType Q = (node.N[i] == 0 ? MIN_SCORE : hash_table_.QfromNextValue(node, i));
         FloatType ucb = usi_options_.Q_coeff_x1000 / 1000.0 * Q
                       + usi_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
 #endif
@@ -150,30 +150,6 @@ void Searcher::mateSearch(Position pos, int32_t depth_limit) {
     }
 }
 #endif
-
-ValueType Searcher::QfromNextValue(const UctHashEntry& node, int32_t i) const {
-#ifdef USE_CATEGORICAL
-    if (node.child_indices[i] == UctHashTable::NOT_EXPANDED) {
-        return onehotDist(MIN_SCORE);
-    }
-    auto v = hash_table_[node.child_indices[i]].value;
-    std::reverse(v.begin(), v.end());
-    return v;
-#else
-    if (node.child_indices[i] == UctHashTable::NOT_EXPANDED) {
-        return MIN_SCORE;
-    }
-    return MAX_SCORE + MIN_SCORE - hash_table_[node.child_indices[i]].value;
-#endif
-}
-
-FloatType Searcher::expQfromNext(const UctHashEntry& node, int32_t i) const {
-#ifdef USE_CATEGORICAL
-    return expOfValueDist(QfromNextValue(node, i));
-#else
-    return QfromNextValue(node, i);
-#endif
-}
 
 void Searcher::select(Position& pos) {
     std::stack<Index> curr_indices;
@@ -340,7 +316,7 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
         //GPUへの計算要求を追加
         std::vector<FloatType> this_feature = pos.makeFeature();
         gpu_queue_.inputs.insert(gpu_queue_.inputs.end(), this_feature.begin(), this_feature.end());
-        gpu_queue_.hash_tables.push_back(hash_table_);
+        gpu_queue_.hash_tables.emplace_back(hash_table_);
         gpu_queue_.indices.push_back(index);
         //バックアップ要求も追加
         backup_queue_.indices.push_back(indices);

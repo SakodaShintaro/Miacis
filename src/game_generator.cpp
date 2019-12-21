@@ -22,10 +22,11 @@ void GameGenerator::genSlave() {
     gpu_queue_.hash_tables.reserve(WORKER_NUM * usi_options_.search_batch_size);
     gpu_queue_.indices.reserve(WORKER_NUM * usi_options_.search_batch_size);
 
-    std::vector<GenerateWorker> workers(WORKER_NUM);
+    std::vector<std::unique_ptr<GenerateWorker>> workers(WORKER_NUM);
 
     for (int32_t i = 0; i < WORKER_NUM; i++) {
-        workers[i].prepareForCurrPos();
+        workers[i] = std::make_unique<GenerateWorker>(usi_options_, gpu_queue_, Q_dist_lambda_, replay_buffer_);
+        workers[i]->prepareForCurrPos();
     }
 
     //GPUで評価する関数
@@ -49,8 +50,18 @@ void GameGenerator::genSlave() {
             }
             curr_node.nn_policy = softmax(legal_moves_policy);
 
+            //policyにディリクレノイズを付与
+            constexpr FloatType epsilon = 0.25;
+            std::vector<FloatType> dirichlet = dirichletDistribution(curr_node.moves.size(), 0.15);
+            for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
+                curr_node.nn_policy[j] = (FloatType) ((1.0 - epsilon) * curr_node.nn_policy[j] + epsilon * dirichlet[j]);
+            }
+
             //valueを設定
             curr_node.value = values[i];
+
+            //これを設定しなきゃいけないんだけど、どうするかな
+            //root_raw_value_ = curr_node.value;
 
             //これいらない気がするけどハッシュテーブル自体の構造は変えたくないので念の為
             curr_node.evaled = true;
@@ -67,7 +78,7 @@ void GameGenerator::genSlave() {
         gpu_queue_.indices.clear();
 
         for (int32_t i = 0; i < WORKER_NUM; i++) {
-            workers[i].select();
+            workers[i]->select();
         }
 
         //GPUで評価
@@ -78,10 +89,35 @@ void GameGenerator::genSlave() {
         }
 
         for (int32_t i = 0; i < WORKER_NUM; i++) {
-            workers[i].backup();
+            workers[i]->backup();
         }
     }
 }
+
+std::vector<FloatType> GameGenerator::dirichletDistribution(uint64_t k, FloatType alpha) {
+    static std::default_random_engine engine(std::random_device{}());
+    std::gamma_distribution<FloatType> gamma(alpha, 1.0);
+    std::vector<FloatType> dirichlet(k);
+
+    //kが小さく、不運が重なるとsum = 0となり0除算が発生してしまうことがあるので小さい値で初期化
+    FloatType sum = 1e-6;
+    for (uint64_t i = 0; i < k; i++) {
+        sum += (dirichlet[i] = gamma(engine));
+    }
+    for (uint64_t i = 0; i < k; i++) {
+        dirichlet[i] /= sum;
+    }
+    return dirichlet;
+}
+
+GenerateWorker::GenerateWorker(const UsiOptions& usi_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda,
+                               ReplayBuffer& rb)
+: usi_options_(usi_options), gpu_queue_(gpu_queue), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb),
+  hash_table_(usi_options.USI_Hash),
+  searcher_(usi_options, hash_table_, gpu_queue),
+  root_index_(-1),
+  root_raw_value_({})
+{}
 
 void GenerateWorker::prepareForCurrPos() {
     //古いハッシュを削除
@@ -118,7 +154,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
     //選択した着手の勝率の算出
     //詰みのときは未展開であることに注意する
     FloatType best_value = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
-                            expQfromNext(root_node, best_index));
+                            hash_table_.expQfromNext(root_node, best_index));
 
     //教師データを作成
     OneTurnElement element;
@@ -146,7 +182,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
             //選択回数が0ならMIN_SCORE
             //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
             //その他は普通に計算
-            Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : expQfromNext(root_node, i));
+            Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : hash_table_.expQfromNext(root_node, i));
         }
         Q_dist = softmax(Q_dist, usi_options_.temperature_x1000 / 1000.0f);
 
@@ -212,7 +248,11 @@ void GenerateWorker::select() {
         prepareForCurrPos();
     } else {
         //引き続き同じ局面について探索
-        //1回分探索してGPUキューへ評価要求を貯める
+        //探索してGPUキューへ評価要求を貯める
+        //探索する前にニューラルネットワークの出力を保存しておく
+        if (hash_table_[root_index_].sum_N == 0) {
+            root_raw_value_ = hash_table_[root_index_].value;
+        }
         for (int64_t j = 0; j < usi_options_.search_batch_size; j++) {
             searcher_.select(position_);
         }

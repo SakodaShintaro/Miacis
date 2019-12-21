@@ -28,6 +28,9 @@ public:
             : hash_table_(hash_table), usi_options_(usi_options), root_index_(UctHashTable::NOT_EXPANDED),
               time_limit_(LLONG_MAX), node_limit_(LLONG_MAX), gpu_queue_(gpu_queue) {}
 
+    //時間制限含め探索を続けるかどうかを判定する関数
+    bool shouldStop();
+
     //再帰しない探索関数
     void select(Position& pos);
 
@@ -38,19 +41,8 @@ public:
     void backupAll();
 
 private:
-    //時間制限含め探索を続けるかどうかを判定する関数
-    bool shouldStop();
-
     //今のノードから遷移するべきノードを選択する関数
     int32_t selectMaxUcbChild(const UctHashEntry& node);
-
-    //node局面におけるi番目の指し手の行動価値を返す関数
-    //Scalarのときは実数を一つ、Categoricalのときは分布を返す
-    ValueType QfromNextValue(const UctHashEntry& node, int32_t i) const;
-
-    //node局面におけるi番目の指し手の行動価値(期待値)を返す関数
-    //Scalarのときは実数をそのまま返し、Categoricalのときはその期待値を返す
-    FloatType expQfromNext(const UctHashEntry& node, int32_t i) const;
 
 #ifdef SHOGI
     //詰み探索

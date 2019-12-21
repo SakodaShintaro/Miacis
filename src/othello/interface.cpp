@@ -93,7 +93,7 @@ void Interface::think() {
     options_.print_policy_num = 800;
     options_.search_batch_size = 1;
     options_.thread_num = 1;
-    searcher_ = std::make_unique<SearcherForPlay>(options_, nn);
+    searcher_ = std::make_unique<SearcherForPlay>(options_);
 
     searcher_->think(root_, 1000000);
 }
@@ -109,7 +109,7 @@ void Interface::test() {
     options_.thread_num = 1;
     options_.print_interval = INT_MAX;
     options_.print_policy_num = 800;
-    searcher_ = std::make_unique<SearcherForPlay>(options_, nn);
+    searcher_ = std::make_unique<SearcherForPlay>(options_);
 
     while (true) {
         float score;
@@ -140,7 +140,7 @@ void Interface::battle() {
     options_.thread_num = 1;
     options_.print_interval = INT_MAX;
     options_.print_policy_num = 800;
-    searcher_ = std::make_unique<SearcherForPlay>(options_, nn);
+    searcher_ = std::make_unique<SearcherForPlay>(options_);
 
     while (true) {
         float score;
@@ -175,7 +175,7 @@ void Interface::init() {
     //対局の準備
     torch::load(nn, options_.model_name);
     nn->setGPU(0);
-    searcher_ = std::make_unique<SearcherForPlay>(options_, nn);
+    searcher_ = std::make_unique<SearcherForPlay>(options_);
 }
 
 void Interface::play() {

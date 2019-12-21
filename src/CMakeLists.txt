@@ -19,7 +19,6 @@ set(SRCS uct_hash_table.cpp
          alphazero_learn.cpp
          searcher.cpp
          searcher_for_play.cpp
-         searcher_for_generate.cpp
          hyperparameter_manager.cpp
          segment_tree.cpp)
 

@@ -62,6 +62,14 @@ public:
     //現在の局面,及びそこから到達できる局面以外を削除する関数
     void deleteOldHash(Position& root, bool leave_root);
 
+    //node局面におけるi番目の指し手の行動価値を返す関数
+    //Scalarのときは実数を一つ、Categoricalのときは分布を返す
+    ValueType QfromNextValue(const UctHashEntry& node, int32_t i) const;
+
+    //node局面におけるi番目の指し手の行動価値(期待値)を返す関数
+    //Scalarのときは実数をそのまま返し、Categoricalのときはその期待値を返す
+    FloatType expQfromNext(const UctHashEntry& node, int32_t i) const;
+
     double getUsageRate() const {
         return (double)used_num_ / table_.size();
     }

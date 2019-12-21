@@ -20,8 +20,11 @@ private:
     //VIRTUAL_LOSSの大きさ
     static constexpr int32_t VIRTUAL_LOSS = 1;
 
+    //時間制限含め探索を続けるかどうかを判定する関数
+    bool shouldStop();
+
     //GPUに付随するスレッド
-    void gpuThreadFunc(Position root, int64_t gpu_id);
+    void gpuThreadFunc(const Position& root, int64_t gpu_id);
 
     //各GPUの下で動くスレッド
     void workerThreadFunc(Position root, int64_t gpu_id, int64_t thread_id);

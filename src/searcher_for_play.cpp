@@ -11,7 +11,6 @@ SearcherForPlay::SearcherForPlay(const UsiOptions& usi_options)
 
     //GPUに対するmutexを準備
     gpu_mutexes_ = std::vector<std::mutex>();
-    gpu_mutexes_.resize(usi_options.gpu_num);
 
     //gpu_queueとsearchersを準備
     for (int64_t i = 0; i < usi_options.gpu_num; i++) {
@@ -94,7 +93,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
             //価値のソフトマックス分布に従って行動選択
             std::vector<FloatType> Q(curr_node.moves.size());
             for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-                Q[i] = expQfromNext(curr_node, i);
+                Q[i] = hash_table_.expQfromNext(curr_node, i);
             }
             distribution = softmax(Q, usi_options_.temperature_x1000 / 1000.0f);
         }
@@ -107,7 +106,43 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     }
 }
 
-void SearcherForPlay::gpuThreadFunc(Position root, int64_t gpu_id) {
+bool SearcherForPlay::shouldStop() {
+    //シグナルのチェック
+    if (Searcher::stop_signal) {
+        return true;
+    }
+
+    //時間のチェック
+    auto now_time = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_);
+    if (elapsed.count() >= time_limit_) {
+        return true;
+    }
+
+    //ハッシュテーブルの容量チェック
+    if (!hash_table_.hasEnoughSize()) {
+        return true;
+    }
+
+    //探索回数のチェック
+//    int32_t max1 = 0, max2 = 0;
+//    for (int32_t i = 0; i < hash_table_[root_index_].moves.size(); i++) {
+//        int32_t num = hash_table_[root_index_].N[i] + hash_table_[root_index_].virtual_N[i];
+//        if (num > max1) {
+//            max2 = max1;
+//            max1 = num;
+//        } else if (num > max2) {
+//            max2 = num;
+//        }
+//    }
+//    int32_t remainder = node_limit_ - (hash_table_[root_index_].sum_N + hash_table_[root_index_].virtual_sum_N);
+//    return max1 - max2 >= remainder;
+
+    int32_t search_num = hash_table_[root_index_].sum_N + hash_table_[root_index_].virtual_sum_N;
+    return search_num >= node_limit_;
+}
+
+void SearcherForPlay::gpuThreadFunc(const Position& root, int64_t gpu_id) {
     //workerを立ち上げ
     std::vector<std::thread> threads(usi_options_.thread_num);
     for (int64_t i = 0; i < usi_options_.thread_num; i++) {
@@ -193,7 +228,7 @@ void SearcherForPlay::printUSIInfo() const {
     int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
 
     //選択した着手の勝率の算出
-    FloatType best_value = expQfromNext(curr_node, best_index);
+    FloatType best_value = hash_table_.expQfromNext(curr_node, best_index);
 
 #ifdef USE_CATEGORICAL
     //分布の表示
@@ -201,7 +236,7 @@ void SearcherForPlay::printUSIInfo() const {
     for (int64_t i = 0; i < BIN_SIZE / gather_num; i++) {
         double p = 0.0;
         for (int64_t j = 0; j < gather_num; j++) {
-            p += QfromNextValue(curr_node, best_index)[i * gather_num + j];
+            p += hash_table_.QfromNextValue(curr_node, best_index)[i * gather_num + j];
         }
         printf("info string [%+6.2f:%06.2f%%]:", MIN_SCORE + VALUE_WIDTH * (gather_num * i + 1.5), p * 100);
         for (int64_t j = 0; j < p * 50; j++) {
@@ -231,7 +266,7 @@ void SearcherForPlay::printUSIInfo() const {
         //まず各指し手の価値を取得
         std::vector<FloatType> Q(curr_node.moves.size());
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-            Q[i] = expQfromNext(curr_node, i);
+            Q[i] = hash_table_.expQfromNext(curr_node, i);
         }
         std::vector<FloatType> softmaxed_Q = softmax(Q, usi_options_.temperature_x1000 / 1000.f);
 
@@ -261,7 +296,7 @@ void SearcherForPlay::printUSIInfo() const {
 #ifdef USE_CATEGORICAL
             moves_with_info[i].prob_over_best_Q = 0;
             for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-                moves_with_info[i].prob_over_best_Q += QfromNextValue(curr_node, i)[j];
+                moves_with_info[i].prob_over_best_Q += hash_table_.QfromNextValue(curr_node, i)[j];
             }
 #endif
         }

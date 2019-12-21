@@ -102,7 +102,7 @@ void USI::setoption() {
 }
 
 void USI::usinewgame() {
-    searcher_ = std::make_unique<SearcherForPlay>(usi_options_, nn);
+    searcher_ = std::make_unique<SearcherForPlay>(usi_options_);
 }
 
 void USI::position() {

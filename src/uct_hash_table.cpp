@@ -76,3 +76,27 @@ void UctHashTable::deleteOldHash(Position& root, bool leave_root) {
         }
     }
 }
+
+ValueType UctHashTable::QfromNextValue(const UctHashEntry& node, int32_t i) const {
+#ifdef USE_CATEGORICAL
+    if (node.child_indices[i] == UctHashTable::NOT_EXPANDED) {
+        return onehotDist(MIN_SCORE);
+    }
+    ValueType v = table_[node.child_indices[i]].value;
+    std::reverse(v.begin(), v.end());
+    return v;
+#else
+    if (node.child_indices[i] == UctHashTable::NOT_EXPANDED) {
+        return MIN_SCORE;
+    }
+    return MAX_SCORE + MIN_SCORE - table_[node.child_indices[i]].value;
+#endif
+}
+
+FloatType UctHashTable::expQfromNext(const UctHashEntry& node, int32_t i) const {
+#ifdef USE_CATEGORICAL
+    return expOfValueDist(QfromNextValue(node, i));
+#else
+    return QfromNextValue(node, i);
+#endif
+}

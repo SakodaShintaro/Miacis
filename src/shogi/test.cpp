@@ -9,7 +9,7 @@ void test() {
     usi_options.thread_num = 1;
     usi_options.search_batch_size = 1;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    SearcherForPlay searcher(usi_options, nn);
+    SearcherForPlay searcher(usi_options);
 
     Position pos;
     Game game;
@@ -69,7 +69,7 @@ void checkGenSpeed() {
             Searcher::stop_signal = false;
             auto start = std::chrono::steady_clock::now();
             GameGenerator generator(usi_options, Q_dist_lambda, buffer, nn);
-            std::thread t(&GameGenerator::genGames, &generator, (int64_t) 1e15);
+            std::thread t(&GameGenerator::genGames, &generator);
             std::vector<double> gen_speeds;
             while (true) {
                 std::this_thread::sleep_for(std::chrono::seconds(60));
@@ -112,7 +112,7 @@ void checkSearchSpeed() {
     for (usi_options.search_batch_size = 64; usi_options.search_batch_size <= 512; usi_options.search_batch_size *= 2) {
         std::cout << "search_batch_size = " << usi_options.search_batch_size << std::endl;
         for (usi_options.thread_num = 1; usi_options.thread_num <= 3; usi_options.thread_num++) {
-            SearcherForPlay searcher(usi_options, nn);
+            SearcherForPlay searcher(usi_options);
             searcher.think(pos, time_limit);
         }
     }
