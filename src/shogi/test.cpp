@@ -4,7 +4,7 @@
 #include"../learn.hpp"
 
 void test() {
-    UsiOptions usi_options;
+    SearchOptions usi_options;
     usi_options.search_limit = 800;
     usi_options.thread_num = 1;
     usi_options.search_batch_size = 1;
@@ -52,7 +52,7 @@ void checkGenSpeed() {
 
     constexpr int64_t buffer_size = 1048576;
     constexpr int64_t N = 4;
-    UsiOptions usi_options;
+    SearchOptions usi_options;
     usi_options.search_limit = 800;
     usi_options.draw_turn = 512;
     usi_options.random_turn = 512;
@@ -105,7 +105,7 @@ void checkGenSpeed() {
 }
 
 void checkSearchSpeed() {
-    UsiOptions usi_options;
+    SearchOptions usi_options;
     usi_options.USI_Hash = 2048;
     constexpr int64_t time_limit = 10000;
     Position pos;

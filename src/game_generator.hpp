@@ -3,7 +3,7 @@
 
 #include "replay_buffer.hpp"
 #include "game.hpp"
-#include "usi_options.hpp"
+#include "search_options.hpp"
 #include "searcher.hpp"
 #include <atomic>
 #include <mutex>
@@ -14,7 +14,7 @@
 //一つのGPUに対して割り当てられる
 class GameGenerator {
 public:
-    GameGenerator(const UsiOptions& usi_options, FloatType Q_dist_lambda, ReplayBuffer& rb, NeuralNetwork evaluator)
+    GameGenerator(const SearchOptions& usi_options, FloatType Q_dist_lambda, ReplayBuffer& rb, NeuralNetwork evaluator)
         : stop(false), usi_options_(usi_options), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb), neural_network_(std::move(evaluator)) {
         neural_network_->eval();
     };
@@ -35,7 +35,7 @@ private:
     void genSlave();
 
     //UsiOptionを持っておく
-    const UsiOptions& usi_options_;
+    const SearchOptions& usi_options_;
 
     //探索結果の分布として価値のsoftmax分布を混ぜる割合([0,1])
     //0で普通のAlphaZero
@@ -53,7 +53,7 @@ private:
 //一つのGPUに対して複数生成されるWorker
 class GenerateWorker {
 public:
-    GenerateWorker(const UsiOptions& usi_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda, ReplayBuffer& rb);
+    GenerateWorker(const SearchOptions& usi_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda, ReplayBuffer& rb);
     void prepareForCurrPos();
     void select();
     void backup();
@@ -61,7 +61,7 @@ public:
 
 private:
     //UsiOptionを持っておく
-    const UsiOptions& usi_options_;
+    const SearchOptions& usi_options_;
 
     Game game_;
     Position position_;

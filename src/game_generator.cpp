@@ -110,7 +110,7 @@ std::vector<FloatType> GameGenerator::dirichletDistribution(uint64_t k, FloatTyp
     return dirichlet;
 }
 
-GenerateWorker::GenerateWorker(const UsiOptions& usi_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda,
+GenerateWorker::GenerateWorker(const SearchOptions& usi_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda,
                                ReplayBuffer& rb)
 : usi_options_(usi_options), gpu_queue_(gpu_queue), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb),
   hash_table_(usi_options.USI_Hash),

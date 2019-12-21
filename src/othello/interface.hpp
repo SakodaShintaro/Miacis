@@ -3,7 +3,7 @@
 
 #include"position.hpp"
 #include"../searcher_for_play.hpp"
-#include"../usi_options.hpp"
+#include"../search_options.hpp"
 #include<thread>
 #include<functional>
 
@@ -38,7 +38,7 @@ private:
     Position root_;
     std::unique_ptr<SearcherForPlay> searcher_;
     std::thread thread_;
-    UsiOptions options_;
+    SearchOptions options_;
 };
 
 #endif

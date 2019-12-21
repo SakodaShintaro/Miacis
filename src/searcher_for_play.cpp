@@ -1,7 +1,7 @@
 ﻿#include "searcher_for_play.hpp"
 #include <thread>
 
-SearcherForPlay::SearcherForPlay(const UsiOptions& usi_options)
+SearcherForPlay::SearcherForPlay(const SearchOptions& usi_options)
 : usi_options_(usi_options), hash_table_(usi_options.USI_Hash * 1024 * 1024 / 1000) {
     //GPUを準備
     for (int64_t i = 0; i < usi_options.gpu_num; i++) {

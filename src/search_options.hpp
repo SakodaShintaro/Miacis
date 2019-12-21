@@ -1,5 +1,5 @@
-#ifndef MIACIS_USI_OPTIONS_HPP
-#define MIACIS_USI_OPTIONS_HPP
+#ifndef MIACIS_SEARCH_OPTIONS_HPP
+#define MIACIS_SEARCH_OPTIONS_HPP
 
 #include "neural_network.hpp"
 #include <cstdint>
@@ -22,9 +22,9 @@ struct FilenameOption {
     std::string& value;
 };
 
-struct UsiOptions {
+struct SearchOptions {
 public:
-    UsiOptions() {
+    SearchOptions() {
         check_options.emplace("USI_Ponder",       CheckOption(USI_Ponder = false));
         check_options.emplace("leave_root",       CheckOption(leave_root = true));
         spin_options.emplace("USI_Hash",          SpinOption(USI_Hash          =       256, 0, INT32_MAX));
@@ -68,4 +68,4 @@ public:
     std::map<std::string, FilenameOption> filename_options;
 };
 
-#endif //MIACIS_USI_OPTIONS_HPP
+#endif //MIACIS_SEARCH_OPTIONS_HPP

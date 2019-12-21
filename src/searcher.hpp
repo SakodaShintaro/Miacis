@@ -2,7 +2,7 @@
 #define MIACIS_SEARCHER_HPP
 
 #include"uct_hash_table.hpp"
-#include"usi_options.hpp"
+#include"search_options.hpp"
 #include<chrono>
 #include<stack>
 
@@ -24,7 +24,7 @@ struct BackupQueue {
 class Searcher {
 public:
     static bool stop_signal;
-    explicit Searcher(const UsiOptions& usi_options, UctHashTable& hash_table, GPUQueue& gpu_queue)
+    explicit Searcher(const SearchOptions& usi_options, UctHashTable& hash_table, GPUQueue& gpu_queue)
             : hash_table_(hash_table), usi_options_(usi_options), root_index_(UctHashTable::NOT_EXPANDED),
               time_limit_(LLONG_MAX), node_limit_(LLONG_MAX), gpu_queue_(gpu_queue) {}
 
@@ -60,7 +60,7 @@ private:
     //置換表
     UctHashTable& hash_table_;
 
-    const UsiOptions& usi_options_;
+    const SearchOptions& usi_options_;
 
     //時間
     std::chrono::steady_clock::time_point start_;

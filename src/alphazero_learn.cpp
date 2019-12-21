@@ -35,7 +35,7 @@ void alphaZero() {
     settings.load("alphazero_settings.txt");
 
     //値の取得
-    UsiOptions usi_options;
+    SearchOptions usi_options;
     float learn_rate                 = settings.get<float>("learn_rate");
     float momentum                   = settings.get<float>("momentum");
     float lambda                     = settings.get<float>("lambda");

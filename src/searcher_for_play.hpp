@@ -8,7 +8,7 @@
 
 class SearcherForPlay {
 public:
-    SearcherForPlay(const UsiOptions& usi_options);
+    SearcherForPlay(const SearchOptions& usi_options);
 
     //探索を行って一番良い指し手を返す関数
     Move think(Position& root, int64_t time_limit);
@@ -35,7 +35,7 @@ private:
     //情報をUSIプロトコルに従って標準出力に出す関数
     void printUSIInfo() const;
 
-    const UsiOptions& usi_options_;
+    const SearchOptions& usi_options_;
 
     //置換表は1個
     UctHashTable hash_table_;
