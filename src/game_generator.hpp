@@ -63,6 +63,9 @@ public:
     OneTurnElement resultForCurrPos();
 
 private:
+    //探索回数などを見て探索を続けるかどうかを判定する関数
+    bool shouldStop();
+
     //UsiOptionを持っておく
     const SearchOptions& usi_options_;
 

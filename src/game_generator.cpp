@@ -214,7 +214,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
 }
 
 void GenerateWorker::select() {
-    if (hash_table_[hash_table_.root_index].sum_N >= usi_options_.search_limit) {
+    if (shouldStop()) {
         //探索結果を取得して次の局面へ遷移
         OneTurnElement result = resultForCurrPos();
         position_.doMove(result.move);
@@ -245,7 +245,7 @@ void GenerateWorker::select() {
         if (hash_table_[hash_table_.root_index].sum_N == 0) {
             root_raw_value_ = hash_table_[hash_table_.root_index].value;
         }
-        for (int64_t j = 0; j < usi_options_.search_batch_size; j++) {
+        for (int64_t j = 0; j < usi_options_.search_batch_size && !shouldStop(); j++) {
             searcher_.select(position_);
         }
     }
@@ -253,4 +253,30 @@ void GenerateWorker::select() {
 
 void GenerateWorker::backup() {
     searcher_.backupAll();
+}
+
+bool GenerateWorker::shouldStop() {
+    //ハッシュテーブルの容量チェック
+    if (!hash_table_.hasEnoughSize()) {
+        return true;
+    }
+
+    const UctHashEntry& root = hash_table_[hash_table_.root_index];
+
+    //探索回数のチェック
+    int32_t max1 = 0, max2 = 0;
+    for (uint64_t i = 0; i < root.moves.size(); i++) {
+        int32_t num = root.N[i] + root.virtual_N[i];
+        if (num > max1) {
+            max2 = max1;
+            max1 = num;
+        } else if (num > max2) {
+            max2 = num;
+        }
+    }
+    int32_t remainder = usi_options_.search_limit - (root.sum_N + root.virtual_sum_N);
+    return max1 - max2 >= remainder;
+
+    int32_t search_num = hash_table_[hash_table_.root_index].sum_N + hash_table_[hash_table_.root_index].virtual_sum_N;
+    return search_num >= usi_options_.search_limit;
 }
