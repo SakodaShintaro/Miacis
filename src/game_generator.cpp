@@ -15,7 +15,7 @@ void GameGenerator::genGames() {
 }
 
 void GameGenerator::genSlave() {
-    constexpr int64_t WORKER_NUM = 32;
+    constexpr int64_t WORKER_NUM = 1;
 
     //容量の確保
     gpu_queue_.inputs.reserve(WORKER_NUM * usi_options_.search_batch_size * INPUT_CHANNEL_NUM * SQUARE_NUM);
@@ -118,7 +118,6 @@ GenerateWorker::GenerateWorker(const SearchOptions& usi_options, GPUQueue& gpu_q
   replay_buffer_(rb),
   hash_table_(usi_options.USI_Hash),
   searcher_(usi_options, hash_table_, gpu_queue),
-  root_index_(-1),
   root_raw_value_{}
 {}
 
@@ -129,11 +128,11 @@ void GenerateWorker::prepareForCurrPos() {
     //ルートノードの展開
     std::stack<int32_t> indices;
     std::stack<int32_t> actions;
-    root_index_ = searcher_.expand(position_, indices, actions);
+    hash_table_.root_index = searcher_.expand(position_, indices, actions);
 }
 
 OneTurnElement GenerateWorker::resultForCurrPos() {
-    const UctHashEntry& root_node = hash_table_[root_index_];
+    const UctHashEntry& root_node = hash_table_[hash_table_.root_index];
     if (root_node.moves.empty()) {
         position_.print();
         std::cout << "in resultForCurrPos(), root_node.moves.empty()" << std::endl;
@@ -253,10 +252,10 @@ void GenerateWorker::select() {
         //引き続き同じ局面について探索
         //探索してGPUキューへ評価要求を貯める
         //探索する前にニューラルネットワークの出力を保存しておく
-        if (hash_table_[root_index_].sum_N == 0) {
-            root_raw_value_ = hash_table_[root_index_].value;
+        if (hash_table_[hash_table_.root_index].sum_N == 0) {
+            root_raw_value_ = hash_table_[hash_table_.root_index].value;
         }
-        for (int64_t j = 0; j < usi_options_.search_batch_size; j++) {
+        for (int64_t j = 0; j < usi_options_.search_batch_size && !searcher_.shouldStop(); j++) {
             searcher_.select(position_);
         }
     }
