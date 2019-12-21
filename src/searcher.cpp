@@ -58,10 +58,13 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
         for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
             P += Q_dist[j];
         }
-        FloatType ucb = Q_coeff_ * Q + C_PUCT_ * node.nn_policy[i] * U + P_coeff_ * P;
+        FloatType ucb = usi_options_.Q_coeff_x1000 / 1000.0 * Q
+                      + usi_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
+                      + usi_options_.P_coeff_x1000 / 1000.0 * P;
 #else
         FloatType Q = (node.N[i] == 0 ? MIN_SCORE : QfromNextValue(node, i));
-        FloatType ucb = Q_coeff_ * Q + C_PUCT_ * node.nn_policy[i] * U;
+        FloatType ucb = usi_options_.Q_coeff_x1000 / 1000.0 * Q
+                      + usi_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
 #endif
 
         if (ucb > max_value) {
@@ -170,71 +173,6 @@ FloatType Searcher::expQfromNext(const UctHashEntry& node, int32_t i) const {
 #else
     return QfromNextValue(node, i);
 #endif
-}
-
-
-void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
-    assert(indices.size() == actions.size() + 1);
-
-    auto leaf = indices.top();
-    indices.pop();
-    hash_table_[leaf].mutex.lock();
-    auto value = hash_table_[leaf].value;
-    hash_table_[leaf].mutex.unlock();
-
-    //毎回計算するのは無駄だけど仕方ないか
-    //FloatType lambda = usi_options_.UCT_lambda_x1000 / 1000.0;
-    static constexpr FloatType lambda = 1.0;
-
-    //バックアップ
-    while (!actions.empty()) {
-        auto index = indices.top();
-        indices.pop();
-
-        auto action = actions.top();
-        actions.pop();
-
-        //手番が変わるので反転
-#ifdef USE_CATEGORICAL
-        std::reverse(value.begin(), value.end());
-#else
-        value = MAX_SCORE + MIN_SCORE - value;
-#endif
-        // 探索結果の反映
-        hash_table_[index].mutex.lock();
-
-        UctHashEntry& node = hash_table_[index];
-
-        //探索回数の更新
-        node.N[action]++;
-        node.sum_N++;
-        node.virtual_sum_N -= node.virtual_N[action];
-        node.virtual_N[action] = 0;
-
-        //価値の更新
-        ValueType curr_v = node.value;
-        FloatType alpha = 1.0f / (node.sum_N + 1);
-        node.value += alpha * (value - curr_v);
-        value = lambda * value + (1.0f - lambda) * curr_v;
-
-        //最大バックアップ
-//#ifdef USE_CATEGORICAL
-//        node.value = onehotDist(MIN_SCORE);
-//        for (int32_t i = 0; i < node.moves.size(); i++) {
-//            auto q = QfromNextValue(node, i);
-//            if (expOfValueDist(q) > expOfValueDist(node.value)) {
-//                node.value = q;
-//            }
-//        }
-//#else
-//        node.value = MIN_SCORE;
-//        for (int32_t i = 0; i < node.moves.size(); i++) {
-//            node.value = std::max(node.value, QfromNextValue(node, i));
-//        }
-//#endif
-
-        hash_table_[index].mutex.unlock();
-    }
 }
 
 void Searcher::select(Position& pos) {
@@ -410,4 +348,74 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
     }
 
     return index;
+}
+
+void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
+    assert(indices.size() == actions.size() + 1);
+
+    auto leaf = indices.top();
+    indices.pop();
+    hash_table_[leaf].mutex.lock();
+    auto value = hash_table_[leaf].value;
+    hash_table_[leaf].mutex.unlock();
+
+    //毎回計算するのは無駄だけど仕方ないか
+    //FloatType lambda = usi_options_.UCT_lambda_x1000 / 1000.0;
+    static constexpr FloatType lambda = 1.0;
+
+    //バックアップ
+    while (!actions.empty()) {
+        auto index = indices.top();
+        indices.pop();
+
+        auto action = actions.top();
+        actions.pop();
+
+        //手番が変わるので反転
+#ifdef USE_CATEGORICAL
+        std::reverse(value.begin(), value.end());
+#else
+        value = MAX_SCORE + MIN_SCORE - value;
+#endif
+        // 探索結果の反映
+        hash_table_[index].mutex.lock();
+
+        UctHashEntry& node = hash_table_[index];
+
+        //探索回数の更新
+        node.N[action]++;
+        node.sum_N++;
+        node.virtual_sum_N -= node.virtual_N[action];
+        node.virtual_N[action] = 0;
+
+        //価値の更新
+        ValueType curr_v = node.value;
+        FloatType alpha = 1.0f / (node.sum_N + 1);
+        node.value += alpha * (value - curr_v);
+        value = lambda * value + (1.0f - lambda) * curr_v;
+
+        //最大バックアップ
+//#ifdef USE_CATEGORICAL
+//        node.value = onehotDist(MIN_SCORE);
+//        for (int32_t i = 0; i < node.moves.size(); i++) {
+//            auto q = QfromNextValue(node, i);
+//            if (expOfValueDist(q) > expOfValueDist(node.value)) {
+//                node.value = q;
+//            }
+//        }
+//#else
+//        node.value = MIN_SCORE;
+//        for (int32_t i = 0; i < node.moves.size(); i++) {
+//            node.value = std::max(node.value, QfromNextValue(node, i));
+//        }
+//#endif
+
+        hash_table_[index].mutex.unlock();
+    }
+}
+
+void Searcher::backupAll() {
+    for (uint64_t i = 0; i < backup_queue_.indices.size(); i++) {
+        backup(backup_queue_.indices[i], backup_queue_.actions[i]);
+    }
 }

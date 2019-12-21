@@ -24,12 +24,20 @@ struct BackupQueue {
 class Searcher {
 public:
     static bool stop_signal;
+    explicit Searcher(const UsiOptions& usi_options, UctHashTable& hash_table, GPUQueue& gpu_queue)
+            : hash_table_(hash_table), usi_options_(usi_options), root_index_(UctHashTable::NOT_EXPANDED),
+              time_limit_(LLONG_MAX), node_limit_(LLONG_MAX), gpu_queue_(gpu_queue) {}
+
+    //再帰しない探索関数
+    void select(Position& pos);
+
+    //ノードを展開する関数
+    Index expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
+
+    //バックアップ
+    void backupAll();
 
 private:
-    explicit Searcher(const UsiOptions& usi_options, UctHashTable& hash_table, GPUQueue& gpu_queue)
-                       : hash_table_(hash_table), usi_options_(usi_options), root_index_(UctHashTable::NOT_EXPANDED),
-                         time_limit_(LLONG_MAX), node_limit_(LLONG_MAX), gpu_queue_(gpu_queue) {}
-
     //時間制限含め探索を続けるかどうかを判定する関数
     bool shouldStop();
 
@@ -44,21 +52,16 @@ private:
     //Scalarのときは実数をそのまま返し、Categoricalのときはその期待値を返す
     FloatType expQfromNext(const UctHashEntry& node, int32_t i) const;
 
-    //再帰しない探索関数
-    void select(Position& pos);
-
-    //ノードを展開する関数
-    Index expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
-
-    //バックアップ
-    void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
-
 #ifdef SHOGI
     //詰み探索
     void mateSearch(Position pos, int32_t depth_limit);
     bool mateSearchForAttacker(Position& pos, int32_t depth);
     bool mateSearchForEvader(Position& pos, int32_t depth);
 #endif
+
+    //バックアップ
+    void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
+
     //VIRTUAL_LOSSの大きさ
     static constexpr int32_t VIRTUAL_LOSS = 1;
 

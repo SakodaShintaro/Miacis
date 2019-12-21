@@ -8,14 +8,7 @@
 
 class SearcherForPlay {
 public:
-    SearcherForPlay(const UsiOptions& usi_options, NeuralNetwork evaluator) :
-            //ハッシュ容量はMByte単位になっているので個数に変換する
-            Searcher(usi_options.USI_Hash * 1024 * 1024 / 10000, usi_options),
-            next_print_time_(LLONG_MAX),
-            evaluator_(std::move(evaluator)) {
-        //置換表を1つ受け取る
-        //gpu_queueをn本, searcherをnインスタンス生成して置換表に対して思考させる
-    }
+    SearcherForPlay(const UsiOptions& usi_options);
 
     //探索を行って一番良い指し手を返す関数
     Move think(Position& root, int64_t time_limit);
@@ -27,29 +20,43 @@ private:
     //VIRTUAL_LOSSの大きさ
     static constexpr int32_t VIRTUAL_LOSS = 1;
 
+    //GPUに付随するスレッド
+    void gpuThreadFunc(Position root, int64_t gpu_id);
+
+    //各GPUの下で動くスレッド
+    void workerThreadFunc(Position root, int64_t gpu_id, int64_t thread_id);
+
     //PVを取得する関数
     std::vector<Move> getPV() const;
 
     //情報をUSIプロトコルに従って標準出力に出す関数
     void printUSIInfo() const;
 
-    //各スレッドに割り当てられる探索関数
-    void parallelUctSearch(Position root, int32_t id);
+    const UsiOptions& usi_options_;
 
-    //再帰しない探索関数
-    void select(Position& pos, int32_t id);
+    //置換表は1個
+    UctHashTable hash_table_;
 
-    //ノードを展開する関数
-    Index expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id);
+    //GPUは複数
+    std::vector<NeuralNetwork> neural_networks_;
+    std::vector<std::mutex> gpu_mutexes_;
 
-    //mutex
-    std::mutex lock_gpu_;
+    //1つのGPUに対してgpu_queue,searcherを複数
+    std::vector<std::vector<GPUQueue>> gpu_queues_;
+    std::vector<std::vector<Searcher>> searchers_;
+
+    //ルート局面のインデックス
+    Index root_index_;
+
+    //時間
+    std::chrono::steady_clock::time_point start_;
+
+    //時間制限(msec),ノード数制限
+    int64_t time_limit_;
+    int64_t node_limit_;
 
     //次に表示する経過時間
     int64_t next_print_time_;
-
-    //局面評価に用いるネットワーク
-    NeuralNetwork evaluator_;
 };
 
 #endif //MIACIS_SEARCHER_FOR_PLAY_HPP

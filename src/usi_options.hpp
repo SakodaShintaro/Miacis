@@ -32,6 +32,7 @@ public:
         spin_options.emplace("random_turn",       SpinOption(random_turn       =         0, 0, INT32_MAX));
         spin_options.emplace("draw_turn",         SpinOption(draw_turn         =       512, 0, INT32_MAX));
         spin_options.emplace("print_interval",    SpinOption(print_interval    =       500, 1, INT32_MAX));
+        spin_options.emplace("gpu_num",           SpinOption(gpu_num           =         1, 1, INT32_MAX));
         spin_options.emplace("thread_num",        SpinOption(thread_num        =         2, 1, INT32_MAX));
         spin_options.emplace("search_batch_size", SpinOption(search_batch_size =       128, 1, INT32_MAX));
         spin_options.emplace("search_limit",      SpinOption(search_limit      = INT32_MAX, 1, INT32_MAX));
@@ -50,6 +51,7 @@ public:
     int64_t USI_Hash;
     int64_t draw_turn;
     int64_t print_interval;
+    int64_t gpu_num;
     int64_t thread_num;
     int64_t search_batch_size;
     int64_t search_limit;

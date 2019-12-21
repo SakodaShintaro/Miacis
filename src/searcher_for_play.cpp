@@ -1,6 +1,27 @@
 ﻿#include "searcher_for_play.hpp"
 #include <thread>
 
+SearcherForPlay::SearcherForPlay(const UsiOptions& usi_options)
+: usi_options_(usi_options), hash_table_(usi_options.USI_Hash * 1024 * 1024 / 1000) {
+    //GPUを準備
+    for (int64_t i = 0; i < usi_options.gpu_num; i++) {
+        neural_networks_.emplace_back();
+        torch::load(neural_networks_[i], usi_options_.model_name);
+    }
+
+    //GPUに対するmutexを準備
+    gpu_mutexes_ = std::vector<std::mutex>();
+    gpu_mutexes_.resize(usi_options.gpu_num);
+
+    //gpu_queueとsearchersを準備
+    for (int64_t i = 0; i < usi_options.gpu_num; i++) {
+        for (int64_t j = 0; j < usi_options.thread_num; j++) {
+            gpu_queues_[i].emplace_back();
+            searchers_[i].emplace_back(usi_options, hash_table_, gpu_queues_[i][j]);
+        }
+    }
+}
+
 Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
@@ -16,18 +37,19 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     next_print_time_ = usi_options_.print_interval;
 
     //キューの初期化
-    for (int64_t i = 0; i < usi_options_.thread_num; i++) {
-        input_queues_[i].clear();
-        index_queues_[i].clear();
-        route_queues_[i].clear();
-        action_queues_[i].clear();
+    for (int64_t i = 0; i < usi_options_.gpu_num; i++) {
+        for (int64_t j = 0; j < usi_options_.thread_num; j++) {
+            gpu_queues_[i][j].inputs.clear();
+            gpu_queues_[i][j].hash_tables.clear();
+            gpu_queues_[i][j].indices.clear();
+        }
     }
 
-    //ルートノードの展開:0番目のキューを使う
+    //ルートノードの展開:[0][0]番目のsearcherを使う。[0][0]番目のキューに溜まる
     std::stack<Index> dummy;
     std::stack<int32_t> dummy2;
-    root_index_ = expand(root, dummy, dummy2, 0);
-    auto& curr_node = hash_table_[root_index_];
+    root_index_ = searchers_[0][0].expand(root, dummy, dummy2);
+    UctHashEntry& curr_node = hash_table_[root_index_];
 
     //合法手が0だったら投了
     if (curr_node.moves.empty()) {
@@ -35,13 +57,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     }
 
     //GPUで計算:moves.size() == 1のときはいらなそうだけど
-    if (input_queues_[0].empty()) {
-        //繰り返しなどでキューに送られなかった場合に空になることがありうる
-        //ルートノードでは強制的に評価する
-        const auto feature = root.makeFeature();
-        input_queues_[0].insert(input_queues_[0].end(), feature.begin(), feature.end());
-    }
-    auto y = evaluator_->policyAndValueBatch(input_queues_[0]);
+    auto y = neural_networks_[0]->policyAndValueBatch(gpu_queues_[0][0].inputs);
 
     //ルートノードへ書き込み
     curr_node.nn_policy.resize(curr_node.moves.size());
@@ -51,21 +67,13 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     curr_node.nn_policy = softmax(curr_node.nn_policy);
     curr_node.value = y.second[0];
 
-#ifdef SHOGI
-    //詰み探索立ち上げ
-    std::thread mate_thread(&SearcherForPlay::mateSearch, this, root, LLONG_MAX);
-#endif
-
-    //workerを立ち上げ
-    std::vector<std::thread> threads(usi_options_.thread_num);
-    for (int64_t i = 0; i < usi_options_.thread_num; i++) {
-        threads[i] = std::thread(&SearcherForPlay::parallelUctSearch, this, root, i);
+    //GPUに付随するスレッドを立ち上げ
+    std::vector<std::thread> threads(usi_options_.gpu_num);
+    for (int64_t i = 0; i < usi_options_.gpu_num; i++) {
+        threads[i] = std::thread(&SearcherForPlay::gpuThreadFunc, this, root, i);
     }
 
     //終了を待つ
-#ifdef SHOGI
-    mate_thread.join();
-#endif
     for (auto& t : threads) {
         t.join();
     }
@@ -96,6 +104,74 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
         //探索回数最大の手を選択
         int32_t best_index = std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin();
         return curr_node.moves[best_index];
+    }
+}
+
+void SearcherForPlay::gpuThreadFunc(Position root, int64_t gpu_id) {
+    //workerを立ち上げ
+    std::vector<std::thread> threads(usi_options_.thread_num);
+    for (int64_t i = 0; i < usi_options_.thread_num; i++) {
+        threads[i] = std::thread(&SearcherForPlay::workerThreadFunc, this, root, gpu_id, i);
+    }
+
+    //終了を待つ
+    for (auto& t : threads) {
+        t.join();
+    }
+}
+
+void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t thread_id) {
+    //このスレッドに対するキューを参照で取る
+    GPUQueue& gpu_queue = gpu_queues_[gpu_id][thread_id];
+
+    //限界に達するまで探索を繰り返す
+    while (!shouldStop()) {
+        //キューをクリア
+        gpu_queue.inputs.clear();
+        gpu_queue.hash_tables.clear();
+        gpu_queue.indices.clear();
+
+        hash_table_[root_index_].mutex.lock();
+        auto now_time = std::chrono::steady_clock::now();
+        auto elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_).count();
+        if (elapsed_msec >= next_print_time_) {
+            next_print_time_ += next_print_time_;
+            printUSIInfo();
+        }
+        hash_table_[root_index_].mutex.unlock();
+
+        //評価要求を貯める
+        for (int64_t i = 0; i < usi_options_.search_batch_size && !shouldStop(); i++) {
+            searchers_[gpu_id][thread_id].select(root);
+        }
+
+        if (shouldStop()) {
+            break;
+        }
+
+        //評価要求をGPUで計算
+        if (!gpu_queue.inputs.empty()) {
+            torch::NoGradGuard no_grad_guard;
+            gpu_mutexes_[gpu_id].lock();
+            auto y = neural_networks_[gpu_id]->policyAndValueBatch(gpu_queue.inputs);
+            gpu_mutexes_[gpu_id].unlock();
+
+            //書き込み
+            for (uint64_t i = 0; i < gpu_queue.indices.size(); i++) {
+                std::unique_lock<std::mutex> lock(hash_table_[gpu_queue.indices[i]].mutex);
+                UctHashEntry& curr_node = hash_table_[gpu_queue.indices[i]];
+                curr_node.nn_policy.resize(curr_node.moves.size());
+                for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
+                    curr_node.nn_policy[j] = y.first[i][curr_node.moves[j].toLabel()];
+                }
+                curr_node.nn_policy = softmax(curr_node.nn_policy);
+                curr_node.value = y.second[i];
+                curr_node.evaled = true;
+            }
+        }
+
+        //バックアップ
+        searchers_[gpu_id][thread_id].backupAll();
     }
 }
 
@@ -217,239 +293,4 @@ void SearcherForPlay::printUSIInfo() const {
         std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
 #endif
     }
-}
-
-void SearcherForPlay::parallelUctSearch(Position root, int32_t id) {
-    //このスレッドに対するキューを参照で取る
-    auto& input_queue = input_queues_[id];
-    auto& index_queue = index_queues_[id];
-    auto& route_queue = route_queues_[id];
-    auto& action_queue = action_queues_[id];
-
-    //限界に達するまで探索を繰り返す
-    while (!shouldStop()) {
-        //キューをクリア
-        input_queue.clear();
-        index_queue.clear();
-        route_queue.clear();
-        action_queue.clear();
-
-        hash_table_[root_index_].mutex.lock();
-        auto now_time = std::chrono::steady_clock::now();
-        auto elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_).count();
-        if (elapsed_msec >= next_print_time_) {
-            next_print_time_ += next_print_time_;
-            printUSIInfo();
-        }
-        hash_table_[root_index_].mutex.unlock();
-
-        //評価要求を貯める
-        for (int64_t i = 0; i < usi_options_.search_batch_size && !shouldStop(); i++) {
-            select(root, id);
-        }
-
-        if (shouldStop()) {
-            break;
-        }
-
-        //評価要求をGPUで計算
-        if (!index_queue.empty()) {
-            torch::NoGradGuard no_grad_guard;
-            lock_gpu_.lock();
-            auto y = evaluator_->policyAndValueBatch(input_queue);
-            lock_gpu_.unlock();
-
-            //書き込み
-            for (uint64_t i = 0; i < index_queue.size(); i++) {
-                std::unique_lock<std::mutex> lock(hash_table_[index_queue[i]].mutex);
-                auto& curr_node = hash_table_[index_queue[i]];
-                curr_node.nn_policy.resize(curr_node.moves.size());
-                for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-                    curr_node.nn_policy[j] = y.first[i][curr_node.moves[j].toLabel()];
-                }
-                curr_node.nn_policy = softmax(curr_node.nn_policy);
-                curr_node.value = y.second[i];
-                curr_node.evaled = true;
-            }
-        }
-
-        //バックアップ
-        for (uint64_t i = 0; i < route_queue.size(); i++) {
-            backup(route_queue[i], action_queue[i]);
-        }
-    }
-}
-
-void SearcherForPlay::select(Position& pos, int32_t id) {
-    std::stack<Index> curr_indices;
-    std::stack<int32_t> curr_actions;
-
-    auto index = root_index_;
-    //ルートでは合法手が一つはあるはず
-    assert(!hash_table_[index].moves.empty());
-
-    //未展開の局面に至るまで遷移を繰り返す
-    while (index != UctHashTable::NOT_EXPANDED) {
-        std::unique_lock<std::mutex> lock(hash_table_[index].mutex);
-
-        if (pos.turnNumber() > usi_options_.draw_turn) {
-            //手数が制限まで達している場合も抜ける
-            break;
-        }
-
-        float score;
-        if (index != root_index_ && pos.isFinish(score)) {
-            //繰り返しが発生している場合も抜ける
-            break;
-        }
-
-        if (hash_table_[index].nn_policy.size() != hash_table_[index].moves.size()) {
-            //policyが展開されていなかったら抜ける
-            //ここに来るのはこのselectループ内で先に展開されたがまだGPU計算が行われていないノードに達したとき
-            break;
-        }
-
-        //状態を記録
-        curr_indices.push(index);
-
-        //選択
-        auto action = selectMaxUcbChild(hash_table_[index]);
-
-        //取った行動を記録
-        curr_actions.push(action);
-
-        //VIRTUAL_LOSSの追加
-        hash_table_[index].virtual_N[action] += VIRTUAL_LOSS;
-        hash_table_[index].virtual_sum_N += VIRTUAL_LOSS;
-
-        //遷移
-        pos.doMove(hash_table_[index].moves[action]);
-
-        //index更新
-        index = hash_table_[index].child_indices[action];
-    }
-
-    //expandNode内でこれらの情報は壊れる可能性があるので保存しておく
-    index = curr_indices.top();
-    auto action = curr_actions.top();
-    uint64_t move_num = curr_actions.size();
-
-    //今の局面を展開・GPUに評価依頼を投げる
-    auto leaf_index = expand(pos, curr_indices, curr_actions, id);
-    if (leaf_index == -1) {
-        //shouldStopがtrueになったということ
-        //基本的には置換表に空きがなかったということだと思われる
-        return;
-    }
-
-    //葉の直前ノードを更新
-    hash_table_[index].mutex.lock();
-    hash_table_[index].child_indices[action] = leaf_index;
-    hash_table_[index].mutex.unlock();
-
-    //バックアップはGPU計算後にやるので局面だけ戻す
-    for (uint64_t i = 0; i < move_num; i++) {
-        pos.undo();
-    }
-}
-
-Index SearcherForPlay::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions, int32_t id) {
-    //置換表全体をロック
-    hash_table_.mutex.lock();
-
-    uint64_t index = hash_table_.findSameHashIndex(pos);
-
-    //合流先が検知できればそれを返す
-    if (index != hash_table_.size()) {
-        //置換表全体のロックはもういらないので解放
-        hash_table_.mutex.unlock();
-
-        indices.push(index);
-        if (hash_table_[index].evaled) {
-            //評価済みならば,前回までのループでここへ違う経路で到達していたか,終端状態であるかのいずれか
-            //どちらの場合でもバックアップして良い,と思う
-            //GPUに送らないのでこのタイミングでバックアップを行う
-            backup(indices, actions);
-        } else {
-            //評価済みではないけどここへ到達したならば,同じループの中で同じ局面へ到達があったということ
-            //全く同じ経路のものがあるかどうか確認
-            auto itr = std::find(route_queues_[id].begin(), route_queues_[id].end(), indices);
-            if (itr == route_queues_[id].end()) {
-                //同じものがなかったならばバックアップ要求を追加
-                route_queues_[id].push_back(indices);
-                action_queues_[id].push_back(actions);
-            }
-        }
-        return index;
-    }
-
-    //空のインデックスを探す
-    index = hash_table_.searchEmptyIndex(pos);
-
-    //経路として記録
-    indices.push(index);
-
-    //テーブル全体を使うのはここまで
-    hash_table_.mutex.unlock();
-
-    //空のインデックスが見つからなかった
-    if (index == hash_table_.size()) {
-        return -1;
-    }
-
-    //取得したノードをロック
-    hash_table_[index].mutex.lock();
-
-    auto& curr_node = hash_table_[index];
-
-    // 候補手の展開
-    curr_node.moves = pos.generateAllMoves();
-    curr_node.moves.shrink_to_fit();
-    curr_node.child_indices.assign(curr_node.moves.size(), UctHashTable::NOT_EXPANDED);
-    curr_node.child_indices.shrink_to_fit();
-    curr_node.N.assign(curr_node.moves.size(), 0);
-    curr_node.N.shrink_to_fit();
-    curr_node.virtual_N.assign(curr_node.moves.size(), 0);
-    curr_node.virtual_N.shrink_to_fit();
-    curr_node.sum_N = 0;
-    curr_node.virtual_sum_N = 0;
-    curr_node.evaled = false;
-    curr_node.value = ValueType{};
-
-    //ノードを評価
-    float finish_score;
-    if (pos.isFinish(finish_score)) {
-#ifdef USE_CATEGORICAL
-        curr_node.value = onehotDist(finish_score);
-#else
-        curr_node.value = finish_score;
-#endif
-        curr_node.evaled = true;
-        //GPUに送らないのでこのタイミングでバックアップを行う
-        hash_table_[index].mutex.unlock();
-        backup(indices, actions);
-    } else if (pos.turnNumber() > usi_options_.draw_turn) {
-        FloatType value = (MAX_SCORE + MIN_SCORE) / 2;
-#ifdef USE_CATEGORICAL
-        curr_node.value = onehotDist(value);
-#else
-        curr_node.value = value;
-#endif
-        curr_node.evaled = true;
-        //GPUに送らないのでこのタイミングでバックアップを行う
-        hash_table_[index].mutex.unlock();
-        backup(indices, actions);
-    } else {
-        hash_table_[index].mutex.unlock();
-
-        //GPUへ計算要求を投げる
-        auto this_feature = pos.makeFeature();
-        input_queues_[id].insert(input_queues_[id].end(), this_feature.begin(), this_feature.end());
-        index_queues_[id].push_back(index);
-        //バックアップ要求も投げる
-        route_queues_[id].push_back(indices);
-        action_queues_[id].push_back(actions);
-    }
-
-    return index;
 }
