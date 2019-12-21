@@ -29,45 +29,6 @@ void GameGenerator::genSlave() {
         workers[i]->prepareForCurrPos();
     }
 
-    //GPUで評価する関数
-    auto evalWithGPU = [&](){
-        gpu_mutex.lock();
-        torch::NoGradGuard no_grad_guard;
-        std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = neural_network_->policyAndValueBatch(gpu_queue_.inputs);
-        gpu_mutex.unlock();
-        const std::vector<PolicyType>& policies = result.first;
-        const std::vector<ValueType>& values = result.second;
-
-        for (uint64_t i = 0; i < gpu_queue_.hash_tables.size(); i++) {
-            //何番目のsearcherが持つハッシュテーブルのどの位置に書き込むかを取得
-            UctHashEntry& curr_node = gpu_queue_.hash_tables[i].get()[gpu_queue_.indices[i]];
-
-            //policyを設定
-            std::vector<float> legal_moves_policy(curr_node.moves.size());
-            for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-                legal_moves_policy[j] = policies[i][curr_node.moves[j].toLabel()];
-                assert(!std::isnan(legal_moves_policy[j]));
-            }
-            curr_node.nn_policy = softmax(legal_moves_policy);
-
-            //policyにディリクレノイズを付与
-            constexpr FloatType epsilon = 0.25;
-            std::vector<FloatType> dirichlet = dirichletDistribution(curr_node.moves.size(), 0.15);
-            for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-                curr_node.nn_policy[j] = (FloatType) ((1.0 - epsilon) * curr_node.nn_policy[j] + epsilon * dirichlet[j]);
-            }
-
-            //valueを設定
-            curr_node.value = values[i];
-
-            //これを設定しなきゃいけないんだけど、どうするかな
-            //root_raw_value_ = curr_node.value;
-
-            //これいらない気がするけどハッシュテーブル自体の構造は変えたくないので念の為
-            curr_node.evaled = true;
-        }
-    };
-
     //初期局面をまず1回評価
     evalWithGPU();
 
@@ -108,6 +69,40 @@ std::vector<FloatType> GameGenerator::dirichletDistribution(uint64_t k, FloatTyp
         dirichlet[i] /= sum;
     }
     return dirichlet;
+}
+
+void GameGenerator::evalWithGPU() {
+    gpu_mutex.lock();
+    torch::NoGradGuard no_grad_guard;
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = neural_network_->policyAndValueBatch(gpu_queue_.inputs);
+    gpu_mutex.unlock();
+    const std::vector<PolicyType>& policies = result.first;
+    const std::vector<ValueType>& values = result.second;
+
+    for (uint64_t i = 0; i < gpu_queue_.hash_tables.size(); i++) {
+        //何番目のsearcherが持つハッシュテーブルのどの位置に書き込むかを取得
+        UctHashEntry& curr_node = gpu_queue_.hash_tables[i].get()[gpu_queue_.indices[i]];
+
+        //policyを設定
+        std::vector<float> legal_moves_policy(curr_node.moves.size());
+        for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
+            legal_moves_policy[j] = policies[i][curr_node.moves[j].toLabel()];
+            assert(!std::isnan(legal_moves_policy[j]));
+        }
+        curr_node.nn_policy = softmax(legal_moves_policy);
+
+        //policyにディリクレノイズを付与
+        constexpr FloatType epsilon = 0.25;
+        std::vector<FloatType> dirichlet = dirichletDistribution(curr_node.moves.size(), 0.15);
+        for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
+            curr_node.nn_policy[j] = (FloatType) ((1.0 - epsilon) * curr_node.nn_policy[j] + epsilon * dirichlet[j]);
+        }
+
+        //valueを設定
+        curr_node.value = values[i];
+
+        curr_node.evaled = true;
+    }
 }
 
 GenerateWorker::GenerateWorker(const SearchOptions& usi_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda,

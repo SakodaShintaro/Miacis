@@ -31,6 +31,9 @@ private:
     //ディリクレ分布に従ったものを返す関数
     static std::vector<FloatType> dirichletDistribution(uint64_t k, FloatType alpha);
 
+    //gpu_queue_に溜まっている入力を処理する関数
+    void evalWithGPU();
+
     //生成してはreplay_bufferへ送る関数
     void genSlave();
 
