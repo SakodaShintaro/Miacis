@@ -5,7 +5,7 @@ void GameGenerator::genGames() {
     //生成スレッドを生成
     std::vector<std::thread> threads;
     for (int64_t i = 0; i < search_options_.thread_num; i++) {
-        threads.emplace_back(&GameGenerator::genSlave, this);
+        threads.emplace_back(&GameGenerator::genSlave, this, i);
     }
 
     //生成スレッドが終わるのを待つ
@@ -14,22 +14,22 @@ void GameGenerator::genGames() {
     }
 }
 
-void GameGenerator::genSlave() {
+void GameGenerator::genSlave(int64_t thread_id) {
     std::vector<std::unique_ptr<GenerateWorker>> workers(worker_num_);
 
     for (int32_t i = 0; i < worker_num_; i++) {
-        workers[i] = std::make_unique<GenerateWorker>(search_options_, gpu_queue_, Q_dist_lambda_, replay_buffer_);
+        workers[i] = std::make_unique<GenerateWorker>(search_options_, gpu_queues_[thread_id], Q_dist_lambda_, replay_buffer_);
         workers[i]->prepareForCurrPos();
     }
 
     //初期局面をまず1回評価
-    evalWithGPU();
+    evalWithGPU(thread_id);
 
     while (!stop_signal) {
         //キューのリセット
-        gpu_queue_.inputs.clear();
-        gpu_queue_.hash_tables.clear();
-        gpu_queue_.indices.clear();
+        gpu_queues_[thread_id].inputs.clear();
+        gpu_queues_[thread_id].hash_tables.clear();
+        gpu_queues_[thread_id].indices.clear();
 
         for (int32_t i = 0; i < worker_num_; i++) {
             workers[i]->select();
@@ -38,8 +38,8 @@ void GameGenerator::genSlave() {
         //GPUで評価
         //探索結果が既存ノードへの合流,あるいは詰みのときには計算要求がないので一応空かどうかを確認
         //複数のsearcherが同時にそうなる確率はかなり低そうだが
-        if (!gpu_queue_.inputs.empty()) {
-            evalWithGPU();
+        if (!gpu_queues_[thread_id].inputs.empty()) {
+            evalWithGPU(thread_id);
         }
 
         for (int32_t i = 0; i < worker_num_; i++) {
@@ -64,17 +64,17 @@ std::vector<FloatType> GameGenerator::dirichletDistribution(uint64_t k, FloatTyp
     return dirichlet;
 }
 
-void GameGenerator::evalWithGPU() {
+void GameGenerator::evalWithGPU(int64_t thread_id) {
     gpu_mutex.lock();
     torch::NoGradGuard no_grad_guard;
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = neural_network_->policyAndValueBatch(gpu_queue_.inputs);
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = neural_network_->policyAndValueBatch(gpu_queues_[thread_id].inputs);
     gpu_mutex.unlock();
     const std::vector<PolicyType>& policies = result.first;
     const std::vector<ValueType>& values = result.second;
 
-    for (uint64_t i = 0; i < gpu_queue_.hash_tables.size(); i++) {
+    for (uint64_t i = 0; i < gpu_queues_[thread_id].hash_tables.size(); i++) {
         //何番目のsearcherが持つハッシュテーブルのどの位置に書き込むかを取得
-        UctHashEntry& curr_node = gpu_queue_.hash_tables[i].get()[gpu_queue_.indices[i]];
+        UctHashEntry& curr_node = gpu_queues_[thread_id].hash_tables[i].get()[gpu_queues_[thread_id].indices[i]];
 
         //policyを設定
         std::vector<float> legal_moves_policy(curr_node.moves.size());

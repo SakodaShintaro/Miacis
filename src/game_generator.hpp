@@ -15,7 +15,8 @@
 class GameGenerator {
 public:
     GameGenerator(const SearchOptions& usi_options, int64_t worker_num, FloatType Q_dist_lambda, ReplayBuffer& rb, NeuralNetwork nn)
-        : stop_signal(false), search_options_(usi_options), worker_num_(worker_num), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb), neural_network_(std::move(nn)) {
+        : stop_signal(false), search_options_(usi_options), worker_num_(worker_num), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb),
+          neural_network_(std::move(nn)), gpu_queues_(search_options_.thread_num) {
         neural_network_->eval();
     };
 
@@ -32,10 +33,10 @@ private:
     static std::vector<FloatType> dirichletDistribution(uint64_t k, FloatType alpha);
 
     //gpu_queue_に溜まっている入力を処理する関数
-    void evalWithGPU();
+    void evalWithGPU(int64_t thread_id);
 
     //生成してはreplay_bufferへ送る関数
-    void genSlave();
+    void genSlave(int64_t thread_id);
 
     //UsiOptionを持っておく
     const SearchOptions& search_options_;
@@ -53,7 +54,7 @@ private:
     //局面評価に用いるネットワーク
     NeuralNetwork neural_network_;
 
-    GPUQueue gpu_queue_;
+    std::vector<GPUQueue> gpu_queues_;
 };
 
 //一つのGPUに対して複数生成されるWorker
