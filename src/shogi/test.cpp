@@ -72,7 +72,6 @@ void checkGenSpeed() {
     for (usi_options.search_batch_size = 4; usi_options.search_batch_size <= 4096; usi_options.search_batch_size *= 2) {
         for (usi_options.thread_num = 2; usi_options.thread_num <= 4; usi_options.thread_num++) {
             ReplayBuffer buffer(0, buffer_size, 10 * buffer_size, 1.0, 1.0);
-            Searcher::stop_signal = false;
             auto start = std::chrono::steady_clock::now();
             GameGenerator generator(usi_options, Q_dist_lambda, buffer, nn);
             std::thread t(&GameGenerator::genGames, &generator);
@@ -104,7 +103,7 @@ void checkGenSpeed() {
                     break;
                 }
             }
-            Searcher::stop_signal = true;
+            generator.stop_signal = true;
             t.join();
         }
     }

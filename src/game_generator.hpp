@@ -15,7 +15,7 @@
 class GameGenerator {
 public:
     GameGenerator(const SearchOptions& usi_options, FloatType Q_dist_lambda, ReplayBuffer& rb, NeuralNetwork nn)
-        : stop(false), usi_options_(usi_options), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb), neural_network_(std::move(nn)) {
+        : stop_signal(false), usi_options_(usi_options), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb), neural_network_(std::move(nn)) {
         neural_network_->eval();
     };
 
@@ -25,7 +25,7 @@ public:
     //mutex:AlphaZeroTrainerから触れるようにpublicに置いている
     std::mutex gpu_mutex;
 
-    bool stop;
+    bool stop_signal;
 
 private:
     //ディリクレ分布に従ったものを返す関数

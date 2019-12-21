@@ -107,7 +107,7 @@ void USI::position() {
     //Ponderが走っているかもしれないので一度止める
     //root_をthinkに参照で与えているのでposition構築前に止める必要がある
     //値渡しにすれば大丈夫だろうけど、別に棋力的に大差はないだろう
-    Searcher::stop_signal = true;
+    searcher_->stop_signal = true;
     if (thread_.joinable()) {
         thread_.join();
     }
@@ -143,7 +143,7 @@ void USI::position() {
 }
 
 void USI::go() {
-    Searcher::stop_signal = false;
+    searcher_->stop_signal = false;
 
     int64_t time_limit;
     std::string input;
@@ -199,7 +199,7 @@ void USI::go() {
 }
 
 void USI::stop() {
-    Searcher::stop_signal = true;
+    searcher_->stop_signal = true;
     if (thread_.joinable()) {
         thread_.join();
     }

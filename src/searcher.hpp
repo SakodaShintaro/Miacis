@@ -23,13 +23,8 @@ struct BackupQueue {
 
 class Searcher {
 public:
-    static bool stop_signal;
     explicit Searcher(const SearchOptions& usi_options, UctHashTable& hash_table, GPUQueue& gpu_queue)
-            : hash_table_(hash_table), usi_options_(usi_options),
-              time_limit_(LLONG_MAX), node_limit_(LLONG_MAX), gpu_queue_(gpu_queue) {}
-
-    //時間制限含め探索を続けるかどうかを判定する関数
-    bool shouldStop();
+            : hash_table_(hash_table), usi_options_(usi_options), gpu_queue_(gpu_queue) {}
 
     //再帰しない探索関数
     void select(Position& pos);
@@ -44,13 +39,6 @@ private:
     //今のノードから遷移するべきノードを選択する関数
     int32_t selectMaxUcbChild(const UctHashEntry& node);
 
-#ifdef SHOGI
-    //詰み探索
-    void mateSearch(Position pos, int32_t depth_limit);
-    bool mateSearchForAttacker(Position& pos, int32_t depth);
-    bool mateSearchForEvader(Position& pos, int32_t depth);
-#endif
-
     //バックアップ
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
@@ -61,13 +49,6 @@ private:
     UctHashTable& hash_table_;
 
     const SearchOptions& usi_options_;
-
-    //時間
-    std::chrono::steady_clock::time_point start_;
-
-    //時間制限(msec),ノード数制限
-    int64_t time_limit_;
-    int64_t node_limit_;
 
     GPUQueue& gpu_queue_;
     BackupQueue backup_queue_;

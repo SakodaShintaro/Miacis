@@ -71,9 +71,6 @@ void alphaZero() {
     //学習スレッドをスリープさせる時間は生成速度から自動計算するので不適な値で初期化
     int64_t sleep_msec = -1;
 
-    //探索のシグナルをオフにしておく
-    Searcher::stop_signal = false;
-
     //リプレイバッファの生成
     ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, alpha);
 
@@ -105,23 +102,15 @@ void alphaZero() {
     //時間計測開始
     auto start_time = std::chrono::steady_clock::now();
 
-    //GPUの数だけネットワークを生成
+    //GPUの数だけネットワーク,自己対局生成器を生成
     size_t gpu_num = torch::getNumGPUs();
     std::vector<NeuralNetwork> neural_networks(gpu_num);
+    std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
+    std::vector<std::thread> gen_threads;
     for (uint64_t i = 0; i < gpu_num; i++) {
         torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
         neural_networks[i]->setGPU(static_cast<int16_t>(i));
-    }
-
-    //自己対局スレッドを生成
-    std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
-    for (uint64_t i = 0; i < gpu_num; i++) {
         generators[i] = std::make_unique<GameGenerator>(usi_options, Q_dist_lambda, replay_buffer, neural_networks[i]);
-    }
-
-    //生成開始.10^15個の(つまり無限に)棋譜を生成させる
-    std::vector<std::thread> gen_threads;
-    for (uint64_t i = 0; i < gpu_num; i++) {
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
     }
 
@@ -198,7 +187,9 @@ void alphaZero() {
     }
 
     //生成スレッドを止める
-    Searcher::stop_signal = true;
+    for (uint64_t i = 0; i < gpu_num; i++) {
+        generators[i]->stop_signal = true;
+    }
     for (auto& th : gen_threads) {
         th.join();
     }

@@ -182,7 +182,7 @@ void Interface::go() {
 }
 
 void Interface::stop() {
-    Searcher::stop_signal = true;
+    searcher_->stop_signal = true;
     if (thread_.joinable()) {
         thread_.join();
     }

@@ -71,7 +71,7 @@ void GameGenerator::genSlave() {
     //初期局面をまず1回評価
     evalWithGPU();
 
-    while (!stop) {
+    while (!stop_signal) {
         //キューのリセット
         gpu_queue_.inputs.clear();
         gpu_queue_.hash_tables.clear();
@@ -219,10 +219,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
 }
 
 void GenerateWorker::select() {
-    if (searcher_.shouldStop()) {
-        if (Searcher::stop_signal) {
-            return;
-        }
+    if (hash_table_[hash_table_.root_index].sum_N >= usi_options_.search_limit) {
         //探索結果を取得して次の局面へ遷移
         OneTurnElement result = resultForCurrPos();
         position_.doMove(result.move);
@@ -255,7 +252,7 @@ void GenerateWorker::select() {
         if (hash_table_[hash_table_.root_index].sum_N == 0) {
             root_raw_value_ = hash_table_[hash_table_.root_index].value;
         }
-        for (int64_t j = 0; j < usi_options_.search_batch_size && !searcher_.shouldStop(); j++) {
+        for (int64_t j = 0; j < usi_options_.search_batch_size; j++) {
             searcher_.select(position_);
         }
     }

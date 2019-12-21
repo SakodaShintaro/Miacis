@@ -2,7 +2,7 @@
 #include <thread>
 
 SearcherForPlay::SearcherForPlay(const SearchOptions& usi_options)
-: usi_options_(usi_options), hash_table_(usi_options.USI_Hash * 1024 * 1024 / 1000) {
+: stop_signal(false), usi_options_(usi_options), hash_table_(usi_options.USI_Hash * 1024 * 1024 / 1000) {
     //GPUを準備
     for (int64_t i = 0; i < usi_options.gpu_num; i++) {
         neural_networks_.emplace_back();
@@ -114,8 +114,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
 }
 
 bool SearcherForPlay::shouldStop() {
-    //シグナルのチェック
-    if (Searcher::stop_signal) {
+    if (stop_signal) {
         return true;
     }
 
