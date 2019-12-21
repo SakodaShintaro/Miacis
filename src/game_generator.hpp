@@ -14,12 +14,12 @@
 //一つのGPUに対して割り当てられる
 class GameGenerator {
 public:
-    GameGenerator(const SearchOptions& usi_options, FloatType Q_dist_lambda, ReplayBuffer& rb, NeuralNetwork nn)
-        : stop_signal(false), search_options_(usi_options), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb), neural_network_(std::move(nn)) {
+    GameGenerator(const SearchOptions& usi_options, int64_t worker_num, FloatType Q_dist_lambda, ReplayBuffer& rb, NeuralNetwork nn)
+        : stop_signal(false), search_options_(usi_options), worker_num_(worker_num), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb), neural_network_(std::move(nn)) {
         neural_network_->eval();
     };
 
-    //決まったゲーム数生成する関数
+    //生成してリプレイバッファに送り続ける関数
     void genGames();
 
     //mutex:AlphaZeroTrainerから触れるようにpublicに置いている
@@ -39,6 +39,9 @@ private:
 
     //UsiOptionを持っておく
     const SearchOptions& search_options_;
+
+    //いくつのWorkerを並列に走らせるか
+    const int64_t worker_num_;
 
     //探索結果の分布として価値のsoftmax分布を混ぜる割合([0,1])
     //0で普通のAlphaZero

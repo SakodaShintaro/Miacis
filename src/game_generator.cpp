@@ -15,16 +15,9 @@ void GameGenerator::genGames() {
 }
 
 void GameGenerator::genSlave() {
-    constexpr int64_t WORKER_NUM = 1;
+    std::vector<std::unique_ptr<GenerateWorker>> workers(worker_num_);
 
-    //容量の確保
-    gpu_queue_.inputs.reserve(WORKER_NUM * search_options_.search_batch_size * INPUT_CHANNEL_NUM * SQUARE_NUM);
-    gpu_queue_.hash_tables.reserve(WORKER_NUM * search_options_.search_batch_size);
-    gpu_queue_.indices.reserve(WORKER_NUM * search_options_.search_batch_size);
-
-    std::vector<std::unique_ptr<GenerateWorker>> workers(WORKER_NUM);
-
-    for (int32_t i = 0; i < WORKER_NUM; i++) {
+    for (int32_t i = 0; i < worker_num_; i++) {
         workers[i] = std::make_unique<GenerateWorker>(search_options_, gpu_queue_, Q_dist_lambda_, replay_buffer_);
         workers[i]->prepareForCurrPos();
     }
@@ -38,7 +31,7 @@ void GameGenerator::genSlave() {
         gpu_queue_.hash_tables.clear();
         gpu_queue_.indices.clear();
 
-        for (int32_t i = 0; i < WORKER_NUM; i++) {
+        for (int32_t i = 0; i < worker_num_; i++) {
             workers[i]->select();
         }
 
@@ -49,7 +42,7 @@ void GameGenerator::genSlave() {
             evalWithGPU();
         }
 
-        for (int32_t i = 0; i < WORKER_NUM; i++) {
+        for (int32_t i = 0; i < worker_num_; i++) {
             workers[i]->backup();
         }
     }
@@ -263,20 +256,20 @@ bool GenerateWorker::shouldStop() {
 
     const UctHashEntry& root = hash_table_[hash_table_.root_index];
 
-    //探索回数のチェック
-    int32_t max1 = 0, max2 = 0;
-    for (uint64_t i = 0; i < root.moves.size(); i++) {
-        int32_t num = root.N[i] + root.virtual_N[i];
-        if (num > max1) {
-            max2 = max1;
-            max1 = num;
-        } else if (num > max2) {
-            max2 = num;
-        }
-    }
-    int32_t remainder = search_options_.search_limit - (root.sum_N + root.virtual_sum_N);
-    return max1 - max2 >= remainder;
+//    //探索回数のチェック
+//    int32_t max1 = 0, max2 = 0;
+//    for (uint64_t i = 0; i < root.moves.size(); i++) {
+//        int32_t num = root.N[i] + root.virtual_N[i];
+//        if (num > max1) {
+//            max2 = max1;
+//            max1 = num;
+//        } else if (num > max2) {
+//            max2 = num;
+//        }
+//    }
+//    int32_t remainder = search_options_.search_limit - (root.sum_N + root.virtual_sum_N);
+//    return max1 - max2 >= remainder;
 
-    int32_t search_num = hash_table_[hash_table_.root_index].sum_N + hash_table_[hash_table_.root_index].virtual_sum_N;
+    int32_t search_num = root.sum_N + root.virtual_sum_N;
     return search_num >= search_options_.search_limit;
 }
