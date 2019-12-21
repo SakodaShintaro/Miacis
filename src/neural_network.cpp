@@ -206,5 +206,3 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
     fp16_ = fp16;
     (fp16_ ? to(device_, torch::kHalf) : to(device_));
 }
-
-NeuralNetwork nn;

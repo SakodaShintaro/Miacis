@@ -97,8 +97,6 @@ private:
 };
 TORCH_MODULE(NeuralNetwork);
 
-extern NeuralNetwork nn;
-
 //Categorical分布に対する操作
 #ifdef USE_CATEGORICAL
 inline int32_t valueToIndex(double value) {

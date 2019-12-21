@@ -64,17 +64,17 @@ void supervisedLearn() {
     validation_log << "learning_rate" << std::endl;
 
     //評価関数読み込み
-    NeuralNetwork learning_model;
-    torch::load(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    NeuralNetwork neural_network;
+    torch::load(neural_network, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
     //学習前のパラメータを出力
-    torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_before_learn.model");
+    torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_before_learn.model");
 
     //optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
     sgd_option.weight_decay(weight_decay);
-    torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
+    torch::optim::SGD optimizer(neural_network->parameters(), sgd_option);
 
     //学習開始時間の設定
     auto start_time = std::chrono::steady_clock::now();
@@ -93,7 +93,7 @@ void supervisedLearn() {
 
             //学習
             optimizer.zero_grad();
-            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data);
+            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = neural_network->loss(curr_data);
             torch::Tensor loss_sum = torch::zeros({batch_size});
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 loss_sum += coefficients[i] * loss[i].cpu();
@@ -108,12 +108,13 @@ void supervisedLearn() {
             }
         }
 
-        //学習中のパラメータを書き出して推論用のモデルで読み込む
-        torch::save(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-        torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+        //学習中のパラメータを書き出す
+        torch::save(neural_network, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
         //validation_lossを計算
-        std::array<float, LOSS_TYPE_NUM> valid_loss = validation(valid_data);
+        neural_network->eval();
+        std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network, valid_data, 0);
+        neural_network->train();
         float sum_loss = 0;
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             sum_loss += coefficients[i] * valid_loss[i];
@@ -122,7 +123,7 @@ void supervisedLearn() {
         //最小値を更新した場合のみbest.modelとしてパラメータを保存する
         if (sum_loss < min_loss) {
             min_loss = sum_loss;
-            torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_supervised_best.model");
+            torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_supervised_best.model");
         }
 
         dout(std::cout, validation_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << sum_loss << "\t";

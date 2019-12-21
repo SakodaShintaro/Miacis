@@ -66,8 +66,7 @@ void USI::usi() {
 }
 
 void USI::isready() {
-    torch::load(nn, usi_options_.model_name);
-    nn->setGPU(0);
+    searcher_ = std::make_unique<SearcherForPlay>(usi_options_);
     printf("readyok\n");
 }
 
@@ -102,7 +101,6 @@ void USI::setoption() {
 }
 
 void USI::usinewgame() {
-    searcher_ = std::make_unique<SearcherForPlay>(usi_options_);
 }
 
 void USI::position() {

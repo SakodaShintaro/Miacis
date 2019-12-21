@@ -93,7 +93,6 @@ void alphaZero() {
     NeuralNetwork learning_model;
     learning_model->setGPU(0);
     torch::load(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
     //学習前のパラメータを保存
     torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_before_alphazero.model");
@@ -107,17 +106,17 @@ void alphaZero() {
     auto start_time = std::chrono::steady_clock::now();
 
     //GPUの数だけネットワークを生成
-    auto gpu_num = torch::getNumGPUs();
-    std::vector<NeuralNetwork> additional_nn(gpu_num - 1);
-    for (uint64_t i = 0; i < gpu_num - 1; i++) {
-        torch::load(additional_nn[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-        additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
+    size_t gpu_num = torch::getNumGPUs();
+    std::vector<NeuralNetwork> neural_networks(gpu_num);
+    for (uint64_t i = 0; i < gpu_num; i++) {
+        torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+        neural_networks[i]->setGPU(static_cast<int16_t>(i));
     }
 
-    //自己対局スレッドを生成.0番目のものはnnを使い、それ以外は上で生成したネットワークを使う
+    //自己対局スレッドを生成
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     for (uint64_t i = 0; i < gpu_num; i++) {
-        generators[i] = std::make_unique<GameGenerator>(usi_options, Q_dist_lambda, replay_buffer, i == 0 ? nn : additional_nn[i - 1]);
+        generators[i] = std::make_unique<GameGenerator>(usi_options, Q_dist_lambda, replay_buffer, neural_networks[i]);
     }
 
     //生成開始.10^15個の(つまり無限に)棋譜を生成させる
@@ -171,12 +170,11 @@ void alphaZero() {
 
         //一定間隔でモデルを読み込んでActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
-            torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-            for (uint64_t i = 0; i < gpu_num - 1; i++) {
-                generators[i + 1]->gpu_mutex.lock();
-                torch::load(additional_nn[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-                additional_nn[i]->setGPU(static_cast<int16_t>(i + 1));
-                generators[i + 1]->gpu_mutex.unlock();
+            for (uint64_t i = 0; i < gpu_num; i++) {
+                generators[i]->gpu_mutex.lock();
+                torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+                neural_networks[i]->setGPU(static_cast<int16_t>(i));
+                generators[i]->gpu_mutex.unlock();
             }
         }
 

@@ -8,7 +8,10 @@ void test() {
     usi_options.search_limit = 800;
     usi_options.thread_num = 1;
     usi_options.search_batch_size = 1;
+    NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    nn->setGPU(0);
+    nn->eval();
     SearcherForPlay searcher(usi_options);
 
     Position pos;
@@ -48,7 +51,10 @@ void test() {
 }
 
 void checkGenSpeed() {
+    NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    nn->setGPU(0);
+    nn->eval();
 
     constexpr int64_t buffer_size = 1048576;
     constexpr int64_t N = 4;
@@ -132,7 +138,7 @@ void checkVal() {
     data.shrink_to_fit();
 
     for (int32_t i = 1; i <= 100000; i++) {
-        auto v = validation(data, 32);
+        auto v = validation(NeuralNetwork(), data, 32);
         printf("%5d回目 : %f\t%f\n", i, v[0], v[1]);
     }
 }
@@ -142,6 +148,11 @@ void checkPredictSpeed() {
     constexpr int64_t REPEAT_NUM = 1000;
     std::cout << std::fixed;
     std::mt19937_64 engine(0);
+
+    NeuralNetwork nn;
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    nn->setGPU(0);
+    nn->eval();
 
     for (int64_t batch_size = 1; batch_size <= 4096; batch_size *= 2) {
         //バッチサイズ分入力を取得

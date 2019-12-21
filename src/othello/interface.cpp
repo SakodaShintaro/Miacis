@@ -84,10 +84,6 @@ void Interface::set() {
 void Interface::think() {
     root_.init();
 
-    //対局の準備
-    torch::load(nn, options_.model_name);
-    nn->setGPU(0);
-
     options_.search_limit = 80000;
     options_.print_interval = INT_MAX;
     options_.print_policy_num = 800;
@@ -102,8 +98,6 @@ void Interface::test() {
     root_.init();
 
     //対局の準備
-    torch::load(nn, options_.model_name);
-    nn->setGPU(0);
     options_.search_limit = 800;
     options_.search_batch_size = 1;
     options_.thread_num = 1;
@@ -133,8 +127,6 @@ void Interface::battle() {
     std::cin >> turn;
 
     //対局の準備
-    torch::load(nn, options_.model_name);
-    nn->setGPU(0);
     options_.search_limit = 800;
     options_.search_batch_size = 1;
     options_.thread_num = 1;
@@ -173,8 +165,6 @@ void Interface::init() {
     root_.init();
 
     //対局の準備
-    torch::load(nn, options_.model_name);
-    nn->setGPU(0);
     searcher_ = std::make_unique<SearcherForPlay>(options_);
 }
 

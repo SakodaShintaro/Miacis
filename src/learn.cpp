@@ -30,7 +30,7 @@ double elapsedHours(const std::chrono::steady_clock::time_point& start) {
     return seconds / 3600.0;
 }
 
-std::array<float, LOSS_TYPE_NUM> validation(const std::vector<LearningData>& validation_data, uint64_t batch_size) {
+std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<LearningData>& validation_data, uint64_t batch_size) {
     uint64_t index = 0;
     std::array<float, LOSS_TYPE_NUM> losses{};
     torch::NoGradGuard no_grad_guard;
@@ -214,6 +214,7 @@ void searchLearningRate() {
 }
 
 void initParams() {
+    NeuralNetwork nn;
     torch::save(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     std::cout << "初期化したパラメータを" << NeuralNetworkImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
 }
