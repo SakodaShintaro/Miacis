@@ -85,63 +85,6 @@ void SearcherForGenerate::select(Position& pos) {
     }
 }
 
-Index SearcherForGenerate::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
-    uint64_t index = hash_table_.findSameHashIndex(pos);
-
-    // 合流先が検知できればそれを返す
-    if (index != hash_table_.size()) {
-        //GPUに送らないのでこのタイミングでバックアップを行う
-        indices.push(index);
-        backup(indices, actions);
-        return index;
-    }
-
-    // 空のインデックスを探す
-    index = hash_table_.searchEmptyIndex(pos);
-
-    UctHashEntry& curr_node = hash_table_[index];
-
-    // 現在のノードの初期化
-    curr_node.moves = pos.generateAllMoves();
-    curr_node.moves.shrink_to_fit();
-    curr_node.child_indices.assign(curr_node.moves.size(), UctHashTable::NOT_EXPANDED);
-    curr_node.child_indices.shrink_to_fit();
-    curr_node.N.assign(curr_node.moves.size(), 0);
-    curr_node.N.shrink_to_fit();
-    curr_node.virtual_N.assign(curr_node.moves.size(), 0);
-    curr_node.virtual_N.shrink_to_fit();
-    curr_node.sum_N = 0;
-    curr_node.virtual_sum_N = 0;
-    curr_node.evaled = false;
-    curr_node.value = ValueType{};
-
-    // ノードを評価
-    float score;
-    if (pos.isFinish(score)) {
-#ifdef USE_CATEGORICAL
-        curr_node.value = onehotDist(score);
-#else
-        curr_node.value = score;
-#endif
-        curr_node.evaled = true;
-        //GPUに送らないのでこのタイミングでバックアップを行う
-        indices.push(index);
-        backup(indices, actions);
-    } else {
-        //特徴量の追加
-        std::vector<FloatType> this_feature = pos.makeFeature();
-        input_queue_.insert(input_queue_.end(), this_feature.begin(), this_feature.end());
-
-        //インデックス,行動の履歴およびidを追加
-        indices.push(index);
-        index_queue_.push_back(indices);
-        action_queue_.push_back(actions);
-        id_queue_.push_back(id_);
-    }
-
-    return index;
-}
-
 OneTurnElement SearcherForGenerate::resultForCurrPos(Position& root) {
     const UctHashEntry& root_node = hash_table_[root_index_];
     if (root_node.moves.empty()) {

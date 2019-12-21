@@ -35,9 +35,6 @@ private:
     //探索1回を行う関数
     void select(Position& pos);
 
-    //ノードを展開する関数
-    Index expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions);
-
     //現局面の探索結果を返す関数
     OneTurnElement resultForCurrPos(Position& root);
 
@@ -50,6 +47,10 @@ private:
     //探索結果の分布として価値のsoftmax分布を混ぜる割合([0,1])
     //0で普通のAlphaZero
     const FloatType Q_dist_lambda_;
+
+    Searcher searcher_;
+
+    UctHashTable hash_table_;
 
     //評価要求を投げる先
     std::vector<float>& input_queue_;

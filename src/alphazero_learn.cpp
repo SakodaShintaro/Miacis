@@ -123,7 +123,7 @@ void alphaZero() {
     //生成開始.10^15個の(つまり無限に)棋譜を生成させる
     std::vector<std::thread> gen_threads;
     for (uint64_t i = 0; i < gpu_num; i++) {
-        gen_threads.emplace_back([&generators, i]() { generators[i]->genGames((int64_t)(1e15)); });
+        gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
     }
 
     for (int64_t step_num = 1; step_num <= max_step_num; step_num++) {
