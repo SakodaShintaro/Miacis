@@ -35,19 +35,19 @@ void alphaZero() {
     settings.load("alphazero_settings.txt");
 
     //値の取得
-    SearchOptions usi_options;
+    SearchOptions search_options;
     float learn_rate                 = settings.get<float>("learn_rate");
     float momentum                   = settings.get<float>("momentum");
     float lambda                     = settings.get<float>("lambda");
     float alpha                      = settings.get<float>("alpha");
     float Q_dist_lambda              = settings.get<float>("Q_dist_lambda");
-    usi_options.temperature_x1000    = settings.get<float>("Q_dist_temperature") * 1000;
-    usi_options.C_PUCT_x1000         = settings.get<float>("C_PUCT") * 1000;
-    usi_options.draw_turn            = settings.get<int64_t>("draw_turn");
-    usi_options.random_turn          = settings.get<int64_t>("random_turn");
-    usi_options.thread_num           = settings.get<int64_t>("thread_num");
-    usi_options.search_limit         = settings.get<int64_t>("search_limit");
-    usi_options.search_batch_size    = settings.get<int64_t>("search_batch_size");
+    search_options.temperature_x1000 = settings.get<float>("Q_dist_temperature") * 1000;
+    search_options.C_PUCT_x1000      = settings.get<float>("C_PUCT") * 1000;
+    search_options.draw_turn         = settings.get<int64_t>("draw_turn");
+    search_options.random_turn       = settings.get<int64_t>("random_turn");
+    search_options.thread_num        = settings.get<int64_t>("thread_num");
+    search_options.search_limit      = settings.get<int64_t>("search_limit");
+    search_options.search_batch_size = settings.get<int64_t>("search_batch_size");
     int64_t batch_size               = settings.get<int64_t>("batch_size");
     int64_t max_step_num             = settings.get<int64_t>("max_step_num");
     int64_t learn_rate_decay_step1   = settings.get<int64_t>("learn_rate_decay_step1");
@@ -110,7 +110,7 @@ void alphaZero() {
     for (uint64_t i = 0; i < gpu_num; i++) {
         torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
         neural_networks[i]->setGPU(static_cast<int16_t>(i));
-        generators[i] = std::make_unique<GameGenerator>(usi_options, Q_dist_lambda, replay_buffer, neural_networks[i]);
+        generators[i] = std::make_unique<GameGenerator>(search_options, Q_dist_lambda, replay_buffer, neural_networks[i]);
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
     }
 

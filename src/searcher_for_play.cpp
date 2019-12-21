@@ -2,11 +2,11 @@
 #include <thread>
 
 SearcherForPlay::SearcherForPlay(const SearchOptions& usi_options)
-: stop_signal(false), usi_options_(usi_options), hash_table_(usi_options.USI_Hash * 1024 * 1024 / 1000) {
+: stop_signal(false), search_options_(usi_options), hash_table_(usi_options.USI_Hash * 1024 * 1024 / 1000) {
     //GPUを準備
     for (int64_t i = 0; i < usi_options.gpu_num; i++) {
         neural_networks_.emplace_back();
-        torch::load(neural_networks_[i], usi_options_.model_name);
+        torch::load(neural_networks_[i], search_options_.model_name);
         neural_networks_[i]->setGPU(i);
         neural_networks_[i]->eval();
     }
@@ -31,17 +31,17 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
 
     //制限の設定
     time_limit_ = time_limit;
-    node_limit_ = usi_options_.search_limit;
+    node_limit_ = search_options_.search_limit;
 
     //古いハッシュを削除
-    hash_table_.deleteOldHash(root, usi_options_.leave_root);
+    hash_table_.deleteOldHash(root, search_options_.leave_root);
 
     //表示時刻の初期化
-    next_print_time_ = usi_options_.print_interval;
+    next_print_time_ = search_options_.print_interval;
 
     //キューの初期化
-    for (int64_t i = 0; i < usi_options_.gpu_num; i++) {
-        for (int64_t j = 0; j < usi_options_.thread_num; j++) {
+    for (int64_t i = 0; i < search_options_.gpu_num; i++) {
+        for (int64_t j = 0; j < search_options_.thread_num; j++) {
             gpu_queues_[i][j].inputs.clear();
             gpu_queues_[i][j].hash_tables.clear();
             gpu_queues_[i][j].indices.clear();
@@ -74,8 +74,8 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     }
 
     //GPUに付随するスレッドを立ち上げ
-    std::vector<std::thread> threads(usi_options_.gpu_num);
-    for (int64_t i = 0; i < usi_options_.gpu_num; i++) {
+    std::vector<std::thread> threads(search_options_.gpu_num);
+    for (int64_t i = 0; i < search_options_.gpu_num; i++) {
         threads[i] = std::thread(&SearcherForPlay::gpuThreadFunc, this, root, i);
     }
 
@@ -88,9 +88,9 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     printUSIInfo();
 
     //行動選択
-    if (root.turnNumber() < usi_options_.random_turn) {
+    if (root.turnNumber() < search_options_.random_turn) {
         std::vector<FloatType> distribution(curr_node.moves.size());
-        if (usi_options_.temperature_x1000 == 0) {
+        if (search_options_.temperature_x1000 == 0) {
             //探索回数を正規化した分布に従って行動選択
             for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
                 distribution[i] = (FloatType) curr_node.N[i] / curr_node.sum_N;
@@ -102,7 +102,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
             for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
                 Q[i] = hash_table_.expQfromNext(curr_node, i);
             }
-            distribution = softmax(Q, usi_options_.temperature_x1000 / 1000.0f);
+            distribution = softmax(Q, search_options_.temperature_x1000 / 1000.0f);
         }
 
         return curr_node.moves[randomChoose(distribution)];
@@ -150,8 +150,8 @@ bool SearcherForPlay::shouldStop() {
 
 void SearcherForPlay::gpuThreadFunc(const Position& root, int64_t gpu_id) {
     //workerを立ち上げ
-    std::vector<std::thread> threads(usi_options_.thread_num);
-    for (int64_t i = 0; i < usi_options_.thread_num; i++) {
+    std::vector<std::thread> threads(search_options_.thread_num);
+    for (int64_t i = 0; i < search_options_.thread_num; i++) {
         threads[i] = std::thread(&SearcherForPlay::workerThreadFunc, this, root, gpu_id, i);
     }
 
@@ -182,7 +182,7 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
         hash_table_[hash_table_.root_index].mutex.unlock();
 
         //評価要求を貯める
-        for (int64_t i = 0; i < usi_options_.search_batch_size && !shouldStop(); i++) {
+        for (int64_t i = 0; i < search_options_.search_batch_size && !shouldStop(); i++) {
             searchers_[gpu_id][thread_id].select(root);
         }
 
@@ -268,13 +268,13 @@ void SearcherForPlay::printUSIInfo() const {
     }
     std::cout << std::endl;
 
-    if (usi_options_.print_policy_num > 0) {
+    if (search_options_.print_policy_num > 0) {
         //まず各指し手の価値を取得
         std::vector<FloatType> Q(curr_node.moves.size());
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
             Q[i] = hash_table_.expQfromNext(curr_node, i);
         }
-        std::vector<FloatType> softmaxed_Q = softmax(Q, usi_options_.temperature_x1000 / 1000.f);
+        std::vector<FloatType> softmaxed_Q = softmax(Q, search_options_.temperature_x1000 / 1000.f);
 
         //ソートするために構造体を準備
         struct MoveWithInfo {
@@ -310,7 +310,7 @@ void SearcherForPlay::printUSIInfo() const {
 
         //指定された数だけ価値が高い順に表示する
         //GUIを通すと後に出力したものが上に来るので昇順ソートしたものを出力すれば上から降順になる
-        for (uint64_t i = std::max((int64_t)0, (int64_t)curr_node.moves.size() - usi_options_.print_policy_num);
+        for (uint64_t i = std::max((int64_t)0, (int64_t)curr_node.moves.size() - search_options_.print_policy_num);
                       i < curr_node.moves.size(); i++) {
 #ifdef USE_CATEGORICAL
             printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  %05.1f ", curr_node.moves.size() - i,

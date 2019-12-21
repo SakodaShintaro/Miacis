@@ -37,7 +37,7 @@ private:
     //情報をUSIプロトコルに従って標準出力に出す関数
     void printUSIInfo() const;
 
-    const SearchOptions& usi_options_;
+    const SearchOptions& search_options_;
 
     //置換表は1個
     UctHashTable hash_table_;

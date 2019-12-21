@@ -20,13 +20,13 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
         for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
             P += Q_dist[j];
         }
-        FloatType ucb = usi_options_.Q_coeff_x1000 / 1000.0 * Q
-                      + usi_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
-                      + usi_options_.P_coeff_x1000 / 1000.0 * P;
+        FloatType ucb = search_options_.Q_coeff_x1000 / 1000.0 * Q
+                        + search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
+                        + search_options_.P_coeff_x1000 / 1000.0 * P;
 #else
         FloatType Q = (node.N[i] == 0 ? MIN_SCORE : hash_table_.QfromNextValue(node, i));
-        FloatType ucb = usi_options_.Q_coeff_x1000 / 1000.0 * Q
-                      + usi_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
+        FloatType ucb = search_options_.Q_coeff_x1000 / 1000.0 * Q
+                      + search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
 #endif
 
         if (ucb > max_value) {
@@ -50,7 +50,7 @@ void Searcher::select(Position& pos) {
     while (index != UctHashTable::NOT_EXPANDED) {
         std::unique_lock<std::mutex> lock(hash_table_[index].mutex);
 
-        if (pos.turnNumber() > usi_options_.draw_turn) {
+        if (pos.turnNumber() > search_options_.draw_turn) {
             //手数が制限まで達している場合も抜ける
             break;
         }
@@ -189,7 +189,7 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
         //GPUに送らないのでこのタイミングでバックアップを行う
         hash_table_[index].mutex.unlock();
         backup(indices, actions);
-    } else if (pos.turnNumber() > usi_options_.draw_turn) {
+    } else if (pos.turnNumber() > search_options_.draw_turn) {
         FloatType value = (MAX_SCORE + MIN_SCORE) / 2;
 #ifdef USE_CATEGORICAL
         curr_node.value = onehotDist(value);
@@ -226,7 +226,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
     hash_table_[leaf].mutex.unlock();
 
     //毎回計算するのは無駄だけど仕方ないか
-    //FloatType lambda = usi_options_.UCT_lambda_x1000 / 1000.0;
+    //FloatType lambda = search_options_.UCT_lambda_x1000 / 1000.0;
     static constexpr FloatType lambda = 1.0;
 
     //バックアップ

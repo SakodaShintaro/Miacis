@@ -4,7 +4,7 @@
 void GameGenerator::genGames() {
     //生成スレッドを生成
     std::vector<std::thread> threads;
-    for (int64_t i = 0; i < usi_options_.thread_num; i++) {
+    for (int64_t i = 0; i < search_options_.thread_num; i++) {
         threads.emplace_back(&GameGenerator::genSlave, this);
     }
 
@@ -18,14 +18,14 @@ void GameGenerator::genSlave() {
     constexpr int64_t WORKER_NUM = 1;
 
     //容量の確保
-    gpu_queue_.inputs.reserve(WORKER_NUM * usi_options_.search_batch_size * INPUT_CHANNEL_NUM * SQUARE_NUM);
-    gpu_queue_.hash_tables.reserve(WORKER_NUM * usi_options_.search_batch_size);
-    gpu_queue_.indices.reserve(WORKER_NUM * usi_options_.search_batch_size);
+    gpu_queue_.inputs.reserve(WORKER_NUM * search_options_.search_batch_size * INPUT_CHANNEL_NUM * SQUARE_NUM);
+    gpu_queue_.hash_tables.reserve(WORKER_NUM * search_options_.search_batch_size);
+    gpu_queue_.indices.reserve(WORKER_NUM * search_options_.search_batch_size);
 
     std::vector<std::unique_ptr<GenerateWorker>> workers(WORKER_NUM);
 
     for (int32_t i = 0; i < WORKER_NUM; i++) {
-        workers[i] = std::make_unique<GenerateWorker>(usi_options_, gpu_queue_, Q_dist_lambda_, replay_buffer_);
+        workers[i] = std::make_unique<GenerateWorker>(search_options_, gpu_queue_, Q_dist_lambda_, replay_buffer_);
         workers[i]->prepareForCurrPos();
     }
 
@@ -107,7 +107,7 @@ void GameGenerator::evalWithGPU() {
 
 GenerateWorker::GenerateWorker(const SearchOptions& usi_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda,
                                ReplayBuffer& rb)
-: usi_options_(usi_options),
+: search_options_(usi_options),
   gpu_queue_(gpu_queue),
   Q_dist_lambda_(Q_dist_lambda),
   replay_buffer_(rb),
@@ -160,7 +160,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
     element.score = best_value;
 
     //policyのセット
-    if (position_.turnNumber() < usi_options_.random_turn) {
+    if (position_.turnNumber() < search_options_.random_turn) {
         //分布に従ってランダムに行動選択
         //探索回数を正規化した分布
         //探索回数のsoftmaxを取ることを検討したほうが良いかもしれない
@@ -181,7 +181,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
             //その他は普通に計算
             Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : hash_table_.expQfromNext(root_node, i));
         }
-        Q_dist = softmax(Q_dist, usi_options_.temperature_x1000 / 1000.0f);
+        Q_dist = softmax(Q_dist, search_options_.temperature_x1000 / 1000.0f);
 
         //教師分布のセット
         //(1)どちらの分布を使うべきか
@@ -245,7 +245,7 @@ void GenerateWorker::select() {
         if (hash_table_[hash_table_.root_index].sum_N == 0) {
             root_raw_value_ = hash_table_[hash_table_.root_index].value;
         }
-        for (int64_t j = 0; j < usi_options_.search_batch_size && !shouldStop(); j++) {
+        for (int64_t j = 0; j < search_options_.search_batch_size && !shouldStop(); j++) {
             searcher_.select(position_);
         }
     }
@@ -274,9 +274,9 @@ bool GenerateWorker::shouldStop() {
             max2 = num;
         }
     }
-    int32_t remainder = usi_options_.search_limit - (root.sum_N + root.virtual_sum_N);
+    int32_t remainder = search_options_.search_limit - (root.sum_N + root.virtual_sum_N);
     return max1 - max2 >= remainder;
 
     int32_t search_num = hash_table_[hash_table_.root_index].sum_N + hash_table_[hash_table_.root_index].virtual_sum_N;
-    return search_num >= usi_options_.search_limit;
+    return search_num >= search_options_.search_limit;
 }

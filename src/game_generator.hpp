@@ -15,7 +15,7 @@
 class GameGenerator {
 public:
     GameGenerator(const SearchOptions& usi_options, FloatType Q_dist_lambda, ReplayBuffer& rb, NeuralNetwork nn)
-        : stop_signal(false), usi_options_(usi_options), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb), neural_network_(std::move(nn)) {
+        : stop_signal(false), search_options_(usi_options), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb), neural_network_(std::move(nn)) {
         neural_network_->eval();
     };
 
@@ -38,7 +38,7 @@ private:
     void genSlave();
 
     //UsiOptionを持っておく
-    const SearchOptions& usi_options_;
+    const SearchOptions& search_options_;
 
     //探索結果の分布として価値のsoftmax分布を混ぜる割合([0,1])
     //0で普通のAlphaZero
@@ -67,7 +67,7 @@ private:
     bool shouldStop();
 
     //UsiOptionを持っておく
-    const SearchOptions& usi_options_;
+    const SearchOptions& search_options_;
 
     //評価要求を投げる先
     GPUQueue& gpu_queue_;
