@@ -63,12 +63,7 @@ private:
     //UsiOptionを持っておく
     const SearchOptions& usi_options_;
 
-    Game game_;
-    Position position_;
-    UctHashTable hash_table_;
-    Searcher searcher_;
-    Index root_index_;
-
+    //評価要求を投げる先
     GPUQueue& gpu_queue_;
 
     //探索結果の分布として価値のsoftmax分布を混ぜる割合([0,1])
@@ -77,6 +72,12 @@ private:
 
     //データを送るReplayBufferへの参照
     ReplayBuffer& replay_buffer_;
+
+    Game game_;
+    Position position_;
+    UctHashTable hash_table_;
+    Searcher searcher_;
+    Index root_index_;
 
     //漸進的に更新されてしまうのでルート局面の生のValue出力を保存しておく
     //ルートノードのValueは更新する意味がないのでそのように変更すれば保存しておく必要もないのだが

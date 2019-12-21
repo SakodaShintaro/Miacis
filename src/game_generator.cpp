@@ -112,11 +112,14 @@ std::vector<FloatType> GameGenerator::dirichletDistribution(uint64_t k, FloatTyp
 
 GenerateWorker::GenerateWorker(const SearchOptions& usi_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda,
                                ReplayBuffer& rb)
-: usi_options_(usi_options), gpu_queue_(gpu_queue), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb),
+: usi_options_(usi_options),
+  gpu_queue_(gpu_queue),
+  Q_dist_lambda_(Q_dist_lambda),
+  replay_buffer_(rb),
   hash_table_(usi_options.USI_Hash),
   searcher_(usi_options, hash_table_, gpu_queue),
   root_index_(-1),
-  root_raw_value_({})
+  root_raw_value_{}
 {}
 
 void GenerateWorker::prepareForCurrPos() {
