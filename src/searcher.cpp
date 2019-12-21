@@ -71,7 +71,8 @@ void Searcher::select(Position& pos) {
         curr_indices.push(index);
 
         //選択
-        auto action = selectMaxUcbChild(hash_table_[index]);
+        int32_t action = selectMaxUcbChild(hash_table_[index]);
+        assert(pos.isLegalMove(hash_table_[index].moves[action]));
 
         //取った行動を記録
         curr_actions.push(action);
@@ -97,13 +98,13 @@ void Searcher::select(Position& pos) {
     if (leaf_index == -1) {
         //shouldStopがtrueになったということ
         //基本的には置換表に空きがなかったということだと思われる
-        return;
+        //ここに来ると以降もここに来続けるし、バックアップされないので
+    } else {
+        //葉の直前ノードを更新
+        hash_table_[index].mutex.lock();
+        hash_table_[index].child_indices[action] = leaf_index;
+        hash_table_[index].mutex.unlock();
     }
-
-    //葉の直前ノードを更新
-    hash_table_[index].mutex.lock();
-    hash_table_[index].child_indices[action] = leaf_index;
-    hash_table_[index].mutex.unlock();
 
     //バックアップはGPU計算後にやるので局面だけ戻す
     for (uint64_t i = 0; i < move_num; i++) {

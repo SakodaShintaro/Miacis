@@ -111,7 +111,7 @@ GenerateWorker::GenerateWorker(const SearchOptions& usi_options, GPUQueue& gpu_q
   gpu_queue_(gpu_queue),
   Q_dist_lambda_(Q_dist_lambda),
   replay_buffer_(rb),
-  hash_table_(usi_options.USI_Hash),
+  hash_table_(usi_options.search_limit * 3),
   searcher_(usi_options, hash_table_, gpu_queue),
   root_raw_value_{}
 {}
@@ -229,8 +229,6 @@ void GenerateWorker::select() {
             replay_buffer_.push(game_);
 
             //次の対局へ向かう
-            //まず担当するゲームのidを取得
-            //0より大きい場合のみ継続
             //局面の初期化
             position_.init();
 
