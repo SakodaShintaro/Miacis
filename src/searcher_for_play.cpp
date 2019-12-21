@@ -59,16 +59,19 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
         return NULL_MOVE;
     }
 
-    //GPUで計算:moves.size() == 1のときはいらなそうだけど
-    auto y = neural_networks_[0]->policyAndValueBatch(gpu_queues_[0][0].inputs);
+    //GPUで計算
+    if (!curr_node.evaled) {
+        auto y = neural_networks_[0]->policyAndValueBatch(gpu_queues_[0][0].inputs);
 
-    //ルートノードへ書き込み
-    curr_node.nn_policy.resize(curr_node.moves.size());
-    for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-        curr_node.nn_policy[i] = y.first[0][curr_node.moves[i].toLabel()];
+        //ルートノードへ書き込み
+        curr_node.nn_policy.resize(curr_node.moves.size());
+        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
+            curr_node.nn_policy[i] = y.first[0][curr_node.moves[i].toLabel()];
+        }
+        curr_node.nn_policy = softmax(curr_node.nn_policy);
+        curr_node.value = y.second[0];
+        curr_node.evaled = true;
     }
-    curr_node.nn_policy = softmax(curr_node.nn_policy);
-    curr_node.value = y.second[0];
 
     //GPUに付随するスレッドを立ち上げ
     std::vector<std::thread> threads(usi_options_.gpu_num);
