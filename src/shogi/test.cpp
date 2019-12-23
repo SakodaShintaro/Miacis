@@ -63,53 +63,52 @@ void checkGenSpeed() {
     usi_options.draw_turn = 512;
     usi_options.random_turn = 512;
     usi_options.temperature_x1000 = 100;
+    usi_options.thread_num = 4;
     constexpr FloatType Q_dist_lambda = 1.0;
     std::cout << std::fixed;
 
     std::ofstream ofs("check_gen_speed.txt");
     ofs << "thread batch_size worker pos sec speed(pos/sec)" << std::fixed << std::endl;
 
-    for (usi_options.thread_num = 2; usi_options.thread_num <= 4; usi_options.thread_num++) {
-        for (int64_t worker_num = 32; worker_num <= 128; worker_num *= 2) {
-            for (usi_options.search_batch_size = 1; usi_options.search_batch_size <= 64; usi_options.search_batch_size *= 2) {
-                ReplayBuffer buffer(0, buffer_size, 10 * buffer_size, 1.0, 1.0);
-                auto start = std::chrono::steady_clock::now();
-                GameGenerator generator(usi_options, worker_num, Q_dist_lambda, buffer, nn);
-                std::thread t(&GameGenerator::genGames, &generator);
-                std::vector<double> gen_speeds;
-                while (true) {
-                    std::this_thread::sleep_for(std::chrono::seconds(60));
-                    auto curr_time = std::chrono::steady_clock::now();
-                    auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
-                    double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
-                    std::cout << "thread = " << usi_options.thread_num
-                              << ",  batch_size = " << std::setw(2) << usi_options.search_batch_size
-                              << ",  worker = " << std::setw(4) << worker_num
-                              << ",  pos = " << std::setw(7) << buffer.totalNum()
-                              << ",  sec = " << std::setw(9) << ela.count() / 1000
-                              << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec"
-                              << std::endl;
-                    gen_speeds.push_back(gen_speed_per_sec);
-                    if (gen_speeds.size() < N) {
-                        continue;
-                    }
-
-                    //直近N回を見て、その中の最大値と最小値が基準値以下だったら収束したと判定して打ち切る
-                    double min_value = *std::min_element(gen_speeds.end() - N, gen_speeds.end());
-                    double max_value = *std::max_element(gen_speeds.end() - N, gen_speeds.end());
-                    if (min_value != 0 && (max_value - min_value) < 5e-2) {
-                        ofs << usi_options.thread_num << " "
-                            << std::setw(2) << usi_options.search_batch_size << " "
-                            << std::setw(4) << worker_num << " "
-                            << std::setw(7) << buffer.totalNum() << " "
-                            << std::setw(9) << ela.count() / 1000 << " "
-                            << std::setprecision(3) << gen_speed_per_sec << std::endl;
-                        break;
-                    }
+    for (int64_t worker_num = 32; worker_num <= 128; worker_num *= 2) {
+        for (usi_options.search_batch_size = 1; usi_options.search_batch_size <= usi_options.search_limit; usi_options.search_batch_size *= 2) {
+            ReplayBuffer buffer(0, buffer_size, 100 * buffer_size, 1.0, 1.0);
+            auto start = std::chrono::steady_clock::now();
+            GameGenerator generator(usi_options, worker_num, Q_dist_lambda, buffer, nn);
+            std::thread t(&GameGenerator::genGames, &generator);
+            std::vector<double> gen_speeds;
+            while (true) {
+                std::this_thread::sleep_for(std::chrono::seconds(60));
+                auto curr_time = std::chrono::steady_clock::now();
+                auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
+                double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
+                std::cout << "thread = " << usi_options.thread_num
+                          << ",  batch_size = " << std::setw(2) << usi_options.search_batch_size
+                          << ",  worker = " << std::setw(4) << worker_num
+                          << ",  pos = " << std::setw(7) << buffer.totalNum()
+                          << ",  sec = " << std::setw(9) << ela.count() / 1000
+                          << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec"
+                          << std::endl;
+                gen_speeds.push_back(gen_speed_per_sec);
+                if (gen_speeds.size() < N) {
+                    continue;
                 }
-                generator.stop_signal = true;
-                t.join();
+
+                //直近N回を見て、その中の最大値と最小値が基準値以下だったら収束したと判定して打ち切る
+                double min_value = *std::min_element(gen_speeds.end() - N, gen_speeds.end());
+                double max_value = *std::max_element(gen_speeds.end() - N, gen_speeds.end());
+                if (min_value != 0 && (max_value - min_value) < 5e-2) {
+                    ofs << usi_options.thread_num << " "
+                        << std::setw(2) << usi_options.search_batch_size << " "
+                        << std::setw(4) << worker_num << " "
+                        << std::setw(7) << buffer.totalNum() << " "
+                        << std::setw(9) << ela.count() / 1000 << " "
+                        << std::setprecision(3) << gen_speed_per_sec << std::endl;
+                    break;
+                }
             }
+            generator.stop_signal = true;
+            t.join();
         }
     }
 }

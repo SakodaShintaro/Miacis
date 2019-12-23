@@ -17,7 +17,7 @@ learn_rate_decay_step2 1750000
 learn_rate_decay_step3 2000000
 update_interval        4000
 batch_size_per_gen     4
-worker_num_per_gpu     64
+worker_num_per_gpu     32
 max_stack_size         1048576
 first_wait             524288
 search_limit           800
