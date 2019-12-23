@@ -90,8 +90,8 @@ void alphaZero() {
 
     //モデル読み込み
     NeuralNetwork learning_model;
-    learning_model->setGPU(0);
     torch::load(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    learning_model->setGPU(0);
 
     //学習前のパラメータを保存
     torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_before_alphazero.model");
