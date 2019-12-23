@@ -170,10 +170,14 @@ void alphaZero() {
         //一定間隔でモデルを読み込んでActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
             for (uint64_t i = 0; i < gpu_num; i++) {
-                generators[i]->gpu_mutex.lock();
+                if (i > 0) {
+                    generators[i]->gpu_mutex.lock();
+                }
                 torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
                 neural_networks[i]->setGPU(static_cast<int16_t>(i));
-                generators[i]->gpu_mutex.unlock();
+                if (i > 0) {
+                    generators[i]->gpu_mutex.unlock();
+                }
             }
         }
 
