@@ -89,8 +89,8 @@ void alphaZero() {
         dout(std::cout, learn_log) << "\t" + LOSS_TYPE_NAME[i] + "_loss";
         validation_log             << "\t" + LOSS_TYPE_NAME[i] + "_loss";
     }
-    dout(std::cout, learn_log) << "time\tstep" << std::fixed << std::endl;
-    validation_log             << "time\tstep" << std::fixed << std::endl;
+    dout(std::cout, learn_log) << "\ttime\tstep" << std::fixed << std::endl;
+    validation_log             << "\ttime\tstep" << std::fixed << std::endl;
 
     //データを取得
     std::vector<LearningData> validation_data = loadData(validation_kifu_path);
