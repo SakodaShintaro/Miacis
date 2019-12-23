@@ -57,7 +57,7 @@ void checkGenSpeed() {
     nn->eval();
 
     constexpr int64_t buffer_size = 1048576;
-    constexpr int64_t N = 3;
+    constexpr int64_t N = 4;
     SearchOptions usi_options;
     usi_options.search_limit = 800;
     usi_options.draw_turn = 512;
@@ -69,9 +69,9 @@ void checkGenSpeed() {
     std::ofstream ofs("check_gen_speed.txt");
     ofs << "thread batch_size worker pos sec speed(pos/sec)" << std::fixed << std::endl;
 
-    for (int64_t worker_num = 16; worker_num <= 128; worker_num *= 2) {
-        for (usi_options.search_batch_size = 1; usi_options.search_batch_size <= 16; usi_options.search_batch_size++) {
-            for (usi_options.thread_num = 2; usi_options.thread_num <= 4; usi_options.thread_num++) {
+    for (usi_options.thread_num = 2; usi_options.thread_num <= 4; usi_options.thread_num++) {
+        for (int64_t worker_num = 32; worker_num <= 128; worker_num *= 2) {
+            for (usi_options.search_batch_size = 1; usi_options.search_batch_size <= 64; usi_options.search_batch_size *= 2) {
                 ReplayBuffer buffer(0, buffer_size, 10 * buffer_size, 1.0, 1.0);
                 auto start = std::chrono::steady_clock::now();
                 GameGenerator generator(usi_options, worker_num, Q_dist_lambda, buffer, nn);
