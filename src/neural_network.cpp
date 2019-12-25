@@ -201,6 +201,89 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     return { policy_loss, value_loss };
 }
 
+std::array<torch::Tensor, LOSS_TYPE_NUM>
+NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha) {
+    static Position pos;
+
+    if (data.size() % 2 == 1) {
+        std::cout << "データサイズが奇数 in mixUpLoss()" << std::endl;
+        exit(1);
+    }
+    uint64_t actual_batch_size = data.size() / 2;
+
+    constexpr int64_t INPUT_DIM = BOARD_WIDTH * BOARD_WIDTH * INPUT_CHANNEL_NUM;
+    std::vector<FloatType> inputs(actual_batch_size * INPUT_DIM);
+    std::vector<float> policy_teacher_dist(actual_batch_size * POLICY_DIM, 0.0);
+    std::vector<float> value_teacher_dist(actual_batch_size * BIN_SIZE, 0.0);
+
+    static std::mt19937_64 engine(std::random_device{}());
+    std::gamma_distribution<float> gamma_dist(alpha);
+
+    for (uint64_t i = 0; i < data.size(); i += 2) {
+        //i番目とi+1番目のデータをmix
+        //ベータ分布はガンマ分布を組み合わせたものなのでガンマ分布からサンプリングすれば良い
+        //cf. https://shoichimidorikawa.github.io/Lec/ProbDistr/gammaDist.pdf
+        float gamma1 = gamma_dist(engine), gamma2 = gamma_dist(engine);
+        float beta = gamma1 / (gamma1 + gamma2);
+
+        pos.fromStr(data[i].position_str);
+        std::vector<float> feature1 = pos.makeFeature(false);
+        pos.fromStr(data[i + 1].position_str);
+        std::vector<float> feature2 = pos.makeFeature(false);
+
+        //入力を足し合わせる
+        for (int64_t j = 0; j < INPUT_DIM; j++) {
+            inputs[i / 2 * INPUT_DIM + j] = (beta * feature1[j] + (1 - beta) * feature2[j]);
+        }
+
+        //教師信号を足し合わせる
+        //Policy
+        for (const std::pair<int32_t, float>& pair : data[i].policy) {
+            policy_teacher_dist[i / 2 * POLICY_DIM + pair.first] += beta * pair.second;
+        }
+        for (const std::pair<int32_t, float>& pair : data[i + 1].policy) {
+            policy_teacher_dist[i / 2 * POLICY_DIM + pair.first] += (1 - beta) * pair.second;
+        }
+
+        //Value
+#ifdef USE_CATEGORICAL
+        value_teacher_dist[i / 2 * BIN_SIZE + data[i].value] += beta;
+        value_teacher_dist[i / 2 * BIN_SIZE + data[i + 1].value] += (1 - beta);
+#else
+        value_teacher_dist[i / 2] += beta * data[i].value;
+        value_teacher_dist[i / 2] += (1 - beta) * data[i + 1].value;
+#endif
+    }
+
+    //順伝播
+    std::pair<torch::Tensor, torch::Tensor> y = forward(inputs);
+    torch::Tensor logits = y.first.view({ -1, POLICY_DIM });
+
+    //Policyの損失計算
+    torch::Tensor policy_target = (fp16_ ? torch::tensor(policy_teacher_dist).to(device_, torch::kHalf) :
+                                           torch::tensor(policy_teacher_dist).to(device_)).view({ -1, POLICY_DIM });
+
+    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false);
+
+#ifdef USE_CATEGORICAL
+    torch::Tensor categorical_target = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
+                                                torch::tensor(value_teacher_dist).to(device_)).view({ -1, BIN_SIZE });
+    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);;
+#else
+
+    torch::Tensor value_t = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
+                                     torch::tensor(value_teacher_dist).to(device_));
+    torch::Tensor value = y.second.view(-1);
+#ifdef USE_SIGMOID
+    torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
+#else
+    torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
+#endif
+#endif
+
+    return { policy_loss, value_loss };
+}
+
 void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
