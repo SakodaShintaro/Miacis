@@ -14,13 +14,15 @@ set(SRCS uct_hash_table.cpp
          replay_buffer.cpp
          game_generator.cpp
          neural_network.cpp
+         neural_network_modules.cpp
          supervised_learn.cpp
          learn.cpp
          alphazero_learn.cpp
          searcher.cpp
          searcher_for_play.cpp
          hyperparameter_manager.cpp
-         segment_tree.cpp)
+         segment_tree.cpp
+         )
 
 #将棋用のバイナリをコンパイルするのに必要なソース
 set(SHOGI_SRCS shogi/main.cpp
