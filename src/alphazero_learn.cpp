@@ -11,6 +11,7 @@ void alphaZero() {
     settings.add("Q_dist_temperature",     0.0f, 1e10f);
     settings.add("Q_dist_lambda",          0.0f, 1.0f);
     settings.add("C_PUCT",                 0.0f, 1e10f);
+    settings.add("use_fp16",               0, (int64_t)1);
     settings.add("draw_turn",              0, (int64_t)1024);
     settings.add("random_turn",            0, (int64_t)1024);
     settings.add("batch_size",             1, (int64_t)1e10);
@@ -46,6 +47,7 @@ void alphaZero() {
     float Q_dist_lambda              = settings.get<float>("Q_dist_lambda");
     search_options.temperature_x1000 = settings.get<float>("Q_dist_temperature") * 1000;
     search_options.C_PUCT_x1000      = settings.get<float>("C_PUCT") * 1000;
+    search_options.use_fp16          = settings.get<int64_t>("use_fp16");
     search_options.draw_turn         = settings.get<int64_t>("draw_turn");
     search_options.random_turn       = settings.get<int64_t>("random_turn");
     search_options.thread_num        = settings.get<int64_t>("thread_num");
@@ -119,7 +121,7 @@ void alphaZero() {
     std::vector<std::thread> gen_threads;
     for (uint64_t i = 0; i < gpu_num; i++) {
         torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-        neural_networks[i]->setGPU(static_cast<int16_t>(i));
+        neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
         generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_gpu, Q_dist_lambda, replay_buffer, neural_networks[i]);
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
     }
@@ -174,7 +176,7 @@ void alphaZero() {
                     generators[i]->gpu_mutex.lock();
                 }
                 torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-                neural_networks[i]->setGPU(static_cast<int16_t>(i));
+                neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
                 if (i > 0) {
                     generators[i]->gpu_mutex.unlock();
                 }

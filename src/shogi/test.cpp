@@ -53,18 +53,21 @@ void test() {
 void checkGenSpeed() {
     NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    nn->setGPU(0);
-    nn->eval();
 
     constexpr int64_t buffer_size = 1048576;
     constexpr int64_t N = 4;
     SearchOptions usi_options;
+    usi_options.use_fp16 = false;
     usi_options.search_limit = 800;
     usi_options.draw_turn = 512;
     usi_options.random_turn = 512;
     usi_options.temperature_x1000 = 100;
     usi_options.thread_num = 4;
     constexpr FloatType Q_dist_lambda = 1.0;
+
+    nn->setGPU(0, usi_options.use_fp16);
+    nn->eval();
+
     std::cout << std::fixed;
 
     std::ofstream ofs("check_gen_speed.txt");

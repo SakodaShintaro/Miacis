@@ -7,7 +7,7 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& usi_options)
     for (int64_t i = 0; i < usi_options.gpu_num; i++) {
         neural_networks_.emplace_back();
         torch::load(neural_networks_[i], search_options_.model_name);
-        neural_networks_[i]->setGPU(i);
+        neural_networks_[i]->setGPU(i, search_options_.use_fp16);
         neural_networks_[i]->eval();
     }
 
