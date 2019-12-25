@@ -1,7 +1,22 @@
 #include "neural_network_modules.hpp"
 
+#ifdef USE_SEPARABLE_CONV
+SeparableConvImpl::SeparableConvImpl(int64_t input_ch, int64_t output_ch, int64_t kernel_size) {
+    depth_wise_conv_ = register_module("depth_wise_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(input_ch,  input_ch, kernel_size).with_bias(false).padding(kernel_size / 2).groups(input_ch)));
+    point_wise_conv_ = register_module("point_wise_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(input_ch, output_ch, 1).with_bias(false).padding(0)));
+}
+
+torch::Tensor SeparableConvImpl::forward(const torch::Tensor& x) {
+    return point_wise_conv_(depth_wise_conv_(x));
+}
+#endif
+
 Conv2DwithBatchNormImpl::Conv2DwithBatchNormImpl(int64_t input_ch, int64_t output_ch, int64_t kernel_size) {
+#ifdef USE_SEPARABLE_CONV
+    conv_ = register_module("conv_", SeparableConv(input_ch, output_ch, kernel_size));
+#else
     conv_ = register_module("conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(input_ch, output_ch, kernel_size).with_bias(false).padding(kernel_size / 2)));
+#endif
     norm_ = register_module("norm_", torch::nn::BatchNorm(output_ch));
 }
 
