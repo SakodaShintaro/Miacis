@@ -83,14 +83,14 @@ void alphaZero() {
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");
     std::ofstream validation_log("alphazero_validation_log.txt");
-    dout(std::cout, learn_log) << "time\tstep";
-    validation_log             << "time\tstep";
+    dout(std::cout, learn_log) << "time\tstep\tsum_loss";
+    validation_log             << "time\tstep\tsum_loss";
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         dout(std::cout, learn_log) << "\t" + LOSS_TYPE_NAME[i] + "_loss";
         validation_log             << "\t" + LOSS_TYPE_NAME[i] + "_loss";
     }
-    dout(std::cout, learn_log) << "\ttime\tstep" << std::fixed << std::endl;
-    validation_log             << "\ttime\tstep" << std::fixed << std::endl;
+    dout(std::cout, learn_log) << std::fixed << std::endl;
+    validation_log             << std::fixed << std::endl;
 
     //データを取得
     std::vector<LearningData> validation_data = loadData(validation_kifu_path);
