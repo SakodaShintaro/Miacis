@@ -58,7 +58,7 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
         std::vector<FloatType> inputs;
         for (const LearningData& datum : curr_data) {
             pos.fromStr(datum.position_str);
-            std::vector<float> feature = pos.makeFeature();
+            std::vector<float> feature = pos.makeFeature(false);
             inputs.insert(inputs.end(), feature.begin(), feature.end());
         }
         auto y = nn->policyAndValueBatch(inputs);

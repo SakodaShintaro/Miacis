@@ -204,7 +204,7 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
         hash_table_[index].mutex.unlock();
 
         //GPUへの計算要求を追加
-        std::vector<FloatType> this_feature = pos.makeFeature();
+        std::vector<FloatType> this_feature = pos.makeFeature(false);
         gpu_queue_.inputs.insert(gpu_queue_.inputs.end(), this_feature.begin(), this_feature.end());
         gpu_queue_.hash_tables.emplace_back(hash_table_);
         gpu_queue_.indices.push_back(index);

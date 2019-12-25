@@ -30,7 +30,7 @@ public:
     bool isLegalMove(const Move move) const;
 
     //特徴量作成
-    std::vector<float> makeFeature() const;
+    std::vector<float> makeFeature(bool data_augmentation) const;
 
     //合法手生成
     std::vector<Move> generateAllMoves() const;

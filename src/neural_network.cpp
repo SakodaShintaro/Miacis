@@ -160,7 +160,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     std::vector<ValueTeacherType> value_teachers;
     for (const LearningData& datum : data) {
         pos.fromStr(datum.position_str);
-        const std::vector<float> feature = pos.makeFeature();
+        const std::vector<float> feature = pos.makeFeature(false);
         inputs.insert(inputs.end(), feature.begin(), feature.end());
         policy_teachers.push_back(datum.policy);
         value_teachers.push_back(datum.value);

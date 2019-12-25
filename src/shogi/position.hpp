@@ -30,7 +30,7 @@ public:
     bool isFinish(float& score);
 
     //特徴量作成
-    std::vector<float> makeFeature() const;
+    std::vector<float> makeFeature(bool data_augmentation) const;
 
     //toとfromしか与えられない状態から完全なMoveに変換する関数
     Move transformValidMove(Move move);

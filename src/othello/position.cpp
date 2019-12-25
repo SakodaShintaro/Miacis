@@ -291,7 +291,13 @@ bool Position::isFinish(float& score) const {
     return !is_there_empty;
 }
 
-std::vector<float> Position::makeFeature() const {
+std::vector<float> Position::makeFeature(bool data_augmentation) const {
+    //引数の指定によりランダムにデータ拡張する
+    //[0, 4)の乱数を発生させ、×90度したデータを返す
+    static std::mt19937_64 engine(std::random_device{}());
+    static std::uniform_int_distribution<int64_t> dist(0, 3);
+    int64_t rotate = dist(engine);
+
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
 
     //盤上の駒の特徴量
@@ -306,7 +312,16 @@ std::vector<float> Position::makeFeature() const {
 
         //各マスについてそこにあるなら1,ないなら0とする
         for (Square sq : SquareList) {
-            features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[sq] == target ? 1 : 0);
+            int64_t file = SquareToFile[sq];
+            int64_t rank = SquareToRank[sq];
+            //data_augmentationが指定されていた場合、駒を参照する位置を乱数で振り出したrotateに合わせて変える
+            Square seen_sq = (!data_augmentation ? sq :
+                              rotate == 0 ? sq :
+                              rotate == 1 ? FRToSquare[rank][File9 - file] :
+                              rotate == 2 ? FRToSquare[Rank9 - rank][File9 - file] :
+                              rotate == 3 ? FRToSquare[Rank9 - rank][file] : WALL00);
+
+            features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[seen_sq] == target ? 1 : 0);
         }
     }
 

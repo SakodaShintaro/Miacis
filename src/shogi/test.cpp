@@ -161,7 +161,7 @@ void checkPredictSpeed() {
         //バッチサイズ分入力を取得
         std::vector<float> input;
         for (int64_t k = 0; k < batch_size; k++) {
-            auto f = pos.makeFeature();
+            auto f = pos.makeFeature(false);
             input.insert(input.end(), f.begin(), f.end());
 
             auto moves = pos.generateAllMoves();
@@ -179,7 +179,7 @@ void checkPredictSpeed() {
         for (int64_t i = 0; i < REPEAT_NUM; i++) {
             auto start = std::chrono::steady_clock::now();
             torch::NoGradGuard no_grad_guard;
-            nn->policyAndValueBatch(pos.makeFeature());
+            nn->policyAndValueBatch(pos.makeFeature(false));
             auto end = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
             time += elapsed.count();
