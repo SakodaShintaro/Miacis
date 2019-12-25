@@ -72,6 +72,41 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
     value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 }
 
+torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
+    torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
+    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+    x = state_first_conv_and_norm_->forward(x);
+    x = torch::relu(x);
+
+    for (ResidualBlock& block : state_blocks_) {
+        x = block->forward(x);
+    }
+    return x;
+}
+
+std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::decode(const torch::Tensor& representation) {
+    //policy
+    torch::Tensor policy = policy_conv_->forward(representation);
+
+    //value
+    torch::Tensor value = value_conv_and_norm_->forward(representation);
+    value = torch::relu(value);
+    value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
+    value = value_linear0_->forward(value);
+    value = torch::relu(value);
+    value = value_linear1_->forward(value);
+
+#ifndef USE_CATEGORICAL
+#ifdef USE_SIGMOID
+    value = torch::sigmoid(value);
+#else
+    value = torch::tanh(value);
+#endif
+#endif
+
+    return { policy, value };
+}
+
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
@@ -273,6 +308,97 @@ NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha)
 
     torch::Tensor value_t = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                                      torch::tensor(value_teacher_dist).to(device_));
+    torch::Tensor value = y.second.view(-1);
+#ifdef USE_SIGMOID
+    torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
+#else
+    torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
+#endif
+#endif
+
+    return { policy_loss, value_loss };
+}
+
+std::array<torch::Tensor, LOSS_TYPE_NUM>
+NeuralNetworkImpl::mixUpLossFinalLayer(const std::vector<LearningData>& data, float alpha) {
+    static Position pos;
+
+    if (data.size() % 2 == 1) {
+        std::cout << "データサイズが奇数 in mixUpLossFinalLayer()" << std::endl;
+        exit(1);
+    }
+    uint64_t actual_batch_size = data.size() / 2;
+
+    constexpr int64_t INPUT_DIM = BOARD_WIDTH * BOARD_WIDTH * INPUT_CHANNEL_NUM;
+    std::vector<FloatType> inputs1(actual_batch_size * INPUT_DIM);
+    std::vector<FloatType> inputs2(actual_batch_size * INPUT_DIM);
+    std::vector<FloatType> betas(actual_batch_size);
+    std::vector<float> policy_teacher_dist(actual_batch_size * POLICY_DIM, 0.0);
+    std::vector<float> value_teacher_dist(actual_batch_size * BIN_SIZE, 0.0);
+
+    static std::mt19937_64 engine(std::random_device{}());
+    std::gamma_distribution<float> gamma_dist(alpha);
+
+    for (uint64_t i = 0; i < data.size(); i += 2) {
+        //i番目とi+1番目のデータをmix
+        //ベータ分布はガンマ分布を組み合わせたものなのでガンマ分布からサンプリングすれば良い
+        //cf. https://shoichimidorikawa.github.io/Lec/ProbDistr/gammaDist.pdf
+        float gamma1 = gamma_dist(engine), gamma2 = gamma_dist(engine);
+        float beta = gamma1 / (gamma1 + gamma2);
+        betas[i / 2] = beta;
+
+        pos.fromStr(data[i].position_str);
+        std::vector<float> feature1 = pos.makeFeature(false);
+        pos.fromStr(data[i + 1].position_str);
+        std::vector<float> feature2 = pos.makeFeature(false);
+
+        //入力を準備する
+        for (int64_t j = 0; j < INPUT_DIM; j++) {
+            inputs1[i / 2 * INPUT_DIM + j] = feature1[j];
+            inputs2[i / 2 * INPUT_DIM + j] = feature2[j];
+        }
+
+        //教師信号を足し合わせる
+        //Policy
+        for (const std::pair<int32_t, float>& pair : data[i].policy) {
+            policy_teacher_dist[i / 2 * POLICY_DIM + pair.first] += beta * pair.second;
+        }
+        for (const std::pair<int32_t, float>& pair : data[i + 1].policy) {
+            policy_teacher_dist[i / 2 * POLICY_DIM + pair.first] += (1 - beta) * pair.second;
+        }
+
+        //Value
+#ifdef USE_CATEGORICAL
+        value_teacher_dist[i / 2 * BIN_SIZE + data[i].value] += beta;
+        value_teacher_dist[i / 2 * BIN_SIZE + data[i + 1].value] += (1 - beta);
+#else
+        value_teacher_dist[i / 2] += beta * data[i].value;
+        value_teacher_dist[i / 2] += (1 - beta) * data[i + 1].value;
+#endif
+    }
+
+    //順伝播
+    torch::Tensor representation1 = encode(inputs1);
+    torch::Tensor representation2 = encode(inputs2);
+    torch::Tensor betas_tensor = torch::tensor(betas);
+    torch::Tensor mixed_representation = betas_tensor * representation1 + (1 - betas_tensor) * representation2;
+    std::pair<torch::Tensor, torch::Tensor> y = decode(mixed_representation);
+    torch::Tensor logits = y.first.view({ -1, POLICY_DIM });
+
+    //Policyの損失計算
+    torch::Tensor policy_target = (fp16_ ? torch::tensor(policy_teacher_dist).to(device_, torch::kHalf) :
+                                           torch::tensor(policy_teacher_dist).to(device_)).view({ -1, POLICY_DIM });
+
+    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false);
+
+#ifdef USE_CATEGORICAL
+    torch::Tensor categorical_target = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
+                                                torch::tensor(value_teacher_dist).to(device_)).view({ -1, BIN_SIZE });
+    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);;
+#else
+
+    torch::Tensor value_t = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
+                             torch::tensor(value_teacher_dist).to(device_));
     torch::Tensor value = y.second.view(-1);
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);

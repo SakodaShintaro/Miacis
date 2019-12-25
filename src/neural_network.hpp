@@ -77,6 +77,9 @@ public:
     //MixUpを行って損失を返す関数
     std::array<torch::Tensor, LOSS_TYPE_NUM> mixUpLoss(const std::vector<LearningData>& data, float alpha);
 
+    //MixUpを行って損失を返す関数
+    std::array<torch::Tensor, LOSS_TYPE_NUM> mixUpLossFinalLayer(const std::vector<LearningData>& data, float alpha);
+
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
 
@@ -87,6 +90,9 @@ public:
     static const std::string DEFAULT_MODEL_NAME;
 
 private:
+    torch::Tensor encode(const std::vector<float>& inputs);
+    std::pair<torch::Tensor, torch::Tensor> decode(const torch::Tensor& representation);
+
     torch::Device device_;
     bool fp16_;
 
