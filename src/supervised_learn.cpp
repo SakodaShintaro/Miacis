@@ -129,7 +129,7 @@ void supervisedLearn() {
                 }
 
                 //学習中のパラメータを書き出す
-                torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + std::to_string(global_step) + ".model");
+                torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");
             }
 
             if (global_step == lr_decay_step1 || global_step == lr_decay_step2) {
