@@ -114,7 +114,7 @@ void supervisedLearn() {
 
         //validation_lossを計算
         neural_network->eval();
-        std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network, valid_data, 0);
+        std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network, valid_data, 4096);
         neural_network->train();
         float sum_loss = 0;
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
