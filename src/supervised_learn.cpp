@@ -66,6 +66,7 @@ void supervisedLearn() {
     //評価関数読み込み
     NeuralNetwork neural_network;
     torch::load(neural_network, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    neural_network->setGPU(0);
 
     //学習前のパラメータを出力
     torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_before_learn.model");
