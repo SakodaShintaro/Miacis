@@ -199,7 +199,9 @@ void USI::go() {
 }
 
 void USI::stop() {
-    searcher_->stop_signal = true;
+    if (searcher_ != nullptr) {
+        searcher_->stop_signal = true;
+    }
     if (thread_.joinable()) {
         thread_.join();
     }
