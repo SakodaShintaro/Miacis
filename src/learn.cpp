@@ -43,7 +43,7 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
         }
 
         //計算
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = nn->loss(curr_data);
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = nn->loss(curr_data, false);
 
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             if (i == VALUE_LOSS_INDEX) {
@@ -184,7 +184,7 @@ void searchLearningRate() {
 
             //学習
             optimizer.zero_grad();
-            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data);
+            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data, false);
             torch::Tensor loss_sum = torch::zeros({ batch_size });
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 loss_sum += coefficients[i] * loss[i];

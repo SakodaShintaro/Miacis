@@ -143,7 +143,7 @@ void alphaZero() {
 
         //損失計算
         optimizer.zero_grad();
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data);
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data, false);
         torch::Tensor loss_sum = torch::zeros({batch_size});
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             loss_sum += coefficients[i] * loss[i].cpu();

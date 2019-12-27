@@ -9,6 +9,7 @@ void supervisedLearn() {
     settings.add("momentum",            0.0f, 1.0f);
     settings.add("weight_decay",        0.0f, 100.0f);
     settings.add("batch_size",          1, (int64_t)1e10);
+    settings.add("data_augmentation",   0, (int64_t)1);
     settings.add("max_step",            1, (int64_t)1e10);
     settings.add("validation_interval", 1, (int64_t)1e10);
     settings.add("lr_decay_step1",      1, (int64_t)1e10);
@@ -26,6 +27,7 @@ void supervisedLearn() {
     float learn_rate            = settings.get<float>("learn_rate");
     float momentum              = settings.get<float>("momentum");
     float weight_decay          = settings.get<float>("weight_decay");
+    bool data_augmentation      = settings.get<int64_t>("data_augmentation");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
@@ -95,7 +97,7 @@ void supervisedLearn() {
 
             //学習
             optimizer.zero_grad();
-            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = neural_network->loss(curr_data);
+            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = neural_network->loss(curr_data, data_augmentation);
             torch::Tensor loss_sum = torch::zeros({batch_size});
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 loss_sum += coefficients[i] * loss[i].cpu();
