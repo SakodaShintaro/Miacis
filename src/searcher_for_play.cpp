@@ -60,7 +60,11 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     }
 
     //GPUで計算
-    if (!curr_node.evaled) {
+    if (curr_node.nn_policy.size() != curr_node.moves.size()) {
+        if (gpu_queues_[0][0].inputs.empty()) {
+            std::vector<FloatType> feature = root.makeFeature(false);
+            gpu_queues_[0][0].inputs.insert(gpu_queues_[0][0].inputs.begin(), feature.begin(), feature.end());
+        }
         auto y = neural_networks_[0]->policyAndValueBatch(gpu_queues_[0][0].inputs);
 
         //ルートノードへ書き込み
