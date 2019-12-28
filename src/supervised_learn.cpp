@@ -90,7 +90,7 @@ void supervisedLearn() {
         //データをシャッフル
         std::shuffle(train_data.begin(), train_data.end(), engine);
 
-        for (uint64_t step = 0; (step + 1) * batch_size <= train_data.size() && global_step < max_step; step++) {
+        for (uint64_t step = 0; (step + 1 + (mixup_alpha != 0)) * batch_size <= train_data.size() && global_step < max_step; step++) {
             //バッチサイズ分データを確保
             std::vector<LearningData> curr_data;
             for (int64_t b = 0; b < batch_size; b++) {
@@ -99,6 +99,7 @@ void supervisedLearn() {
 
             if (mixup_alpha != 0) {
                 //データ2つを混ぜて使うので倍の量取る
+                step++;
                 for (int64_t b = 0; b < batch_size; b++) {
                     curr_data.push_back(train_data[step * batch_size + b]);
                 }
