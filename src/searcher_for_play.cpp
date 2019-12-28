@@ -18,8 +18,8 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& usi_options)
     gpu_queues_.resize(usi_options.gpu_num);
     searchers_.resize(usi_options.gpu_num);
     for (int64_t i = 0; i < usi_options.gpu_num; i++) {
+        gpu_queues_[i].resize(usi_options.thread_num);
         for (int64_t j = 0; j < usi_options.thread_num; j++) {
-            gpu_queues_[i].emplace_back();
             searchers_[i].emplace_back(usi_options, hash_table_, gpu_queues_[i][j]);
         }
     }
