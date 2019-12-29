@@ -12,6 +12,7 @@ int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
     const int32_t sum = node.sum_N + node.virtual_sum_N;
     for (uint64_t i = 0; i < node.moves.size(); i++) {
         FloatType U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
+        assert(U >= 0.0);
 
 #ifdef USE_CATEGORICAL
         FloatType P = 0.0;
@@ -252,6 +253,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         node.N[action]++;
         node.sum_N++;
         node.virtual_sum_N -= node.virtual_N[action];
+        assert(node.virtual_sum_N >= 0);
         node.virtual_N[action] = 0;
 
         //価値の更新

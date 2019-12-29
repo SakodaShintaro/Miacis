@@ -35,6 +35,8 @@ public:
     //バックアップ
     void backupAll();
 
+    void clearBackupQueue() { backup_queue_.indices.clear(); backup_queue_.actions.clear(); }
+
 private:
     //今のノードから遷移するべきノードを選択する関数
     int32_t selectMaxUcbChild(const UctHashEntry& node);

@@ -1,5 +1,4 @@
 ﻿#include"usi.hpp"
-#include"../game.hpp"
 #include"test.hpp"
 #include"../neural_network.hpp"
 #include"../learn.hpp"
@@ -24,6 +23,7 @@ USI::USI() : searcher_(nullptr) {
     command_["supervisedLearn"]    = supervisedLearn;
     command_["alphaZero"]          = alphaZero;
     command_["test"]               = test;
+    command_["infiniteTest"]       = infiniteTest;
     command_["checkSearchSpeed"]   = checkSearchSpeed;
     command_["checkGenSpeed"]      = checkGenSpeed;
     command_["checkPredictSpeed"]  = checkPredictSpeed;

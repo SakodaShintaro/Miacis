@@ -45,6 +45,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
             gpu_queues_[i][j].inputs.clear();
             gpu_queues_[i][j].hash_tables.clear();
             gpu_queues_[i][j].indices.clear();
+            searchers_[i][j].clearBackupQueue();
         }
     }
 

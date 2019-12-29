@@ -2,6 +2,7 @@
 #define TEST_HPP
 
 void test();
+void infiniteTest();
 void checkSearchSpeed();
 void checkGenSpeed();
 void checkPredictSpeed();

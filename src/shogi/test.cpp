@@ -50,6 +50,34 @@ void test() {
     std::cout << "finish test" << std::endl;
 }
 
+void infiniteTest() {
+    SearchOptions usi_options;
+    usi_options.thread_num = 1;
+    usi_options.search_batch_size = 32;
+    usi_options.random_turn = 30;
+    SearcherForPlay searcher(usi_options);
+
+    for (int64_t i = 0; i < LLONG_MAX; i++) {
+        std::cout << i << std::endl;
+        Position pos;
+
+        while (true) {
+            Move best_move = searcher.think(pos, 50);
+            if (best_move == NULL_MOVE) {
+                //終了
+                break;
+            }
+
+            pos.doMove(best_move);
+            //pos.print();
+            float finish_score;
+            if (pos.isFinish(finish_score)) {
+                break;
+            }
+        }
+    }
+}
+
 void checkGenSpeed() {
     NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
