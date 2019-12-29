@@ -341,7 +341,8 @@ NeuralNetworkImpl::mixUpLossFinalLayer(const std::vector<LearningData>& data, fl
     //順伝播
     torch::Tensor representation1 = encode(inputs1);
     torch::Tensor representation2 = encode(inputs2);
-    torch::Tensor betas_tensor = torch::tensor(betas);
+    torch::Tensor betas_tensor = torch::tensor(betas).to(device_).view({ -1, 1, 1, 1 });
+
     torch::Tensor mixed_representation = betas_tensor * representation1 + (1 - betas_tensor) * representation2;
     std::pair<torch::Tensor, torch::Tensor> y = decode(mixed_representation);
     torch::Tensor logits = y.first.view({ -1, POLICY_DIM });
