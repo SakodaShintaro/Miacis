@@ -8,6 +8,7 @@ void alphaZero() {
     settings.add("momentum",               0.0f, 1.0f);
     settings.add("lambda",                 0.0f, 1.0f);
     settings.add("alpha",                  0.0f, 1e10f);
+    settings.add("mixup_alpha",            0.0f, 100.0f);
     settings.add("Q_dist_temperature",     0.0f, 1e10f);
     settings.add("Q_dist_lambda",          0.0f, 1.0f);
     settings.add("C_PUCT",                 0.0f, 1e10f);
@@ -44,6 +45,7 @@ void alphaZero() {
     float momentum                   = settings.get<float>("momentum");
     float lambda                     = settings.get<float>("lambda");
     float alpha                      = settings.get<float>("alpha");
+    float mixup_alpha                = settings.get<float>("mixup_alpha");
     float Q_dist_lambda              = settings.get<float>("Q_dist_lambda");
     search_options.temperature_x1000 = settings.get<float>("Q_dist_temperature") * 1000;
     search_options.C_PUCT_x1000      = settings.get<float>("C_PUCT") * 1000;
@@ -128,7 +130,8 @@ void alphaZero() {
 
     for (int64_t step_num = 1; step_num <= max_step_num; step_num++) {
         //バッチサイズ分データを選択
-        std::vector<LearningData> curr_data = replay_buffer.makeBatch(batch_size);
+        //mixupをオンにしたときはバッチサイズの2倍取る
+        std::vector<LearningData> curr_data = replay_buffer.makeBatch(batch_size * (1 + (mixup_alpha != 0)));
 
         //1回目はmakeBatch内で十分棋譜が貯まるまで待ち時間が発生する.その生成速度を計算
         if (step_num == 1) {
@@ -143,7 +146,8 @@ void alphaZero() {
 
         //損失計算
         optimizer.zero_grad();
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data, false);
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = (mixup_alpha == 0 ? learning_model->loss(curr_data, false) :
+                                                                            learning_model->mixUpLossFinalLayer(curr_data, mixup_alpha));
         torch::Tensor loss_sum = torch::zeros({batch_size});
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             loss_sum += coefficients[i] * loss[i].cpu();
@@ -151,6 +155,16 @@ void alphaZero() {
 
         //replay_bufferのpriorityを更新
         std::vector<float> loss_vec(loss_sum.data<float>(), loss_sum.data<float>() + batch_size);
+
+        //mixupモードのときは損失を複製して2倍に拡張
+        if (mixup_alpha != 0) {
+            std::vector<float> copy = loss_vec;
+            loss_vec.clear();
+            for (float v : copy) {
+                loss_vec.push_back(v);
+                loss_vec.push_back(v);
+            }
+        }
         replay_buffer.update(loss_vec);
 
         //損失をバッチについて平均を取ったものに修正
