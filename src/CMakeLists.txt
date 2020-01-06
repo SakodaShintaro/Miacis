@@ -22,7 +22,7 @@ set(SRCS uct_hash_table.cpp
          searcher_for_play.cpp
          hyperparameter_manager.cpp
          segment_tree.cpp
-         )
+        searcher_for_mate.cpp searcher_for_mate.hpp)
 
 #将棋用のバイナリをコンパイルするのに必要なソース
 set(SHOGI_SRCS shogi/main.cpp
