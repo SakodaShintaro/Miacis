@@ -33,7 +33,7 @@ public:
         spin_options.emplace("random_turn",       SpinOption(random_turn       =         0, 0, INT32_MAX));
         spin_options.emplace("draw_turn",         SpinOption(draw_turn         =       512, 0, INT32_MAX));
         spin_options.emplace("print_interval",    SpinOption(print_interval    =       500, 1, INT32_MAX));
-        spin_options.emplace("gpu_num",           SpinOption(gpu_num           =         1, torch::getNumGPUs(), INT32_MAX));
+        spin_options.emplace("gpu_num",           SpinOption(gpu_num           =         1, 0, torch::getNumGPUs()));
         spin_options.emplace("thread_num",        SpinOption(thread_num        =         2, 1, INT32_MAX));
         spin_options.emplace("search_batch_size", SpinOption(search_batch_size =       128, 1, INT32_MAX));
         spin_options.emplace("search_limit",      SpinOption(search_limit      = INT32_MAX, 1, INT32_MAX));
