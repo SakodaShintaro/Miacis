@@ -1073,13 +1073,8 @@ void Position::initHashValue() {
     hash_value_ &= ~1; //これで1bit目が0になる(先手番を表す)
 }
 
-std::vector<float> Position::makeFeature(bool data_augmentation) const {
-    //引数の指定によりランダムにデータ拡張する
-    //0 or 1の乱数を発生させ、1なら左右反転
-    static std::mt19937_64 engine(std::random_device{}());
-    static std::uniform_int_distribution<int64_t> dist(0, 1);
-    bool mirror = dist(engine);
-
+std::vector<float> Position::makeFeature(int64_t data_augmentation) const {
+    //引数の指定により左右反転のデータ拡張を行う
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
 
     uint64_t i;
@@ -1090,7 +1085,7 @@ std::vector<float> Position::makeFeature(bool data_augmentation) const {
         Piece t = (color_ == BLACK ? PieceList[i] : oppositeColor(PieceList[i]));
 
         //各マスについてそこにあるなら1,ないなら0とする
-        if (mirror) {
+        if (data_augmentation) {
             //左右反転させる
             //駒を参照するところだけ左右反転をかければ適切
             for (Square sq : SquareList) {

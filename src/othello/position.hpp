@@ -30,7 +30,7 @@ public:
     bool isLegalMove(const Move move) const;
 
     //特徴量作成
-    std::vector<float> makeFeature(bool data_augmentation) const;
+    std::vector<float> makeFeature(int64_t data_augmentation) const;
 
     //合法手生成
     std::vector<Move> generateAllMoves() const;
@@ -51,6 +51,10 @@ public:
     Color color() const { return color_; }
     int64_t hashValue() const { return hash_value_; }
     Piece on(const Square sq) const { return board_[sq]; }
+
+    //現状は90度ごとの回転のみに対応
+    //原理的にはそれに左右反転まで含めた8通りに拡張できるがまだ未実装
+    static constexpr int64_t DATA_AUGMENTATION_PATTERN_NUM = 4;
 private:
     //--------------------
     //    内部メソッド

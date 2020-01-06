@@ -30,7 +30,7 @@ public:
     bool isFinish(float& score);
 
     //特徴量作成
-    std::vector<float> makeFeature(bool data_augmentation) const;
+    std::vector<float> makeFeature(int64_t data_augmentation) const;
 
     //toとfromしか与えられない状態から完全なMoveに変換する関数
     Move transformValidMove(Move move);
@@ -51,6 +51,9 @@ public:
     int64_t hashValue() const { return hash_value_; }
     Piece on(const Square sq) const { return board_[sq]; }
     bool isChecked() { return is_checked_; }
+
+    //左右反転のみに対応。将棋はこれ以上の拡張はできない
+    static constexpr int64_t DATA_AUGMENTATION_PATTERN_NUM = 2;
 private:
     //--------------------
     //    内部メソッド
