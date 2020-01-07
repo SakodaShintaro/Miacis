@@ -37,7 +37,11 @@ public:
         spin_options.emplace("thread_num",        SpinOption(thread_num        =         2, 1, INT32_MAX));
         spin_options.emplace("search_batch_size", SpinOption(search_batch_size =       128, 1, INT32_MAX));
         spin_options.emplace("search_limit",      SpinOption(search_limit      = INT32_MAX, 1, INT32_MAX));
+#ifdef USE_CATEGORICAL
         spin_options.emplace("Q_coeff_x1000",     SpinOption(Q_coeff_x1000     =         0, 0, INT32_MAX));
+#else
+        spin_options.emplace("Q_coeff_x1000",     SpinOption(Q_coeff_x1000     =      1000, 0, INT32_MAX));
+#endif
         spin_options.emplace("C_PUCT_x1000",      SpinOption(C_PUCT_x1000      =      1500, 1, INT32_MAX));
         spin_options.emplace("P_coeff_x1000",     SpinOption(P_coeff_x1000     =      1000, 0, INT32_MAX));
         spin_options.emplace("temperature_x1000", SpinOption(temperature_x1000 =         0, 0, INT32_MAX));
