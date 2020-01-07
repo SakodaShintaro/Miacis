@@ -56,7 +56,7 @@ bool SearcherForMate::mateSearchForAttacker(Position& pos, int32_t depth) {
 
 bool SearcherForMate::mateSearchForEvader(Position& pos, int32_t depth) {
     assert(depth % 2 == 0);
-    if (stop_signal || !pos.isChecked()) {
+    if (stop_signal/* || !pos.isChecked() */) {
         return false;
     }
 
