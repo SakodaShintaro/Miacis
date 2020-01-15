@@ -9,14 +9,14 @@
 
 std::string elapsedTime(const std::chrono::steady_clock::time_point& start) {
     auto elapsed = std::chrono::steady_clock::now() - start;
-    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+    int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
 
     std::stringstream ss;
 
     //hh:mm:ssで文字列化
-    auto minutes = seconds / 60;
+    int64_t minutes = seconds / 60;
     seconds %= 60;
-    auto hours = minutes / 60;
+    int64_t hours = minutes / 60;
     minutes %= 60;
     ss << std::setfill('0') << std::setw(3) << hours << ":"
        << std::setfill('0') << std::setw(2) << minutes << ":"
@@ -26,7 +26,7 @@ std::string elapsedTime(const std::chrono::steady_clock::time_point& start) {
 
 double elapsedHours(const std::chrono::steady_clock::time_point& start) {
     auto elapsed = std::chrono::steady_clock::now() - start;
-    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+    int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
     return seconds / 3600.0;
 }
 
@@ -61,11 +61,11 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
             std::vector<float> feature = pos.makeFeature(false);
             inputs.insert(inputs.end(), feature.begin(), feature.end());
         }
-        auto y = nn->policyAndValueBatch(inputs);
-        const auto& values = y.second;
+        std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = nn->policyAndValueBatch(inputs);
+        const std::vector<ValueType>& values = y.second;
         for (uint64_t i = 0; i < values.size(); i++) {
-            auto e = expOfValueDist(values[i]);
-            auto vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
+            FloatType e = expOfValueDist(values[i]);
+            FloatType vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
             losses[VALUE_LOSS_INDEX] += (e - vt) * (e - vt);
         }
 #else

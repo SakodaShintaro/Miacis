@@ -43,7 +43,7 @@ bool SearcherForMate::mateSearchForAttacker(Position& pos, int32_t depth) {
         return false;
     }
     //全ての手を試してみる。どれか一つでも勝ちになる行動があるなら勝ち
-    for (const auto& move : pos.generateAllMoves()) {
+    for (const Move& move : pos.generateAllMoves()) {
         pos.doMove(move);
         bool result = mateSearchForEvader(pos, depth - 1);
         pos.undo();

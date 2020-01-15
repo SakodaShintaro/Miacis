@@ -220,10 +220,10 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
 void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
     assert(actions.empty() || indices.size() == actions.size() + 1);
 
-    auto leaf = indices.top();
+    int32_t leaf = indices.top();
     indices.pop();
     hash_table_[leaf].mutex.lock();
-    auto value = hash_table_[leaf].value;
+    ValueType value = hash_table_[leaf].value;
     hash_table_[leaf].mutex.unlock();
 
     //毎回計算するのは無駄だけど仕方ないか
@@ -232,10 +232,10 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
 
     //バックアップ
     while (!actions.empty()) {
-        auto index = indices.top();
+        int32_t index = indices.top();
         indices.pop();
 
-        auto action = actions.top();
+        int32_t action = actions.top();
         actions.pop();
 
         //手番が変わるので反転
@@ -266,7 +266,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
 //#ifdef USE_CATEGORICAL
 //        node.value = onehotDist(MIN_SCORE);
 //        for (int32_t i = 0; i < node.moves.size(); i++) {
-//            auto q = QfromNextValue(node, i);
+//            FloatType q = QfromNextValue(node, i);
 //            if (expOfValueDist(q) > expOfValueDist(node.value)) {
 //                node.value = q;
 //            }

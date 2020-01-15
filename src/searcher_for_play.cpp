@@ -66,7 +66,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
             std::vector<FloatType> feature = root.makeFeature(false);
             gpu_queues_[0][0].inputs.insert(gpu_queues_[0][0].inputs.begin(), feature.begin(), feature.end());
         }
-        auto y = neural_networks_[0]->policyAndValueBatch(gpu_queues_[0][0].inputs);
+        std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = neural_networks_[0]->policyAndValueBatch(gpu_queues_[0][0].inputs);
 
         //ルートノードへ書き込み
         curr_node.nn_policy.resize(curr_node.moves.size());
@@ -88,7 +88,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     std::thread mate_thread([&](){ mate_searcher_.mateSearch(root, INT_MAX); });
 
     //終了を待つ
-    for (auto& t : threads) {
+    for (std::thread& t : threads) {
         t.join();
     }
 
@@ -167,7 +167,7 @@ void SearcherForPlay::gpuThreadFunc(const Position& root, int64_t gpu_id) {
     }
 
     //終了を待つ
-    for (auto& t : threads) {
+    for (std::thread& t : threads) {
         t.join();
     }
 }
@@ -205,7 +205,7 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
         if (!gpu_queue.inputs.empty()) {
             torch::NoGradGuard no_grad_guard;
             gpu_mutexes_[gpu_id].lock();
-            auto y = neural_networks_[gpu_id]->policyAndValueBatch(gpu_queue.inputs);
+            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = neural_networks_[gpu_id]->policyAndValueBatch(gpu_queue.inputs);
             gpu_mutexes_[gpu_id].unlock();
 
             //書き込み
@@ -230,8 +230,8 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
 std::vector<Move> SearcherForPlay::getPV() const {
     std::vector<Move> pv;
     for (Index index = hash_table_.root_index; index != HashTable::NOT_EXPANDED && !hash_table_[index].moves.empty();) {
-        const auto& N = hash_table_[index].N;
-        Index next_index = (int32_t) (std::max_element(N.begin(), N.end()) - N.begin());
+        const std::vector<int32_t>& N = hash_table_[index].N;
+        Index next_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
         pv.push_back(hash_table_[index].moves[next_index]);
         index = hash_table_[index].child_indices[next_index];
     }
@@ -240,7 +240,7 @@ std::vector<Move> SearcherForPlay::getPV() const {
 }
 
 void SearcherForPlay::printUSIInfo() const {
-    const auto& curr_node = hash_table_[hash_table_.root_index];
+    const HashEntry& curr_node = hash_table_[hash_table_.root_index];
 
     int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
 

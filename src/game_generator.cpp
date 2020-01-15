@@ -9,7 +9,7 @@ void GameGenerator::genGames() {
     }
 
     //生成スレッドが終わるのを待つ
-    for (auto& th : threads) {
+    for (std::thread& th : threads) {
         th.join();
     }
 }

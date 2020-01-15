@@ -1,7 +1,6 @@
 ﻿#include "hyperparameter_manager.hpp"
 #include <fstream>
 #include <iostream>
-#include <cassert>
 
 const std::string HyperparameterManager::BAD_INIT = "bad_init";
 
