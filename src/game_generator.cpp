@@ -15,8 +15,8 @@ void GameGenerator::genGames() {
 }
 
 void GameGenerator::genSlave(int64_t thread_id) {
+    //Workerを準備
     std::vector<std::unique_ptr<GenerateWorker>> workers(worker_num_);
-
     for (int32_t i = 0; i < worker_num_; i++) {
         workers[i] = std::make_unique<GenerateWorker>(search_options_, gpu_queues_[thread_id], Q_dist_lambda_, replay_buffer_);
         workers[i]->prepareForCurrPos();
@@ -25,23 +25,26 @@ void GameGenerator::genSlave(int64_t thread_id) {
     //初期局面をまず1回評価
     evalWithGPU(thread_id);
 
+    //停止信号が来るまで生成し続けるループ
     while (!stop_signal) {
         //キューのリセット
         gpu_queues_[thread_id].inputs.clear();
         gpu_queues_[thread_id].hash_tables.clear();
         gpu_queues_[thread_id].indices.clear();
 
+        //各Workerについて選択ステップを実行し評価要求を溜める
         for (int32_t i = 0; i < worker_num_; i++) {
             workers[i]->select();
         }
 
         //GPUで評価
         //探索結果が既存ノードへの合流,あるいは詰みのときには計算要求がないので一応空かどうかを確認
-        //複数のsearcherが同時にそうなる確率はかなり低そうだが
+        //複数のWorkerが同時にそうなる確率はかなり低そうだが理論上はあり得るので
         if (!gpu_queues_[thread_id].inputs.empty()) {
             evalWithGPU(thread_id);
         }
 
+        //各Workerについてbackup
         for (int32_t i = 0; i < worker_num_; i++) {
             workers[i]->backup();
         }
@@ -65,6 +68,7 @@ std::vector<FloatType> GameGenerator::dirichletDistribution(uint64_t k, FloatTyp
 }
 
 void GameGenerator::evalWithGPU(int64_t thread_id) {
+    //順伝播計算
     gpu_mutex.lock();
     torch::NoGradGuard no_grad_guard;
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = neural_network_->policyAndValueBatch(gpu_queues_[thread_id].inputs);
@@ -72,11 +76,13 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
     const std::vector<PolicyType>& policies = result.first;
     const std::vector<ValueType>& values = result.second;
 
+    //各入力が対応する置換表の適切なエントリーに計算結果を書き込んでいく
     for (uint64_t i = 0; i < gpu_queues_[thread_id].hash_tables.size(); i++) {
-        //何番目のsearcherが持つハッシュテーブルのどの位置に書き込むかを取得
+        //何番目のworkerが持つハッシュテーブルのどの位置に書き込むかを取得
         HashEntry& curr_node = gpu_queues_[thread_id].hash_tables[i].get()[gpu_queues_[thread_id].indices[i]];
 
         //policyを設定
+        //合法手だけ取ってからsoftmax関数にかける
         std::vector<float> legal_moves_policy(curr_node.moves.size());
         for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
             legal_moves_policy[j] = policies[i][curr_node.moves[j].toLabel()];
@@ -94,6 +100,7 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
         //valueを設定
         curr_node.value = values[i];
 
+        //フラグを設定
         curr_node.evaled = true;
     }
 }
@@ -119,6 +126,7 @@ void GenerateWorker::prepareForCurrPos() {
     std::stack<int32_t> actions;
     hash_table_.root_index = searcher_.expand(position_, indices, actions);
 
+    //50手以降のときだけ詰み探索。本当はこの閾値も制御できるようにした方が良い気はするが……
     if (position_.turnNumber() >= 50) {
         mate_searcher_.mateSearch(position_, 5);
     }
@@ -138,10 +146,6 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
     }
 
     const std::vector<int32_t>& N = root_node.N;
-    if (root_node.sum_N != std::accumulate(N.begin(), N.end(), 0)) {
-        std::cout << "root_node.sum_N != std::accumulate(N.begin(), N.end(), 0)" << std::endl;
-        std::exit(1);
-    }
 
     //探索回数最大の手を選択する
     int32_t best_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
@@ -161,16 +165,12 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
     if (position_.turnNumber() < search_options_.random_turn) {
         //分布に従ってランダムに行動選択
         //探索回数を正規化した分布
-        //探索回数のsoftmaxを取ることを検討したほうが良いかもしれない
         std::vector<FloatType> N_dist(root_node.moves.size());
+
         //行動価値のsoftmaxを取った分布
         std::vector<FloatType> Q_dist(root_node.moves.size());
-        for (uint64_t i = 0; i < root_node.moves.size(); i++) {
-            if (N[i] < 0 || N[i] > root_node.sum_N) {
-                std::cout << "N[i] < 0 || N[i] > root_node.sum_N" << std::endl;
-                std::exit(1);
-            }
 
+        for (uint64_t i = 0; i < root_node.moves.size(); i++) {
             //探索回数を正規化
             N_dist[i] = (FloatType)N[i] / root_node.sum_N;
 
@@ -201,7 +201,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
         element.move = root_node.moves[best_index];
     }
 
-    //priorityを計算する用にNNの出力をセットする
+    //あとでpriorityを計算するためにNNの出力をセットする
     element.nn_output_policy.resize(POLICY_DIM, 0.0);
     for (uint64_t i = 0; i < root_node.moves.size(); i++) {
         element.nn_output_policy[root_node.moves[i].toLabel()] = root_node.nn_policy[i];
@@ -227,10 +227,7 @@ void GenerateWorker::select() {
             replay_buffer_.push(game_);
 
             //次の対局へ向かう
-            //局面の初期化
             position_.init();
-
-            //ゲームの初期化
             game_.elements.clear();
         }
 
