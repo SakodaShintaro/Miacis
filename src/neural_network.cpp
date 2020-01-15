@@ -102,9 +102,9 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::ve
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
 NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
-    auto y = forward(inputs);
+    std::pair<torch::Tensor, torch::Tensor> y = forward(inputs);
 
-    auto batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);
+    uint64_t batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);
 
     std::vector<PolicyType> policies(batch_size);
     std::vector<ValueType> values(batch_size);
@@ -179,12 +179,12 @@ NeuralNetworkImpl::loss(const std::vector<LearningData>& data, bool data_augment
         value_teachers.push_back(datum.value);
     }
 
-    auto y = forward(inputs);
-    auto logits = y.first.view({ -1, POLICY_DIM });
+    std::pair<torch::Tensor, torch::Tensor> y = forward(inputs);
+    torch::Tensor logits = y.first.view({ -1, POLICY_DIM });
 
     std::vector<float> policy_dist(policy_teachers.size() * POLICY_DIM, 0.0);
     for (uint64_t i = 0; i < policy_teachers.size(); i++) {
-        for (const auto& e : policy_teachers[i]) {
+        for (const std::pair<int32_t, float>& e : policy_teachers[i]) {
             policy_dist[i * POLICY_DIM + e.first] = e.second;
         }
     }
