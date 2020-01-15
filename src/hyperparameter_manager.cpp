@@ -7,14 +7,15 @@ const std::string HyperparameterManager::BAD_INIT = "bad_init";
 void HyperparameterManager::add(const std::string& name, int64_t lower_limit, int64_t upper_limit) {
     //最初は条件を満たさないように初期化
     int_map[name][VALUE] = lower_limit - 1;
-    int_map[name][UPPER_LIMIT] = upper_limit;
     int_map[name][LOWER_LIMIT] = lower_limit;
+    int_map[name][UPPER_LIMIT] = upper_limit;
 }
 
 void HyperparameterManager::add(const std::string& name, float lower_limit, float upper_limit) {
+    //最初は条件を満たさないように初期化
     float_map[name][VALUE] = lower_limit - 1.0f;
-    float_map[name][UPPER_LIMIT] = upper_limit;
     float_map[name][LOWER_LIMIT] = lower_limit;
+    float_map[name][UPPER_LIMIT] = upper_limit;
 }
 
 void HyperparameterManager::add(const std::string& name) {

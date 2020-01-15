@@ -15,12 +15,12 @@ public:
     template <class T> T get(const std::string& name);
 private:
     enum {
-        VALUE, UPPER_LIMIT, LOWER_LIMIT,
+        VALUE, UPPER_LIMIT, LOWER_LIMIT, KIND_NUM
     };
 
     static const std::string BAD_INIT;
-    std::unordered_map<std::string, std::array<int64_t, 3>> int_map;
-    std::unordered_map<std::string, std::array<float, 3>>   float_map;
+    std::unordered_map<std::string, std::array<int64_t, KIND_NUM>> int_map;
+    std::unordered_map<std::string, std::array<float, KIND_NUM>>   float_map;
     std::unordered_map<std::string, std::string>            string_map;
 };
 
