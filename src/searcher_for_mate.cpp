@@ -56,7 +56,7 @@ bool SearcherForMate::mateSearchForAttacker(Position& pos, int32_t depth) {
 
 bool SearcherForMate::mateSearchForEvader(Position& pos, int32_t depth) {
     assert(depth % 2 == 0);
-    if (stop_signal/* || !pos.isChecked() */) {
+    if (stop_signal || pos.canSkipMateSearch()) {
         return false;
     }
 
@@ -88,7 +88,7 @@ bool SearcherForMate::search(Position& pos, int32_t depth) {
     bool is_attacker = depth % 2;
 
     //明らかに負けにならない局面を枝刈り(将棋で王手がかかっていないときを想定)
-    if (!is_attacker && !pos.isChecked()) {
+    if (!is_attacker && pos.canSkipMateSearch()) {
         return false;
     }
 

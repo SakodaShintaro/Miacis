@@ -29,6 +29,11 @@ public:
     //合法性に関する関数
     bool isLegalMove(const Move move) const;
 
+    //詰み探索を飛ばしても良いか
+    //将棋で王手がかかってないときは枝刈りしたいのでこれが必要
+    //オセロでは特に飛ばすべき局面はないと思われる
+    bool canSkipMateSearch() const { return false; }
+
     //特徴量作成
     std::vector<float> makeFeature(int64_t data_augmentation) const;
 

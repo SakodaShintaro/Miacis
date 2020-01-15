@@ -25,6 +25,10 @@ public:
     bool isLastMoveDropPawn() const;
     bool canWinDeclare() const;
 
+    //詰み探索中に枝刈りして良いかを判定
+    //王手がかかっていないときは枝刈りして良いだろう
+    bool canSkipMateSearch() const { return !is_checked_; }
+
     //この局面が詰み、千日手等で終わっているか確認する関数
     //終わっている場合は手番側から見た点数を引数に書き込んでtrueを返す
     bool isFinish(float& score);
