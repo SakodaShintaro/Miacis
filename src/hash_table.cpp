@@ -1,7 +1,7 @@
 ﻿#include"hash_table.hpp"
 
 Index HashTable::searchEmptyIndex(const Position& pos) {
-    auto hash = pos.hashValue();
+    int64_t hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
     while (true) {
@@ -24,7 +24,7 @@ Index HashTable::searchEmptyIndex(const Position& pos) {
 }
 
 Index HashTable::findSameHashIndex(const Position& pos) {
-    auto hash = pos.hashValue();
+    int64_t hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
     while (true) {
@@ -49,8 +49,8 @@ void HashTable::saveUsedHash(Position& pos, Index index) {
     table_[index].age = age_;
     used_num_++;
 
-    auto& current_node = table_[index];
-    auto& child_indices = current_node.child_indices;
+    HashEntry& current_node = table_[index];
+    std::vector<Index>& child_indices = current_node.child_indices;
     for (uint64_t i = 0; i < current_node.moves.size(); i++) {
         if (child_indices[i] != NOT_EXPANDED && table_[child_indices[i]].age != age_) {
             pos.doMove(current_node.moves[i]);
@@ -60,18 +60,18 @@ void HashTable::saveUsedHash(Position& pos, Index index) {
     }
 }
 
-void HashTable::deleteOldHash(Position& root, bool leave_root) {
-    uint64_t root_index = findSameHashIndex(root);
+void HashTable::deleteOldHash(Position& next_root, bool leave_root) {
+    uint64_t next_root_index = findSameHashIndex(next_root);
 
     used_num_ = 0;
     age_++;
 
-    if (root_index != table_.size()) { //見つかったということ
-        saveUsedHash(root, root_index);
+    if (next_root_index != table_.size()) { //見つかったということ
+        saveUsedHash(next_root, next_root_index);
 
         if (!leave_root) {
             //root_indexのところは初期化
-            table_[root_index].age = age_ - 1;
+            table_[next_root_index].age = age_ - 1;
             used_num_--;
         }
     }

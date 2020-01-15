@@ -55,7 +55,7 @@ public:
     void saveUsedHash(Position& pos, Index index);
 
     //現在の局面,及びそこから到達できる局面以外を削除する関数
-    void deleteOldHash(Position& root, bool leave_root);
+    void deleteOldHash(Position& next_root, bool leave_root);
 
     //node局面におけるi番目の指し手の行動価値を返す関数
     //Scalarのときは実数を一つ、Categoricalのときは分布を返す
