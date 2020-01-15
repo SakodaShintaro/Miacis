@@ -20,6 +20,9 @@ public:
     //テストで自己対局する関数
     void test();
 
+    //テストとして自己対局を無限ループする関数
+    void infiniteTest();
+
     //人間と対局する関数
     void battle();
 
