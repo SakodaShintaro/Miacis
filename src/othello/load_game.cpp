@@ -44,11 +44,10 @@ void Game::writeKifuFile(const std::string& dir_path) const {
     }
 
     ofs << elements.size() + 1 << " ";
-    if (result == RESULT_BLACK_WIN || result == RESULT_WHITE_WIN) {
+    if (result == MAX_SCORE || result == MIN_SCORE) {
         ofs << "投了" << std::endl;
-    } else if (result == RESULT_DRAW_REPEAT) {
-        ofs << "千日手" << std::endl;
     } else {
+        //千日手の場合もこうなり得るが、判別する手段がないのでとりあえず全て持将棋としておく
         ofs << "持将棋" << std::endl;
     }
 }

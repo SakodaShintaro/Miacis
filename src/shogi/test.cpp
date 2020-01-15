@@ -23,17 +23,15 @@ void test() {
 
         if (best_move == NULL_MOVE) {
             //投了
-            game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
+            game.result = (pos.color() == BLACK ? MIN_SCORE : MAX_SCORE);
             break;
         }
+
         float finish_score;
-        if (pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2) {
-            //千日手
-            game.result = Game::RESULT_DRAW_REPEAT;
-            break;
-        } else if (pos.turnNumber() > usi_options.draw_turn) {
-            //長手数
-            game.result = Game::RESULT_DRAW_OVER_LIMIT;
+        if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2)
+            || pos.turnNumber() > usi_options.draw_turn) {
+            //千日手or持将棋
+            game.result = finish_score;
             break;
         }
 

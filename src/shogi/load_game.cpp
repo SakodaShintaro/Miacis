@@ -59,7 +59,7 @@ Game loadGameFromCSA(const sys::path& p) {
         game.elements.push_back(element);
         pos.doMove(move);
     }
-    game.result = (pos.color() == BLACK ? Game::RESULT_WHITE_WIN : Game::RESULT_BLACK_WIN);
+    game.result = (pos.color() == BLACK ? MIN_SCORE : MAX_SCORE);
     return game;
 }
 
@@ -169,11 +169,10 @@ void Game::writeKifuFile(const std::string& dir_path) const {
     }
 
     ofs << elements.size() + 1 << " ";
-    if (result == RESULT_BLACK_WIN || result == RESULT_WHITE_WIN) {
+    if (result == MAX_SCORE || result == MIN_SCORE) {
         ofs << "投了" << std::endl;
-    } else if (result == RESULT_DRAW_REPEAT) {
-        ofs << "千日手" << std::endl;
     } else {
+        //千日手の場合もこうなり得るが、判別する手段がないのでとりあえず全て持将棋としておく
         ofs << "持将棋" << std::endl;
     }
 }
