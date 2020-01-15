@@ -96,11 +96,11 @@ void alphaZero() {
     dout(std::cout, learn_log) << std::fixed << std::endl;
     validation_log             << std::fixed << std::endl;
 
-    //データを取得
+    //validation用のデータを取得
     std::vector<LearningData> validation_data = loadData(validation_kifu_path);
     std::cout << "validation_data.size() = " << validation_data.size() << std::endl;
 
-    //モデル読み込み
+    //学習に使うネットワークの生成
     NeuralNetwork learning_model;
     torch::load(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     learning_model->setGPU(0);
@@ -128,20 +128,21 @@ void alphaZero() {
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
     }
 
+    //学習ループ
     for (int64_t step_num = 1; step_num <= max_step_num; step_num++) {
         //バッチサイズ分データを選択
-        //mixupをオンにしたときはバッチサイズの2倍取る
+        //mixupをオンにしたとき(mixup_alpha != 0のとき)はバッチサイズの2倍取る
         std::vector<LearningData> curr_data = replay_buffer.makeBatch(batch_size * (1 + (mixup_alpha != 0)));
 
         //1回目はmakeBatch内で十分棋譜が貯まるまで待ち時間が発生する.その生成速度を計算
         if (step_num == 1) {
-            std::ofstream ofs("gen_speed.txt");
             double gen_speed = first_wait / (elapsedHours(start_time) * 3600);
             sleep_msec = (int64_t)(batch_size * 1000 / (batch_size_per_gen * gen_speed));
+            std::ofstream ofs("gen_speed.txt");
             dout(std::cout, ofs) << "gen_speed = " << gen_speed << " pos / sec, sleep_msec = " << sleep_msec << std::endl;
         }
 
-        //先頭のネットワークとはGPUを共有しているのでロックをかける
+        //学習用ネットワークは生成用ネットワークの先頭とGPUを共有しているのでロックをかける
         generators.front()->gpu_mutex.lock();
 
         //損失計算
@@ -156,7 +157,7 @@ void alphaZero() {
         //replay_bufferのpriorityを更新
         std::vector<float> loss_vec(loss_sum.data<float>(), loss_sum.data<float>() + batch_size);
 
-        //mixupモードのときは損失を複製して2倍に拡張
+        //mixupモードのときは損失を複製して2倍に拡張。これもうちょっと上手く書けないものか……
         if (mixup_alpha != 0) {
             std::vector<float> copy = loss_vec;
             loss_vec.clear();
@@ -170,10 +171,9 @@ void alphaZero() {
         //損失をバッチについて平均を取ったものに修正
         loss_sum = loss_sum.mean();
 
-        //学習
+        //逆伝播してパラメータ更新
         loss_sum.backward();
         optimizer.step();
-        torch::save(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
         //1回パラメータ保存する間隔につき10回表示
         if (step_num % (save_interval / 10) == 0) {
@@ -183,8 +183,12 @@ void alphaZero() {
             }
         }
 
-        //一定間隔でモデルを読み込んでActorのパラメータをLearnerと同期
+        //一定間隔でActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
+            //学習パラメータを保存
+            torch::save(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+
+            //各ネットワークで保存されたパラメータを読み込み
             for (uint64_t i = 0; i < gpu_num; i++) {
                 if (i > 0) {
                     generators[i]->gpu_mutex.lock();
