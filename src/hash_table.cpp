@@ -78,16 +78,17 @@ void HashTable::deleteOldHash(Position& root, bool leave_root) {
 }
 
 ValueType HashTable::QfromNextValue(const HashEntry& node, int32_t i) const {
+    //展開されていない場合は基本的にMIN_SCOREで扱うが、探索回数が0でないときは詰み探索がそこへ詰みありと言っているということなのでMAX_SCOREを返す
 #ifdef USE_CATEGORICAL
     if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
-        return onehotDist(MIN_SCORE);
+        return (node.N[i] == 0 ? onehotDist(MIN_SCORE) : onehotDist(MAX_SCORE));
     }
     ValueType v = table_[node.child_indices[i]].value;
     std::reverse(v.begin(), v.end());
     return v;
 #else
     if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
-        return MIN_SCORE;
+        return (node.N[i] == 0 ? MIN_SCORE : MAX_SCORE);
     }
     return MAX_SCORE + MIN_SCORE - table_[node.child_indices[i]].value;
 #endif

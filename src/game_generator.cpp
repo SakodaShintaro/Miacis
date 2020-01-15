@@ -98,15 +98,16 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
     }
 }
 
-GenerateWorker::GenerateWorker(const SearchOptions& usi_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda,
+GenerateWorker::GenerateWorker(const SearchOptions& search_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda,
                                ReplayBuffer& rb)
-: search_options_(usi_options),
+: search_options_(search_options),
   gpu_queue_(gpu_queue),
   Q_dist_lambda_(Q_dist_lambda),
   replay_buffer_(rb),
-  hash_table_(usi_options.search_limit * 3),
-  searcher_(usi_options, hash_table_, gpu_queue),
-  root_raw_value_{}
+  hash_table_(search_options.search_limit * 3),
+  searcher_(search_options, hash_table_, gpu_queue),
+  root_raw_value_{},
+  mate_searcher_(hash_table_, search_options)
 {}
 
 void GenerateWorker::prepareForCurrPos() {
@@ -117,6 +118,10 @@ void GenerateWorker::prepareForCurrPos() {
     std::stack<int32_t> indices;
     std::stack<int32_t> actions;
     hash_table_.root_index = searcher_.expand(position_, indices, actions);
+
+    if (position_.turnNumber() >= 50) {
+        mate_searcher_.mateSearch(position_, 5);
+    }
 }
 
 OneTurnElement GenerateWorker::resultForCurrPos() {

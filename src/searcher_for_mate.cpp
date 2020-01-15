@@ -66,6 +66,10 @@ bool SearcherForMate::mateSearchForEvader(Position& pos, int32_t depth) {
         return (score == MIN_SCORE);
     }
 
+    if (depth == 0) {
+        return false;
+    }
+
     //全ての手を試してみる。どれか一つでも負けを逃れる行動があるなら負けではない
     for (const Move& move : pos.generateAllMoves()) {
         pos.doMove(move);

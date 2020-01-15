@@ -3,12 +3,13 @@
 
 #include"searcher.hpp"
 #include"neural_network.hpp"
+#include"searcher_for_mate.hpp"
 #include<stack>
 #include<mutex>
 
 class SearcherForPlay {
 public:
-    explicit SearcherForPlay(const SearchOptions& usi_options);
+    explicit SearcherForPlay(const SearchOptions& search_options);
 
     //探索を行って一番良い指し手を返す関数
     Move think(Position& root, int64_t time_limit);
@@ -59,6 +60,9 @@ private:
 
     //次に表示する経過時間
     int64_t next_print_time_;
+
+    //詰み探索エージェント
+    SearcherForMate mate_searcher_;
 };
 
 #endif //MIACIS_SEARCHER_FOR_PLAY_HPP

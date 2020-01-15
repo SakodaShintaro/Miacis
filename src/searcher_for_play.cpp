@@ -1,10 +1,10 @@
 ﻿#include "searcher_for_play.hpp"
 #include <thread>
 
-SearcherForPlay::SearcherForPlay(const SearchOptions& usi_options)
-: stop_signal(false), search_options_(usi_options), hash_table_(usi_options.USI_Hash * 1024 * 1024 / 10000) {
+SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
+: stop_signal(false), search_options_(search_options), hash_table_(search_options.USI_Hash * 1024 * 1024 / 10000), mate_searcher_(hash_table_, search_options) {
     //GPUを準備
-    for (int64_t i = 0; i < usi_options.gpu_num; i++) {
+    for (int64_t i = 0; i < search_options.gpu_num; i++) {
         neural_networks_.emplace_back();
         torch::load(neural_networks_[i], search_options_.model_name);
         neural_networks_[i]->setGPU(i, search_options_.use_fp16);
@@ -12,15 +12,15 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& usi_options)
     }
 
     //GPUに対するmutexを準備
-    gpu_mutexes_ = std::vector<std::mutex>(usi_options.gpu_num);
+    gpu_mutexes_ = std::vector<std::mutex>(search_options.gpu_num);
 
     //gpu_queueとsearchersを準備
-    gpu_queues_.resize(usi_options.gpu_num);
-    searchers_.resize(usi_options.gpu_num);
-    for (int64_t i = 0; i < usi_options.gpu_num; i++) {
-        gpu_queues_[i].resize(usi_options.thread_num);
-        for (int64_t j = 0; j < usi_options.thread_num; j++) {
-            searchers_[i].emplace_back(usi_options, hash_table_, gpu_queues_[i][j]);
+    gpu_queues_.resize(search_options.gpu_num);
+    searchers_.resize(search_options.gpu_num);
+    for (int64_t i = 0; i < search_options.gpu_num; i++) {
+        gpu_queues_[i].resize(search_options.thread_num);
+        for (int64_t j = 0; j < search_options.thread_num; j++) {
+            searchers_[i].emplace_back(search_options, hash_table_, gpu_queues_[i][j]);
         }
     }
 }
@@ -84,10 +84,16 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
         threads[i] = std::thread(&SearcherForPlay::gpuThreadFunc, this, root, i);
     }
 
+    //詰み探索を立ち上げ
+    std::thread mate_thread([&](){ mate_searcher_.mateSearch(root, INT_MAX); });
+
     //終了を待つ
     for (auto& t : threads) {
         t.join();
     }
+
+    mate_searcher_.stop_signal = true;
+    mate_thread.join();
 
     //読み筋などの情報出力
     printUSIInfo();

@@ -5,6 +5,7 @@
 #include "game.hpp"
 #include "search_options.hpp"
 #include "searcher.hpp"
+#include "searcher_for_mate.hpp"
 #include <atomic>
 #include <mutex>
 #include <stack>
@@ -60,7 +61,7 @@ private:
 //一つのGPUに対して複数生成されるWorker
 class GenerateWorker {
 public:
-    GenerateWorker(const SearchOptions& usi_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda, ReplayBuffer& rb);
+    GenerateWorker(const SearchOptions& search_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda, ReplayBuffer& rb);
     void prepareForCurrPos();
     void select();
     void backup();
@@ -91,6 +92,9 @@ private:
     //漸進的に更新されてしまうのでルート局面の生のValue出力を保存しておく
     //ルートノードのValueは更新する意味がないのでそのように変更すれば保存しておく必要もないのだが
     ValueType root_raw_value_;
+
+    //詰み探索エージェント
+    SearcherForMate mate_searcher_;
 };
 
 #endif //MIACIS_GAME_GENERATOR_HPP
