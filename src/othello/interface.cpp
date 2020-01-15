@@ -1,5 +1,4 @@
 ﻿#include"interface.hpp"
-#include"../game.hpp"
 #include"../neural_network.hpp"
 #include"../learn.hpp"
 
