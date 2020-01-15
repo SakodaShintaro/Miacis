@@ -8,23 +8,44 @@
 using Index = int32_t;
 
 struct HashEntry {
+    //探索回数の合計
     int32_t sum_N;
+
+    //まだGPU評価されてない探索回数の合計
     int32_t virtual_sum_N;
+
+    //以下vectorとなっているものは全てmovesのサイズと同じサイズになる
+    //行動
     std::vector<Move> moves;
+
+    //各行動を取った後の置換表エントリに対応するインデックス
     std::vector<Index> child_indices;
+
+    //各行動を探索した回数
     std::vector<int32_t> N;
+
+    //まだGPU評価されてない各行動を探索した回数
     std::vector<int32_t> virtual_N;
+
+    //ニューラルネットワークの出力方策
     std::vector<FloatType> nn_policy;
+
+    //価値。漸進的に更新され、常にこのノードを根部分木内の価値の平均となる
     ValueType value;
+
+    //ニューラルネットワークによる評価が行われたかを示すフラグ
     bool evaled;
 
+    //排他制御用のmutex
     std::mutex mutex;
 
-    //識別用データ
-    //ハッシュ値だけでは衝突が発生するので手数も持つ
+    //局面に対応するハッシュ値
     int64_t hash;
+
+    //手数。ハッシュ値だけでは衝突頻度が高いので
     uint16_t turn_number;
 
+    //置換表のageと照らし合わせて現在の情報かどうかを判断する変数
     uint16_t age;
 
     HashEntry() :
@@ -37,10 +58,10 @@ public:
     explicit HashTable(int64_t hash_size) : root_index(HashTable::NOT_EXPANDED), used_num_(0), age_(1),
                                             table_(1ull << (MSB64(hash_size) + 1)) {}
 
+    //取得用のオペレータ
     HashEntry& operator[](Index i) {
         return table_[i];
     }
-
     const HashEntry& operator[](Index i) const {
         return table_[i];
     }
@@ -54,7 +75,7 @@ public:
     //posの局面をindexへ保存する関数
     void saveUsedHash(Position& pos, Index index);
 
-    //現在の局面,及びそこから到達できる局面以外を削除する関数
+    //次にルートとなる局面及びそこから到達できる局面だけ残してそれ以外を削除する関数
     void deleteOldHash(Position& next_root, bool leave_root);
 
     //node局面におけるi番目の指し手の行動価値を返す関数
@@ -65,23 +86,28 @@ public:
     //Scalarのときは実数をそのまま返し、Categoricalのときはその期待値を返す
     FloatType expQfromNext(const HashEntry& node, int32_t i) const;
 
+    //置換表の利用率を返す関数。USI対応GUIだと表示できるので
     double getUsageRate() const {
         return (double)used_num_ / table_.size();
     }
 
+    //置換表に空きがあるかどうかを判定する関数
     bool hasEnoughSize() {
         return used_num_ < table_.size();
     }
 
+    //サイズを返す関数。searchEmptyIndexなどはダメだったときに置換表サイズを返すので、この関数の返り値と比較して適切なものが返ってきたか判定する
     uint64_t size() {
         return table_.size();
     }
 
-    // 未展開のノードのインデックス
+    //未展開のノードのインデックス
     static constexpr Index NOT_EXPANDED = -1;
 
+    //置換表全体の排他制御を行うためのmutex
     std::mutex mutex;
 
+    //現在思考しているノードに相当するエントリーのインデックス
     Index root_index;
 
 private:
@@ -89,8 +115,13 @@ private:
         return (Index)(((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (table_.size() - 1));
     }
 
+    //使用されている数
     uint64_t used_num_;
+
+    //情報の世代。この世代をインクリメントすることが置換表全体をclearに相当する
     uint16_t age_;
+
+    //置換表本体
     std::vector<HashEntry> table_;
 };
 

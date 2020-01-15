@@ -6,6 +6,7 @@ Index HashTable::searchEmptyIndex(const Position& pos) {
     uint64_t i = key;
     while (true) {
         if (table_[i].age != age_) {
+            //世代が違うならここを上書きして良い
             table_[i].hash = hash;
             table_[i].turn_number = static_cast<int16_t>(pos.turnNumber());
             table_[i].age = age_;
@@ -14,9 +15,13 @@ Index HashTable::searchEmptyIndex(const Position& pos) {
         }
 
         i++;
+
+        //たぶんmodを取るより分岐の方が速かったはず
         if (i >= table_.size()) {
             i = 0;
         }
+
+        //一周したら空きがなかったということなのでsize()を返す
         if (i == key) {
             return (Index)table_.size();
         }
@@ -29,9 +34,10 @@ Index HashTable::findSameHashIndex(const Position& pos) {
     uint64_t i = key;
     while (true) {
         if (table_[i].age != age_) {
+            //根本的に世代が異なるなら同じものはないのでsize()を返す
             return (Index)table_.size();
-        } else if (table_[i].hash == hash
-            && table_[i].turn_number == pos.turnNumber()) {
+        } else if (table_[i].hash == hash && table_[i].turn_number == pos.turnNumber()) {
+            //完全に一致したのでここが記録されていたエントリ
             return i;
         }
 
@@ -46,14 +52,16 @@ Index HashTable::findSameHashIndex(const Position& pos) {
 }
 
 void HashTable::saveUsedHash(Position& pos, Index index) {
+    //エントリの世代を合わせれば情報を持ち越すことができる
     table_[index].age = age_;
     used_num_++;
 
-    HashEntry& current_node = table_[index];
-    std::vector<Index>& child_indices = current_node.child_indices;
-    for (uint64_t i = 0; i < current_node.moves.size(); i++) {
+    //再帰的に子ノードを探索していく
+    HashEntry& curr_node = table_[index];
+    std::vector<Index>& child_indices = curr_node.child_indices;
+    for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
         if (child_indices[i] != NOT_EXPANDED && table_[child_indices[i]].age != age_) {
-            pos.doMove(current_node.moves[i]);
+            pos.doMove(curr_node.moves[i]);
             saveUsedHash(pos, child_indices[i]);
             pos.undo();
         }
@@ -61,19 +69,26 @@ void HashTable::saveUsedHash(Position& pos, Index index) {
 }
 
 void HashTable::deleteOldHash(Position& next_root, bool leave_root) {
-    uint64_t next_root_index = findSameHashIndex(next_root);
-
+    //まず完全に消去する
     used_num_ = 0;
     age_++;
 
-    if (next_root_index != table_.size()) { //見つかったということ
-        saveUsedHash(next_root, next_root_index);
+    //次のルート局面に相当するノード以下の部分木だけを残す
+    uint64_t next_root_index = findSameHashIndex(next_root);
 
-        if (!leave_root) {
-            //root_indexのところは初期化
-            table_[next_root_index].age = age_ - 1;
-            used_num_--;
-        }
+    if (next_root_index == table_.size()) {
+        //そもそも存在しないならここで終了
+        return;
+    }
+
+    //ルート以下をsave
+    saveUsedHash(next_root, next_root_index);
+
+    //強化学習のデータ生成中ではノイズを入れる関係で次のルート局面だけは消去したいので選べるようにしてある
+    if (!leave_root) {
+        //root_indexのところは初期化
+        table_[next_root_index].age = age_ - 1;
+        used_num_--;
     }
 }
 
