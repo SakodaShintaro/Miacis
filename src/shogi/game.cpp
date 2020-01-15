@@ -1,76 +1,70 @@
-#include "load_game.hpp"
+#include "../game.hpp"
 
 namespace sys = std::experimental::filesystem;
 
-Game loadGameFromCSA(const sys::path& p) {
-    //対応関係をunordered_mapで引けるようにしておく
-    static std::unordered_map<std::string, Piece> CSAstringToPiece = {
-            { "FU", PAWN },
-            { "KY", LANCE },
-            { "KE", KNIGHT },
-            { "GI", SILVER },
-            { "KI", GOLD },
-            { "KA", BISHOP },
-            { "HI", ROOK },
-            { "OU", KING },
-            { "TO", PAWN_PROMOTE },
-            { "NY", LANCE_PROMOTE },
-            { "NK", KNIGHT_PROMOTE },
-            { "NG", SILVER_PROMOTE },
-            { "UM", BISHOP_PROMOTE },
-            { "RY", ROOK_PROMOTE },
-    };
-
-    Position pos;
-    Game game;
-    std::ifstream ifs(p);
-    std::string buf;
-    while (getline(ifs, buf)) {
-        //指し手じゃないものはスキップ
-        if (buf[0] == '\'' || (buf[0] != '+' && buf[0] != '-') || buf.size() == 1) {
-            continue;
-        }
-
-        //指し手の情報を取得
-        Square from = FRToSquare[buf[1] - '0'][buf[2] - '0'];
-        Square to = FRToSquare[buf[3] - '0'][buf[4] - '0'];
-        Piece subject = CSAstringToPiece[buf.substr(5, 2)];
-        //手番を設定
-        subject = (pos.color() == BLACK ? toBlack(subject) : toWhite(subject));
-        bool isDrop = (from == WALL00);
-
-        //CSAのフォーマットから、動くものが成済なのにfromにある駒が不成の場合、成る手
-        bool isPromote = ((subject & PROMOTE) && !(pos.on(from) & PROMOTE));
-        if (isPromote) {
-            subject = (Piece) (subject & ~PROMOTE);
-        }
-
-        //Moveを生成し、Positionの情報を使って完全なものとする
-        Move move(to, from, isDrop, isPromote, subject);
-        move = pos.transformValidMove(move);
-
-        if (!pos.isLegalMove(move)) {
-            std::cerr << "There is a illegal move in " << p << std::endl;
-            move.print();
-            exit(1);
-        }
-        OneTurnElement element;
-        element.move = move;
-        game.elements.push_back(element);
-        pos.doMove(move);
-    }
-    game.result = (pos.color() == BLACK ? MIN_SCORE : MAX_SCORE);
-    return game;
-}
-
-std::vector<Game> loadGames(const std::string& path, int64_t num) {
+std::vector<Game> loadGames(const std::string& path) {
     const sys::path dir(path);
     std::vector<Game> games;
     for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
-        games.push_back(loadGameFromCSA(p->path()));
-        if (--num == 0) {
-            break;
+        //対応関係をunordered_mapで引けるようにしておく
+        static std::unordered_map<std::string, Piece> CSAstringToPiece = {
+                { "FU", PAWN },
+                { "KY", LANCE },
+                { "KE", KNIGHT },
+                { "GI", SILVER },
+                { "KI", GOLD },
+                { "KA", BISHOP },
+                { "HI", ROOK },
+                { "OU", KING },
+                { "TO", PAWN_PROMOTE },
+                { "NY", LANCE_PROMOTE },
+                { "NK", KNIGHT_PROMOTE },
+                { "NG", SILVER_PROMOTE },
+                { "UM", BISHOP_PROMOTE },
+                { "RY", ROOK_PROMOTE },
+        };
+
+        Position pos;
+        Game game;
+        std::ifstream ifs(p->path());
+        std::string buf;
+        while (getline(ifs, buf)) {
+            //指し手じゃないものはスキップ
+            if (buf[0] == '\'' || (buf[0] != '+' && buf[0] != '-') || buf.size() == 1) {
+                continue;
+            }
+
+            //指し手の情報を取得
+            Square from = FRToSquare[buf[1] - '0'][buf[2] - '0'];
+            Square to = FRToSquare[buf[3] - '0'][buf[4] - '0'];
+            Piece subject = CSAstringToPiece[buf.substr(5, 2)];
+            //手番を設定
+            subject = (pos.color() == BLACK ? toBlack(subject) : toWhite(subject));
+            bool isDrop = (from == WALL00);
+
+            //CSAのフォーマットから、動くものが成済なのにfromにある駒が不成の場合、成る手
+            bool isPromote = ((subject & PROMOTE) && !(pos.on(from) & PROMOTE));
+            if (isPromote) {
+                subject = (Piece) (subject & ~PROMOTE);
+            }
+
+            //Moveを生成し、Positionの情報を使って完全なものとする
+            Move move(to, from, isDrop, isPromote, subject);
+            move = pos.transformValidMove(move);
+
+            if (!pos.isLegalMove(move)) {
+                std::cerr << "There is a illegal move in " << p->path() << std::endl;
+                move.print();
+                exit(1);
+            }
+            OneTurnElement element;
+            element.move = move;
+            game.elements.push_back(element);
+            pos.doMove(move);
         }
+        game.result = (pos.color() == BLACK ? MIN_SCORE : MAX_SCORE);
+
+        games.push_back(game);
     }
     return games;
 }

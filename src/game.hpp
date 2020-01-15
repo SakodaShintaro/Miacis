@@ -32,4 +32,7 @@ struct Game {
     void writeKifuFile(const std::string& dir_path) const;
 };
 
+std::vector<Game> loadGames(const std::string& path);
+void cleanGames();
+
 #endif // !GAME_HPP

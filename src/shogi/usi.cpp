@@ -2,7 +2,7 @@
 #include"test.hpp"
 #include"../neural_network.hpp"
 #include"../learn.hpp"
-#include "load_game.hpp"
+#include"../game.hpp"
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数

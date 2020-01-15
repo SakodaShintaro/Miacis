@@ -1,8 +1,8 @@
-#include "load_game.hpp"
+#include "../game.hpp"
 
 namespace sys = std::experimental::filesystem;
 
-std::vector<Game> loadGames(const std::string& path, int64_t num) {
+std::vector<Game> loadGames(const std::string& path) {
     const sys::path dir(path);
     std::vector<Game> games;
     //必要であればここに読み込み関数を実装する
