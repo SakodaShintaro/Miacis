@@ -18,7 +18,6 @@ Interface::Interface() : searcher_(nullptr) {
 
     //メンバ関数以外
     command_["initParams"]         = initParams;
-    command_["searchLearningRate"] = searchLearningRate;
     command_["alphaZero"]          = alphaZero;
 }
 

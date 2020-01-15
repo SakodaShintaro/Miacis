@@ -19,7 +19,6 @@ USI::USI() : searcher_(nullptr) {
     //メンバ関数以外
     command_["initParams"]         = initParams;
     command_["cleanGames"]         = cleanGames;
-    command_["searchLearningRate"] = searchLearningRate;
     command_["supervisedLearn"]    = supervisedLearn;
     command_["alphaZero"]          = alphaZero;
     command_["test"]               = test;
