@@ -161,17 +161,18 @@ void checkVal() {
     std::string path;
     std::cout << "validation kifu path : ";
     std::cin >> path;
-    auto data = loadData(path);
+    std::vector<LearningData> data = loadData(path);
 
-    //データをシャッフルして必要量以外を削除
-    std::default_random_engine engine(0);
-    std::shuffle(data.begin(), data.end(), engine);
-    data.erase(data.begin() + 409600, data.end());
-    data.shrink_to_fit();
+    //ネットワークの準備
+    NeuralNetwork nn;
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    nn->setGPU(0);
+    nn->eval();
 
-    for (int32_t i = 1; i <= 100000; i++) {
-        auto v = validation(NeuralNetwork(), data, 32);
-        printf("%5d回目 : %f\t%f\n", i, v[0], v[1]);
+    std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, 32);
+    std::cout << std::fixed << std::setprecision(4);
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
     }
 }
 
