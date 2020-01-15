@@ -1,5 +1,5 @@
-﻿#ifndef UCT_HASH_ENTRY_HPP
-#define UCT_HASH_ENTRY_HPP
+﻿#ifndef HASH_TABLE_HPP
+#define HASH_TABLE_HPP
 
 #include"neural_network.hpp"
 #include"common.hpp"
@@ -7,7 +7,7 @@
 
 using Index = int32_t;
 
-struct UctHashEntry {
+struct HashEntry {
     int32_t sum_N;
     int32_t virtual_sum_N;
     std::vector<Move> moves;
@@ -27,21 +27,21 @@ struct UctHashEntry {
 
     uint16_t age;
 
-    UctHashEntry() :
+    HashEntry() :
         sum_N(0), virtual_sum_N(0), value{},
         evaled(false), hash(0), turn_number(0), age(0) {}
 };
 
-class UctHashTable {
+class HashTable {
 public:
-    explicit UctHashTable(int64_t hash_size) : root_index(UctHashTable::NOT_EXPANDED), used_num_(0), age_(1),
-                                               table_(1ull << (MSB64(hash_size) + 1)) {}
+    explicit HashTable(int64_t hash_size) : root_index(HashTable::NOT_EXPANDED), used_num_(0), age_(1),
+                                            table_(1ull << (MSB64(hash_size) + 1)) {}
 
-    UctHashEntry& operator[](Index i) {
+    HashEntry& operator[](Index i) {
         return table_[i];
     }
 
-    const UctHashEntry& operator[](Index i) const {
+    const HashEntry& operator[](Index i) const {
         return table_[i];
     }
 
@@ -59,11 +59,11 @@ public:
 
     //node局面におけるi番目の指し手の行動価値を返す関数
     //Scalarのときは実数を一つ、Categoricalのときは分布を返す
-    ValueType QfromNextValue(const UctHashEntry& node, int32_t i) const;
+    ValueType QfromNextValue(const HashEntry& node, int32_t i) const;
 
     //node局面におけるi番目の指し手の行動価値(期待値)を返す関数
     //Scalarのときは実数をそのまま返し、Categoricalのときはその期待値を返す
-    FloatType expQfromNext(const UctHashEntry& node, int32_t i) const;
+    FloatType expQfromNext(const HashEntry& node, int32_t i) const;
 
     double getUsageRate() const {
         return (double)used_num_ / table_.size();
@@ -91,7 +91,7 @@ private:
 
     uint64_t used_num_;
     uint16_t age_;
-    std::vector<UctHashEntry> table_;
+    std::vector<HashEntry> table_;
 };
 
 #endif

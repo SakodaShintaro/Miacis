@@ -1,6 +1,6 @@
 ﻿#include "searcher.hpp"
 
-int32_t Searcher::selectMaxUcbChild(const UctHashEntry& node) {
+int32_t Searcher::selectMaxUcbChild(const HashEntry& node) {
 #ifdef USE_CATEGORICAL
     int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
     FloatType best_value = expOfValueDist(hash_table_.QfromNextValue(node, best_index));
@@ -48,7 +48,7 @@ void Searcher::select(Position& pos) {
     assert(!hash_table_[index].moves.empty());
 
     //未展開の局面に至るまで遷移を繰り返す
-    while (index != UctHashTable::NOT_EXPANDED) {
+    while (index != HashTable::NOT_EXPANDED) {
         std::unique_lock<std::mutex> lock(hash_table_[index].mutex);
 
         if (pos.turnNumber() > search_options_.draw_turn) {
@@ -162,12 +162,12 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
     //取得したノードをロック
     hash_table_[index].mutex.lock();
 
-    UctHashEntry& curr_node = hash_table_[index];
+    HashEntry& curr_node = hash_table_[index];
 
     // 候補手の展開
     curr_node.moves = pos.generateAllMoves();
     curr_node.moves.shrink_to_fit();
-    curr_node.child_indices.assign(curr_node.moves.size(), UctHashTable::NOT_EXPANDED);
+    curr_node.child_indices.assign(curr_node.moves.size(), HashTable::NOT_EXPANDED);
     curr_node.child_indices.shrink_to_fit();
     curr_node.N.assign(curr_node.moves.size(), 0);
     curr_node.N.shrink_to_fit();
@@ -247,7 +247,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         // 探索結果の反映
         hash_table_[index].mutex.lock();
 
-        UctHashEntry& node = hash_table_[index];
+        HashEntry& node = hash_table_[index];
 
         //探索回数の更新
         node.N[action]++;

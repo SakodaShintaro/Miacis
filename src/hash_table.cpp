@@ -1,6 +1,6 @@
-﻿#include"uct_hash_table.hpp"
+﻿#include"hash_table.hpp"
 
-Index UctHashTable::searchEmptyIndex(const Position& pos) {
+Index HashTable::searchEmptyIndex(const Position& pos) {
     auto hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
@@ -23,7 +23,7 @@ Index UctHashTable::searchEmptyIndex(const Position& pos) {
     }
 }
 
-Index UctHashTable::findSameHashIndex(const Position& pos) {
+Index HashTable::findSameHashIndex(const Position& pos) {
     auto hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
@@ -45,7 +45,7 @@ Index UctHashTable::findSameHashIndex(const Position& pos) {
     }
 }
 
-void UctHashTable::saveUsedHash(Position& pos, Index index) {
+void HashTable::saveUsedHash(Position& pos, Index index) {
     table_[index].age = age_;
     used_num_++;
 
@@ -60,7 +60,7 @@ void UctHashTable::saveUsedHash(Position& pos, Index index) {
     }
 }
 
-void UctHashTable::deleteOldHash(Position& root, bool leave_root) {
+void HashTable::deleteOldHash(Position& root, bool leave_root) {
     uint64_t root_index = findSameHashIndex(root);
 
     used_num_ = 0;
@@ -77,23 +77,23 @@ void UctHashTable::deleteOldHash(Position& root, bool leave_root) {
     }
 }
 
-ValueType UctHashTable::QfromNextValue(const UctHashEntry& node, int32_t i) const {
+ValueType HashTable::QfromNextValue(const HashEntry& node, int32_t i) const {
 #ifdef USE_CATEGORICAL
-    if (node.child_indices[i] == UctHashTable::NOT_EXPANDED) {
+    if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
         return onehotDist(MIN_SCORE);
     }
     ValueType v = table_[node.child_indices[i]].value;
     std::reverse(v.begin(), v.end());
     return v;
 #else
-    if (node.child_indices[i] == UctHashTable::NOT_EXPANDED) {
+    if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
         return MIN_SCORE;
     }
     return MAX_SCORE + MIN_SCORE - table_[node.child_indices[i]].value;
 #endif
 }
 
-FloatType UctHashTable::expQfromNext(const UctHashEntry& node, int32_t i) const {
+FloatType HashTable::expQfromNext(const HashEntry& node, int32_t i) const {
 #ifdef USE_CATEGORICAL
     return expOfValueDist(QfromNextValue(node, i));
 #else

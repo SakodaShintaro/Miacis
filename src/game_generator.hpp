@@ -85,7 +85,7 @@ private:
 
     Game game_;
     Position position_;
-    UctHashTable hash_table_;
+    HashTable hash_table_;
     Searcher searcher_;
 
     //漸進的に更新されてしまうのでルート局面の生のValue出力を保存しておく

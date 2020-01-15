@@ -1,7 +1,7 @@
 ﻿#ifndef MIACIS_SEARCHER_HPP
 #define MIACIS_SEARCHER_HPP
 
-#include"uct_hash_table.hpp"
+#include"hash_table.hpp"
 #include"search_options.hpp"
 #include<chrono>
 #include<stack>
@@ -10,7 +10,7 @@
 //hash_tableのindexに相当する入力inputを計算して適切な場所に書き込むことを要求する
 struct GPUQueue {
     std::vector<float> inputs;
-    std::vector<std::reference_wrapper<UctHashTable>> hash_tables;
+    std::vector<std::reference_wrapper<HashTable>> hash_tables;
     std::vector<Index> indices;
 };
 
@@ -23,7 +23,7 @@ struct BackupQueue {
 
 class Searcher {
 public:
-    explicit Searcher(const SearchOptions& usi_options, UctHashTable& hash_table, GPUQueue& gpu_queue)
+    explicit Searcher(const SearchOptions& usi_options, HashTable& hash_table, GPUQueue& gpu_queue)
             : hash_table_(hash_table), search_options_(usi_options), gpu_queue_(gpu_queue) {}
 
     //再帰しない探索関数
@@ -39,7 +39,7 @@ public:
 
 private:
     //今のノードから遷移するべきノードを選択する関数
-    int32_t selectMaxUcbChild(const UctHashEntry& node);
+    int32_t selectMaxUcbChild(const HashEntry& node);
 
     //バックアップ
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
@@ -48,7 +48,7 @@ private:
     static constexpr int32_t VIRTUAL_LOSS = 1;
 
     //置換表
-    UctHashTable& hash_table_;
+    HashTable& hash_table_;
 
     const SearchOptions& search_options_;
 

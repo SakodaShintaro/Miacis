@@ -1,11 +1,11 @@
 #include "searcher_for_mate.hpp"
 
-SearcherForMate::SearcherForMate(UctHashTable& hash_table, const SearchOptions& search_options)
+SearcherForMate::SearcherForMate(HashTable& hash_table, const SearchOptions& search_options)
 : stop_signal(false), hash_table_(hash_table), search_options_(search_options) {}
 
 void SearcherForMate::mateSearch(Position pos, int32_t depth_limit) {
     stop_signal = false;
-    UctHashEntry& curr_node = hash_table_[hash_table_.root_index];
+    HashEntry& curr_node = hash_table_[hash_table_.root_index];
     for (int32_t depth = 1; !stop_signal && depth <= depth_limit; depth += 2) {
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
             pos.doMove(curr_node.moves[i]);
@@ -19,8 +19,8 @@ void SearcherForMate::mateSearch(Position pos, int32_t depth_limit) {
                 curr_node.N[i]  += search_options_.search_limit;
                 curr_node.sum_N += search_options_.search_limit;
 
-                if (curr_node.child_indices[i] != UctHashTable::NOT_EXPANDED) {
-                    UctHashEntry& child_node = hash_table_[curr_node.child_indices[i]];
+                if (curr_node.child_indices[i] != HashTable::NOT_EXPANDED) {
+                    HashEntry& child_node = hash_table_[curr_node.child_indices[i]];
                     child_node.mutex.lock();
                     //ここでvalueを上書きしても、backup途中のエージェントがいるとその後に上書きが発生するからダメそうな気がする
 #ifdef USE_CATEGORICAL

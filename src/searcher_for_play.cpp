@@ -53,7 +53,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     std::stack<Index> dummy;
     std::stack<int32_t> dummy2;
     hash_table_.root_index = searchers_[0][0].expand(root, dummy, dummy2);
-    UctHashEntry& curr_node = hash_table_[hash_table_.root_index];
+    HashEntry& curr_node = hash_table_[hash_table_.root_index];
 
     //合法手が0だったら投了
     if (curr_node.moves.empty()) {
@@ -205,7 +205,7 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
             //書き込み
             for (uint64_t i = 0; i < gpu_queue.indices.size(); i++) {
                 std::unique_lock<std::mutex> lock(hash_table_[gpu_queue.indices[i]].mutex);
-                UctHashEntry& curr_node = hash_table_[gpu_queue.indices[i]];
+                HashEntry& curr_node = hash_table_[gpu_queue.indices[i]];
                 curr_node.nn_policy.resize(curr_node.moves.size());
                 for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
                     curr_node.nn_policy[j] = y.first[i][curr_node.moves[j].toLabel()];
@@ -223,7 +223,7 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
 
 std::vector<Move> SearcherForPlay::getPV() const {
     std::vector<Move> pv;
-    for (Index index = hash_table_.root_index; index != UctHashTable::NOT_EXPANDED && !hash_table_[index].moves.empty();) {
+    for (Index index = hash_table_.root_index; index != HashTable::NOT_EXPANDED && !hash_table_[index].moves.empty();) {
         const auto& N = hash_table_[index].N;
         Index next_index = (int32_t) (std::max_element(N.begin(), N.end()) - N.begin());
         pv.push_back(hash_table_[index].moves[next_index]);

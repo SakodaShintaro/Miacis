@@ -40,7 +40,7 @@ private:
     const SearchOptions& search_options_;
 
     //置換表は1個
-    UctHashTable hash_table_;
+    HashTable hash_table_;
 
     //GPUは複数
     std::vector<NeuralNetwork> neural_networks_;

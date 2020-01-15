@@ -10,7 +10,7 @@ list(APPEND CMAKE_PREFIX_PATH ~/libtorch)
 find_package(Torch REQUIRED)
 
 #各ゲームで共通する部分のソース
-set(SRCS uct_hash_table.cpp
+set(SRCS hash_table.cpp
          replay_buffer.cpp
          game_generator.cpp
          neural_network.cpp
@@ -20,9 +20,10 @@ set(SRCS uct_hash_table.cpp
          alphazero_learn.cpp
          searcher.cpp
          searcher_for_play.cpp
+         searcher_for_mate.cpp
          hyperparameter_manager.cpp
          segment_tree.cpp
-        searcher_for_mate.cpp searcher_for_mate.hpp)
+         )
 
 #将棋用のバイナリをコンパイルするのに必要なソース
 set(SHOGI_SRCS shogi/main.cpp

@@ -74,7 +74,7 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
 
     for (uint64_t i = 0; i < gpu_queues_[thread_id].hash_tables.size(); i++) {
         //何番目のsearcherが持つハッシュテーブルのどの位置に書き込むかを取得
-        UctHashEntry& curr_node = gpu_queues_[thread_id].hash_tables[i].get()[gpu_queues_[thread_id].indices[i]];
+        HashEntry& curr_node = gpu_queues_[thread_id].hash_tables[i].get()[gpu_queues_[thread_id].indices[i]];
 
         //policyを設定
         std::vector<float> legal_moves_policy(curr_node.moves.size());
@@ -120,7 +120,7 @@ void GenerateWorker::prepareForCurrPos() {
 }
 
 OneTurnElement GenerateWorker::resultForCurrPos() {
-    const UctHashEntry& root_node = hash_table_[hash_table_.root_index];
+    const HashEntry& root_node = hash_table_[hash_table_.root_index];
     if (root_node.moves.empty()) {
         position_.print();
         std::cout << "in resultForCurrPos(), root_node.moves.empty()" << std::endl;
@@ -143,7 +143,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
 
     //選択した着手の勝率の算出
     //詰みのときは未展開であることに注意する
-    FloatType best_value = (root_node.child_indices[best_index] == UctHashTable::NOT_EXPANDED ? MAX_SCORE :
+    FloatType best_value = (root_node.child_indices[best_index] == HashTable::NOT_EXPANDED ? MAX_SCORE :
                             hash_table_.expQfromNext(root_node, best_index));
 
     //教師データを作成
@@ -172,7 +172,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
             //選択回数が0ならMIN_SCORE
             //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
             //その他は普通に計算
-            Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == UctHashTable::NOT_EXPANDED ? MAX_SCORE : hash_table_.expQfromNext(root_node, i));
+            Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == HashTable::NOT_EXPANDED ? MAX_SCORE : hash_table_.expQfromNext(root_node, i));
         }
         Q_dist = softmax(Q_dist, search_options_.temperature_x1000 / 1000.0f);
 
@@ -254,7 +254,7 @@ bool GenerateWorker::shouldStop() {
         return true;
     }
 
-    const UctHashEntry& root = hash_table_[hash_table_.root_index];
+    const HashEntry& root = hash_table_[hash_table_.root_index];
 
 //    //探索回数のチェック
 //    int32_t max1 = 0, max2 = 0;
