@@ -32,9 +32,6 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
 //パラメータを初期化
 void initParams();
 
-//学習率の自動決定
-void searchLearningRate();
-
 //棋譜からの教師あり学習
 void supervisedLearn();
 
