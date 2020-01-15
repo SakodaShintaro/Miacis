@@ -25,7 +25,7 @@ private:
     Position root_;
     std::unique_ptr<SearcherForPlay> searcher_;
     std::thread thread_;
-    SearchOptions usi_options_;
+    SearchOptions search_options_;
 };
 
 #endif

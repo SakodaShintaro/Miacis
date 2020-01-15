@@ -23,8 +23,8 @@ struct BackupQueue {
 
 class Searcher {
 public:
-    explicit Searcher(const SearchOptions& usi_options, HashTable& hash_table, GPUQueue& gpu_queue)
-            : hash_table_(hash_table), search_options_(usi_options), gpu_queue_(gpu_queue) {}
+    explicit Searcher(const SearchOptions& search_options, HashTable& hash_table, GPUQueue& gpu_queue)
+            : hash_table_(hash_table), search_options_(search_options), gpu_queue_(gpu_queue) {}
 
     //再帰しない探索関数
     void select(Position& pos);

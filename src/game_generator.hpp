@@ -15,8 +15,8 @@
 //一つのGPUに対して割り当てられる
 class GameGenerator {
 public:
-    GameGenerator(const SearchOptions& usi_options, int64_t worker_num, FloatType Q_dist_lambda, ReplayBuffer& rb, NeuralNetwork nn)
-        : stop_signal(false), search_options_(usi_options), worker_num_(worker_num), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb),
+    GameGenerator(const SearchOptions& search_options, int64_t worker_num, FloatType Q_dist_lambda, ReplayBuffer& rb, NeuralNetwork nn)
+        : stop_signal(false), search_options_(search_options), worker_num_(worker_num), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb),
           neural_network_(std::move(nn)), gpu_queues_(search_options_.thread_num) {
         neural_network_->eval();
     };

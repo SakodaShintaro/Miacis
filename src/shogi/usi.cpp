@@ -51,14 +51,14 @@ void USI::usi() {
 #endif
     std::cout << "id author Sakoda Shintaro" << std::endl;
 
-    for (const auto& pair : usi_options_.check_options) {
+    for (const auto& pair : search_options_.check_options) {
         std::cout << "option name " << pair.first << " type check default " << std::boolalpha << pair.second.value << std::endl;
     }
-    for (const auto& pair : usi_options_.spin_options) {
+    for (const auto& pair : search_options_.spin_options) {
         std::cout << "option name " << pair.first << " type spin default " << pair.second.value
                   << " min " << pair.second.min << " max " << pair.second.max << std::endl;
     }
-    for (const auto& pair : usi_options_.filename_options) {
+    for (const auto& pair : search_options_.filename_options) {
         std::cout << "option name " << pair.first << " type filename default " << pair.second.value << std::endl;
     }
 
@@ -66,7 +66,7 @@ void USI::usi() {
 }
 
 void USI::isready() {
-    searcher_ = std::make_unique<SearcherForPlay>(usi_options_);
+    searcher_ = std::make_unique<SearcherForPlay>(search_options_);
     printf("readyok\n");
 }
 
@@ -76,7 +76,7 @@ void USI::setoption() {
     assert(input == "name");
     std::cin >> input;
 
-    for (auto& pair : usi_options_.check_options) {
+    for (auto& pair : search_options_.check_options) {
         if (input == pair.first) {
             std::cin >> input;
             std::cin >> input;
@@ -84,14 +84,14 @@ void USI::setoption() {
             return;
         }
     }
-    for (auto& pair : usi_options_.spin_options) {
+    for (auto& pair : search_options_.spin_options) {
         if (input == pair.first) {
             std::cin >> input;
             std::cin >> pair.second.value;
             return;
         }
     }
-    for (auto& pair : usi_options_.filename_options) {
+    for (auto& pair : search_options_.filename_options) {
         if (input == pair.first) {
             std::cin >> input;
             std::cin >> pair.second.value;
@@ -159,7 +159,7 @@ void USI::go() {
         std::cin >> input;
         int64_t wtime = stoll(input);
         int64_t time = (root_.color() == BLACK ? btime : wtime);
-        int64_t remained_turn = (usi_options_.draw_turn - root_.turnNumber()) / 2;
+        int64_t remained_turn = (search_options_.draw_turn - root_.turnNumber()) / 2;
         int64_t curr_time = (remained_turn == 0 ? 0 : time / remained_turn);
         std::cin >> input; //input == "byoyomi" or "binc"となるはず
         if (input == "byoyomi") {
@@ -179,7 +179,7 @@ void USI::go() {
         time_limit = LLONG_MAX;
 
         //random_turnをなくす
-        usi_options_.random_turn = 0;
+        search_options_.random_turn = 0;
     } else if (input == "mate") {
         //詰み探索(未実装)
         assert(false);
@@ -190,9 +190,9 @@ void USI::go() {
     //Ponderオンの場合、一度与えられた持ち時間でbestmoveを弾き出したあと無限の持ち時間で現局面についてPonderを行う
     //予想手を決めなくとも置換表を埋めていくだけで強くなるはず
     thread_ = std::thread([this, time_limit]() {
-        Move best_move = (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - usi_options_.byoyomi_margin));
+        Move best_move = (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - search_options_.byoyomi_margin));
         std::cout << "bestmove " << best_move << std::endl;
-        if (usi_options_.USI_Ponder) {
+        if (search_options_.USI_Ponder) {
             searcher_->think(root_, LLONG_MAX);
         }
     });
