@@ -27,15 +27,9 @@ struct UctHashEntry {
 
     uint16_t age;
 
-#ifdef USE_CATEGORICAL
     UctHashEntry() :
-        sum_N(0), virtual_sum_N(0), value({}),
+        sum_N(0), virtual_sum_N(0), value{},
         evaled(false), hash(0), turn_number(0), age(0) {}
-#else
-    UctHashEntry() :
-        sum_N(0), virtual_sum_N(0), value(0.0),
-        evaled(false), hash(0), turn_number(0), age(0) {}
-#endif
 };
 
 class UctHashTable {
