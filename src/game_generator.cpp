@@ -252,7 +252,7 @@ void GenerateWorker::backup() {
 
 bool GenerateWorker::shouldStop() {
     //ハッシュテーブルの容量チェック
-    if (!hash_table_.hasEnoughSize()) {
+    if (!hash_table_.hasEmptyEntries(1)) {
         return true;
     }
 

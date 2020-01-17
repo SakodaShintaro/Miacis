@@ -91,9 +91,9 @@ public:
         return (double)used_num_ / table_.size();
     }
 
-    //置換表に空きがあるかどうかを判定する関数
-    bool hasEnoughSize() {
-        return used_num_ < table_.size();
+    //置換表にmargin個以上の空きがあるかどうかを判定する関数
+    bool hasEmptyEntries(int64_t margin) {
+        return used_num_ + margin <= table_.size();
     }
 
     //サイズを返す関数。searchEmptyIndexなどはダメだったときに置換表サイズを返すので、この関数の返り値と比較して適切なものが返ってきたか判定する

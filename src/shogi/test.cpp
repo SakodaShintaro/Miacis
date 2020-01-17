@@ -145,7 +145,7 @@ void checkGenSpeed() {
 void checkSearchSpeed() {
     constexpr int64_t time_limit = 10000;
     SearchOptions search_options;
-    search_options.USI_Hash = 2048;
+    search_options.USI_Hash = 4096;
     search_options.print_interval = time_limit * 2;
     int64_t max_thread_num = std::thread::hardware_concurrency() / search_options.gpu_num;
     Position pos;
