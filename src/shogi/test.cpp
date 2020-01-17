@@ -143,13 +143,15 @@ void checkGenSpeed() {
 }
 
 void checkSearchSpeed() {
+    constexpr int64_t time_limit = 10000;
     SearchOptions search_options;
     search_options.USI_Hash = 2048;
-    constexpr int64_t time_limit = 10000;
+    search_options.print_interval = time_limit * 2;
+    int64_t max_thread_num = std::thread::hardware_concurrency() / search_options.gpu_num;
     Position pos;
     for (search_options.search_batch_size = 64; search_options.search_batch_size <= 512; search_options.search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_options.search_batch_size << std::endl;
-        for (search_options.thread_num = 1; search_options.thread_num <= 3; search_options.thread_num++) {
+        for (search_options.thread_num = 1; search_options.thread_num <= max_thread_num; search_options.thread_num++) {
             SearcherForPlay searcher(search_options);
             searcher.think(pos, time_limit);
         }
