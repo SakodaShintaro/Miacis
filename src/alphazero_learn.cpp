@@ -193,6 +193,10 @@ void alphaZero() {
                 if (i > 0) {
                     generators[i]->gpu_mutex.lock();
                 }
+
+                //ロードするときは一度fp32に直さないとエラーになる
+                //もっと良いやり方はありそうだがなぁ
+                neural_networks[i] = NeuralNetwork();
                 torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
                 neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
                 if (i > 0) {
