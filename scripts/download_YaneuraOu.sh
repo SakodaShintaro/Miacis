@@ -31,3 +31,6 @@ mkdir ../book
 cd ../book
 wget https://github.com/yaneurao/YaneuraOu/releases/download/v4.73_book/standard_book.zip
 unzip -q standard_book.zip
+
+# Ayaneも用意
+git clone https://github.com/yaneurao/Ayane ../../../Ayane
