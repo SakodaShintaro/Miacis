@@ -254,6 +254,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         node.sum_N++;
         node.virtual_sum_N -= node.virtual_N[action];
         assert(node.virtual_sum_N >= 0);
+        assert(node.sum_N >= 0);
         node.virtual_N[action] = 0;
 
         //価値の更新
