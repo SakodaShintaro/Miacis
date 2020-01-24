@@ -392,5 +392,5 @@ NeuralNetworkImpl::mixUpLossFinalLayer(const std::vector<LearningData>& data, fl
 void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
-    (fp16_ ? to(device_, torch::kHalf) : to(device_));
+    (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
 }
