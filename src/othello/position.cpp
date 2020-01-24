@@ -87,11 +87,7 @@ void Position::doMove(const Move move) {
     }
 
     //動かす前の状態を残しておく
-    std::vector<Piece> board(SquareNum);
-    for (int32_t i = 0; i < SquareNum; i++) {
-        board[i] = board_[i];
-    }
-    stack_.emplace_back(board);
+    stack_.emplace_back(board_);
 
     //実際に動かす
     //8方向を一つずつ見ていって反転できる駒があったら反転する
@@ -164,11 +160,7 @@ void Position::undo() {
 
 void Position::doNullMove() {
     //スタックの変更
-    std::vector<Piece> board(SquareNum);
-    for (int32_t i = 0; i < SquareNum; i++) {
-        board[i] = board_[i];
-    }
-    stack_.emplace_back(board);
+    stack_.emplace_back(board_);
 
     hash_values_.push_back(hash_value_);
 

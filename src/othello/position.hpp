@@ -80,10 +80,10 @@ private:
     Color color_;
 
     //盤面
-    Piece board_[SquareNum];
+    std::array<Piece, SquareNum> board_;
 
     //盤面の履歴をスタックで管理
-    std::vector<std::vector<Piece>> stack_;
+    std::vector<std::array<Piece, SquareNum>> stack_;
 
     //手数
     uint32_t turn_number_;
