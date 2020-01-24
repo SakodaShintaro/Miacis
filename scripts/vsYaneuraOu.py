@@ -3,15 +3,9 @@
 import os
 import sys
 
-# カレントディレクトリ内にある{prefix}_{step}.modelを評価する
-curr_path = os.getcwd()
-# ディレクトリ名が"/"で終わっていることの確認
-if curr_path[-1] != "/":
-    curr_path += "/"
-
 # Ayaneをインポート
 script_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(script_dir + "/../Ayane/source")
+sys.path.append(script_dir + "/../../Ayane/source")
 import shogi.Ayane as ayane
 
 # その他必要なものをインポート
@@ -71,7 +65,13 @@ server.engines[1].set_engine_options({"USI_Ponder": "false",
                                       "NetworkDelay": time_max - time_yane,
                                       "NetworkDelay2": time_max - time_yane
                                       })
-server.engines[1].connect(script_dir + "/../YaneuraOu/bin/YaneuraOu-by-gcc")
+server.engines[1].connect(script_dir + "/../../YaneuraOu/bin/YaneuraOu-by-gcc")
+
+# カレントディレクトリ内にある{prefix}_{step}.modelを評価する
+curr_path = os.getcwd()
+# ディレクトリ名が"/"で終わっていることの確認
+if curr_path[-1] != "/":
+    curr_path += "/"
 
 # 結果を書き込むファイルを取得
 f = open(curr_path + "result.txt", mode="a")
