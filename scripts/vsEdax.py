@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import subprocess
+import os
 
 
 class EdaxManager:
@@ -7,8 +8,9 @@ class EdaxManager:
     target_str = "  A B C D E F G H            WHITE            A  B  C  D  E  F  G  H\n"
 
     def __init__(self):
-        self.proc = subprocess.Popen(["./edax-4.4"],
-                                     cwd="../../edax-linux",
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.proc = subprocess.Popen([f"{script_dir}/../../edax-linux/edax-4.4"],
+                                     cwd=f"{script_dir}/../../edax-linux",
                                      encoding="UTF-8",
                                      stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE)
@@ -49,8 +51,9 @@ class EdaxManager:
 
 class MiacisManager:
     def __init__(self):
-        self.proc = subprocess.Popen(["./Miacis_othello_categorical"],
-                                     cwd="../src/cmake-build-release/",
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        self.proc = subprocess.Popen([f"{script_dir}/../src/cmake-build-release/Miacis_othello_categorical"],
+                                     cwd=f"{script_dir}/../src/cmake-build-release",
                                      encoding="UTF-8",
                                      stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE)
@@ -62,7 +65,7 @@ class MiacisManager:
         self.proc.stdin.flush()
 
     def send_option(self, name, value):
-        self.send("set " + str(name) + " " + str(value))
+        self.send(f"set {name} {value}")
 
     def send_init(self):
         self.send("init")
@@ -83,7 +86,7 @@ def main():
     edax_manager = EdaxManager()
     miacis_manager = MiacisManager()
 
-    miacis_manager.send_option("search_limit", 3)
+    miacis_manager.send_option("search_limit", 100)
     miacis_manager.send_option("byoyomi_margin", 10000000)
     miacis_manager.send_option("search_batch_size", 1)
     miacis_manager.send_option("thread_num", 1)
