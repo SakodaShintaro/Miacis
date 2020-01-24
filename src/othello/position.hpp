@@ -30,7 +30,7 @@ public:
     //詰み探索を飛ばしても良いか
     //将棋で王手がかかってないときは枝刈りしたいのでこれが必要
     //オセロでは特に飛ばすべき局面はないと思われる
-    bool canSkipMateSearch() const { return false; }
+    static bool canSkipMateSearch() { return false; }
 
     //特徴量作成
     std::vector<float> makeFeature(int64_t data_augmentation) const;
@@ -53,7 +53,6 @@ public:
     uint32_t turnNumber() const { return turn_number_; }
     Color color() const { return color_; }
     int64_t hashValue() const { return hash_value_; }
-    Piece on(const Square sq) const { return board_[sq]; }
 
     //現状は90度ごとの回転のみに対応
     //原理的にはそれに左右反転まで含めた8通りに拡張できるがまだ未実装
