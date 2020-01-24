@@ -122,6 +122,7 @@ void Interface::infiniteTest() {
     options_.search_limit = 400;
     options_.search_batch_size = 1;
     options_.thread_num = 1;
+    options_.random_turn = 100;
     options_.print_interval = INT_MAX;
     options_.print_policy_num = 0;
     searcher_ = std::make_unique<SearcherForPlay>(options_);
