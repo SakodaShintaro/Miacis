@@ -36,8 +36,10 @@ void Position::init() {
     //ハッシュ値の初期化
     initHashValue();
 
+    //履歴系を初期化
+    stack_.clear();
+    hash_values_.clear();
     kifu_.clear();
-    kifu_.reserve(512);
 }
 
 void Position::print() const {
