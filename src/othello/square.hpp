@@ -2,7 +2,7 @@
 #define MIACIS_SQUARE_HPP
 
 #include"piece.hpp"
-#include "../array_map.hpp"
+#include"../array_map.hpp"
 #include<unordered_map>
 #include<cassert>
 #include<vector>

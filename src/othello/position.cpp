@@ -81,19 +81,32 @@ void Position::doMove(const Move move) {
     }
 #endif
 
+    //現在の状態を残しておく
+    //盤面
+    stack_.emplace_back(board_);
+
+    //ハッシュ値
+    hash_values_.push_back(hash_value_);
+
+    //手数の更新
+    turn_number_++;
+
+    //行動を棋譜に追加
+    kifu_.push_back(move);
+
+    //パスならいくつか処理をしてここで終了
     if (move == NULL_MOVE) {
-        doNullMove();
+        //手番の更新
+        color_ = ~color_;
+
+        //hashの手番要素を更新
+        hash_value_ ^= 1;
         return;
     }
-
-    //動かす前の状態を残しておく
-    stack_.emplace_back(board_);
 
     //実際に動かす
     //8方向を一つずつ見ていって反転できる駒があったら反転する
     Piece p = board_[move.to()] = (Piece)color_;
-
-    hash_values_.push_back(hash_value_);
 
     //ハッシュ値を変更
     hash_value_ ^= HashSeed[p][move.to()];
@@ -128,12 +141,6 @@ void Position::doMove(const Move move) {
     //手番の更新
     color_ = ~color_;
 
-    //手数の更新
-    turn_number_++;
-
-    //棋譜に指し手を追加
-    kifu_.push_back(move);
-
     //1bit目を0にする
     hash_value_ ^= 1;
 }
@@ -153,38 +160,6 @@ void Position::undo() {
     //ハッシュの更新
     hash_value_ = hash_values_.back();
     hash_values_.pop_back();
-
-    //手数
-    turn_number_--;
-}
-
-void Position::doNullMove() {
-    //スタックの変更
-    stack_.emplace_back(board_);
-
-    hash_values_.push_back(hash_value_);
-
-    //手番の更新
-    color_ = ~color_;
-
-    //手数の更新
-    turn_number_++;
-
-    //hashの手番要素を更新
-    hash_value_ ^= 1;
-
-    //NULL_MOVEを棋譜に追加
-    kifu_.push_back(NULL_MOVE);
-}
-
-void Position::undoNullMove() {
-    kifu_.pop_back();
-
-    //手番を戻す(このタイミングでいいかな?)
-    color_ = ~color_;
-
-    //ハッシュの更新(手番分)
-    hash_value_ ^= 1;
 
     //手数
     turn_number_--;

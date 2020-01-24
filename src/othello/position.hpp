@@ -21,13 +21,11 @@ public:
     void print() const;
 
     //一手進める・戻す関数
-    void doMove(const Move move);
+    void doMove(Move move);
     void undo();
-    void doNullMove();
-    void undoNullMove();
 
     //合法性に関する関数
-    bool isLegalMove(const Move move) const;
+    bool isLegalMove(Move move) const;
 
     //詰み探索を飛ばしても良いか
     //将棋で王手がかかってないときは枝刈りしたいのでこれが必要
