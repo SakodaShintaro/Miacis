@@ -13,11 +13,6 @@ const ArrayMap<std::string, PieceNum> PieceToSfenStr({
     { EMPTY,       " " }
 });
 
-const std::array<Piece, 28> PieceList{
-    BLACK_PIECE,
-    WHITE_PIECE,
-};
-
 std::ostream& operator<<(std::ostream& os, const Piece piece) {
     os << PieceToStr[piece];
     return os;
