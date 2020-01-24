@@ -1,11 +1,14 @@
 cd `dirname $0`
 
+# どこに保存するかの基準位置
+root_dir=../..
+
 #
 # やねうら王のダウンロード & コンパイル
 #
 # GitHubからソースコードをダウンロード
-git clone https://github.com/yaneurao/YaneuraOu ../YaneuraOu
-cd ../YaneuraOu/source
+git clone https://github.com/yaneurao/YaneuraOu ${root_dir}/YaneuraOu
+cd ${root_dir}/YaneuraOu/source
 
 # デフォルトではclangを使うようになっているがg++を使いたいのでMakefileを書き換える
 sed -i -e "s/#COMPILER = g++/COMPILER = g++/g" Makefile
@@ -32,5 +35,5 @@ cd ../book
 wget https://github.com/yaneurao/YaneuraOu/releases/download/v4.73_book/standard_book.zip
 unzip -q standard_book.zip
 
-# Ayaneも用意
+# YaneuraOuと同階層にAyaneも用意
 git clone https://github.com/yaneurao/Ayane ../../../Ayane
