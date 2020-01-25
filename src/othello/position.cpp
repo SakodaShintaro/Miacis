@@ -247,21 +247,17 @@ bool Position::isFinish(float& score) const {
     //(2)盤面は埋まっていないが、どちらのプレイヤーも置くところがない場合
     //   これは2回連続パスが続くことで判定できる
 
-    //とりあえず空のマスがあるか調べつつ石の数を数えていく
-    bool is_there_empty = false;
-    std::array<int64_t, ColorNum> piece_num{};
+    //空マスも含めて石の数を数えていく
+    std::array<int64_t, PieceNum> piece_num{};
     for (Square sq : SquareList) {
-        if (board_[sq] == EMPTY) {
-            is_there_empty = true;
-        } else {
-            piece_num[board_[sq]]++;
-        }
+        piece_num[board_[sq]]++;
     }
+    assert(piece_num[WALL] == 0);
 
-    score = (piece_num[color_] == piece_num[WHITE - color_] ? (MAX_SCORE + MIN_SCORE) / 2 :
-             piece_num[color_] >  piece_num[WHITE - color_] ? MAX_SCORE : MIN_SCORE);
+    score = (piece_num[color_] == piece_num[~color_] ? (MAX_SCORE + MIN_SCORE) / 2 :
+             piece_num[color_] >  piece_num[~color_] ? MAX_SCORE : MIN_SCORE);
 
-    return !is_there_empty || (kifu_.size() >= 2 && kifu_[kifu_.size() - 1] == NULL_MOVE && kifu_[kifu_.size() - 2] == NULL_MOVE);
+    return (piece_num[EMPTY] == 0) || (kifu_.size() >= 2 && kifu_[kifu_.size() - 1] == NULL_MOVE && kifu_[kifu_.size() - 2] == NULL_MOVE);
 }
 
 std::vector<float> Position::makeFeature(int64_t data_augmentation) const {
