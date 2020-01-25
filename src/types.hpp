@@ -6,6 +6,7 @@
 enum Color {
     BLACK, WHITE, ColorNum,
 };
+inline static Color operator~(Color c) { return (c == BLACK) ? WHITE : BLACK; }
 
 //Valueの活性化関数をsigmoidにするかtanhにするか
 //これをオンにするとValueの範囲が[0, 1]になり勝率に対応するようになる

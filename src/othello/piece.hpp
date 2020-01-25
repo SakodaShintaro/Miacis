@@ -25,8 +25,6 @@ inline Piece operator++(Piece &p, int) { return p = static_cast<Piece>(p + 1); }
 inline Piece operator|(Piece lhs, Piece rhs) { return Piece(int(lhs) | int(rhs)); }
 inline int operator<<(Piece p, int shift) { return static_cast<int>(p) << shift; }
 
-inline static Color operator~(Color c) { return (c == BLACK) ? WHITE : BLACK; }
-
 //空のマスに対するチャンネルを用意して入力する必要はあるんだろうか？
 constexpr int64_t INPUT_CHANNEL_NUM = 2;
 

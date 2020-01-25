@@ -75,8 +75,6 @@ inline Piece operator++(Piece &p, int) { return p = Piece(p + 1); }
 inline Piece operator|(Piece lhs, Piece rhs) { return Piece(int(lhs) | int(rhs)); }
 inline int operator<<(Piece p, int shift) { return static_cast<int>(p) << shift; }
 
-inline static Color operator~(Color c) { return (c == BLACK) ? WHITE : BLACK; }
-
 constexpr int64_t PIECE_KIND_NUM = 14;
 constexpr int64_t HAND_PIECE_KIND_NUM = 7;
 constexpr int64_t INPUT_CHANNEL_NUM = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2;
