@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import subprocess
 import os
+import glob
+from natsort import natsorted
 
 
 class EdaxManager:
@@ -16,7 +18,6 @@ class EdaxManager:
                                      stdout=subprocess.PIPE)
 
     def read_lines(self):
-        pre_line = ""
         curr_line = ""
         best_move = None
         game_over = False
@@ -98,63 +99,76 @@ def main():
         "White": 2
     }
 
-    moves_set = set()
+    # カレントディレクトリ内にある{prefix}_{step}.modelを評価する
+    curr_path = os.getcwd()
+    # ディレクトリ名が"/"で終わっていることの確認
+    if curr_path[-1] != "/":
+        curr_path += "/"
 
-    total_result = [0, 0, 0]
+    # 結果を書き込むファイルを取得
+    f = open(curr_path + "result.txt", mode="a")
 
-    # 最初の読み込み
-    edax_manager.read_lines()
+    # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
+    model_names = natsorted(glob.glob(curr_path + "*0.model"))
 
-    messages = [
-        "set verbose 1",
-        "set level 1",
-    ]
+    for model_name in model_names:
+        # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
+        step = int(model_name[model_name.rfind("_") + 1:model_name.find(".model")])
+        print(step)
+        miacis_manager.send_option("model_name", model_name)
 
-    # 設定の送信
-    for msg in messages:
-        edax_manager.send_message(msg)
+        moves_set = set()
 
-    game_num = 0
-    while game_num < 100:
-        # 局面を初期化
-        miacis_manager.send_init()
-        best_move, game_over, win_color = edax_manager.send_message("init")
+        total_result = [0, 0, 0]
 
-        # 行動のリストを初期化
-        moves = list()
+        # 最初の読み込み
+        edax_manager.read_lines()
 
-        is_miacis_white = (game_num % 2 == 1)
-        for turn_num in range(1000):
-            if (turn_num + is_miacis_white) % 2 == 0:
-                # Miacisのターン
-                best_move = miacis_manager.send_go()
-                _, game_over, win_color = edax_manager.send_message("play " + best_move)
-            else:
-                # Edaxのターン
-                best_move, game_over, win_color = edax_manager.send_message("go")
-                miacis_manager.send_play(best_move)
-            moves.append(best_move)
-            if game_over:
-                break
+        # 設定の送信
+        edax_manager.send_message("set verbose 1")
+        edax_manager.send_message("set level 1")
 
-        moves = tuple(moves)
+        game_num = 0
+        while game_num < 100:
+            # 局面を初期化
+            miacis_manager.send_init()
+            best_move, game_over, win_color = edax_manager.send_message("init")
 
-        if moves in moves_set:
-            # 以前の対局と重複があったということなので飛ばす
-            print("重複発生")
-            continue
+            # 行動のリストを初期化
+            moves = list()
 
-        print(moves)
+            is_miacis_white = (game_num % 2 == 1)
+            for turn_num in range(1000):
+                if (turn_num + is_miacis_white) % 2 == 0:
+                    # Miacisのターン
+                    best_move = miacis_manager.send_go()
+                    _, game_over, win_color = edax_manager.send_message("play " + best_move)
+                else:
+                    # Edaxのターン
+                    best_move, game_over, win_color = edax_manager.send_message("go")
+                    miacis_manager.send_play(best_move)
+                moves.append(best_move)
+                if game_over:
+                    break
 
-        game_num += 1
-        moves_set.add(moves)
+            moves = tuple(moves)
 
-        result = result_dict[win_color]
-        if is_miacis_white:
-            result = 2 - result
+            if moves in moves_set:
+                # 以前の対局と重複があったということなので飛ばす
+                print("重複発生")
+                continue
 
-        total_result[result] += 1
-        print(total_result)
+            print(moves)
+
+            game_num += 1
+            moves_set.add(moves)
+
+            result = result_dict[win_color]
+            if is_miacis_white:
+                result = 2 - result
+
+            total_result[result] += 1
+            print(total_result)
 
 
 if __name__ == '__main__':
