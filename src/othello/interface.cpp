@@ -154,6 +154,7 @@ void Interface::battle() {
     //対局の準備
     options_.search_limit = 800;
     options_.search_batch_size = 1;
+    options_.random_turn = 10;
     options_.thread_num = 1;
     options_.print_interval = INT_MAX;
     options_.print_policy_num = 800;
