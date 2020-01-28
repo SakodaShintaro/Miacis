@@ -36,7 +36,7 @@ public:
     bool operator!=(const Move &rhs) const { return !(*this == rhs); }
 
     int32_t toLabel() const {
-        return (move == 0 ? SQUARE_NUM : color() == BLACK ? SquareToNum[to()] : SquareToNum[InvSquare[to()]]);
+        return (move == 0 ? SQUARE_NUM : SquareToNum[to()]);
     }
 
     //探索時にSearcherクラスから気軽にアクセスできるようpublicにおいてるけど
