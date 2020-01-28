@@ -51,9 +51,9 @@ class EdaxManager:
 
 
 class MiacisManager:
-    def __init__(self):
+    def __init__(self, scalar_or_categorical_str):
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        self.proc = subprocess.Popen([f"{script_dir}/../src/cmake-build-release/Miacis_othello_categorical"],
+        self.proc = subprocess.Popen([f"{script_dir}/../src/cmake-build-release/Miacis_othello_{scalar_or_categorical_str}"],
                                      cwd=f"{script_dir}/../src/cmake-build-release",
                                      encoding="UTF-8",
                                      stdin=subprocess.PIPE,
@@ -84,15 +84,6 @@ class MiacisManager:
 
 
 def main():
-    edax_manager = EdaxManager()
-    miacis_manager = MiacisManager()
-
-    miacis_manager.send_option("search_limit", 100)
-    miacis_manager.send_option("byoyomi_margin", 10000000)
-    miacis_manager.send_option("search_batch_size", 1)
-    miacis_manager.send_option("thread_num", 1)
-    miacis_manager.send_option("random_turn", 1000)
-
     result_dict = {
         "Black": 0,
         None: 1,
@@ -110,6 +101,15 @@ def main():
 
     # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
     model_names = natsorted(glob.glob(curr_path + "*0.model"))
+
+    # プロセスmanagerを準備
+    edax_manager = EdaxManager()
+    miacis_manager = MiacisManager("scalar" if "sca" in model_names[0] else "categorical")
+    miacis_manager.send_option("search_limit", 100)
+    miacis_manager.send_option("byoyomi_margin", 10000000)
+    miacis_manager.send_option("search_batch_size", 1)
+    miacis_manager.send_option("thread_num", 1)
+    miacis_manager.send_option("random_turn", 1000)
 
     for model_name in model_names:
         # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
