@@ -23,7 +23,7 @@ void alphaZero() {
     settings.add("learn_rate_decay_step3", 0, (int64_t)1e10);
     settings.add("update_interval",        1, (int64_t)1e10);
     settings.add("batch_size_per_gen",     1, (int64_t)1e10);
-    settings.add("worker_num_per_gpu",     1, (int64_t)1e10);
+    settings.add("worker_num_per_thread",     1, (int64_t)1e10);
     settings.add("max_stack_size",         1, (int64_t)1e10);
     settings.add("first_wait",             0, (int64_t)1e10);
     settings.add("search_limit",           1, (int64_t)1e10);
@@ -62,7 +62,7 @@ void alphaZero() {
     int64_t learn_rate_decay_step3    = settings.get<int64_t>("learn_rate_decay_step3");
     int64_t update_interval           = settings.get<int64_t>("update_interval");
     int64_t batch_size_per_gen        = settings.get<int64_t>("batch_size_per_gen");
-    int64_t worker_num_per_gpu        = settings.get<int64_t>("worker_num_per_gpu");
+    int64_t worker_num_per_thread     = settings.get<int64_t>("worker_num_per_thread");
     int64_t max_stack_size            = settings.get<int64_t>("max_stack_size");
     int64_t first_wait                = settings.get<int64_t>("first_wait");
     int64_t output_interval           = settings.get<int64_t>("output_interval");
@@ -124,7 +124,7 @@ void alphaZero() {
     for (uint64_t i = 0; i < gpu_num; i++) {
         torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
         neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
-        generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_gpu, Q_dist_lambda, replay_buffer, neural_networks[i]);
+        generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_thread, Q_dist_lambda, replay_buffer, neural_networks[i]);
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
     }
 
