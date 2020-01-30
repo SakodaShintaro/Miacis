@@ -18,8 +18,8 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
     gpu_queues_.resize(search_options.gpu_num);
     searchers_.resize(search_options.gpu_num);
     for (int64_t i = 0; i < search_options.gpu_num; i++) {
-        gpu_queues_[i].resize(search_options.thread_num);
-        for (int64_t j = 0; j < search_options.thread_num; j++) {
+        gpu_queues_[i].resize(search_options.thread_num_per_gpu);
+        for (int64_t j = 0; j < search_options.thread_num_per_gpu; j++) {
             searchers_[i].emplace_back(search_options, hash_table_, gpu_queues_[i][j]);
         }
     }
@@ -41,7 +41,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
 
     //キューの初期化
     for (int64_t i = 0; i < search_options_.gpu_num; i++) {
-        for (int64_t j = 0; j < search_options_.thread_num; j++) {
+        for (int64_t j = 0; j < search_options_.thread_num_per_gpu; j++) {
             gpu_queues_[i][j].inputs.clear();
             gpu_queues_[i][j].hash_tables.clear();
             gpu_queues_[i][j].indices.clear();
@@ -138,7 +138,7 @@ bool SearcherForPlay::shouldStop() {
 
     //ハッシュテーブルの容量チェック
     //並列化しているのでいくらか容量には余裕を持って確認しておかないといけない
-    if (!hash_table_.hasEmptyEntries(search_options_.thread_num * search_options_.gpu_num)) {
+    if (!hash_table_.hasEmptyEntries(search_options_.thread_num_per_gpu * search_options_.gpu_num)) {
         return true;
     }
 
@@ -162,8 +162,8 @@ bool SearcherForPlay::shouldStop() {
 
 void SearcherForPlay::gpuThreadFunc(const Position& root, int64_t gpu_id) {
     //workerを立ち上げ
-    std::vector<std::thread> threads(search_options_.thread_num);
-    for (int64_t i = 0; i < search_options_.thread_num; i++) {
+    std::vector<std::thread> threads(search_options_.thread_num_per_gpu);
+    for (int64_t i = 0; i < search_options_.thread_num_per_gpu; i++) {
         threads[i] = std::thread(&SearcherForPlay::workerThreadFunc, this, root, gpu_id, i);
     }
 

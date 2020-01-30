@@ -4,7 +4,7 @@
 void GameGenerator::genGames() {
     //生成スレッドを生成
     std::vector<std::thread> threads;
-    for (int64_t i = 0; i < search_options_.thread_num; i++) {
+    for (int64_t i = 0; i < search_options_.thread_num_per_gpu; i++) {
         threads.emplace_back(&GameGenerator::genSlave, this, i);
     }
 

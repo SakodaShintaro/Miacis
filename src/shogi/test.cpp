@@ -6,7 +6,7 @@
 void test() {
     SearchOptions search_options;
     search_options.search_limit = 800;
-    search_options.thread_num = 1;
+    search_options.thread_num_per_gpu = 1;
     search_options.search_batch_size = 1;
     NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
@@ -50,7 +50,7 @@ void test() {
 
 void infiniteTest() {
     SearchOptions search_options;
-    search_options.thread_num = 1;
+    search_options.thread_num_per_gpu = 1;
     search_options.search_batch_size = 32;
     search_options.random_turn = 30;
     SearcherForPlay searcher(search_options);
@@ -88,7 +88,7 @@ void checkGenSpeed() {
     search_options.draw_turn = 512;
     search_options.random_turn = 512;
     search_options.temperature_x1000 = 100;
-    search_options.thread_num = 4;
+    search_options.thread_num_per_gpu = 4;
     constexpr FloatType Q_dist_lambda = 1.0;
 
     nn->setGPU(0, search_options.use_fp16);
@@ -111,7 +111,7 @@ void checkGenSpeed() {
                 auto curr_time = std::chrono::steady_clock::now();
                 auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
                 double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
-                std::cout << "thread = " << search_options.thread_num
+                std::cout << "thread = " << search_options.thread_num_per_gpu
                           << ",  batch_size = " << std::setw(2) << search_options.search_batch_size
                           << ",  worker = " << std::setw(4) << worker_num
                           << ",  pos = " << std::setw(7) << buffer.totalNum()
@@ -127,7 +127,7 @@ void checkGenSpeed() {
                 double min_value = *std::min_element(gen_speeds.end() - N, gen_speeds.end());
                 double max_value = *std::max_element(gen_speeds.end() - N, gen_speeds.end());
                 if (min_value != 0 && (max_value - min_value) < 5e-2) {
-                    ofs << search_options.thread_num << " "
+                    ofs << search_options.thread_num_per_gpu << " "
                         << std::setw(2) << search_options.search_batch_size << " "
                         << std::setw(4) << worker_num << " "
                         << std::setw(7) << buffer.totalNum() << " "
@@ -151,7 +151,7 @@ void checkSearchSpeed() {
     Position pos;
     for (search_options.search_batch_size = 64; search_options.search_batch_size <= 512; search_options.search_batch_size *= 2) {
         std::cout << "search_batch_size = " << search_options.search_batch_size << std::endl;
-        for (search_options.thread_num = 1; search_options.thread_num <= max_thread_num; search_options.thread_num++) {
+        for (search_options.thread_num_per_gpu = 1; search_options.thread_num_per_gpu <= max_thread_num; search_options.thread_num_per_gpu++) {
             SearcherForPlay searcher(search_options);
             searcher.think(pos, time_limit);
         }

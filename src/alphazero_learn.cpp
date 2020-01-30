@@ -16,7 +16,7 @@ void alphaZero() {
     settings.add("draw_turn",              0, (int64_t)1024);
     settings.add("random_turn",            0, (int64_t)1024);
     settings.add("batch_size",             1, (int64_t)1e10);
-    settings.add("thread_num",             1, (int64_t)std::thread::hardware_concurrency());
+    settings.add("thread_num_per_gpu",             1, (int64_t)std::thread::hardware_concurrency());
     settings.add("max_step_num",           1, (int64_t)1e10);
     settings.add("learn_rate_decay_step1", 0, (int64_t)1e10);
     settings.add("learn_rate_decay_step2", 0, (int64_t)1e10);
@@ -41,34 +41,34 @@ void alphaZero() {
 
     //値の取得
     SearchOptions search_options;
-    float learn_rate                 = settings.get<float>("learn_rate");
-    float momentum                   = settings.get<float>("momentum");
-    float lambda                     = settings.get<float>("lambda");
-    float alpha                      = settings.get<float>("alpha");
-    float mixup_alpha                = settings.get<float>("mixup_alpha");
-    float Q_dist_lambda              = settings.get<float>("Q_dist_lambda");
-    search_options.temperature_x1000 = settings.get<float>("Q_dist_temperature") * 1000;
-    search_options.C_PUCT_x1000      = settings.get<float>("C_PUCT") * 1000;
-    search_options.use_fp16          = settings.get<int64_t>("use_fp16");
-    search_options.draw_turn         = settings.get<int64_t>("draw_turn");
-    search_options.random_turn       = settings.get<int64_t>("random_turn");
-    search_options.thread_num        = settings.get<int64_t>("thread_num");
-    search_options.search_limit      = settings.get<int64_t>("search_limit");
-    search_options.search_batch_size = settings.get<int64_t>("search_batch_size");
-    int64_t batch_size               = settings.get<int64_t>("batch_size");
-    int64_t max_step_num             = settings.get<int64_t>("max_step_num");
-    int64_t learn_rate_decay_step1   = settings.get<int64_t>("learn_rate_decay_step1");
-    int64_t learn_rate_decay_step2   = settings.get<int64_t>("learn_rate_decay_step2");
-    int64_t learn_rate_decay_step3   = settings.get<int64_t>("learn_rate_decay_step3");
-    int64_t update_interval          = settings.get<int64_t>("update_interval");
-    int64_t batch_size_per_gen       = settings.get<int64_t>("batch_size_per_gen");
-    int64_t worker_num_per_gpu       = settings.get<int64_t>("worker_num_per_gpu");
-    int64_t max_stack_size           = settings.get<int64_t>("max_stack_size");
-    int64_t first_wait               = settings.get<int64_t>("first_wait");
-    int64_t output_interval          = settings.get<int64_t>("output_interval");
-    int64_t save_interval            = settings.get<int64_t>("save_interval");
-    int64_t validation_interval      = settings.get<int64_t>("validation_interval");
-    std::string validation_kifu_path = settings.get<std::string>("validation_kifu_path");
+    float learn_rate                  = settings.get<float>("learn_rate");
+    float momentum                    = settings.get<float>("momentum");
+    float lambda                      = settings.get<float>("lambda");
+    float alpha                       = settings.get<float>("alpha");
+    float mixup_alpha                 = settings.get<float>("mixup_alpha");
+    float Q_dist_lambda               = settings.get<float>("Q_dist_lambda");
+    search_options.temperature_x1000  = settings.get<float>("Q_dist_temperature") * 1000;
+    search_options.C_PUCT_x1000       = settings.get<float>("C_PUCT") * 1000;
+    search_options.use_fp16           = settings.get<int64_t>("use_fp16");
+    search_options.draw_turn          = settings.get<int64_t>("draw_turn");
+    search_options.random_turn        = settings.get<int64_t>("random_turn");
+    search_options.thread_num_per_gpu = settings.get<int64_t>("thread_num_per_gpu");
+    search_options.search_limit       = settings.get<int64_t>("search_limit");
+    search_options.search_batch_size  = settings.get<int64_t>("search_batch_size");
+    int64_t batch_size                = settings.get<int64_t>("batch_size");
+    int64_t max_step_num              = settings.get<int64_t>("max_step_num");
+    int64_t learn_rate_decay_step1    = settings.get<int64_t>("learn_rate_decay_step1");
+    int64_t learn_rate_decay_step2    = settings.get<int64_t>("learn_rate_decay_step2");
+    int64_t learn_rate_decay_step3    = settings.get<int64_t>("learn_rate_decay_step3");
+    int64_t update_interval           = settings.get<int64_t>("update_interval");
+    int64_t batch_size_per_gen        = settings.get<int64_t>("batch_size_per_gen");
+    int64_t worker_num_per_gpu        = settings.get<int64_t>("worker_num_per_gpu");
+    int64_t max_stack_size            = settings.get<int64_t>("max_stack_size");
+    int64_t first_wait                = settings.get<int64_t>("first_wait");
+    int64_t output_interval           = settings.get<int64_t>("output_interval");
+    int64_t save_interval             = settings.get<int64_t>("save_interval");
+    int64_t validation_interval       = settings.get<int64_t>("validation_interval");
+    std::string validation_kifu_path  = settings.get<std::string>("validation_kifu_path");
 
     std::array<float, LOSS_TYPE_NUM> coefficients{};
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
@@ -242,7 +242,7 @@ void alphaZero() {
     for (uint64_t i = 0; i < gpu_num; i++) {
         generators[i]->stop_signal = true;
     }
-    for (auto& th : gen_threads) {
+    for (std::thread& th : gen_threads) {
         th.join();
     }
 

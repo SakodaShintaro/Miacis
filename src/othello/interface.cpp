@@ -87,7 +87,7 @@ void Interface::think() {
     options_.print_interval = INT_MAX;
     options_.print_policy_num = 800;
     options_.search_batch_size = 1;
-    options_.thread_num = 1;
+    options_.thread_num_per_gpu = 1;
     searcher_ = std::make_unique<SearcherForPlay>(options_);
 
     searcher_->think(root_, 1000000);
@@ -99,7 +99,7 @@ void Interface::test() {
     //対局の準備
     options_.search_limit = 800;
     options_.search_batch_size = 1;
-    options_.thread_num = 1;
+    options_.thread_num_per_gpu = 1;
     options_.print_interval = INT_MAX;
     options_.print_policy_num = 800;
     searcher_ = std::make_unique<SearcherForPlay>(options_);
@@ -121,7 +121,7 @@ void Interface::infiniteTest() {
     //対局の準備
     options_.search_limit = 400;
     options_.search_batch_size = 1;
-    options_.thread_num = 1;
+    options_.thread_num_per_gpu = 1;
     options_.random_turn = 100;
     options_.print_interval = INT_MAX;
     options_.print_policy_num = 0;
@@ -155,7 +155,7 @@ void Interface::battle() {
     options_.search_limit = 800;
     options_.search_batch_size = 1;
     options_.random_turn = 10;
-    options_.thread_num = 1;
+    options_.thread_num_per_gpu = 1;
     options_.print_interval = INT_MAX;
     options_.print_policy_num = 800;
     searcher_ = std::make_unique<SearcherForPlay>(options_);
