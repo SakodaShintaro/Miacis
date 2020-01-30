@@ -6,6 +6,7 @@
 void test() {
     SearchOptions search_options;
     search_options.search_limit = 800;
+    search_options.print_interval = 100000;
     search_options.thread_num_per_gpu = 1;
     search_options.search_batch_size = 1;
     NeuralNetwork nn;
