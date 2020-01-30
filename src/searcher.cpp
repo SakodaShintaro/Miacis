@@ -227,8 +227,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
     hash_table_[leaf].mutex.unlock();
 
     //毎回計算するのは無駄だけど仕方ないか
-    //FloatType lambda = search_options_.UCT_lambda_x1000 / 1000.0;
-    static constexpr FloatType lambda = 1.0;
+    FloatType lambda = search_options_.UCT_lambda_x1000 / 1000.0;
 
     //バックアップ
     while (!actions.empty()) {
