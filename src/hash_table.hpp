@@ -30,7 +30,7 @@ struct HashEntry {
     //ニューラルネットワークの出力方策
     std::vector<FloatType> nn_policy;
 
-    //価値。漸進的に更新され、常にこのノードを根部分木内の価値の平均となる
+    //価値。漸進的に更新され、常にこのノードを根とする部分木内の価値の平均となる
     ValueType value;
 
     //ニューラルネットワークによる評価が行われたかを示すフラグ
@@ -111,6 +111,7 @@ public:
     Index root_index;
 
 private:
+    //局面のハッシュ値から置換表におけるキーへ変換する。この処理が最適化は不明
     Index hashToIndex(int64_t hash) {
         return (Index)(((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (table_.size() - 1));
     }
@@ -118,7 +119,7 @@ private:
     //使用されている数
     uint64_t used_num_;
 
-    //情報の世代。この世代をインクリメントすることが置換表全体をclearに相当する
+    //情報の世代。この世代をインクリメントすることが置換表全体をclearすることに相当する
     uint16_t age_;
 
     //置換表本体

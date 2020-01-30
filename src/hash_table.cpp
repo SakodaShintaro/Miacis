@@ -21,7 +21,7 @@ Index HashTable::searchEmptyIndex(const Position& pos) {
             i = 0;
         }
 
-        //一周したら空きがなかったということなのでsize()を返す
+        //一周したのなら空きがなかったということなのでsize()を返す
         if (i == key) {
             return (Index)table_.size();
         }
