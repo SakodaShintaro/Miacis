@@ -14,19 +14,14 @@ public:
     //探索を行って一番良い指し手を返す関数
     Move think(Position& root, int64_t time_limit);
 
+    //探索の終了判定。外部から探索を止めたい場合にはこれをtrueにする
     bool stop_signal;
 
 private:
-    //--------------------------
-    //    共通する変数,関数など
-    //--------------------------
-    //VIRTUAL_LOSSの大きさ
-    static constexpr int32_t VIRTUAL_LOSS = 1;
-
     //時間制限含め探索を続けるかどうかを判定する関数
     bool shouldStop();
 
-    //GPUに付随するスレッド
+    //GPUに付随するスレッド。内部的に下のworkerThreadFuncをthread_num_per_gpu数だけ生成する
     void gpuThreadFunc(const Position& root, int64_t gpu_id);
 
     //各GPUの下で動くスレッド
@@ -38,6 +33,7 @@ private:
     //情報をUSIプロトコルに従って標準出力に出す関数
     void printUSIInfo() const;
 
+    //探索に関するオプション
     const SearchOptions& search_options_;
 
     //置換表は1個
