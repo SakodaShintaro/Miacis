@@ -1224,6 +1224,15 @@ std::string Position::augmentedStr(const std::string& str, int64_t augmentation)
             pre_pos = next_slash + 1;
         }
 
+        //反転させると成を示す+が駒の後に来てしまうので入れ替える
+        for (uint64_t i = 0; i < board.size(); i++) {
+            if (board[i] == '+') {
+                //一個前の前に+を挿入
+                board.insert(board.begin() + i - 1, '+');
+                board.erase(i + 1, 1);
+            }
+        }
+
         //余計に与えた'/'を削除
         board.erase(board.size() - 1);
 
