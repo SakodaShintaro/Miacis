@@ -14,18 +14,26 @@ import math
 import glob
 from natsort import natsorted
 from collections import defaultdict
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--time1", type=int, default=1000)
+parser.add_argument("--time2", type=int, default=100)
+parser.add_argument("--game_num", type=int, default=500)
+parser.add_argument("--init_model_step", type=int, default=0)
+args = parser.parse_args()
 
 # 対局数(先後行うので偶数でなければならない)
-game_num = 500
+game_num = args.game_num
 assert game_num % 2 == 0
 
 # 持ち時間
-time_yane   = 100
-time_Miacis = 1000
+time_Miacis = args.time1
+time_yane   = args.time2
 time_max = max(time_yane, time_Miacis)
 
 # ディレクトリ内のパラメータのうち指定したステップ以降のモデルを対局させる
-min_step = 0
+min_step = args.init_model_step
 
 # 勝ち,負け,引き分けの結果を示す定数
 WIN  = 0
