@@ -152,31 +152,30 @@ std::array<torch::Tensor, LOSS_TYPE_NUM>
 NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
     static Position pos;
     std::vector<FloatType> inputs;
-    std::vector<PolicyTeacherType> policy_teachers;
+    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
     std::vector<ValueTeacherType> value_teachers;
 
-    for (const LearningData& datum : data) {
-        pos.fromStr(datum.position_str);
+    for (uint64_t i = 0; i < data.size(); i++) {
+        pos.fromStr(data[i].position_str);
+
+        //入力
         const std::vector<float> feature = pos.makeFeature();
         inputs.insert(inputs.end(), feature.begin(), feature.end());
-        policy_teachers.push_back(datum.policy);
-        value_teachers.push_back(datum.value);
+
+        //policyの教師信号
+        for (const std::pair<int32_t, float>& e : data[i].policy) {
+            policy_teachers[i * POLICY_DIM + e.first] = e.second;
+        }
+
+        //valueの教師信号
+        value_teachers.push_back(data[i].value);
     }
 
     std::pair<torch::Tensor, torch::Tensor> y = forward(inputs);
     torch::Tensor logits = y.first.view({ -1, POLICY_DIM });
 
-    std::vector<float> policy_dist(policy_teachers.size() * POLICY_DIM, 0.0);
-    for (uint64_t i = 0; i < policy_teachers.size(); i++) {
-        for (const std::pair<int32_t, float>& e : policy_teachers[i]) {
-            policy_dist[i * POLICY_DIM + e.first] = e.second;
-        }
-    }
-
-    torch::Tensor policy_target = (fp16_ ? torch::tensor(policy_dist).to(device_, torch::kHalf) :
-                                           torch::tensor(policy_dist).to(device_));
-
-    policy_target = policy_target.view({ -1, POLICY_DIM });
+    torch::Tensor policy_target = (fp16_ ? torch::tensor(policy_teachers).to(device_, torch::kHalf) :
+                                           torch::tensor(policy_teachers).to(device_)).view({ -1, POLICY_DIM });
 
     torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false);
 
