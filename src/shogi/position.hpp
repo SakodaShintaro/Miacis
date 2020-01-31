@@ -58,6 +58,7 @@ public:
 
     //左右反転のみに対応。将棋はこれ以上の拡張はできない
     static constexpr int64_t DATA_AUGMENTATION_PATTERN_NUM = 2;
+    static std::string augmentedStr(const std::string& str, int64_t augmentation);
 private:
     //--------------------
     //    内部メソッド

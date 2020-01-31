@@ -1201,3 +1201,36 @@ bool Position::canWinDeclare() const {
 
     return (score >= THRESHOLD[color_] && num >= 10);
 }
+
+std::string Position::augmentedStr(const std::string& str, int64_t augmentation) {
+    if (augmentation == 0) {
+        //何もしない
+        return str;
+    } else if (augmentation == 1) {
+        //左右反転
+
+        //まず盤面部分とそれ以外の部分に分ける
+        uint64_t space_pos = str.find(' ');
+        std::string board = str.substr(0, space_pos);
+        std::string others = str.substr(space_pos);
+
+        //board部分について'/'で囲まれた各段を反転していく
+        //9段目の末尾には'/'がないので予め付与しておく
+        board += '/';
+        uint64_t pre_pos = 0;
+        for (int64_t i = 0; i < 9; i++) {
+            uint64_t next_slash = board.find('/', pre_pos);
+            std::reverse(board.begin() + pre_pos, board.begin() + next_slash);
+            pre_pos = next_slash + 1;
+        }
+
+        //余計に与えた'/'を削除
+        board.erase(board.size() - 1);
+
+        //結合して返す
+        return board + others;
+    } else {
+        std::cout << "augmentation = " << augmentation << std::endl;
+        exit(1);
+    }
+}

@@ -275,3 +275,31 @@ void checkDoAndUndo() {
         std::cout << i << std::endl;
     }
 }
+
+void checkMirror() {
+    std::mt19937_64 engine(std::random_device{}());
+    for (int64_t i = 0; i < 1; i++) {
+        Position pos;
+        float score;
+        while (!pos.isFinish(score)) {
+            std::vector<Move> moves = pos.generateAllMoves();
+            std::uniform_int_distribution<int64_t> dist(0, moves.size() - 1);
+            int64_t index = dist(engine);
+            pos.doMove(moves[index]);
+
+            std::string str = pos.toStr();
+            std::cout << str << std::endl;
+            std::cout << Position::augmentedStr(str, 1) << std::endl;
+
+            uint32_t label = moves[index].toLabel();
+            uint32_t mirror_label = mirrorSquareLabel(label);
+            moves[index].print();
+            std::cout << label % SQUARE_NUM << ", " << label / SQUARE_NUM << std::endl;
+            std::cout << mirror_label % SQUARE_NUM << ", " << mirror_label / SQUARE_NUM << std::endl;
+        }
+        while (pos.turnNumber() > 1) {
+            pos.undo();
+        }
+        std::cout << i << std::endl;
+    }
+}

@@ -28,6 +28,7 @@ USI::USI() : searcher_(nullptr) {
     command_["checkPredictSpeed"]  = checkPredictSpeed;
     command_["checkVal"]           = checkVal;
     command_["checkDoAndUndo"]     = checkDoAndUndo;
+    command_["checkMirror"]        = checkMirror;
 }
 
 void USI::loop() {
