@@ -167,4 +167,7 @@ inline Move stringToMove(std::string input) {
     }
 }
 
+//ラベルを左右反転させる関数。左右反転のデータ拡張に対応するために必要
+uint32_t mirrorSquareLabel(uint32_t label);
+
 #endif

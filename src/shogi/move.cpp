@@ -46,3 +46,33 @@ uint32_t Move::toLabel() const {
 
     return static_cast<uint32_t>(to_num + SQUARE_NUM * direction);
 }
+
+uint32_t mirrorSquareLabel(uint32_t label) {
+    //上のtoLabel関数のようにlabelはto_num + SQUARE_NUM * directionとなっている
+
+    //(1)行き先マスを反転
+    //SQUARE_NUMでの剰余を取ればマスの数字が得られる
+    int32_t sq_num = label % SQUARE_NUM;
+
+    //筋と段を取得(それぞれ0 ~ 8)
+    int32_t file = sq_num / 9;
+    int32_t rank = sq_num % 9;
+
+    int32_t mirror_sq_num = SquareToNum[FRToSquare[9 - file][rank + 1]];
+
+    //(2)移動の仕方(方向)を反転
+    int32_t direction = label / SQUARE_NUM;
+
+    //20以上のときは持ち駒から打つ手なので反転の必要はない
+    if (direction < 20) {
+        //tマスに対する移動方向元と数字の対応は
+        //901
+        //8t2
+        //753
+        //6 4
+        //であり、成る手だと+10されるので以下のようにすれば左右反転
+        direction = (10 - direction % 10) % 10 + 10 * (direction >= 10);
+    }
+
+    return static_cast<uint32_t>(mirror_sq_num + SQUARE_NUM * direction);
+}
