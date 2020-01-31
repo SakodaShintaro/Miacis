@@ -155,16 +155,11 @@ NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
     std::vector<PolicyTeacherType> policy_teachers;
     std::vector<ValueTeacherType> value_teachers;
 
-    //データ拡張用の乱数生成器を準備
-    static std::mt19937_64 engine(std::random_device{}());
-    static std::uniform_int_distribution<int64_t> dist(0, Position::DATA_AUGMENTATION_PATTERN_NUM - 1);
-
     for (const LearningData& datum : data) {
         pos.fromStr(datum.position_str);
-        const std::vector<float> feature = pos.makeFeature(0);
+        const std::vector<float> feature = pos.makeFeature();
         inputs.insert(inputs.end(), feature.begin(), feature.end());
         policy_teachers.push_back(datum.policy);
-        //valueは拡張しても変わらない
         value_teachers.push_back(datum.value);
     }
 
@@ -229,9 +224,9 @@ NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha)
         float beta = gamma1 / (gamma1 + gamma2);
 
         pos.fromStr(data[i].position_str);
-        std::vector<float> feature1 = pos.makeFeature(false);
+        std::vector<float> feature1 = pos.makeFeature();
         pos.fromStr(data[i + 1].position_str);
-        std::vector<float> feature2 = pos.makeFeature(false);
+        std::vector<float> feature2 = pos.makeFeature();
 
         //入力を足し合わせる
         for (int64_t j = 0; j < INPUT_DIM; j++) {
@@ -315,9 +310,9 @@ NeuralNetworkImpl::mixUpLossFinalLayer(const std::vector<LearningData>& data, fl
         betas[i / 2] = beta;
 
         pos.fromStr(data[i].position_str);
-        std::vector<float> feature1 = pos.makeFeature(false);
+        std::vector<float> feature1 = pos.makeFeature();
         pos.fromStr(data[i + 1].position_str);
-        std::vector<float> feature2 = pos.makeFeature(false);
+        std::vector<float> feature2 = pos.makeFeature();
 
         //入力を準備する
         for (int64_t j = 0; j < INPUT_DIM; j++) {

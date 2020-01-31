@@ -33,7 +33,7 @@ public:
     static bool canSkipMateSearch() { return false; }
 
     //特徴量作成
-    std::vector<float> makeFeature(int64_t data_augmentation) const;
+    std::vector<float> makeFeature() const;
 
     //合法手生成
     std::vector<Move> generateAllMoves() const;

@@ -1073,7 +1073,7 @@ void Position::initHashValue() {
     hash_value_ &= ~1; //これで1bit目が0になる(先手番を表す)
 }
 
-std::vector<float> Position::makeFeature(int64_t data_augmentation) const {
+std::vector<float> Position::makeFeature() const {
     //引数の指定により左右反転のデータ拡張を行う
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
 
@@ -1085,21 +1085,10 @@ std::vector<float> Position::makeFeature(int64_t data_augmentation) const {
         Piece t = (color_ == BLACK ? PieceList[i] : oppositeColor(PieceList[i]));
 
         //各マスについてそこにあるなら1,ないなら0とする
-        if (data_augmentation) {
-            //左右反転させる
-            //駒を参照するところだけ左右反転をかければ適切
-            for (Square sq : SquareList) {
-                //後手のときは盤面を180度反転させる
-                Piece p = (color_ == BLACK ? board_[FileMirrorSquare[sq]] : board_[InvSquare[FileMirrorSquare[sq]]]);
-                features[i * SQUARE_NUM + SquareToNum[sq]] = (t == p ? 1 : 0);
-            }
-        } else {
-            //普通の順番
-            for (Square sq : SquareList) {
-                //後手のときは盤面を180度反転させる
-                Piece p = (color_ == BLACK ? board_[sq] : board_[InvSquare[sq]]);
-                features[i * SQUARE_NUM + SquareToNum[sq]] = (t == p ? 1 : 0);
-            }
+        for (Square sq : SquareList) {
+            //後手のときは盤面を180度反転させる
+            Piece p = (color_ == BLACK ? board_[sq] : board_[InvSquare[sq]]);
+            features[i * SQUARE_NUM + SquareToNum[sq]] = (t == p ? 1 : 0);
         }
     }
 

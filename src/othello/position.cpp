@@ -260,7 +260,7 @@ bool Position::isFinish(float& score) const {
     return (piece_num[EMPTY] == 0) || (kifu_.size() >= 2 && kifu_[kifu_.size() - 1] == NULL_MOVE && kifu_[kifu_.size() - 2] == NULL_MOVE);
 }
 
-std::vector<float> Position::makeFeature(int64_t data_augmentation) const {
+std::vector<float> Position::makeFeature() const {
     //引数の指定によりデータ拡張する
     //現状はdata_augmentation * 90度回転
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
@@ -277,16 +277,7 @@ std::vector<float> Position::makeFeature(int64_t data_augmentation) const {
 
         //各マスについてそこにあるなら1,ないなら0とする
         for (Square sq : SquareList) {
-            int64_t file = SquareToFile[sq];
-            int64_t rank = SquareToRank[sq];
-            //data_augmentationが指定されていた場合、駒を参照する位置を乱数で振り出したrotateに合わせて変える
-            Square seen_sq = (
-                    data_augmentation == 0 ? sq :
-                    data_augmentation == 1 ? FRToSquare[rank][File9 - file] :
-                    data_augmentation == 2 ? FRToSquare[Rank9 - rank][File9 - file] :
-                    data_augmentation == 3 ? FRToSquare[Rank9 - rank][file] : WALL00);
-
-            features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[seen_sq] == target ? 1 : 0);
+            features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[sq] == target ? 1 : 0);
         }
     }
 
