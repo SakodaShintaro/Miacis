@@ -16,14 +16,14 @@ void alphaZero() {
     settings.add("draw_turn",              0, (int64_t)1024);
     settings.add("random_turn",            0, (int64_t)1024);
     settings.add("batch_size",             1, (int64_t)1e10);
-    settings.add("thread_num_per_gpu",             1, (int64_t)std::thread::hardware_concurrency());
+    settings.add("thread_num_per_gpu",     1, (int64_t)std::thread::hardware_concurrency());
     settings.add("max_step_num",           1, (int64_t)1e10);
     settings.add("learn_rate_decay_step1", 0, (int64_t)1e10);
     settings.add("learn_rate_decay_step2", 0, (int64_t)1e10);
     settings.add("learn_rate_decay_step3", 0, (int64_t)1e10);
     settings.add("update_interval",        1, (int64_t)1e10);
     settings.add("batch_size_per_gen",     1, (int64_t)1e10);
-    settings.add("worker_num_per_thread",     1, (int64_t)1e10);
+    settings.add("worker_num_per_thread",  1, (int64_t)1e10);
     settings.add("max_stack_size",         1, (int64_t)1e10);
     settings.add("first_wait",             0, (int64_t)1e10);
     settings.add("search_limit",           1, (int64_t)1e10);
