@@ -19,6 +19,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--time1", type=int, default=1000)
 parser.add_argument("--time2", type=int, default=100)
+parser.add_argument("--depth_limit", type=int, default=0)
 parser.add_argument("--game_num", type=int, default=500)
 parser.add_argument("--init_model_step", type=int, default=0)
 args = parser.parse_args()
@@ -70,6 +71,7 @@ server.moves_to_draw = 256
 server.engines[1].set_engine_options({"USI_Ponder": "false",
                                       "Threads": 1,
                                       "BookMoves": 0,
+                                      "DepthLimit": args.depth_limit,
                                       "NetworkDelay": time_max - time_yane,
                                       "NetworkDelay2": time_max - time_yane
                                       })
@@ -83,6 +85,7 @@ if curr_path[-1] != "/":
 
 # 結果を書き込むファイルを取得
 f = open(curr_path + "result.txt", mode="a")
+f.write(f"Miacis time = {time_Miacis}, YaneuraOu time = {time_yane}, YaneuraOu depth_limit = {args.depth_limit}\n")
 
 # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
 model_names = natsorted(glob.glob(curr_path + "*0.model"))
