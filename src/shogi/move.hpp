@@ -98,7 +98,11 @@ public:
     bool operator==(const Move& rhs) const { return (move_ == rhs.move_); }
     bool operator!=(const Move& rhs) const { return !(*this == rhs); }
 
+    //ラベル系
+    //行動から教師ラベルへと変換する関数
     uint32_t toLabel() const;
+    //ラベルを左右反転させる関数。左右反転のデータ拡張に対応するために必要
+    static uint32_t augmentedLabel(uint32_t label, int64_t augmentation);
 
 private:
     int32_t move_;
@@ -166,8 +170,5 @@ inline Move stringToMove(std::string input) {
         return Move(to, from, false, promote, EMPTY, EMPTY);
     }
 }
-
-//ラベルを左右反転させる関数。左右反転のデータ拡張に対応するために必要
-uint32_t mirrorSquareLabel(uint32_t label);
 
 #endif

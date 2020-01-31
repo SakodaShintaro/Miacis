@@ -81,7 +81,7 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
     return losses;
 }
 
-std::vector<LearningData> loadData(const std::string& file_path) {
+std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation) {
     //棋譜を読み込めるだけ読み込む
     std::vector<Game> games = loadGames(file_path);
 
@@ -91,15 +91,19 @@ std::vector<LearningData> loadData(const std::string& file_path) {
         Position pos;
         for (const OneTurnElement& e : game.elements) {
             const Move& move = e.move;
-            LearningData datum{};
-            datum.policy.push_back({move.toLabel(), 1.0});
+            uint32_t label = move.toLabel();
+            std::string position_str = pos.toStr();
+            for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
+                LearningData datum{};
+                datum.policy.push_back({ Move::augmentedLabel(label, i), 1.0 });
 #ifdef USE_CATEGORICAL
-            datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
+                datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
 #else
-            datum.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
+                datum.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
 #endif
-            datum.position_str = pos.toStr();
-            data_buffer.push_back(datum);
+                datum.position_str = Position::augmentedStr(position_str, i);
+                data_buffer.push_back(datum);
+            }
             pos.doMove(move);
         }
     }

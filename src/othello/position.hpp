@@ -54,9 +54,9 @@ public:
     Color color() const { return color_; }
     int64_t hashValue() const { return hash_value_; }
 
-    //現状は90度ごとの回転のみに対応
     //原理的にはそれに左右反転まで含めた8通りに拡張できるがまだ未実装
-    static constexpr int64_t DATA_AUGMENTATION_PATTERN_NUM = 4;
+    static constexpr int64_t DATA_AUGMENTATION_PATTERN_NUM = 1;
+    static std::string augmentedStr(const std::string& str, int64_t augmentation);
 private:
     //--------------------
     //    内部メソッド

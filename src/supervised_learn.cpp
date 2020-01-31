@@ -44,8 +44,8 @@ void supervisedLearn() {
     }
 
     //データを取得
-    std::vector<LearningData> train_data = loadData(train_kifu_path);
-    std::vector<LearningData> valid_data = loadData(valid_kifu_path);
+    std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation);
+    std::vector<LearningData> valid_data = loadData(valid_kifu_path, false);
     std::cout << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size() << std::endl;
 
     //データをシャッフルするためのengine

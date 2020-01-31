@@ -35,8 +35,15 @@ public:
     bool operator==(const Move &rhs) const { return (move == rhs.move); }
     bool operator!=(const Move &rhs) const { return !(*this == rhs); }
 
+    //ラベル系
+    //行動から教師ラベルへと変換する関数
     int32_t toLabel() const {
         return (move == 0 ? SQUARE_NUM : SquareToNum[to()]);
+    }
+    //ラベルを左右反転させる関数。左右反転のデータ拡張に対応するために必要
+    static uint32_t augmentedLabel(uint32_t label, int64_t augmentation) {
+        assert(augmentation == 0);
+        return label;
     }
 
     //探索時にSearcherクラスから気軽にアクセスできるようpublicにおいてるけど

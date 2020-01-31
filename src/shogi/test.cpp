@@ -164,7 +164,7 @@ void checkVal() {
     std::string path;
     std::cout << "validation kifu path : ";
     std::cin >> path;
-    std::vector<LearningData> data = loadData(path);
+    std::vector<LearningData> data = loadData(path, false);
 
     //ネットワークの準備
     NeuralNetwork nn;
@@ -292,7 +292,7 @@ void checkMirror() {
             std::cout << Position::augmentedStr(str, 1) << std::endl;
 
             uint32_t label = moves[index].toLabel();
-            uint32_t mirror_label = mirrorSquareLabel(label);
+            uint32_t mirror_label = Move::augmentedLabel(label, 1);
             moves[index].print();
             std::cout << label % SQUARE_NUM << ", " << label / SQUARE_NUM << std::endl;
             std::cout << mirror_label % SQUARE_NUM << ", " << mirror_label / SQUARE_NUM << std::endl;

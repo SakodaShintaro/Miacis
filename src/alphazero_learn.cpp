@@ -97,7 +97,7 @@ void alphaZero() {
     validation_log             << std::fixed << std::endl;
 
     //validation用のデータを取得
-    std::vector<LearningData> validation_data = loadData(validation_kifu_path);
+    std::vector<LearningData> validation_data = loadData(validation_kifu_path, false);
     std::cout << "validation_data.size() = " << validation_data.size() << std::endl;
 
     //学習に使うネットワークの生成

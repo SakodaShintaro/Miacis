@@ -292,3 +292,9 @@ std::vector<float> Position::makeFeature(int64_t data_augmentation) const {
 
     return features;
 }
+
+std::string Position::augmentedStr(const std::string& str, int64_t augmentation) {
+    assert(augmentation == 0);
+    //何もしない
+    return str;
+}

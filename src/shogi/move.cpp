@@ -1,4 +1,5 @@
 ﻿#include"move.hpp"
+#include"position.hpp"
 
 uint32_t Move::toLabel() const {
     Color c = pieceToColor(subject());
@@ -47,7 +48,17 @@ uint32_t Move::toLabel() const {
     return static_cast<uint32_t>(to_num + SQUARE_NUM * direction);
 }
 
-uint32_t mirrorSquareLabel(uint32_t label) {
+uint32_t Move::augmentedLabel(uint32_t label, int64_t augmentation) {
+    if (augmentation == 0) {
+        //0のときはそのまま
+        return label;
+    }
+    if (augmentation >= Position::DATA_AUGMENTATION_PATTERN_NUM) {
+        std::cout << "augmentation = " << augmentation << std::endl;
+        exit(1);
+    }
+
+    //augmentation == 1のときは左右反転
     //上のtoLabel関数のようにlabelはto_num + SQUARE_NUM * directionとなっている
 
     //(1)行き先マスを反転
