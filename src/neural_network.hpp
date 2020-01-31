@@ -48,7 +48,7 @@ public:
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
     //学習データについて損失を返す関数
-    std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data, bool data_augmentation);
+    std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
 
     //MixUpを行って損失を返す関数
     std::array<torch::Tensor, LOSS_TYPE_NUM> mixUpLoss(const std::vector<LearningData>& data, float alpha);

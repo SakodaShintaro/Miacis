@@ -42,7 +42,7 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
         }
 
         //計算
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = nn->loss(curr_data, false);
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = nn->loss(curr_data);
 
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             if (i == VALUE_LOSS_INDEX) {
