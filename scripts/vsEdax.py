@@ -14,8 +14,8 @@ class EdaxManager:
 
     def __init__(self):
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        self.proc = subprocess.Popen([f"{script_dir}/../../edax-linux/edax-4.4"],
-                                     cwd=f"{script_dir}/../../edax-linux",
+        self.proc = subprocess.Popen([f"{script_dir}/../../Edax/edax-4.4"],
+                                     cwd=f"{script_dir}/../../Edax",
                                      encoding="UTF-8",
                                      stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE)
