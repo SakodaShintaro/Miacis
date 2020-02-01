@@ -26,6 +26,9 @@ public:
     //人間と対局する関数
     void battle();
 
+    //ランダムプレイヤーと対局する関数
+    void battleVSRandom();
+
     //盤面を初期状態に戻す関数
     void init();
 

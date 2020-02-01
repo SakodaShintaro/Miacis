@@ -4,17 +4,18 @@
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
-    command_["printOption"]  = std::bind(&Interface::printOption,  this);
-    command_["set"]          = std::bind(&Interface::set,          this);
-    command_["think"]        = std::bind(&Interface::think,        this);
-    command_["test"]         = std::bind(&Interface::test,         this);
-    command_["infiniteTest"] = std::bind(&Interface::infiniteTest, this);
-    command_["battle"]       = std::bind(&Interface::battle,       this);
-    command_["init"]         = std::bind(&Interface::init,         this);
-    command_["play"]         = std::bind(&Interface::play,         this);
-    command_["go"]           = std::bind(&Interface::go,           this);
-    command_["stop"]         = std::bind(&Interface::stop,         this);
-    command_["quit"]         = std::bind(&Interface::quit,         this);
+    command_["printOption"]    = std::bind(&Interface::printOption,  this);
+    command_["set"]            = std::bind(&Interface::set,          this);
+    command_["think"]          = std::bind(&Interface::think,        this);
+    command_["test"]           = std::bind(&Interface::test,         this);
+    command_["infiniteTest"]   = std::bind(&Interface::infiniteTest, this);
+    command_["battle"]         = std::bind(&Interface::battle,       this);
+    command_["battleVSRandom"] = std::bind(&Interface::battleVSRandom, this);
+    command_["init"]           = std::bind(&Interface::init,         this);
+    command_["play"]           = std::bind(&Interface::play,         this);
+    command_["go"]             = std::bind(&Interface::go,           this);
+    command_["stop"]           = std::bind(&Interface::stop,         this);
+    command_["quit"]           = std::bind(&Interface::quit,         this);
 
     //メンバ関数以外
     command_["initParams"]         = initParams;
@@ -183,6 +184,44 @@ void Interface::battle() {
         } else {
             Move best_move = searcher_->think(root_, 1000000);
             root_.doMove(best_move);
+        }
+    }
+}
+
+void Interface::battleVSRandom() {
+    //対局の準備
+    options_.search_limit = 800;
+    options_.search_batch_size = 1;
+    options_.random_turn = 10;
+    options_.thread_num_per_gpu = 1;
+    options_.print_interval = INT_MAX;
+    options_.print_policy_num = 00;
+    searcher_ = std::make_unique<SearcherForPlay>(options_);
+
+    //乱数生成器を準備
+    std::mt19937_64 engine(std::random_device{}());
+
+    for (int64_t i = 0; i < 100; i++) {
+        root_.init();
+
+        while (true) {
+            float score;
+            root_.print();
+            if (root_.isFinish(score)) {
+                std::cout << "score = " << score << std::endl;
+                break;
+            }
+
+            if ((root_.turnNumber() % 2) == (i % 2)) {
+                std::vector<Move> moves = root_.generateAllMoves();
+                std::uniform_int_distribution<uint64_t> dist(0, moves.size() - 1);
+                uint64_t index = dist(engine);
+                Move best_move = moves[index];
+                root_.doMove(best_move);
+            } else {
+                Move best_move = searcher_->think(root_, 1000000);
+                root_.doMove(best_move);
+            }
         }
     }
 }
