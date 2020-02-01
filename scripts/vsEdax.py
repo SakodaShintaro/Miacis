@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 import subprocess
 import os
+import sys
 import glob
 from natsort import natsorted
+import argparse
+import math
 
 
 class EdaxManager:
@@ -83,12 +86,30 @@ class MiacisManager:
                 return line[1]
 
 
+# 勝率からelo_rateを計算する関数
+def calc_elo_rate(winning_rate):
+    assert 0 <= winning_rate <= 1
+    if winning_rate == 1.0:
+        return 10000.0
+    elif winning_rate == 0.0:
+        return -10000.0
+    else:
+        return 400 * math.log10(winning_rate / (1 - winning_rate))
+
+
 def main():
     result_dict = {
         "Black": 0,
         None: 1,
         "White": 2
     }
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--level", type=int, default=1)
+    parser.add_argument("--game_num", type=int, default=500)
+    parser.add_argument("--search_limit", type=int, default=800)
+    parser.add_argument("--init_model_step", type=int, default=0)
+    args = parser.parse_args()
 
     # カレントディレクトリ内にある{prefix}_{step}.modelを評価する
     curr_path = os.getcwd()
@@ -98,38 +119,36 @@ def main():
 
     # 結果を書き込むファイルを取得
     f = open(curr_path + "result.txt", mode="a")
+    f.write(f"level = {args.level}, search_limit = {args.search_limit}\n")
 
     # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
     model_names = natsorted(glob.glob(curr_path + "*0.model"))
 
     # プロセスmanagerを準備
     edax_manager = EdaxManager()
+    edax_manager.read_lines()
+    edax_manager.send_message(f"set level {args.level}")
+
     miacis_manager = MiacisManager("scalar" if "sca" in model_names[0] else "categorical")
-    miacis_manager.send_option("search_limit", 100)
+    miacis_manager.send_option("search_limit", args.search_limit)
     miacis_manager.send_option("byoyomi_margin", 10000000)
     miacis_manager.send_option("search_batch_size", 1)
     miacis_manager.send_option("thread_num", 1)
-    miacis_manager.send_option("random_turn", 1000)
+    miacis_manager.send_option("random_turn", 30)
 
     for model_name in model_names:
         # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
         step = int(model_name[model_name.rfind("_") + 1:model_name.find(".model")])
-        print(step)
+        if step < args.init_model_step:
+            continue
         miacis_manager.send_option("model_name", model_name)
 
         moves_set = set()
 
         total_result = [0, 0, 0]
 
-        # 最初の読み込み
-        edax_manager.read_lines()
-
-        # 設定の送信
-        edax_manager.send_message("set verbose 1")
-        edax_manager.send_message("set level 1")
-
         game_num = 0
-        while game_num < 100:
+        while game_num < args.game_num:
             # 局面を初期化
             miacis_manager.send_init()
             best_move, game_over, win_color = edax_manager.send_message("init")
@@ -158,8 +177,6 @@ def main():
                 print("重複発生")
                 continue
 
-            print(moves)
-
             game_num += 1
             moves_set.add(moves)
 
@@ -168,7 +185,15 @@ def main():
                 result = 2 - result
 
             total_result[result] += 1
-            print(total_result)
+
+            winning_rate = (total_result[0] + 0.5 * total_result[1]) / sum(total_result)
+            elo_rate = calc_elo_rate(winning_rate)
+            result_str = f"{step:7d}ステップ {total_result[0]:3d}勝 {total_result[1]:3d}引き分け {total_result[2]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
+
+            sys.stdout.write("\033[2K\033[G")
+            print(result_str, end="\n" if game_num == args.game_num else "")
+            sys.stdout.flush()
+        f.write(result_str + "\n")
 
 
 if __name__ == '__main__':
