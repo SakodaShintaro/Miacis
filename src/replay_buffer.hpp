@@ -18,13 +18,13 @@ public:
         data_(max_size), segment_tree_(max_size), first_wait_(first_wait), max_size_(max_size), total_num_(0),
         output_interval_(output_interval), lambda_(lambda),  alpha_(alpha), data_augmentation_(data_augmentation) {
         //棋譜を保存するディレクトリの削除
-        std::experimental::filesystem::remove_all(save_dir);
+        std::experimental::filesystem::remove_all(KIFU_SAVE_DIR);
 
         //棋譜を保存するディレクトリの作成
 #ifdef _MSC_VER
-        _mkdir(save_dir.c_str());
+        _mkdir(KIFU_SAVE_DIR.c_str());
 #elif __GNUC__
-        mkdir(save_dir.c_str(), ACCESSPERMS);
+        mkdir(KIFU_SAVE_DIR.c_str(), ACCESSPERMS);
 #endif
     }
 
@@ -75,7 +75,7 @@ private:
     std::vector<uint64_t> pre_indices_;
 
     //学習に用いた棋譜を保存するディレクトリへのパス
-    static const std::string save_dir;
+    static const std::string KIFU_SAVE_DIR;
 };
 
 #endif //MIACIS_REPLAY_BUFFER_HPP

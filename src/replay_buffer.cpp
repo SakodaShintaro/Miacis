@@ -4,7 +4,7 @@
 #include<iomanip>
 #include<random>
 
-const std::string ReplayBuffer::save_dir = "./learn_kifu/";
+const std::string ReplayBuffer::KIFU_SAVE_DIR = "./learn_kifu/";
 
 std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
     //ロックの確保
@@ -44,7 +44,7 @@ void ReplayBuffer::push(Game &game) {
 
     static int64_t total_kifu_num = 0;
     if (++total_kifu_num % output_interval_ == 0) {
-        game.writeKifuFile(save_dir);
+        game.writeKifuFile(KIFU_SAVE_DIR);
     }
 
     //まずは最終局面まで動かす
