@@ -79,14 +79,6 @@ void ReplayBuffer::push(Game &game) {
         ValueTeacherType value_teacher = teacher_signal;
 #endif
 
-        //このデータを入れる位置を取得
-        int64_t change_index = segment_tree_.getIndexToPush();
-
-        //そこのデータを入れ替える
-        data_[change_index].position_str = pos.toStr();
-        data_[change_index].policy = e.policy_teacher;
-        data_[change_index].value = value_teacher;
-
         //priorityを計算
         FloatType priority = 0.0f;
 
@@ -101,14 +93,31 @@ void ReplayBuffer::push(Game &game) {
 #else
         priority += std::pow(e.nn_output_value - value_teacher, 2.0f);
 #endif
-        //segment_treeのpriorityを更新
-        segment_tree_.update(change_index, std::pow(priority * 2, alpha_));
 
-        //データを加えた数をカウント
-        total_num_++;
+        for (int64_t j = 0; j < (data_augmentation_ ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); j++) {
+            //方策の教師を適切に変換
+            PolicyTeacherType policy_teacher = e.policy_teacher;
+            for (std::pair<int32_t, float>& element : policy_teacher) {
+                element.first = Move::augmentedLabel(element.first, j);
+            }
 
-        if (first_wait_ > 0) {
-            first_wait_--;
+            //このデータを入れる位置を取得
+            int64_t change_index = segment_tree_.getIndexToPush();
+
+            //そこのデータを入れ替える
+            data_[change_index].position_str = Position::augmentedStr(pos.toStr(), j);
+            data_[change_index].policy = policy_teacher;
+            data_[change_index].value = value_teacher;
+
+            //segment_treeのpriorityを更新
+            segment_tree_.update(change_index, std::pow(priority * 2, alpha_));
+
+            //データを加えた数をカウント
+            //拡張したデータは一つとして数えた方が良いかもしれない？
+            total_num_++;
+            if (first_wait_ > 0) {
+                first_wait_--;
+            }
         }
     }
 

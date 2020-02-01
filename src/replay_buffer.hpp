@@ -14,9 +14,9 @@
 
 class ReplayBuffer{
 public:
-    ReplayBuffer(int64_t first_wait, int64_t max_size, int64_t output_interval, double lambda, double alpha) :
+    ReplayBuffer(int64_t first_wait, int64_t max_size, int64_t output_interval, double lambda, double alpha, bool data_augmentation) :
         data_(max_size), segment_tree_(max_size), first_wait_(first_wait), max_size_(max_size), total_num_(0),
-        output_interval_(output_interval), lambda_(lambda),  alpha_(alpha) {
+        output_interval_(output_interval), lambda_(lambda),  alpha_(alpha), data_augmentation_(data_augmentation) {
         //棋譜を保存するディレクトリの削除
         std::experimental::filesystem::remove_all(save_dir);
 
@@ -64,6 +64,9 @@ private:
 
     //priorityを累乗するパラメータ
     double alpha_;
+
+    //データ拡張をするかどうか
+    bool data_augmentation_;
 
     //排他制御用
     std::mutex mutex_;

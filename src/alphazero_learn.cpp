@@ -26,6 +26,7 @@ void alphaZero() {
     settings.add("worker_num_per_thread",  1, (int64_t)1e10);
     settings.add("max_stack_size",         1, (int64_t)1e10);
     settings.add("first_wait",             0, (int64_t)1e10);
+    settings.add("data_augmentation",      0, (int64_t)1);
     settings.add("search_limit",           1, (int64_t)1e10);
     settings.add("search_batch_size",      1, (int64_t)1e10);
     settings.add("output_interval",        1, (int64_t)1e10);
@@ -65,6 +66,7 @@ void alphaZero() {
     int64_t worker_num_per_thread     = settings.get<int64_t>("worker_num_per_thread");
     int64_t max_stack_size            = settings.get<int64_t>("max_stack_size");
     int64_t first_wait                = settings.get<int64_t>("first_wait");
+    int64_t data_augmentation         = settings.get<int64_t>("data_augmentation");
     int64_t output_interval           = settings.get<int64_t>("output_interval");
     int64_t save_interval             = settings.get<int64_t>("save_interval");
     int64_t validation_interval       = settings.get<int64_t>("validation_interval");
@@ -82,7 +84,7 @@ void alphaZero() {
     int64_t sleep_msec = -1;
 
     //リプレイバッファの生成
-    ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, alpha);
+    ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, alpha, data_augmentation);
 
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");

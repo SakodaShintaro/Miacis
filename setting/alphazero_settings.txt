@@ -22,6 +22,7 @@ batch_size_per_gen     4
 worker_num_per_thread  32
 max_stack_size         1048576
 first_wait             524288
+data_augmentation      0
 search_limit           800
 search_batch_size      4
 output_interval        100
