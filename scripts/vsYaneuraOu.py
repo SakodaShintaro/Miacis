@@ -31,7 +31,9 @@ assert game_num % 2 == 0
 # 持ち時間
 time_Miacis = args.time1
 time_yane   = args.time2
-time_max = max(time_yane, time_Miacis)
+# 時間切れを避けるために1秒のマージンを取る
+# byoyomi_marginなどを適切に定めることで持ち時間を適切にする
+time_max = max(time_yane, time_Miacis) + 1000
 
 # ディレクトリ内のパラメータのうち指定したステップ以降のモデルを対局させる
 min_step = args.init_model_step
