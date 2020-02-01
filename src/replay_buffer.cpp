@@ -98,14 +98,14 @@ void ReplayBuffer::push(Game &game) {
             //方策の教師を適切に変換
             PolicyTeacherType policy_teacher = e.policy_teacher;
             for (std::pair<int32_t, float>& element : policy_teacher) {
-                element.first = Move::augmentedLabel(element.first, j);
+                element.first = Move::augmentLabel(element.first, j);
             }
 
             //このデータを入れる位置を取得
             int64_t change_index = segment_tree_.getIndexToPush();
 
             //そこのデータを入れ替える
-            data_[change_index].position_str = Position::augmentedStr(pos.toStr(), j);
+            data_[change_index].position_str = Position::augmentStr(pos.toStr(), j);
             data_[change_index].policy = policy_teacher;
             data_[change_index].value = value_teacher;
 

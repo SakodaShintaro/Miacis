@@ -1191,7 +1191,7 @@ bool Position::canWinDeclare() const {
     return (score >= THRESHOLD[color_] && num >= 10);
 }
 
-std::string Position::augmentedStr(const std::string& str, int64_t augmentation) {
+std::string Position::augmentStr(const std::string& str, int64_t augmentation) {
     if (augmentation == 0) {
         //何もしない
         return str;

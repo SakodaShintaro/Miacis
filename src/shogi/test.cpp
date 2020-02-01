@@ -289,10 +289,10 @@ void checkMirror() {
 
             std::string str = pos.toStr();
             std::cout << str << std::endl;
-            std::cout << Position::augmentedStr(str, 1) << std::endl;
+            std::cout << Position::augmentStr(str, 1) << std::endl;
 
             uint32_t label = moves[index].toLabel();
-            uint32_t mirror_label = Move::augmentedLabel(label, 1);
+            uint32_t mirror_label = Move::augmentLabel(label, 1);
             moves[index].print();
             std::cout << label % SQUARE_NUM << ", " << label / SQUARE_NUM << std::endl;
             std::cout << mirror_label % SQUARE_NUM << ", " << mirror_label / SQUARE_NUM << std::endl;

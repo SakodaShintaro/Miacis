@@ -284,7 +284,7 @@ std::vector<float> Position::makeFeature() const {
     return features;
 }
 
-std::string Position::augmentedStr(const std::string& str, int64_t augmentation) {
+std::string Position::augmentStr(const std::string& str, int64_t augmentation) {
     assert(augmentation == 0);
     //何もしない
     return str;

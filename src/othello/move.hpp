@@ -41,7 +41,7 @@ public:
         return (move == 0 ? SQUARE_NUM : SquareToNum[to()]);
     }
     //ラベルを左右反転させる関数。左右反転のデータ拡張に対応するために必要
-    static uint32_t augmentedLabel(uint32_t label, int64_t augmentation) {
+    static uint32_t augmentLabel(uint32_t label, int64_t augmentation) {
         assert(augmentation == 0);
         return label;
     }

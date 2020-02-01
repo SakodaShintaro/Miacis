@@ -102,7 +102,7 @@ public:
     //行動から教師ラベルへと変換する関数
     uint32_t toLabel() const;
     //ラベルを左右反転させる関数。左右反転のデータ拡張に対応するために必要
-    static uint32_t augmentedLabel(uint32_t label, int64_t augmentation);
+    static uint32_t augmentLabel(uint32_t label, int64_t augmentation);
 
 private:
     int32_t move_;

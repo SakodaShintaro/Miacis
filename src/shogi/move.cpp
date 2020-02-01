@@ -48,7 +48,7 @@ uint32_t Move::toLabel() const {
     return static_cast<uint32_t>(to_num + SQUARE_NUM * direction);
 }
 
-uint32_t Move::augmentedLabel(uint32_t label, int64_t augmentation) {
+uint32_t Move::augmentLabel(uint32_t label, int64_t augmentation) {
     if (augmentation == 0) {
         //0のときはそのまま
         return label;
