@@ -247,7 +247,9 @@ void Interface::go() {
 }
 
 void Interface::stop() {
-    searcher_->stop_signal = true;
+    if (searcher_ != nullptr) {
+        searcher_->stop_signal = true;
+    }
     if (thread_.joinable()) {
         thread_.join();
     }
