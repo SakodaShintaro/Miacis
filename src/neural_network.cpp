@@ -5,7 +5,7 @@
 #ifdef SHOGI
 static constexpr int32_t BLOCK_NUM = 10;
 #elif defined(OTHELLO)
-static constexpr int32_t BLOCK_NUM = 2;
+static constexpr int32_t BLOCK_NUM = 8;
 #endif
 
 static constexpr int32_t KERNEL_SIZE = 3;
