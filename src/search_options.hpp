@@ -29,7 +29,7 @@ public:
         constexpr int32_t MAX = 1e9;
         check_options.emplace("USI_Ponder",        CheckOption(USI_Ponder = false));
         check_options.emplace("leave_root",        CheckOption(leave_root = true));
-        check_options.emplace("use_fp16",          CheckOption(use_fp16   = false));
+        check_options.emplace("use_fp16",          CheckOption(use_fp16   = true));
         spin_options.emplace("USI_Hash",           SpinOption(USI_Hash           =  256, 0,  MAX));
         spin_options.emplace("byoyomi_margin",     SpinOption(byoyomi_margin     =    0, 0,  MAX));
         spin_options.emplace("random_turn",        SpinOption(random_turn        =    0, 0,  MAX));
