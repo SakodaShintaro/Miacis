@@ -27,6 +27,8 @@ public:
     SearchOptions() {
         //上限ギリギリだとオーバーフローしかねないので適当な値で収める
         constexpr int32_t MAX = 1e9;
+        //GPUの数を取得。GPUがない場合もとりあえずここでは1として、内部的にCPUで計算する
+        uint64_t gpu = std::max(torch::getNumGPUs(), (uint64_t)1);
         check_options.emplace("USI_Ponder",        CheckOption(USI_Ponder = false));
         check_options.emplace("leave_root",        CheckOption(leave_root = true));
         check_options.emplace("use_fp16",          CheckOption(use_fp16   = true));
@@ -35,7 +37,7 @@ public:
         spin_options.emplace("random_turn",        SpinOption(random_turn        =    0, 0,  MAX));
         spin_options.emplace("draw_turn",          SpinOption(draw_turn          =  320, 0,  MAX));
         spin_options.emplace("print_interval",     SpinOption(print_interval     =  500, 1,  MAX));
-        spin_options.emplace("gpu_num",            SpinOption(gpu_num            =    1, 0,  torch::getNumGPUs()));
+        spin_options.emplace("gpu_num",            SpinOption(gpu_num            =  gpu, 1,  gpu));
         spin_options.emplace("thread_num_per_gpu", SpinOption(thread_num_per_gpu =    2, 1,  MAX));
         spin_options.emplace("search_batch_size",  SpinOption(search_batch_size  =   32, 1,  MAX));
         spin_options.emplace("search_limit",       SpinOption(search_limit       =  MAX, 1,  MAX));
