@@ -89,6 +89,12 @@ void Searcher::select(Position& pos) {
         index = hash_table_[index].child_indices[action];
     }
 
+    if (curr_indices.empty()) {
+        std::cout << "curr_indices.empty()" << std::endl;
+        pos.print();
+        exit(1);
+    }
+
     //expandNode内でこれらの情報は壊れる可能性があるので保存しておく
     index = curr_indices.top();
     int32_t action = curr_actions.top();
