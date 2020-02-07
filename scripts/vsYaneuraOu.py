@@ -19,24 +19,13 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--time1", type=int, default=1000)
 parser.add_argument("--time2", type=int, default=100)
-parser.add_argument("--depth_limit", type=int, default=0)
+parser.add_argument("--Threads", type=int, default=1)
 parser.add_argument("--game_num", type=int, default=500)
 parser.add_argument("--init_model_step", type=int, default=0)
 args = parser.parse_args()
 
 # 対局数(先後行うので偶数でなければならない)
-game_num = args.game_num
-assert game_num % 2 == 0
-
-# 持ち時間
-time_Miacis = args.time1
-time_yane   = args.time2
-# 時間切れを避けるために1秒のマージンを取る
-# byoyomi_marginなどを適切に定めることで持ち時間を適切にする
-time_max = max(time_yane, time_Miacis) + 1000
-
-# ディレクトリ内のパラメータのうち指定したステップ以降のモデルを対局させる
-min_step = args.init_model_step
+assert args.game_num % 2 == 0
 
 # 勝ち,負け,引き分けの結果を示す定数
 WIN  = 0
@@ -66,16 +55,15 @@ server = ayane.AyaneruServer()
 
 # サーバの設定
 server.error_print = True
-server.set_time_setting(f"byoyomi {time_max}")
-server.moves_to_draw = 256
+server.set_time_setting(f"byoyomi1p {args.time1} byoyomi2p {args.time2}")
+server.moves_to_draw = 320
 
 # YaneuraOuの設定
 server.engines[1].set_engine_options({"USI_Ponder": "false",
-                                      "Threads": 1,
+                                      "Threads": args.Threads,
                                       "BookMoves": 0,
-                                      "DepthLimit": args.depth_limit,
-                                      "NetworkDelay": time_max - time_yane,
-                                      "NetworkDelay2": time_max - time_yane
+                                      "NetworkDelay": 0,
+                                      "NetworkDelay2": 0
                                       })
 server.engines[1].connect(script_dir + "/../../YaneuraOu/bin/YaneuraOu-by-gcc")
 
@@ -87,7 +75,7 @@ if curr_path[-1] != "/":
 
 # 結果を書き込むファイルを取得
 f = open(curr_path + "result.txt", mode="a")
-f.write(f"Miacis time = {time_Miacis}, YaneuraOu time = {time_yane}, YaneuraOu depth_limit = {args.depth_limit}\n")
+f.write(f"Miacis time = {args.time1}, YaneuraOu time = {args.time2}, YaneuraOu Threads = {args.Threads}\n")
 
 # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
 model_names = natsorted(glob.glob(curr_path + "*0.model"))
@@ -96,16 +84,14 @@ for model_name in model_names:
     # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
     step = int(model_name[model_name.rfind("_") + 1:model_name.find(".model")])
 
-    # min_stepより小さいものは調べない
-    if step < min_step:
+    # args.init_model_stepより小さいものは調べない
+    if step < args.init_model_step:
         continue
 
     # Miacisを準備
-    server.engines[0].set_engine_options({"byoyomi_margin": time_max - time_Miacis,
-                                          "random_turn": 30,
+    server.engines[0].set_engine_options({"random_turn": 30,
                                           "print_interval": 10000000,
                                           "USI_Hash": 4096,
-                                          "C_PUCT_x1000": 2500,
                                           "model_name": model_name})
     scalar_or_categorical = "scalar" if "sca" in model_name else "categorical"
     server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
@@ -117,7 +103,7 @@ for model_name in model_names:
     sfens = defaultdict(int)
 
     # iが偶数のときMiacis先手
-    for i in range(game_num):
+    for i in range(args.game_num):
         # 対局を実行
         server.game_start()
         while not server.game_result.is_gameover():
@@ -140,7 +126,7 @@ for model_name in model_names:
         result_str = f"{step:7d}ステップ {total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
 
         sys.stdout.write("\033[2K\033[G")
-        print(result_str, end="\n" if i == game_num - 1 else "")
+        print(result_str, end="\n" if i == args.game_num - 1 else "")
         sys.stdout.flush()
 
         # 手番反転
