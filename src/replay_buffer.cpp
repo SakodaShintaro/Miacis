@@ -12,11 +12,11 @@ std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
 
     while (first_wait_ > 0) {
         mutex_.unlock();
-        std::cout << "wait_remain = " << first_wait_ << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(first_wait_ / 200 + 20));
+        std::cout << "\rwait_remain = " << first_wait_ << "  " << std::flush;
+        std::this_thread::sleep_for(std::chrono::seconds(10));
         mutex_.lock();
     }
-    
+
     //現時点のpriorityの和を取得し,そこまでの範囲の一様分布生成器を作る
     float sum = segment_tree_.getSum();
     static std::mt19937 engine(0);
