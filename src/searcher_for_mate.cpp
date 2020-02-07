@@ -108,7 +108,7 @@ bool SearcherForMate::search(Position& pos, int32_t depth) {
     //つまりresultとis_attackerの一致性を見れば良い
     for (const Move& move : pos.generateAllMoves()) {
         pos.doMove(move);
-        bool result = mateSearchForAttacker(pos, depth - 1);
+        bool result = search(pos, depth - 1);
         pos.undo();
         if (result == is_attacker) {
             return is_attacker;
