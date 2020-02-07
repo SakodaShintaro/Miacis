@@ -44,7 +44,7 @@ public:
 #else
         spin_options.emplace("Q_coeff_x1000",      SpinOption(Q_coeff_x1000      = 1000, 0,  MAX));
 #endif
-        spin_options.emplace("C_PUCT_x1000",       SpinOption(C_PUCT_x1000       = 1500, 1,  MAX));
+        spin_options.emplace("C_PUCT_x1000",       SpinOption(C_PUCT_x1000       = 2500, 1,  MAX));
         spin_options.emplace("P_coeff_x1000",      SpinOption(P_coeff_x1000      = 1000, 0,  MAX));
         spin_options.emplace("temperature_x1000",  SpinOption(temperature_x1000  =    0, 0,  MAX));
         spin_options.emplace("UCT_lambda_x1000",   SpinOption(UCT_lambda_x1000   = 1000, 0, 1000));
