@@ -40,8 +40,12 @@ public:
     int32_t toLabel() const {
         return (move == 0 ? SQUARE_NUM : SquareToNum[to()]);
     }
-    //ラベルを左右反転させる関数。左右反転のデータ拡張に対応するために必要
+    //ラベルをデータ拡張に対応させる関数
     static uint32_t augmentLabel(uint32_t label, int64_t augmentation) {
+        if (label == SQUARE_NUM) {
+            //SQUARE_NUMはパスを示している。それはどのように反転しても同じ
+            return SQUARE_NUM;
+        }
         return augmentLabelMirror(augmentLabelRotate(label, augmentation % 4), augmentation / 4);
     }
 
