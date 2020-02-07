@@ -232,13 +232,15 @@ std::string Position::toStr() const {
     for (Square sq : SquareList) {
         str += PieceToSfenStr[board_[sq]];
     }
+    str += (color_ == BLACK ? 'b' : 'w');
     return str;
 }
 
 void Position::fromStr(const std::string& str) {
-    for (uint64_t i = 0; i < str.size(); i++) {
+    for (uint64_t i = 0; i < SQUARE_NUM; i++) {
         board_[SquareList[i]] = (str[i] == 'x' ? BLACK_PIECE : str[i] == 'o' ? WHITE_PIECE : EMPTY);
     }
+    color_ = (str.back() == 'b' ? BLACK : WHITE);
 }
 
 bool Position::isFinish(float& score) const {
@@ -298,11 +300,12 @@ std::string Position::augmentStrRotate(const std::string& str, int64_t augmentat
                 result += str[i + (BOARD_WIDTH - 1 - j) * BOARD_WIDTH];
             }
         }
+        result += str.back();
         return result;
     } else if (augmentation == 2) {
         //時計回りに180度回転
         std::string result = str;
-        std::reverse(result.begin(), result.end());
+        std::reverse(result.begin(), result.end() - 1);
         return result;
     } else if (augmentation == 3) {
         //時計回りに270度回転
@@ -312,6 +315,7 @@ std::string Position::augmentStrRotate(const std::string& str, int64_t augmentat
                 result += str[(j + 1) * BOARD_WIDTH - 1 - i];
             }
         }
+        result += str.back();
         return result;
     } else {
         std::cout << "in augmentStrRotate, augmentation = " << augmentation << std::endl;
@@ -331,6 +335,7 @@ std::string Position::augmentStrMirror(const std::string& str, int64_t augmentat
                 result += str[(BOARD_WIDTH - 1 - i) * BOARD_WIDTH + j];
             }
         }
+        result += str.back();
         return result;
     } else {
         std::cout << "in augmentStrMirror, augmentation = " << augmentation << std::endl;

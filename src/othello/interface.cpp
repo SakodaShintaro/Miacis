@@ -127,6 +127,7 @@ void Interface::test() {
                 }
                 std::cout << std::endl;
             }
+            std::cout << augmented_str.back() << std::endl;
             uint32_t augmented_label = Move::augmentLabel(label, augmentation);
             std::cout << "label = " << augmented_label << " means = (" << augmented_label % BOARD_WIDTH << ", " << augmented_label / BOARD_WIDTH << ")" << std::endl;
             std::cout << std::endl;
