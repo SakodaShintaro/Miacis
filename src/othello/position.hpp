@@ -54,8 +54,8 @@ public:
     Color color() const { return color_; }
     int64_t hashValue() const { return hash_value_; }
 
-    //原理的にはそれに左右反転まで含めた8通りに拡張できるがまだ未実装
-    static constexpr int64_t DATA_AUGMENTATION_PATTERN_NUM = 1;
+    //回転、左右反転の8通りに拡張可能
+    static constexpr int64_t DATA_AUGMENTATION_PATTERN_NUM = 8;
     static std::string augmentStr(const std::string& str, int64_t augmentation);
 private:
     //--------------------
@@ -63,6 +63,9 @@ private:
     //--------------------
     //ハッシュ値の初期化
     void initHashValue();
+
+    static std::string augmentStrRotate(const std::string& str, int64_t augmentation);
+    static std::string augmentStrMirror(const std::string& str, int64_t augmentation);
 
     //------------------
     //    クラス変数

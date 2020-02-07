@@ -266,7 +266,7 @@ std::vector<float> Position::makeFeature() const {
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
 
     //駒を見る順番
-    static constexpr std::array<Piece, ColorNum> TARGET_PIECE[ColorNum] = {
+    static constexpr std::array<Piece, INPUT_CHANNEL_NUM> TARGET_PIECE[ColorNum] = {
         { BLACK_PIECE, WHITE_PIECE },
         { WHITE_PIECE, BLACK_PIECE }
     };
@@ -283,7 +283,57 @@ std::vector<float> Position::makeFeature() const {
 }
 
 std::string Position::augmentStr(const std::string& str, int64_t augmentation) {
-    assert(augmentation == 0);
-    //何もしない
-    return str;
+    return augmentStrMirror(augmentStrRotate(str, augmentation % 4), augmentation / 4);
+}
+
+std::string Position::augmentStrRotate(const std::string& str, int64_t augmentation) {
+    if (augmentation == 0) {
+        //なにもしない
+        return str;
+    } else if (augmentation == 1) {
+        //時計回りに90度回転
+        std::string result;
+        for (int64_t i = 0; i < BOARD_WIDTH; i++) {
+            for (int64_t j = 0; j < BOARD_WIDTH; j++) {
+                result += str[i + (BOARD_WIDTH - 1 - j) * BOARD_WIDTH];
+            }
+        }
+        return result;
+    } else if (augmentation == 2) {
+        //時計回りに180度回転
+        std::string result = str;
+        std::reverse(result.begin(), result.end());
+        return result;
+    } else if (augmentation == 3) {
+        //時計回りに270度回転
+        std::string result;
+        for (int64_t i = 0; i < BOARD_WIDTH; i++) {
+            for (int64_t j = 0; j < BOARD_WIDTH; j++) {
+                result += str[(j + 1) * BOARD_WIDTH - 1 - i];
+            }
+        }
+        return result;
+    } else {
+        std::cout << "in augmentStrRotate, augmentation = " << augmentation << std::endl;
+        exit(1);
+    }
+}
+
+std::string Position::augmentStrMirror(const std::string& str, int64_t augmentation) {
+    if (augmentation == 0) {
+        //なにもしない
+        return str;
+    } else if (augmentation == 1) {
+        //左右反転
+        std::string result;
+        for (int64_t i = 0; i < BOARD_WIDTH; i++) {
+            for (int64_t j = 0; j < BOARD_WIDTH; j++) {
+                result += str[(BOARD_WIDTH - 1 - i) * BOARD_WIDTH + j];
+            }
+        }
+        return result;
+    } else {
+        std::cout << "in augmentStrMirror, augmentation = " << augmentation << std::endl;
+        exit(1);
+    }
 }

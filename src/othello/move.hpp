@@ -42,12 +42,49 @@ public:
     }
     //ラベルを左右反転させる関数。左右反転のデータ拡張に対応するために必要
     static uint32_t augmentLabel(uint32_t label, int64_t augmentation) {
-        assert(augmentation == 0);
-        return label;
+        return augmentLabelMirror(augmentLabelRotate(label, augmentation % 4), augmentation / 4);
     }
 
     //探索時にSearcherクラスから気軽にアクセスできるようpublicにおいてるけど
     int32_t move;
+
+private:
+    static uint32_t augmentLabelRotate(uint32_t label, int64_t augmentation) {
+        if (augmentation == 0) {
+            //なにもしない
+            return label;
+        } else if (augmentation == 1) {
+            //時計回りに90度回転
+            int64_t rank = label % BOARD_WIDTH;
+            int64_t file = label / BOARD_WIDTH;
+            return rank * BOARD_WIDTH + BOARD_WIDTH - 1 - file;
+        } else if (augmentation == 2) {
+            //時計回りに180度回転
+            return SQUARE_NUM - 1 - label;
+        } else if (augmentation == 3) {
+            //時計回りに270度回転
+            int64_t rank = label % BOARD_WIDTH;
+            int64_t file = label / BOARD_WIDTH;
+            return (BOARD_WIDTH - 1 - rank) * BOARD_WIDTH + file;
+        } else {
+            std::cout << "in augmentLabelRotate, augmentation = " << augmentation << std::endl;
+            exit(1);
+        }
+    }
+    static uint32_t augmentLabelMirror(uint32_t label, int64_t augmentation) {
+        if (augmentation == 0) {
+            //なにもしない
+            return label;
+        } else if (augmentation == 1) {
+            //左右反転
+            int64_t rank = label % BOARD_WIDTH;
+            int64_t file = label / BOARD_WIDTH;
+            return (BOARD_WIDTH - 1 - file) * BOARD_WIDTH + rank;
+        } else {
+            std::cout << "in augmentLabelMirror, augmentation = " << augmentation << std::endl;
+            exit(1);
+        }
+    }
 };
 
 //比較用

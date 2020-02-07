@@ -114,6 +114,24 @@ void Interface::test() {
         }
 
         Move best_move = searcher_->think(root_, 1000000);
+
+        std::string str = root_.toStr();
+        uint32_t label = best_move.toLabel();
+
+        for (int64_t augmentation = 0; augmentation < Position::DATA_AUGMENTATION_PATTERN_NUM; augmentation++) {
+            std::cout << augmentation << std::endl;
+            std::string augmented_str = root_.augmentStr(str, augmentation);
+            for (int64_t i = 0; i < BOARD_WIDTH; i++) {
+                for (int64_t j = 0; j < BOARD_WIDTH; j++) {
+                    std::cout << augmented_str[i + (BOARD_WIDTH - 1 - j) * BOARD_WIDTH];
+                }
+                std::cout << std::endl;
+            }
+            uint32_t augmented_label = Move::augmentLabel(label, augmentation);
+            std::cout << "label = " << augmented_label << " means = (" << augmented_label % BOARD_WIDTH << ", " << augmented_label / BOARD_WIDTH << ")" << std::endl;
+            std::cout << std::endl;
+        }
+
         root_.doMove(best_move);
     }
 }
