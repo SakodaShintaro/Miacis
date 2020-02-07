@@ -51,7 +51,7 @@ void Searcher::select(Position& pos) {
     while (index != HashTable::NOT_EXPANDED) {
         std::unique_lock<std::mutex> lock(hash_table_[index].mutex);
 
-        if (pos.turnNumber() > search_options_.draw_turn) {
+        if (pos.turnNumber() >= search_options_.draw_turn) {
             //手数が制限まで達している場合も抜ける
             break;
         }
@@ -186,22 +186,11 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
 
     //ノードを評価
     float finish_score;
-    if (pos.isFinish(finish_score)) {
+    if (pos.isFinish(finish_score) || pos.turnNumber() >= search_options_.draw_turn) {
 #ifdef USE_CATEGORICAL
         curr_node.value = onehotDist(finish_score);
 #else
         curr_node.value = finish_score;
-#endif
-        curr_node.evaled = true;
-        //GPUに送らないのでこのタイミングでバックアップを行う
-        hash_table_[index].mutex.unlock();
-        backup(indices, actions);
-    } else if (pos.turnNumber() > search_options_.draw_turn) {
-        FloatType value = (MAX_SCORE + MIN_SCORE) / 2;
-#ifdef USE_CATEGORICAL
-        curr_node.value = onehotDist(value);
-#else
-        curr_node.value = value;
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
