@@ -33,7 +33,7 @@ public:
         spin_options.emplace("USI_Hash",           SpinOption(USI_Hash           =  256, 0,  MAX));
         spin_options.emplace("byoyomi_margin",     SpinOption(byoyomi_margin     =    0, 0,  MAX));
         spin_options.emplace("random_turn",        SpinOption(random_turn        =    0, 0,  MAX));
-        spin_options.emplace("draw_turn",          SpinOption(draw_turn          =  512, 0,  MAX));
+        spin_options.emplace("draw_turn",          SpinOption(draw_turn          =  320, 0,  MAX));
         spin_options.emplace("print_interval",     SpinOption(print_interval     =  500, 1,  MAX));
         spin_options.emplace("gpu_num",            SpinOption(gpu_num            =    1, 0,  torch::getNumGPUs()));
         spin_options.emplace("thread_num_per_gpu", SpinOption(thread_num_per_gpu =    2, 1,  MAX));

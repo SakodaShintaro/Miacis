@@ -9,8 +9,8 @@ Q_dist_temperature     0.01
 Q_dist_lambda          1.0
 C_PUCT                 2.5
 use_fp16               1
-draw_turn              512
-random_turn            512
+draw_turn              320
+random_turn            320
 batch_size             128
 thread_num_per_gpu     4
 max_step_num           2000000
