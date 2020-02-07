@@ -265,19 +265,17 @@ std::vector<float> Position::makeFeature() const {
     //現状はdata_augmentation * 90度回転
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
 
+    //駒を見る順番
+    static constexpr std::array<Piece, ColorNum> TARGET_PIECE[ColorNum] = {
+        { BLACK_PIECE, WHITE_PIECE },
+        { WHITE_PIECE, BLACK_PIECE }
+    };
+
     //盤上の駒の特徴量
     for (uint64_t i = 0; i < ColorNum; i++) {
-        //いま考慮している駒
-        Piece target = (i == 0 ? BLACK_PIECE : WHITE_PIECE);
-        if (color_ == WHITE) {
-            //後手のときは逆順に見る
-            //つまり1ch目は自分の駒の位置,2ch目は相手の駒の位置ということで統一
-            target = oppositeColor(target);
-        }
-
-        //各マスについてそこにあるなら1,ないなら0とする
+        //各マスについて注目している駒がそこにあるなら1,ないなら0とする
         for (Square sq : SquareList) {
-            features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[sq] == target ? 1 : 0);
+            features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[sq] == TARGET_PIECE[color_][i] ? 1 : 0);
         }
     }
 
