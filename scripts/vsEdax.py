@@ -105,7 +105,7 @@ def main():
     }
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--level", type=int, default=7)
+    parser.add_argument("--level", type=int, default=8)
     parser.add_argument("--game_num", type=int, default=250)
     parser.add_argument("--search_limit", type=int, default=800)
     parser.add_argument("--init_model_step", type=int, default=0)
@@ -133,7 +133,7 @@ def main():
     miacis_manager.send_option("search_limit", args.search_limit)
     miacis_manager.send_option("byoyomi_margin", 10000000)
     miacis_manager.send_option("search_batch_size", 4)
-    miacis_manager.send_option("temperature_x1000", 10)
+    miacis_manager.send_option("temperature_x1000", 20)
     miacis_manager.send_option("thread_num_per_gpu", 1)
     miacis_manager.send_option("random_turn", 30)
 
