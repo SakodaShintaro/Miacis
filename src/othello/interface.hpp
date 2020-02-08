@@ -35,6 +35,9 @@ public:
     //標準入力から行動を一つ受け取り、盤面を更新する関数
     void play();
 
+    //Policyに従って対局し、Valueのログを残していく関数
+    void outputValue();
+
     //現盤面について思考してbest_moveを標準出力に出し、盤面を更新する関数
     void go();
     void stop();

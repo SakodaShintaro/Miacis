@@ -4,18 +4,19 @@
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
-    command_["printOption"]    = std::bind(&Interface::printOption,  this);
-    command_["set"]            = std::bind(&Interface::set,          this);
-    command_["think"]          = std::bind(&Interface::think,        this);
-    command_["test"]           = std::bind(&Interface::test,         this);
-    command_["infiniteTest"]   = std::bind(&Interface::infiniteTest, this);
-    command_["battle"]         = std::bind(&Interface::battle,       this);
+    command_["printOption"]    = std::bind(&Interface::printOption,    this);
+    command_["set"]            = std::bind(&Interface::set,            this);
+    command_["think"]          = std::bind(&Interface::think,          this);
+    command_["test"]           = std::bind(&Interface::test,           this);
+    command_["infiniteTest"]   = std::bind(&Interface::infiniteTest,   this);
+    command_["battle"]         = std::bind(&Interface::battle,         this);
     command_["battleVSRandom"] = std::bind(&Interface::battleVSRandom, this);
-    command_["init"]           = std::bind(&Interface::init,         this);
-    command_["play"]           = std::bind(&Interface::play,         this);
-    command_["go"]             = std::bind(&Interface::go,           this);
-    command_["stop"]           = std::bind(&Interface::stop,         this);
-    command_["quit"]           = std::bind(&Interface::quit,         this);
+    command_["outputValue"]    = std::bind(&Interface::outputValue,    this);
+    command_["init"]           = std::bind(&Interface::init,           this);
+    command_["play"]           = std::bind(&Interface::play,           this);
+    command_["go"]             = std::bind(&Interface::go,             this);
+    command_["stop"]           = std::bind(&Interface::stop,           this);
+    command_["quit"]           = std::bind(&Interface::quit,           this);
 
     //メンバ関数以外
     command_["initParams"]         = initParams;
@@ -277,4 +278,48 @@ void Interface::stop() {
 void Interface::quit() {
     stop();
     exit(0);
+}
+
+void Interface::outputValue() {
+    root_.init();
+    std::ofstream ofs("value_output.txt");
+    NeuralNetwork nn;
+    torch::load(nn, options_.model_name);
+    nn->setGPU(0);
+
+    std::mt19937_64 engine(std::random_device{}());
+    std::uniform_real_distribution<float> dist(0.0, 1.0);
+
+    float score;
+    while (!root_.isFinish(score)) {
+        std::vector<float> feature = root_.makeFeature();
+
+        std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = nn->policyAndValueBatch(feature);
+        PolicyType policy;
+        std::vector<Move> moves = root_.generateAllMoves();
+        for (const Move& move : moves) {
+            policy.push_back(y.first[0][move.toLabel()]);
+        }
+        policy = softmax(policy);
+
+        ValueType value = y.second[0];
+        //ターン数とValueを出力
+        ofs << root_.turnNumber() << std::endl;
+        for (int64_t i = 0; i < BIN_SIZE; i++) {
+            ofs << value[i] << std::endl;
+        }
+
+        uint64_t index = 0;
+        float probability_sum = 0;
+        float threshold = dist(engine);
+        for (index = 0; index < moves.size(); index++) {
+            if ((probability_sum += policy[index]) >= threshold) {
+                break;
+            }
+        }
+        Move best_move = moves[index];
+        root_.doMove(best_move);
+    }
+    ofs << -1 << std::endl;
+    std::cout << "finish outputValue" << std::endl;
 }
