@@ -293,6 +293,7 @@ void Interface::outputValue() {
     float score;
     while (!root_.isFinish(score)) {
         std::vector<float> feature = root_.makeFeature();
+        root_.print();
 
         std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = nn->policyAndValueBatch(feature);
         PolicyType policy;
@@ -301,13 +302,6 @@ void Interface::outputValue() {
             policy.push_back(y.first[0][move.toLabel()]);
         }
         policy = softmax(policy);
-
-        ValueType value = y.second[0];
-        //ターン数とValueを出力
-        ofs << root_.turnNumber() << std::endl;
-        for (int64_t i = 0; i < BIN_SIZE; i++) {
-            ofs << value[i] << std::endl;
-        }
 
         uint64_t index = 0;
         float probability_sum = 0;
@@ -318,6 +312,18 @@ void Interface::outputValue() {
             }
         }
         Move best_move = moves[index];
+
+        ValueType value = y.second[0];
+        //ターン数とValueを出力
+        ofs << root_.turnNumber() << " " << best_move << std::endl;
+#ifdef USE_CATEGORICAL
+        for (int64_t i = 0; i < BIN_SIZE; i++) {
+            ofs << value[i] << std::endl;
+        }
+#else
+        ofs << value << std::endl;
+#endif
+
         root_.doMove(best_move);
     }
     ofs << -1 << std::endl;
