@@ -132,8 +132,9 @@ def main():
     miacis_manager = MiacisManager("scalar" if "sca" in model_names[0] else "categorical")
     miacis_manager.send_option("search_limit", args.search_limit)
     miacis_manager.send_option("byoyomi_margin", 10000000)
-    miacis_manager.send_option("search_batch_size", 1)
-    miacis_manager.send_option("thread_num", 1)
+    miacis_manager.send_option("search_batch_size", 4)
+    miacis_manager.send_option("temperature_x1000", 10)
+    miacis_manager.send_option("thread_num_per_gpu", 1)
     miacis_manager.send_option("random_turn", 30)
 
     for model_name in model_names:
