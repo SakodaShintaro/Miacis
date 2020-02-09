@@ -10,8 +10,6 @@ public:
     bool stop_signal;
     void mateSearch(Position pos, int32_t depth_limit);
 private:
-    bool mateSearchForAttacker(Position& pos, int32_t depth);
-    bool mateSearchForEvader(Position& pos, int32_t depth);
     bool search(Position& pos, int32_t depth);
 
     HashTable& hash_table_;
