@@ -69,12 +69,12 @@ void HashTable::saveUsedHash(Position& pos, Index index) {
 }
 
 void HashTable::deleteOldHash(Position& next_root, bool leave_root) {
-    //まず完全に消去する
+    //次のルート局面に相当するノード以下の部分木だけを残すためにインデックスを取得
+    uint64_t next_root_index = findSameHashIndex(next_root);
+
+    //置換表全体を消去
     used_num_ = 0;
     age_++;
-
-    //次のルート局面に相当するノード以下の部分木だけを残す
-    uint64_t next_root_index = findSameHashIndex(next_root);
 
     if (next_root_index == table_.size()) {
         //そもそも存在しないならここで終了
