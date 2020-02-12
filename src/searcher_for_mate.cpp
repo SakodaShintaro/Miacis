@@ -9,7 +9,7 @@ void SearcherForMate::mateSearch(Position pos, int32_t depth_limit) {
     for (int32_t depth = 1; !stop_signal && depth <= depth_limit; depth += 2) {
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
             pos.doMove(curr_node.moves[i]);
-            bool result = mateSearchForEvader(pos, depth - 1);
+            bool result = search(pos, depth - 1);
             pos.undo();
             if (result) {
                 //この手に書き込み
@@ -37,52 +37,6 @@ void SearcherForMate::mateSearch(Position pos, int32_t depth_limit) {
     }
 }
 
-bool SearcherForMate::mateSearchForAttacker(Position& pos, int32_t depth) {
-    assert(depth % 2 == 1);
-    if (stop_signal) {
-        return false;
-    }
-    //全ての手を試してみる。どれか一つでも勝ちになる行動があるなら勝ち
-    for (const Move& move : pos.generateAllMoves()) {
-        pos.doMove(move);
-        bool result = mateSearchForEvader(pos, depth - 1);
-        pos.undo();
-        if (result) {
-            return true;
-        }
-    }
-    return false;
-}
-
-bool SearcherForMate::mateSearchForEvader(Position& pos, int32_t depth) {
-    assert(depth % 2 == 0);
-    if (stop_signal || pos.canSkipMateSearch()) {
-        return false;
-    }
-
-    //負けかどうか確認
-    float score;
-    if (pos.isFinish(score)) {
-        return (score == MIN_SCORE);
-    }
-
-    if (depth == 0) {
-        return false;
-    }
-
-    //全ての手を試してみる。どれか一つでも負けを逃れる行動があるなら負けではない
-    for (const Move& move : pos.generateAllMoves()) {
-        pos.doMove(move);
-        bool result = mateSearchForAttacker(pos, depth - 1);
-        pos.undo();
-        if (!result) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 bool SearcherForMate::search(Position& pos, int32_t depth) {
     if (stop_signal) {
         return false;
@@ -100,6 +54,11 @@ bool SearcherForMate::search(Position& pos, int32_t depth) {
     float score;
     if (pos.isFinish(score)) {
         return (score == (is_attacker ? MAX_SCORE : MIN_SCORE));
+    }
+
+    //深さが0ならここで終了
+    if (depth == 0) {
+        return false;
     }
 
     //全ての手を試してみる
