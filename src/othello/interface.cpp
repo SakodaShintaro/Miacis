@@ -311,6 +311,9 @@ void Interface::outputValue() {
                 break;
             }
         }
+        if (root_.turnNumber() >= 10) {
+            index = std::max_element(policy.begin(), policy.end()) - policy.begin();
+        }
         Move best_move = moves[index];
 
         ValueType value = y.second[0];
@@ -326,6 +329,8 @@ void Interface::outputValue() {
 
         root_.doMove(best_move);
     }
+    root_.print();
+    std::cout << score << std::endl;
     ofs << -1 << std::endl;
     std::cout << "finish outputValue" << std::endl;
 }
