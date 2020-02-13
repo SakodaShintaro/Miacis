@@ -258,20 +258,16 @@ bool GenerateWorker::shouldStop() {
 
     const HashEntry& root = hash_table_[hash_table_.root_index];
 
-//    //探索回数のチェック
-//    int32_t max1 = 0, max2 = 0;
-//    for (uint64_t i = 0; i < root.moves.size(); i++) {
-//        int32_t num = root.N[i] + root.virtual_N[i];
-//        if (num > max1) {
-//            max2 = max1;
-//            max1 = num;
-//        } else if (num > max2) {
-//            max2 = num;
-//        }
-//    }
-//    int32_t remainder = search_options_.search_limit - (root.sum_N + root.virtual_sum_N);
-//    return max1 - max2 >= remainder;
-
-    int32_t search_num = root.sum_N + root.virtual_sum_N;
-    return search_num >= search_options_.search_limit;
+    //探索回数のチェック
+    int32_t max1 = 0, max2 = 0;
+    for (uint64_t i = 0; i < root.moves.size(); i++) {
+        int32_t num = root.N[i];
+        if (num > max1) {
+            max2 = max1;
+            max1 = num;
+        } else if (num > max2) {
+            max2 = num;
+        }
+    }
+    return max1 - max2 >= search_options_.search_limit - root.sum_N;
 }
