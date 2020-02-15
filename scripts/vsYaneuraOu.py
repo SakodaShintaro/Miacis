@@ -17,10 +17,10 @@ from collections import defaultdict
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--time1", type=int, default=1000)
+parser.add_argument("--time1", type=int, default=500)
 parser.add_argument("--time2", type=int, default=100)
 parser.add_argument("--Threads", type=int, default=1)
-parser.add_argument("--game_num", type=int, default=500)
+parser.add_argument("--game_num", type=int, default=250)
 parser.add_argument("--init_model_step", type=int, default=0)
 args = parser.parse_args()
 
