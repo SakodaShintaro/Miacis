@@ -61,6 +61,7 @@ server.moves_to_draw = 320
 # YaneuraOuの設定
 server.engines[1].set_engine_options({"USI_Ponder": "false",
                                       "Threads": args.Threads,
+                                      "Hash": 1024,
                                       "BookMoves": 0,
                                       "NetworkDelay": 0,
                                       "NetworkDelay2": 0
