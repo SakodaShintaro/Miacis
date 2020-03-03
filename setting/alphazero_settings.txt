@@ -11,13 +11,13 @@ C_PUCT                 2.5
 use_fp16               1
 draw_turn              320
 random_turn            320
-batch_size             128
+batch_size             256
 thread_num_per_gpu     4
 max_step_num           2000000
-learn_rate_decay_step1 1500000
-learn_rate_decay_step2 1750000
+learn_rate_decay_step1 1400000
+learn_rate_decay_step2 2000000
 learn_rate_decay_step3 2000000
-update_interval        4000
+update_interval        1000
 batch_size_per_gen     4
 worker_num_per_thread  32
 max_stack_size         1048576
@@ -26,6 +26,6 @@ data_augmentation      1
 search_limit           800
 search_batch_size      4
 output_interval        100
-save_interval          100000
+save_interval          200000
 validation_interval    100000
 validation_kifu_path   /root/validation_kifu
