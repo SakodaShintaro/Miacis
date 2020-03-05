@@ -134,6 +134,7 @@ def main():
     miacis_manager.send_option("byoyomi_margin", 10000000)
     miacis_manager.send_option("search_batch_size", 4)
     miacis_manager.send_option("temperature_x1000", 50)
+    miacis_manager.send_option("gpu_num", 1)
     miacis_manager.send_option("thread_num_per_gpu", 1)
     miacis_manager.send_option("random_turn", 30)
 
