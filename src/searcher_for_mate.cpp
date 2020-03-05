@@ -4,7 +4,6 @@ SearcherForMate::SearcherForMate(HashTable& hash_table, const SearchOptions& sea
 : stop_signal(false), hash_table_(hash_table), search_options_(search_options) {}
 
 void SearcherForMate::mateSearch(Position pos, int32_t depth_limit) {
-    stop_signal = false;
     HashEntry& curr_node = hash_table_[hash_table_.root_index];
     for (int32_t depth = 1; !stop_signal && depth <= depth_limit; depth += 2) {
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
