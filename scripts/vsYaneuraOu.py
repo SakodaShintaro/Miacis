@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-
 import os
 import sys
 
@@ -14,7 +13,7 @@ import glob
 from natsort import natsorted
 from collections import defaultdict
 import argparse
-from calc_elo_rate import *
+from .calc_elo_rate import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--time1", type=int, default=500)

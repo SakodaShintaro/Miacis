@@ -1,11 +1,11 @@
-#!/usr/bin/env python3
+#! /usr/bin/env python3
 import subprocess
 import os
 import sys
 import glob
 from natsort import natsorted
 import argparse
-from calc_elo_rate import *
+from .calc_elo_rate import *
 
 
 class EdaxManager:
@@ -56,11 +56,12 @@ class EdaxManager:
 class MiacisManager:
     def __init__(self, scalar_or_categorical_str):
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        self.proc = subprocess.Popen([f"{script_dir}/../src/cmake-build-release/Miacis_othello_{scalar_or_categorical_str}"],
-                                     cwd=f"{script_dir}/../src/cmake-build-release",
-                                     encoding="UTF-8",
-                                     stdin=subprocess.PIPE,
-                                     stdout=subprocess.PIPE)
+        self.proc = subprocess.Popen(
+            [f"{script_dir}/../src/cmake-build-release/Miacis_othello_{scalar_or_categorical_str}"],
+            cwd=f"{script_dir}/../src/cmake-build-release",
+            encoding="UTF-8",
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE)
         # 最初はCUDAの利用判定が一行入るので読み飛ばす
         self.proc.stdout.readline()
 
@@ -84,8 +85,6 @@ class MiacisManager:
             if "best_move" in line:
                 line = line.strip().split()
                 return line[1]
-
-
 
 
 def main():
