@@ -17,13 +17,14 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) {
 #ifdef USE_CATEGORICAL
         FloatType P = 0.0;
         ValueType Q_dist = hash_table_.QfromNextValue(node, i);
-        FloatType Q = expOfValueDist(Q_dist);
         for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
             P += Q_dist[j];
         }
-        FloatType ucb = search_options_.Q_coeff_x1000 / 1000.0 * Q
-                        + search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
+        FloatType ucb = search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
                         + search_options_.P_coeff_x1000 / 1000.0 * P;
+        if (search_options_.Q_coeff_x1000 > 0) {
+            ucb += search_options_.Q_coeff_x1000 / 1000.0 * hash_table_.expQfromNext(node, i);
+        }
 #else
         FloatType Q = (node.N[i] == 0 ? MIN_SCORE : hash_table_.QfromNextValue(node, i));
         FloatType ucb = search_options_.Q_coeff_x1000 / 1000.0 * Q
