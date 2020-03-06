@@ -10,11 +10,11 @@ import shogi.Ayane as ayane
 
 # その他必要なものをインポート
 import time
-import math
 import glob
 from natsort import natsorted
 from collections import defaultdict
 import argparse
+from calc_elo_rate import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--time1", type=int, default=500)
@@ -37,17 +37,6 @@ result_converter = { ayane.GameResult.BLACK_WIN: WIN,
                      ayane.GameResult.WHITE_WIN: LOSE,
                      ayane.GameResult.DRAW     : DRAW,
                      ayane.GameResult.MAX_MOVES: DRAW }
-
-
-# 勝率からelo_rateを計算する関数
-def calc_elo_rate(winning_rate):
-    assert 0 <= winning_rate <= 1
-    if winning_rate == 1.0:
-        return 10000.0
-    elif winning_rate == 0.0:
-        return -10000.0
-    else:
-        return 400 * math.log10(winning_rate / (1 - winning_rate))
 
 
 # インスタンス生成
