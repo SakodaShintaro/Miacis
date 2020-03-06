@@ -13,7 +13,7 @@ import glob
 from natsort import natsorted
 from collections import defaultdict
 import argparse
-from .calc_elo_rate import *
+from calc_elo_rate import calc_elo_rate
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--time1", type=int, default=500)
@@ -21,6 +21,8 @@ parser.add_argument("--time2", type=int, default=100)
 parser.add_argument("--Threads", type=int, default=1)
 parser.add_argument("--game_num", type=int, default=250)
 parser.add_argument("--init_model_step", type=int, default=0)
+parser.add_argument("--option", type=str, default=None)
+parser.add_argument("--parameters", type=(lambda x:list(map(int, x.split()))))
 args = parser.parse_args()
 
 # 対局数(先後行うので偶数でなければならない)
@@ -68,60 +70,117 @@ f.write(f"Miacis time = {args.time1}, YaneuraOu time = {args.time2}, YaneuraOu T
 
 # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
 model_names = natsorted(glob.glob(curr_path + "*0.model"))
+assert len(model_names) > 0
 
-for model_name in model_names:
-    # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
-    step = int(model_name[model_name.rfind("_") + 1:model_name.find(".model")])
+if args.option is None:
+    # 各ステップの勝率を計測
+    for model_name in model_names:
+        # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
+        step = int(model_name[model_name.rfind("_") + 1:model_name.find(".model")])
 
-    # args.init_model_stepより小さいものは調べない
-    if step < args.init_model_step:
-        continue
+        # args.init_model_stepより小さいものは調べない
+        if step < args.init_model_step:
+            continue
 
-    # Miacisを準備
-    server.engines[0].set_engine_options({"random_turn": 30,
-                                          "print_interval": 10000000,
-                                          "USI_Hash": 4096,
-                                          "model_name": model_name})
-    scalar_or_categorical = "scalar" if "sca" in model_name else "categorical"
-    server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
+        # Miacisを準備
+        server.engines[0].set_engine_options({"random_turn": 30,
+                                              "print_interval": 10000000,
+                                              "USI_Hash": 4096,
+                                              "model_name": model_name})
+        scalar_or_categorical = "scalar" if "sca" in model_name else "categorical"
+        server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
 
-    # 戦績を初期化
-    total_num = [0, 0, 0]
+        # 戦績を初期化
+        total_num = [0, 0, 0]
 
-    # 棋譜の集合を初期化
-    sfens = defaultdict(int)
+        # 棋譜の集合を初期化
+        sfens = defaultdict(int)
 
-    # iが偶数のときMiacis先手
-    for i in range(args.game_num):
-        # 対局を実行
-        server.game_start()
-        while not server.game_result.is_gameover():
-            time.sleep(1)
+        # iが偶数のときMiacis先手
+        for i in range(args.game_num):
+            # 対局を実行
+            server.game_start()
+            while not server.game_result.is_gameover():
+                time.sleep(1)
 
-        # 重複を確認
-        if sfens[server.sfen] > 0:
-            # 同じ棋譜が2回生成された場合は記録しない
-            print(f"\n重複:", server.sfen)
-        else:
-            # 結果を記録
-            result = result_converter[server.game_result]
-            total_num[result if not server.flip_turn else LOSE - result] += 1
+            # 重複を確認
+            if sfens[server.sfen] > 0:
+                # 同じ棋譜が2回生成された場合は記録しない
+                print(f"\n重複:", server.sfen)
+            else:
+                # 結果を記録
+                result = result_converter[server.game_result]
+                total_num[result if not server.flip_turn else LOSE - result] += 1
 
-        sfens[server.sfen] += 1
+            sfens[server.sfen] += 1
 
-        # ここまでの結果を文字列化
-        winning_rate = (total_num[WIN] + 0.5 * total_num[DRAW]) / sum(total_num)
-        elo_rate = calc_elo_rate(winning_rate)
-        result_str = f"{step:7d}ステップ {total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
+            # ここまでの結果を文字列化
+            winning_rate = (total_num[WIN] + 0.5 * total_num[DRAW]) / sum(total_num)
+            elo_rate = calc_elo_rate(winning_rate)
+            result_str = f"{step:7d}ステップ {total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
 
-        sys.stdout.write("\033[2K\033[G")
-        print(result_str, end="\n" if i == args.game_num - 1 else "")
-        sys.stdout.flush()
+            sys.stdout.write("\033[2K\033[G")
+            print(result_str, end="\n" if i == args.game_num - 1 else "")
+            sys.stdout.flush()
 
-        # 手番反転
-        server.flip_turn = not server.flip_turn
+            # 手番反転
+            server.flip_turn = not server.flip_turn
 
-    # ファイルに書き込み
-    f.write(result_str + "\n")
-    f.flush()
+        # ファイルに書き込み
+        f.write(result_str + "\n")
+        f.flush()
+else:
+    # パラメータを探索
+    for parameter in args.parameters:
+        # Miacisを準備
+        server.engines[0].set_engine_options({"random_turn": 30,
+                                              "print_interval": 10000000,
+                                              "USI_Hash": 4096,
+                                              args.option: parameter,
+                                              "model_name": model_names[-1]})
+        scalar_or_categorical = "scalar" if "sca" in model_names[-1] else "categorical"
+        server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
+
+        # 戦績を初期化
+        total_num = [0, 0, 0]
+
+        # 棋譜の集合を初期化
+        sfens = defaultdict(int)
+
+        # iが偶数のときMiacis先手
+        for i in range(args.game_num):
+            # 対局を実行
+            server.game_start()
+            while not server.game_result.is_gameover():
+                time.sleep(1)
+
+            # 重複を確認
+            if sfens[server.sfen] > 0:
+                # 同じ棋譜が2回生成された場合は記録しない
+                print(f"\n重複:", server.sfen)
+            else:
+                # 結果を記録
+                result = result_converter[server.game_result]
+                total_num[result if not server.flip_turn else LOSE - result] += 1
+
+            sfens[server.sfen] += 1
+
+            # ここまでの結果を文字列化
+            winning_rate = (total_num[WIN] + 0.5 * total_num[DRAW]) / sum(total_num)
+            elo_rate = calc_elo_rate(winning_rate)
+            result_str = f"{args.option}={parameter:7d} {total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
+
+            sys.stdout.write("\033[2K\033[G")
+            print(result_str, end="\n" if i == args.game_num - 1 else "")
+            sys.stdout.flush()
+
+            # 手番反転
+            server.flip_turn = not server.flip_turn
+
+        # ファイルに書き込み
+        f.write(result_str + "\n")
+        f.flush()
+
+
+
 server.terminate()

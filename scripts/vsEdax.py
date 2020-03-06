@@ -5,7 +5,7 @@ import sys
 import glob
 from natsort import natsorted
 import argparse
-from .calc_elo_rate import *
+from calc_elo_rate import calc_elo_rate
 
 
 class EdaxManager:
