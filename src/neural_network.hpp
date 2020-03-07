@@ -82,6 +82,17 @@ private:
 };
 TORCH_MODULE(NeuralNetwork);
 
+inline void reverseValue(ValueType& value) {
+#ifdef USE_CATEGORICAL
+    ValueType copied = value;
+    for (int64_t i = 0; i < BIN_SIZE; i++) {
+        value[i] = 1.0f - (i == BIN_SIZE - 1 ? 0 : copied[BIN_SIZE - 2 - i]);
+    }
+#else
+    value = MAX_SCORE + MIN_SCORE - value;
+#endif
+}
+
 //Categorical分布に対する操作
 #ifdef USE_CATEGORICAL
 inline int32_t valueToIndex(double value) {
@@ -91,7 +102,9 @@ inline int32_t valueToIndex(double value) {
 inline ValueType onehotDist(double value) {
     //valueForBlackのところだけ1.0, 他は0.0とした分布を返す
     ValueType result{};
-    result[valueToIndex(value)] = 1.0;
+    for (int64_t i = valueToIndex(value); i < BIN_SIZE; i++) {
+        result[i] = 1.0;
+    }
     return result;
 }
 
@@ -99,7 +112,7 @@ inline float expOfValueDist(ValueType dist) {
     float exp = 0.0;
     for (int32_t i = 0; i < BIN_SIZE; i++) {
         //i番目の要素が示す値はMIN_SCORE + (i + 0.5) * VALUE_WIDTH
-        exp += (MIN_SCORE + (i + 0.5) * VALUE_WIDTH) * dist[i];
+        exp += (MIN_SCORE + (i + 0.5) * VALUE_WIDTH) * (dist[i] - (i == 0 ? 0 :dist[i - 1]));
     }
     return exp;
 }

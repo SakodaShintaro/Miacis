@@ -15,11 +15,8 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) {
         assert(U >= 0.0);
 
 #ifdef USE_CATEGORICAL
-        FloatType P = 0.0;
         ValueType Q_dist = hash_table_.QfromNextValue(node, i);
-        for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-            P += Q_dist[j];
-        }
+        FloatType P = 1.0 - Q_dist[valueToIndex(best_value)];
         FloatType ucb = search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
                         + search_options_.P_coeff_x1000 / 1000.0 * P;
         if (search_options_.Q_coeff_x1000 > 0) {
@@ -234,11 +231,8 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         actions.pop();
 
         //手番が変わるので反転
-#ifdef USE_CATEGORICAL
-        std::reverse(value.begin(), value.end());
-#else
-        value = MAX_SCORE + MIN_SCORE - value;
-#endif
+        reverseValue(value);
+
         // 探索結果の反映
         hash_table_[index].mutex.lock();
 
@@ -257,6 +251,11 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         FloatType alpha = 1.0f / (node.sum_N + 1);
         node.value += alpha * (value - curr_v);
         value = lambda * value + (1.0f - lambda) * curr_v;
+
+//        std::cout << std::fixed << std::endl;
+//        for (int64_t j = 0; j < BIN_SIZE / 3; j++) {
+//            std::cout << curr_v[j] << " + " << value[j] << " = " << node.value[j] << std::endl;
+//        }
 
         //最大バックアップ
 //#ifdef USE_CATEGORICAL

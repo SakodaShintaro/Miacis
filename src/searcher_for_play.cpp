@@ -247,11 +247,9 @@ void SearcherForPlay::printUSIInfo() const {
 #ifdef USE_CATEGORICAL
     //分布の表示
     constexpr int64_t gather_num = 3;
+    ValueType cumulative_dist = hash_table_.QfromNextValue(curr_node, best_index);
     for (int64_t i = 0; i < BIN_SIZE / gather_num; i++) {
-        double p = 0.0;
-        for (int64_t j = 0; j < gather_num; j++) {
-            p += hash_table_.QfromNextValue(curr_node, best_index)[i * gather_num + j];
-        }
+        FloatType p = cumulative_dist[(i + 1) * gather_num - 1] - (i == 0 ? 0 : cumulative_dist[i * gather_num - 1]);
         printf("info string [%+6.2f:%06.2f%%]:", MIN_SCORE + VALUE_WIDTH * (gather_num * i + 1.5), p * 100);
         for (int64_t j = 0; j < p * 50; j++) {
             printf("*");

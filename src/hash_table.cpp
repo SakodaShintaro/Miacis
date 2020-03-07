@@ -99,7 +99,7 @@ ValueType HashTable::QfromNextValue(const HashEntry& node, int32_t i) const {
         return (node.N[i] == 0 ? onehotDist(MIN_SCORE) : onehotDist(MAX_SCORE));
     }
     ValueType v = table_[node.child_indices[i]].value;
-    std::reverse(v.begin(), v.end());
+    reverseValue(v);
     return v;
 #else
     if (node.child_indices[i] == HashTable::NOT_EXPANDED) {

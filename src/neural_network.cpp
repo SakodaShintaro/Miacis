@@ -130,11 +130,17 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
         torch::Half* value_p = value.data<torch::Half>();
         for (uint64_t i = 0; i < batch_size; i++) {
             std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
+            for (int64_t j = 1; j < BIN_SIZE; j++) {
+                values[i][j] += values[i][j - 1];
+            }
         }
     } else {
         float* value_p = value.data<float>();
         for (uint64_t i = 0; i < batch_size; i++) {
             std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
+            for (int64_t j = 1; j < BIN_SIZE; j++) {
+                values[i][j] += values[i][j - 1];
+            }
         }
     }
 #else
