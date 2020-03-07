@@ -41,6 +41,7 @@ private:
 
     //GPUは複数
     std::vector<NeuralNetwork> neural_networks_;
+    std::vector<std::mutex> gpu_mutexes_;
 
     //1つのGPUに対してgpu_queue,searcherを複数
     std::vector<std::vector<GPUQueue>> gpu_queues_;

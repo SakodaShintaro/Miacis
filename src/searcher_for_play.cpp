@@ -11,6 +11,9 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
         neural_networks_[i]->eval();
     }
 
+    //GPUに対するmutexを準備
+    gpu_mutexes_ = std::vector<std::mutex>(search_options.gpu_num);
+
     //gpu_queueとsearchersを準備
     gpu_queues_.resize(search_options.gpu_num);
     searchers_.resize(search_options.gpu_num);
@@ -203,7 +206,9 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
         //評価要求をGPUで計算
         if (!gpu_queue.inputs.empty()) {
             torch::NoGradGuard no_grad_guard;
+            gpu_mutexes_[gpu_id].lock();
             std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = neural_networks_[gpu_id]->policyAndValueBatch(gpu_queue.inputs);
+            gpu_mutexes_[gpu_id].unlock();
 
             //書き込み
             for (uint64_t i = 0; i < gpu_queue.indices.size(); i++) {
