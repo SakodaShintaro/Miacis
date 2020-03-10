@@ -32,6 +32,9 @@ void alphaZero() {
     settings.add("output_interval",        1, (int64_t)1e10);
     settings.add("save_interval",          1, (int64_t)1e10);
     settings.add("validation_interval",    1, (int64_t)1e10);
+    settings.add("sleep_msec",            -1, (int64_t)1e10);
+    settings.add("init_buffer_by_kifu",    0, (int64_t)1);
+    settings.add("training_kifu_path");
     settings.add("validation_kifu_path");
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
@@ -70,6 +73,9 @@ void alphaZero() {
     int64_t output_interval           = settings.get<int64_t>("output_interval");
     int64_t save_interval             = settings.get<int64_t>("save_interval");
     int64_t validation_interval       = settings.get<int64_t>("validation_interval");
+    int64_t sleep_msec                = settings.get<int64_t>("sleep_msec");
+    int64_t init_buffer_by_kifu       = settings.get<int64_t>("init_buffer_by_kifu");
+    std::string training_kifu_path    = settings.get<std::string>("training_kifu_path");
     std::string validation_kifu_path  = settings.get<std::string>("validation_kifu_path");
 
     std::array<float, LOSS_TYPE_NUM> coefficients{};
@@ -80,11 +86,12 @@ void alphaZero() {
     //値同士の制約関係を確認
     assert(save_interval % update_interval == 0);
 
-    //学習スレッドをスリープさせる時間は生成速度から自動計算するので不適な値で初期化
-    int64_t sleep_msec = -1;
-
     //リプレイバッファの生成
     ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, alpha, data_augmentation);
+
+    if (init_buffer_by_kifu) {
+        replay_buffer.fillByKifu(training_kifu_path);
+    }
 
     //ログファイルの設定
     std::ofstream learn_log("alphazero_log.txt");
@@ -139,7 +146,9 @@ void alphaZero() {
         //1回目はmakeBatch内で十分棋譜が貯まるまで待ち時間が発生する.その生成速度を計算
         if (step_num == 1) {
             double gen_speed = first_wait / (elapsedHours(start_time) * 3600);
-            sleep_msec = (int64_t)(batch_size * 1000 / (batch_size_per_gen * gen_speed));
+            if (sleep_msec == -1) {
+                sleep_msec = (int64_t) (batch_size * 1000 / (batch_size_per_gen * gen_speed));
+            }
             std::ofstream ofs("gen_speed.txt");
             dout(std::cout, ofs) << "gen_speed = " << gen_speed << " pos / sec, sleep_msec = " << sleep_msec << std::endl;
         }
