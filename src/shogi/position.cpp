@@ -467,7 +467,7 @@ bool Position::canDropPawn(const Square to) const {
     return !(FILE_BB[SquareToFile[to]] & pieces_bb_[color_ == BLACK ? toBlack(PAWN) : toWhite(PAWN)]);
 }
 
-void Position::fromStr(std::string sfen) {
+void Position::fromStr(const std::string& sfen) {
     //初期化
     for (Piece& p : board_) p = WALL;
     for (Square sq : SquareList) board_[sq] = EMPTY;

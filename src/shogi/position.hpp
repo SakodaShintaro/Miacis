@@ -43,7 +43,7 @@ public:
     std::vector<Move> generateAllMoves();
 
     //sfenの入出力
-    void fromStr(std::string sfen);
+    void fromStr(const std::string& sfen);
     std::string toStr() const;
 
     //ハッシュ
