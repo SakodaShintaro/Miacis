@@ -76,7 +76,7 @@ private:
     Bitboard attackersTo(Color c, Square sq, const Bitboard& occupied) const;
     inline bool isThereControl(const Color c, const Square sq) const { return (bool)attackersTo(c, sq); }
     inline bool isLastMoveCheck();
-    void computePinners();
+    Bitboard computePinners() const;
 
     //ハッシュ値の初期化
     void initHashValue();
@@ -130,10 +130,8 @@ private:
         Hand hand[ColorNum];
         bool is_checked;
 
-        Bitboard pinners;
-
         StateInfo(Position& pos) :
-            board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), is_checked(pos.is_checked_), pinners(pos.pinners_) {
+            board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), is_checked(pos.is_checked_) {
             hand[BLACK] = pos.hand_[BLACK];
             hand[WHITE] = pos.hand_[WHITE];
         }
@@ -144,7 +142,6 @@ private:
     Bitboard occupied_all_;
     Bitboard occupied_bb_[ColorNum];
     Bitboard pieces_bb_[PieceNum];
-    Bitboard pinners_;
 };
 
 #endif
