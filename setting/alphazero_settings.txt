@@ -20,8 +20,8 @@ learn_rate_decay_step3 2000000
 update_interval        1000
 batch_size_per_gen     4
 worker_num_per_thread  32
-max_stack_size         104857
-first_wait             104857
+max_stack_size         1048576
+first_wait             1048576
 data_augmentation      1
 search_limit           800
 search_batch_size      4
