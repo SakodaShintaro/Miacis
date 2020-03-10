@@ -137,3 +137,25 @@ void ReplayBuffer::update(const std::vector<float>& loss) {
 
     mutex_.unlock();
 }
+
+void ReplayBuffer::fillByKifu(const std::string& file_path) {
+    std::vector<LearningData> data = loadData(file_path, data_augmentation_);
+    std::cout << "data.size() = " << data.size() << ", max_size_ = " << max_size_ << std::endl;
+    for (int64_t i = 0; i < std::min(max_size_, (int64_t)data.size()); i++) {
+        //このデータを入れる位置を取得
+        int64_t change_index = segment_tree_.getIndexToPush();
+
+        //そこのデータを入れ替える
+        data_[change_index] = data[i];
+
+        //segment_treeのpriorityを更新
+        segment_tree_.update(change_index, 3.0f);
+
+        //データを加えた数をカウント
+        //拡張したデータは一つとして数えた方が良いかもしれない？
+        total_num_++;
+        if (first_wait_ > 0) {
+            first_wait_--;
+        }
+    }
+}

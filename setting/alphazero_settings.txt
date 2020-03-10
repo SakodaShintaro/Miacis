@@ -14,7 +14,7 @@ random_turn            320
 batch_size             256
 thread_num_per_gpu     4
 max_step_num           2000000
-learn_rate_decay_step1 1400000
+learn_rate_decay_step1 1600000
 learn_rate_decay_step2 2000000
 learn_rate_decay_step3 2000000
 update_interval        1000
@@ -28,4 +28,7 @@ search_batch_size      4
 output_interval        100
 save_interval          200000
 validation_interval    100000
+sleep_msec             -1
+init_buffer_by_kifu    0
+training_kifu_path     /root/training_kifu
 validation_kifu_path   /root/validation_kifu
