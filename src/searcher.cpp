@@ -4,7 +4,8 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #ifdef USE_CATEGORICAL
     int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
     FloatType best_value = expOfValueDist(hash_table_.QfromNextValue(node, best_index));
-    int32_t reversed_best_value_index = std::max(BIN_SIZE - 1 - valueToIndex(best_value), 1);
+    int32_t best_value_index = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1);
+    int32_t reversed_best_value_index = BIN_SIZE - best_value_index;
 #endif
 
     int32_t max_index = -1;
@@ -18,7 +19,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #ifdef USE_CATEGORICAL
         FloatType P = 0.0;
         if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
-            P = (reversed_best_value_index == BIN_SIZE - 1 ? 1 : 0);
+            P = (node.N[i] == 0 ? 0 : 1);
         } else {
             hash_table_[node.child_indices[i]].mutex.lock();
             for (int32_t j = 0; j < reversed_best_value_index; j++) {
