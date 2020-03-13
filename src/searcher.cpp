@@ -13,8 +13,6 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
     for (uint64_t i = 0; i < node.moves.size(); i++) {
-        hash_table_[node.child_indices[i]].mutex.lock();
-
         FloatType U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
         assert(U >= 0.0);
 
@@ -23,11 +21,11 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
         if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
             P = (node.N[i] == 0 ? 0 : 1);
         } else {
+            std::unique_lock lock(hash_table_[node.child_indices[i]].mutex);
             for (int32_t j = 0; j < reversed_best_value_index; j++) {
                 P += hash_table_[node.child_indices[i]].value[j];
             }
         }
-        hash_table_[node.child_indices[i]].mutex.unlock();
         FloatType ucb = search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
                         + search_options_.P_coeff_x1000 / 1000.0 * P;
         if (search_options_.Q_coeff_x1000 > 0) {
