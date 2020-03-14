@@ -23,11 +23,21 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
             searchers_[i].emplace_back(search_options, hash_table_, gpu_queues_[i][j]);
         }
     }
+
+#ifdef SHOGI
+    book_.open(search_options.book_file_name);
+#endif
 }
 
 Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
+
+#ifdef SHOGI
+    if (search_options_.use_book && book_.hasEntry(root)) {
+        return book_.pickOne(root, 1.0);
+    }
+#endif
 
     //制限の設定
     time_limit_ = time_limit;

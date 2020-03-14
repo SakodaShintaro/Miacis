@@ -25,8 +25,8 @@ void YaneBook::open(const std::string& file_name) {
             }
 
             YaneBookEntry entry;
-            entry.move = vec[0];
-            entry.counter_move = vec[1];
+            entry.move = stringToMove(vec[0]);
+            entry.counter_move = stringToMove(vec[1]);
             entry.score = std::stoll(vec[2]);
             entry.depth = std::stoll(vec[3]);
             entry.selected_num = std::stoll(vec[4]);
@@ -35,7 +35,7 @@ void YaneBook::open(const std::string& file_name) {
     }
 }
 
-std::string YaneBook::pickOne(const Position& pos, float temperature) {
+Move YaneBook::pickOne(const Position& pos, float temperature) {
     std::string pos_str = pos.toStr();
     pos_str = pos_str.substr(0, pos_str.rfind(' '));
 
@@ -44,7 +44,7 @@ std::string YaneBook::pickOne(const Position& pos, float temperature) {
         best_score = std::max(best_score, entry.score);
     }
 
-    std::vector<std::string> best_score_moves;
+    std::vector<Move> best_score_moves;
     for (const YaneBookEntry& entry : book_[pos_str]) {
         best_score = std::max(best_score, entry.score);
         if (entry.score == best_score) {
@@ -52,7 +52,7 @@ std::string YaneBook::pickOne(const Position& pos, float temperature) {
         }
     }
 
-    std::mt19937_64 engine(0);
+    std::mt19937_64 engine(std::random_device{}());
     std::uniform_int_distribution<int64_t> dist(0, best_score_moves.size() - 1);
     return best_score_moves[dist(engine)];
 }
@@ -60,5 +60,6 @@ std::string YaneBook::pickOne(const Position& pos, float temperature) {
 bool YaneBook::hasEntry(const Position& pos) {
     std::string pos_str = pos.toStr();
     pos_str = pos_str.substr(0, pos_str.rfind(' '));
+    std::cout << "pos_str = " << pos_str << std::endl;
     return !book_[pos_str].empty();
 }

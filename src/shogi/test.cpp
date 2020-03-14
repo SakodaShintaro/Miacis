@@ -313,17 +313,14 @@ void checkBook() {
     while (!pos.isFinish(score)) {
         pos.print();
         if (book.hasEntry(pos)) {
-            std::cout << book.pickOne(pos, 1) << std::endl;
+            Move best_move = book.pickOne(pos, 1);
+            std::cout << best_move << std::endl;
+            pos.doMove(pos.transformValidMove(best_move));
         } else {
             std::cout << "定跡なし" << std::endl;
             std::cout << pos.toStr() << std::endl;
             break;
         }
-
-        std::vector<Move> moves = pos.generateAllMoves();
-        std::mt19937_64 engine(0);
-        std::uniform_int_distribution<int64_t> dist(0, moves.size() - 1);
-        pos.doMove(moves[dist(engine)]);
     }
     std::cout << "finish checkBook" << std::endl;
 }

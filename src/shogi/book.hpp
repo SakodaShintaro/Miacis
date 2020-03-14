@@ -4,8 +4,8 @@
 #include "position.hpp"
 
 struct YaneBookEntry {
-    std::string move;
-    std::string counter_move;
+    Move move;
+    Move counter_move;
     int64_t score;
     int64_t depth;
     int64_t selected_num;
@@ -15,7 +15,7 @@ class YaneBook {
 public:
     void open(const std::string& file_name);
     bool hasEntry(const Position& pos);
-    std::string pickOne(const Position& pos, float temperature);
+    Move pickOne(const Position& pos, float temperature);
 private:
     std::unordered_map<std::string, std::vector<YaneBookEntry>> book_;
 };

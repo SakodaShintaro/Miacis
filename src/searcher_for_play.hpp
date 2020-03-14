@@ -7,6 +7,10 @@
 #include<stack>
 #include<mutex>
 
+#ifdef SHOGI
+#include"shogi/book.hpp"
+#endif
+
 class SearcherForPlay {
 public:
     explicit SearcherForPlay(const SearchOptions& search_options);
@@ -59,6 +63,11 @@ private:
 
     //詰み探索エージェント
     SearcherForMate mate_searcher_;
+
+#ifdef SHOGI
+    //定跡
+    YaneBook book_;
+#endif
 };
 
 #endif //MIACIS_SEARCHER_FOR_PLAY_HPP
