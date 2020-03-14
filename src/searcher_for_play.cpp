@@ -34,7 +34,8 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     start_ = std::chrono::steady_clock::now();
 
 #ifdef SHOGI
-    if (search_options_.use_book && book_.hasEntry(root)) {
+    float score;
+    if (!root.isRepeating(score) && search_options_.use_book && book_.hasEntry(root)) {
         return book_.pickOne(root, 1.0);
     }
 #endif
