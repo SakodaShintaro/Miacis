@@ -60,6 +60,5 @@ Move YaneBook::pickOne(const Position& pos, float temperature) {
 bool YaneBook::hasEntry(const Position& pos) {
     std::string pos_str = pos.toStr();
     pos_str = pos_str.substr(0, pos_str.rfind(' '));
-    std::cout << "pos_str = " << pos_str << std::endl;
     return !book_[pos_str].empty();
 }
