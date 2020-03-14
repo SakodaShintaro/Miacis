@@ -2,6 +2,7 @@
 #include"../game_generator.hpp"
 #include"../searcher_for_play.hpp"
 #include"../learn.hpp"
+#include"book.hpp"
 
 void test() {
     SearchOptions search_options;
@@ -302,4 +303,27 @@ void checkMirror() {
         }
         std::cout << i << std::endl;
     }
+}
+
+void checkBook() {
+    YaneBook book;
+    book.open("./standard_book.db");
+    Position pos;
+    float score;
+    while (!pos.isFinish(score)) {
+        pos.print();
+        if (book.hasEntry(pos)) {
+            std::cout << book.pickOne(pos, 1) << std::endl;
+        } else {
+            std::cout << "定跡なし" << std::endl;
+            std::cout << pos.toStr() << std::endl;
+            break;
+        }
+
+        std::vector<Move> moves = pos.generateAllMoves();
+        std::mt19937_64 engine(0);
+        std::uniform_int_distribution<int64_t> dist(0, moves.size() - 1);
+        pos.doMove(moves[dist(engine)]);
+    }
+    std::cout << "finish checkBook" << std::endl;
 }

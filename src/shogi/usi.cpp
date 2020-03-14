@@ -29,6 +29,7 @@ USI::USI() : searcher_(nullptr) {
     command_["checkVal"]           = checkVal;
     command_["checkDoAndUndo"]     = checkDoAndUndo;
     command_["checkMirror"]        = checkMirror;
+    command_["checkBook"]          = checkBook;
 }
 
 void USI::loop() {
