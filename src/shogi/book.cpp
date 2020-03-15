@@ -201,7 +201,15 @@ bool Book::hasEntry(const Position& pos) {
 }
 
 Move Book::pickOne(const Position& pos, float temperature) {
-    return Move();
+    temperature = std::max(temperature, 0.00001f);
+    const BookEntry& entry = book_[removeTurnNumber(pos.toStr())];
+    std::vector<float> softmaxed = softmax(entry.values, temperature);
+
+    std::cout << std::fixed;
+    for (int64_t i = 0; i < entry.moves.size(); i++) {
+        std::cout << entry.moves[i] << " " << softmaxed[i] << std::endl;
+    }
+    return entry.moves[randomChoose(softmaxed)];
 }
 
 std::string Book::removeTurnNumber(const std::string& sfen) {
