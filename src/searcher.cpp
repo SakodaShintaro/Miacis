@@ -7,7 +7,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) {
 #endif
 
     int32_t max_index = -1;
-    FloatType max_value = MIN_SCORE - 1;
+    FloatType max_value = INT_MIN;
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
     for (uint64_t i = 0; i < node.moves.size(); i++) {
@@ -19,6 +19,9 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) {
         ValueType Q_dist = hash_table_.QfromNextValue(node, i);
         for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
             P += Q_dist[j];
+        }
+        if (P < -1) {
+            std::cout << P << std::endl;
         }
         FloatType ucb = search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
                         + search_options_.P_coeff_x1000 / 1000.0 * P;
@@ -208,6 +211,15 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
         //バックアップ要求も追加
         backup_queue_.indices.push_back(indices);
         backup_queue_.actions.push_back(actions);
+
+        //選ばれないようにするためvalueの初期値を小さくする
+#ifdef USE_CATEGORICAL
+        for (int64_t i = 0; i < BIN_SIZE; i++) {
+            curr_node.value[i] = -10;
+        }
+#else
+        curr_node.value = -10;
+#endif
     }
 
     return index;
