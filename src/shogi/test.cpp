@@ -324,3 +324,19 @@ void checkBook() {
     }
     std::cout << "finish checkBook" << std::endl;
 }
+
+void makeBook() {
+    int64_t search_num, think_sec;
+    std::cout << "定跡に追加するノード数: ";
+    std::cin >> search_num;
+    std::cout << "一局面の思考時間(秒): ";
+    std::cin >> think_sec;
+
+    Book book;
+    book.open("book.txt");
+    for (int64_t _ = 0; _ < search_num; _++) {
+        book.updateOne(think_sec);
+        book.write("book.txt");
+    }
+    std::cout << "finish makeBook" << std::endl;
+}

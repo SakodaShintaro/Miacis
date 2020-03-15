@@ -18,6 +18,8 @@ public:
     //探索を行って一番良い指し手を返す関数
     Move think(Position& root, int64_t time_limit);
 
+    const HashTable& hashTable() { return hash_table_; }
+
     //探索の終了判定。外部から探索を止めたい場合にはこれをtrueにする
     bool stop_signal;
 
@@ -66,7 +68,7 @@ private:
 
 #ifdef SHOGI
     //定跡
-    YaneBook book_;
+    Book book_;
 #endif
 };
 

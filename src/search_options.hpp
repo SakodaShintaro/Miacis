@@ -53,7 +53,7 @@ public:
         spin_options.emplace("UCT_lambda_x1000",   SpinOption(UCT_lambda_x1000   = 1000, 0, 1000));
         spin_options.emplace("print_policy_num",   SpinOption(print_policy_num   =    0, 0,  593));
         filename_options.emplace("model_name",     FilenameOption(model_name = NeuralNetworkImpl::DEFAULT_MODEL_NAME));
-        filename_options.emplace("book_file_name", FilenameOption(book_file_name = "standard_book.db"));
+        filename_options.emplace("book_file_name", FilenameOption(book_file_name = "book.txt"));
     }
     bool USI_Ponder;
     bool leave_root;
