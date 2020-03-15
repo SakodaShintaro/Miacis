@@ -10,5 +10,7 @@ void checkVal();
 void checkSegmentTree();
 void checkDoAndUndo();
 void checkMirror();
+void checkBook();
+void makeBook();
 
 #endif // !TEST_HPP

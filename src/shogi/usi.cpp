@@ -29,6 +29,8 @@ USI::USI() : searcher_(nullptr) {
     command_["checkVal"]           = checkVal;
     command_["checkDoAndUndo"]     = checkDoAndUndo;
     command_["checkMirror"]        = checkMirror;
+    command_["checkBook"]          = checkBook;
+    command_["makeBook"]           = makeBook;
 }
 
 void USI::loop() {
@@ -193,6 +195,7 @@ void USI::go() {
         Move best_move = (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - search_options_.byoyomi_margin));
         std::cout << "bestmove " << best_move << std::endl;
         if (search_options_.USI_Ponder) {
+            root_.doMove(best_move);
             searcher_->think(root_, LLONG_MAX);
         }
     });

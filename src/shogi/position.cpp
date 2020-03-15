@@ -93,9 +93,6 @@ void Position::init() {
     }
     occupied_all_ = occupied_bb_[BLACK] | occupied_bb_[WHITE];
 
-    //pinners
-    computePinners();
-
     is_checked_ = false;
 
     //合法手生成のフラグを降ろす
@@ -225,9 +222,6 @@ void Position::doMove(const Move move) {
     //手番の更新
     color_ = ~color_;
 
-    //pinners
-    computePinners();
-
     //手数の更新
     turn_number_++;
 
@@ -338,7 +332,6 @@ void Position::undo() {
     turn_number_--;
 
     //計算が面倒なものはコピーで戻してみる
-    pinners_ = stack_.back().pinners;
     is_checked_ = stack_.back().is_checked;
 
     //Stack更新
@@ -451,7 +444,8 @@ bool Position::isLegalMove(const Move move) const {
 
     //ピンのチェック
     bool flag = true;
-    pinners_.forEach([&](const Square pinner_sq) {
+    Bitboard pinners = computePinners();
+    pinners.forEach([&](const Square pinner_sq) {
         if ((BETWEEN_BB[pinner_sq][king_sq_[color_]] & SQUARE_BB[move.from()]) //fromがbetween,すなわちピンされている
             && !((BETWEEN_BB[pinner_sq][king_sq_[color_]] | SQUARE_BB[pinner_sq]) & SQUARE_BB[move.to()]) //toがbetween内及びpinner_sq以外
             ) {
@@ -467,7 +461,7 @@ bool Position::canDropPawn(const Square to) const {
     return !(FILE_BB[SquareToFile[to]] & pieces_bb_[color_ == BLACK ? toBlack(PAWN) : toWhite(PAWN)]);
 }
 
-void Position::fromStr(std::string sfen) {
+void Position::fromStr(const std::string& sfen) {
     //初期化
     for (Piece& p : board_) p = WALL;
     for (Square sq : SquareList) board_[sq] = EMPTY;
@@ -695,7 +689,9 @@ void Position::generateEvasionMoves(std::vector<Move>& move_buf) const {
     //ピンされた駒を先に動かす
     Bitboard pinned_piece(0, 0);
 
-    pinners_.forEach([&](const Square pinner_sq) {
+    Bitboard pinners = computePinners();
+
+    pinners.forEach([&](const Square pinner_sq) {
         //pinnerと自玉の間にあるのがpinされている駒
         Bitboard pinned = BETWEEN_BB[pinner_sq][king_sq_[color_]] & occupied_bb_[color_];
 
@@ -743,8 +739,9 @@ void Position::generateNormalMoves(std::vector<Move>& move_buf) const {
 
     //ピンされた駒を先に動かす
     Bitboard pinned_piece(0, 0);
+    Bitboard pinners = computePinners();
 
-    pinners_.forEach([&](const Square pinner_sq) {
+    pinners.forEach([&](const Square pinner_sq) {
         //pinnerと自玉の間にあるのがpinされている駒
         Bitboard pinned = BETWEEN_BB[pinner_sq][k_sq] & occupied_bb_[color_];
 
@@ -930,9 +927,9 @@ Bitboard Position::attackersTo(const Color c, const Square sq, const Bitboard & 
     return result;
 }
 
-void Position::computePinners() {
+Bitboard Position::computePinners() const {
     //pinners
-    pinners_ = Bitboard(0, 0);
+    Bitboard pinners(0, 0);
     //香・角(馬)・飛車(竜)に対してピンのチェック
     for (Piece jumper : ColoredJumpPieceList[~color_]) {
         //自玉からこっちの香・角・飛として利きを駒を最大まで伸ばして
@@ -945,10 +942,11 @@ void Position::computePinners() {
             Bitboard between = BETWEEN_BB[king_sq_[color_]][jump_piece_sq] & occupied_all_;
             if (between.pop_count() == 1 && (between & occupied_bb_[color_])) { //betweenに駒が1個だけかつ駒が手番側のものだったらピンされている
                                                                                 //ピンしている駒を記録しておけばピンされた駒は自玉との間でbetween見れば復元できる
-                pinners_ |= SQUARE_BB[jump_piece_sq];
+                pinners |= SQUARE_BB[jump_piece_sq];
             }
         });
     }
+    return pinners;
 }
 
 std::vector<Move> Position::generateAllMoves() {

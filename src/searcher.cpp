@@ -7,7 +7,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) {
 #endif
 
     int32_t max_index = -1;
-    FloatType max_value = MIN_SCORE - 1;
+    FloatType max_value = INT_MIN;
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
     for (uint64_t i = 0; i < node.moves.size(); i++) {
@@ -205,6 +205,16 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
         //バックアップ要求も追加
         backup_queue_.indices.push_back(indices);
         backup_queue_.actions.push_back(actions);
+
+        //選ばれないようにするためvalueの初期値を小さくする
+#ifdef USE_CATEGORICAL
+        curr_node.value[0] = -10;
+        for (int64_t i = 1; i < BIN_SIZE; i++) {
+            curr_node.value[i] = curr_node.value[i - 1] - 10;
+        }
+#else
+        curr_node.value = -10;
+#endif
     }
 
     return index;
