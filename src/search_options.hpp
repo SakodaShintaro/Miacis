@@ -40,7 +40,7 @@ public:
         spin_options.emplace("print_interval",         SpinOption(print_interval           =  500, 1,  MAX));
         spin_options.emplace("gpu_num",                SpinOption(gpu_num                  =  gpu, 1,  gpu));
         spin_options.emplace("thread_num_per_gpu",     SpinOption(thread_num_per_gpu       =    2, 1,  MAX));
-        spin_options.emplace("search_batch_size",      SpinOption(search_batch_size        =   32, 1,  MAX));
+        spin_options.emplace("search_batch_size",      SpinOption(search_batch_size        =   64, 1,  MAX));
         spin_options.emplace("search_limit",           SpinOption(search_limit             =  MAX, 1,  MAX));
 #ifdef USE_CATEGORICAL
         spin_options.emplace("Q_coeff_x1000",          SpinOption(Q_coeff_x1000            =    0, 0,  MAX));
