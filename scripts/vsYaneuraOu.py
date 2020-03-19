@@ -16,9 +16,9 @@ import argparse
 from calc_elo_rate import calc_elo_rate
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--time1", type=int, default=500)
-parser.add_argument("--time2", type=int, default=100)
-parser.add_argument("--Threads", type=int, default=3)
+parser.add_argument("--time1", type=int, default=1000)
+parser.add_argument("--time2", type=int, default=200)
+parser.add_argument("--Threads", type=int, default=4)
 parser.add_argument("--game_num", type=int, default=250)
 parser.add_argument("--init_model_step", type=int, default=0)
 parser.add_argument("--option", type=str, default=None)
