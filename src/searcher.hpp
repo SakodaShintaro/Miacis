@@ -39,7 +39,7 @@ public:
 
 private:
     //今のノードから遷移するべきノードを選択する関数
-    int32_t selectMaxUcbChild(const HashEntry& node);
+    int32_t selectMaxUcbChild(const HashEntry& node) const;
 
     //バックアップ
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);

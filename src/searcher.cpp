@@ -1,6 +1,6 @@
 ﻿#include "searcher.hpp"
 
-int32_t Searcher::selectMaxUcbChild(const HashEntry& node) {
+int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #ifdef USE_CATEGORICAL
     int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
     FloatType best_value = expOfValueDist(hash_table_.QfromNextValue(node, best_index));
@@ -17,7 +17,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) {
         assert(U >= 0.0);
 
 #ifdef USE_CATEGORICAL
-        FloatType P = 0;
+        FloatType P = 0.0;
         if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
             P = (node.N[i] == 0 ? 0 : 1);
         } else {

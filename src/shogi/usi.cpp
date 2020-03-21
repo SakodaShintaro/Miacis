@@ -194,7 +194,7 @@ void USI::go() {
     thread_ = std::thread([this, time_limit]() {
         Move best_move = (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - search_options_.byoyomi_margin));
         std::cout << "bestmove " << best_move << std::endl;
-        if (search_options_.USI_Ponder) {
+        if (search_options_.USI_Ponder && best_move != NULL_MOVE) {
             root_.doMove(best_move);
             searcher_->think(root_, LLONG_MAX);
         }
