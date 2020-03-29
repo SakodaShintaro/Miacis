@@ -5,6 +5,7 @@ Index HashTable::searchEmptyIndex(const Position& pos) {
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
     while (true) {
+        std::unique_lock<std::mutex> lock(table_[i].mutex);
         if (table_[i].age != age_) {
             //世代が違うならここを上書きして良い
             table_[i].hash = hash;
@@ -33,6 +34,7 @@ Index HashTable::findSameHashIndex(const Position& pos) {
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
     while (true) {
+        std::unique_lock<std::mutex> lock(table_[i].mutex);
         if (table_[i].age != age_) {
             //根本的に世代が異なるなら同じものはないのでsize()を返す
             return (Index)table_.size();
