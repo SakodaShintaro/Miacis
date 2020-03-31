@@ -146,6 +146,7 @@ void checkGenSpeed() {
 
 void checkSearchSpeed() {
     constexpr int64_t time_limit = 10000;
+    constexpr int64_t trial_num = 10;
     SearchOptions search_options;
     search_options.print_interval = time_limit * 2;
     search_options.print_info = false;
@@ -182,14 +183,27 @@ void checkSearchSpeed() {
     }
 
     std::cout << std::fixed << std::setprecision(1);
-    for (int64_t _ = 0; _ < 10; _++) {
+
+    Position pos;
+    std::cout << "初期局面" << std::endl;
+    for (int64_t _ = 0; _ < trial_num; _++) {
         SearcherForPlay searcher(search_options);
-        Position pos;
         Move best_move = searcher.think(pos, time_limit);
         const HashTable& hash_table = searcher.hashTable();
         const HashEntry& root_entry = hash_table[hash_table.root_index];
         std::cout << root_entry.sum_N / (time_limit / 1000.0) << " " << best_move << std::endl;
     }
+
+    pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
+    std::cout << "中盤の局面" << std::endl;
+    for (int64_t _ = 0; _ < trial_num; _++) {
+        SearcherForPlay searcher(search_options);
+        Move best_move = searcher.think(pos, time_limit);
+        const HashTable& hash_table = searcher.hashTable();
+        const HashEntry& root_entry = hash_table[hash_table.root_index];
+        std::cout << root_entry.sum_N / (time_limit / 1000.0) << " " << best_move << std::endl;
+    }
+
     std::cout << "finish checkSearchSpeed" << std::endl;
 }
 

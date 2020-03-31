@@ -557,8 +557,6 @@ void Position::fromStr(const std::string& sfen) {
     //ハッシュ値の初期化
     initHashValue();
 
-    stack_.reserve(256);
-
     //Bitboard
     occupied_bb_[BLACK] = Bitboard(0, 0);
     occupied_bb_[WHITE] = Bitboard(0, 0);
@@ -575,6 +573,8 @@ void Position::fromStr(const std::string& sfen) {
 
     //pinners
     computePinners();
+
+    already_generated_moves_ = false;
 
     //王手の確認
     is_checked_ = isThereControl(~color_, king_sq_[color_]);
