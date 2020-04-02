@@ -10,18 +10,23 @@ Ubuntu18.04, CUDA10.0, cuDNN7.1, libtorch1.2(for CUDA10.0)の環境においてc
 
 ```
 #libtorchの取得
-wget https://download.pytorch.org/libtorch/cu100/libtorch-cxx11-abi-shared-with-deps-1.2.0.zip
-unzip libtorch-cxx11-abi-shared-with-deps-1.2.0.zip
+Miacis/scripts/download_libtorch.sh
 
 #Miacisの取得、コンパイル
 git clone https://github.com/SakodaShintaro/Miacis
-mkdir Miacis/src/build
-cd Miacis/src/build
+mkdir Miacis/src/cmake-build-release
+cd Miacis/src/cmake-build-release
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j4
 ```
 
-正常にコンパイルが進むとbuild以下にMiacis_shogi_scalarとMiacis_shogi_categoricalの二つプログラムが得られます(同時にオセロ用のプログラムもコンパイルされます)。前者は評価値をスカラとして一つ出力するモデルであり、AlphaZeroとほぼ同等のモデルとなります。後者は評価値の確率分布を出力するモデルとなります。
+正常にコンパイルが進むと```cmake-build-release```以下に
+* Miacis_shogi_scalar
+* Miacis_shogi_categorical
+* Miacis_othello_scalar
+* Miacis_othello_categorical
+
+というプログラムが得られます。```*_scalar```は評価値をスカラとして一つ出力するモデルであり、AlphaZeroとほぼ同等のモデルとなります。```*_categorical```は評価値の確率分布を出力するモデルとなります。
 
 以前まではWindows(Visual Studio2017にCMake拡張を入れた環境)でもコンパイル可能ではありましたが、現在可能であるかは未確認です。
 
