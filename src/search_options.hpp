@@ -33,6 +33,7 @@ public:
         check_options.emplace("leave_root",            CheckOption(leave_root = true));
         check_options.emplace("use_fp16",              CheckOption(use_fp16   = true));
         check_options.emplace("use_book",              CheckOption(use_book   = false));
+        check_options.emplace("print_info",            CheckOption(print_info = true));
         spin_options.emplace("USI_Hash",               SpinOption(USI_Hash                 =  256, 0,  MAX));
         spin_options.emplace("byoyomi_margin",         SpinOption(byoyomi_margin           =    0, 0,  MAX));
         spin_options.emplace("random_turn",            SpinOption(random_turn              =    0, 0,  MAX));
@@ -60,6 +61,7 @@ public:
     bool leave_root;
     bool use_fp16;
     bool use_book;
+    bool print_info;
     int64_t byoyomi_margin;
     int64_t random_turn;
     int64_t USI_Hash;

@@ -253,6 +253,9 @@ std::vector<Move> SearcherForPlay::getPV() const {
 }
 
 void SearcherForPlay::printUSIInfo() const {
+    if (!search_options_.print_info) {
+        return;
+    }
     const HashEntry& curr_node = hash_table_[hash_table_.root_index];
 
     int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());

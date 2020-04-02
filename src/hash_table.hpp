@@ -104,9 +104,6 @@ public:
     //未展開のノードのインデックス
     static constexpr Index NOT_EXPANDED = -1;
 
-    //置換表全体の排他制御を行うためのmutex
-    std::mutex mutex;
-
     //現在思考しているノードに相当するエントリーのインデックス
     Index root_index;
 

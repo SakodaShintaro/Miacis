@@ -127,16 +127,10 @@ void Searcher::select(Position& pos) {
 }
 
 Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<int32_t>& actions) {
-    //置換表全体をロック
-    hash_table_.mutex.lock();
-
     uint64_t index = hash_table_.findSameHashIndex(pos);
 
     //合流先が検知できればそれを返す
     if (index != hash_table_.size()) {
-        //置換表全体のロックはもういらないので解放
-        hash_table_.mutex.unlock();
-
         indices.push(index);
         if (hash_table_[index].evaled) {
             //評価済みならば,前回までのループでここへ違う経路で到達していたか,終端状態であるかのいずれか
@@ -161,9 +155,6 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
 
     //経路として記録
     indices.push(index);
-
-    //テーブル全体を使うのはここまで
-    hash_table_.mutex.unlock();
 
     //空のインデックスが見つからなかった
     if (index == hash_table_.size()) {
