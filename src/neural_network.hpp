@@ -28,12 +28,12 @@ struct LearningData {
 
 //損失の種類
 enum LossType {
-    POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM
+    POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, RANDOM_NETWORK_DISTILLATION, LOSS_TYPE_NUM
 };
 
 //各損失の名前を示す文字列
 const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{
-    "policy", "value"
+    "policy", "value", "random_network_distillation"
 };
 
 //使用する全体のニューラルネットワーク
