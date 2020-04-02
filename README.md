@@ -9,11 +9,13 @@ MiacisはUSIプロトコルに対応した将棋用思考エンジンです。[�
 Ubuntu18.04, CUDA10.0, cuDNN7.1, libtorch1.2(for CUDA10.0)の環境においてcmake3.10.2, g++7.4.0でビルドできることが確認できています。以下にLinuxでコンパイルする手順例を示します。
 
 ```
+#Miacisの取得
+git clone https://github.com/SakodaShintaro/Miacis
+
 #libtorchの取得
 Miacis/scripts/download_libtorch.sh
 
-#Miacisの取得、コンパイル
-git clone https://github.com/SakodaShintaro/Miacis
+# コンパイル
 mkdir Miacis/src/cmake-build-release
 cd Miacis/src/cmake-build-release
 cmake .. -DCMAKE_BUILD_TYPE=Release
