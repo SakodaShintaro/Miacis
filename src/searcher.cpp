@@ -22,6 +22,10 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
             P = (node.N[i] == 0 ? 0 : 1);
         } else {
             std::unique_lock lock(hash_table_[node.child_indices[i]].mutex);
+            //勝ち筋があるなら即選ぶ
+            if (hash_table_[node.child_indices[i]].is_lose) {
+                return i;
+            }
             for (int32_t j = 0; j < reversed_best_value_index; j++) {
                 P += hash_table_[node.child_indices[i]].value[j];
             }
@@ -179,6 +183,8 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
     curr_node.virtual_N.shrink_to_fit();
     curr_node.sum_N = 0;
     curr_node.virtual_sum_N = 0;
+    curr_node.is_lose = false;
+    curr_node.is_win = false;
     curr_node.evaled = false;
     curr_node.value = ValueType{};
 
@@ -190,6 +196,8 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
 #else
         curr_node.value = finish_score;
 #endif
+        curr_node.is_lose = (finish_score == MIN_SCORE);
+        curr_node.is_win = (finish_score == MAX_SCORE);
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
         hash_table_[index].mutex.unlock();
@@ -248,6 +256,26 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         assert(node.virtual_sum_N >= 0);
         assert(node.sum_N >= 0);
         node.virtual_N[action] = 0;
+
+        //勝ち負けフラグの設定
+        node.is_win = false;
+        node.is_lose = true;
+        for (int64_t i = 0; i < node.moves.size(); i++) {
+            if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
+                node.is_lose = false;
+                continue;
+            }
+            HashEntry& child_node = hash_table_[node.child_indices[i]];
+            //負けノードが一つでもあれば勝ち
+            if (child_node.is_lose) {
+                node.is_win = true;
+            }
+
+            //勝ちでないノードが一つでもあれば負けは回避
+            if (!child_node.is_win) {
+                node.is_lose = false;
+            }
+        }
 
         //価値の更新
         ValueType curr_v = node.value;

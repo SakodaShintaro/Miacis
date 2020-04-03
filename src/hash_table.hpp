@@ -33,6 +33,12 @@ struct HashEntry {
     //価値。漸進的に更新され、常にこのノードを根とする部分木内の価値の平均となる
     ValueType value;
 
+    //負け状態であるというフラグ
+    bool is_lose;
+
+    //勝ち状態であるというフラグ
+    bool is_win;
+
     //ニューラルネットワークによる評価が行われたかを示すフラグ
     bool evaled;
 

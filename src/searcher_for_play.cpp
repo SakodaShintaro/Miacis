@@ -97,7 +97,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
 
     //詰み探索を立ち上げ
     mate_searcher_.stop_signal = false;
-    std::thread mate_thread([&](){ mate_searcher_.mateSearch(root, INT_MAX); });
+//    std::thread mate_thread([&](){ mate_searcher_.mateSearch(root, INT_MAX); });
 
     //終了を待つ
     for (std::thread& t : threads) {
@@ -105,7 +105,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     }
 
     mate_searcher_.stop_signal = true;
-    mate_thread.join();
+//    mate_thread.join();
 
     //読み筋などの情報出力
     printUSIInfo();
