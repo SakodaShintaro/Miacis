@@ -384,10 +384,10 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
 }
 
 std::array<torch::Tensor, 3> NeuralNetworkImpl::forwardWithIntrinsicValue(const std::vector<float>& inputs) {
-    torch::Tensor input_tensor = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
+    torch::Tensor input_tensor = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_))
+                                 .view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
 
     torch::Tensor x = input_tensor;
-    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     x = state_first_conv_and_norm_->forward(x);
     x = torch::relu(x);
 
@@ -401,7 +401,8 @@ std::array<torch::Tensor, 3> NeuralNetworkImpl::forwardWithIntrinsicValue(const 
     //内的報酬
     torch::Tensor target = random_network_target_->forward(input_tensor);
     torch::Tensor infer = random_network_infer_->forward(input_tensor);
-    torch::Tensor intrinsic_value = torch::mean(torch::pow(target - infer, 2), 1);
+    torch::Tensor diff = target - infer;
+    torch::Tensor intrinsic_value = torch::mean(torch::pow(diff, 2), 1);
 
     return { p_and_v.first, p_and_v.second, intrinsic_value };
 }
@@ -417,7 +418,7 @@ NeuralNetworkImpl::policyAndValueAndIntrinsicValueBatch(const std::vector<float>
     std::vector<FloatType> intrinsic_values(batch_size);
 
     //CPUに持ってくる
-    torch::Tensor policy = y[0];
+    torch::Tensor policy = y[0].cpu();
     if (fp16_) {
         torch::Half* p = policy.data<torch::Half>();
         for (uint64_t i = 0; i < batch_size; i++) {

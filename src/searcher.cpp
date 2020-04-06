@@ -16,6 +16,8 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
         FloatType U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
         assert(U >= 0.0);
 
+        FloatType intrinsic_value = 0;
+
 #ifdef USE_CATEGORICAL
         FloatType P = 0.0;
         if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
@@ -25,9 +27,11 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
             for (int32_t j = 0; j < reversed_best_value_index; j++) {
                 P += hash_table_[node.child_indices[i]].value[j];
             }
+            intrinsic_value = hash_table_[node.child_indices[i]].intrinsic_value;
         }
         FloatType ucb = search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
-                        + search_options_.P_coeff_x1000 / 1000.0 * P;
+                        + search_options_.P_coeff_x1000 / 1000.0 * P
+                        + search_options_.intrinsic_coeff * intrinsic_value;
         if (search_options_.Q_coeff_x1000 > 0) {
             ucb += search_options_.Q_coeff_x1000 / 1000.0 * hash_table_.expQfromNext(node, i);
         }
@@ -181,6 +185,7 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
     curr_node.virtual_sum_N = 0;
     curr_node.evaled = false;
     curr_node.value = ValueType{};
+    curr_node.intrinsic_value = 0;
 
     //ノードを評価
     float finish_score;

@@ -33,6 +33,9 @@ struct HashEntry {
     //価値。漸進的に更新され、常にこのノードを根とする部分木内の価値の平均となる
     ValueType value;
 
+    //内的報酬
+    FloatType intrinsic_value;
+
     //ニューラルネットワークによる評価が行われたかを示すフラグ
     bool evaled;
 

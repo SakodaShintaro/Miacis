@@ -218,8 +218,13 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
         if (!gpu_queue.inputs.empty()) {
             torch::NoGradGuard no_grad_guard;
             gpu_mutexes_[gpu_id].lock();
-            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = neural_networks_[gpu_id]->policyAndValueBatch(gpu_queue.inputs);
+            std::tuple<std::vector<PolicyType>, std::vector<ValueType>, std::vector<FloatType>> y = neural_networks_[gpu_id]->policyAndValueAndIntrinsicValueBatch(gpu_queue.inputs);
             gpu_mutexes_[gpu_id].unlock();
+
+            std::vector<PolicyType> policy;
+            std::vector<ValueType> value;
+            std::vector<FloatType> intrinsic_value;
+            std::tie(policy, value, intrinsic_value) = y;
 
             //書き込み
             for (uint64_t i = 0; i < gpu_queue.indices.size(); i++) {
@@ -227,10 +232,11 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
                 HashEntry& curr_node = hash_table_[gpu_queue.indices[i]];
                 curr_node.nn_policy.resize(curr_node.moves.size());
                 for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-                    curr_node.nn_policy[j] = y.first[i][curr_node.moves[j].toLabel()];
+                    curr_node.nn_policy[j] = policy[i][curr_node.moves[j].toLabel()];
                 }
                 curr_node.nn_policy = softmax(curr_node.nn_policy);
-                curr_node.value = y.second[i];
+                curr_node.value = value[i];
+                curr_node.intrinsic_value = intrinsic_value[i];
                 curr_node.evaled = true;
             }
         }
