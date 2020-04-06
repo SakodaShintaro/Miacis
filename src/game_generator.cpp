@@ -219,7 +219,7 @@ void GenerateWorker::select() {
         game_.elements.push_back(result);
 
         float score;
-        if (position_.isFinish(score) || position_.turnNumber() >= search_options_.draw_turn) {
+        if (position_.isFinish(score, false) || position_.turnNumber() >= search_options_.draw_turn) {
             //決着したので最終結果を設定
             game_.result = (position_.color() == BLACK ? score : -score);
 

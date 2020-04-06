@@ -39,7 +39,7 @@ public:
     std::vector<Move> generateAllMoves() const;
 
     //終了判定
-    bool isFinish(float& score) const;
+    bool isFinish(float& score, bool check_repeat = true) const;
 
     //ハッシュ
     static void initHashSeed();
