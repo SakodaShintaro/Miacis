@@ -1,6 +1,10 @@
-#include "../game.hpp"
+﻿#include "../game.hpp"
 
+#ifdef _MSC_VER
+namespace sys = std::filesystem;
+#elif __GNUC__
 namespace sys = std::experimental::filesystem;
+#endif
 
 std::vector<Game> loadGames(const std::string& path) {
     const sys::path dir(path);
@@ -115,8 +119,9 @@ void cleanGames() {
         //上で削除すべきと判断されたもの及び手数が短すぎるものを削除
         if (should_remove || move_count < move_threshold) {
             ifs.close();
-            std::cout << p->path().c_str() << " ";
-            if (remove(p->path().c_str()) == 0) {
+            std::string s = p->path().string();
+            std::cout << s << " ";
+            if (remove(s.c_str()) == 0) {
                 std::cout << "削除成功" << std::endl;
             } else {
                 std::cout << "失敗" << std::endl;

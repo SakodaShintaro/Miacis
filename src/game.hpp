@@ -5,7 +5,11 @@
 #include"neural_network.hpp"
 #include<string>
 #include<vector>
+#ifdef _MSC_VER
+#include<filesystem>
+#elif __GNUC__
 #include<experimental/filesystem>
+#endif
 
 struct OneTurnElement {
     //このターンに選択された指し手
