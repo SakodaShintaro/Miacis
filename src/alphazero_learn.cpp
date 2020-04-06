@@ -29,6 +29,7 @@ void alphaZero() {
     settings.add("data_augmentation",      0, (int64_t)1);
     settings.add("search_limit",           1, (int64_t)1e10);
     settings.add("search_batch_size",      1, (int64_t)1e10);
+    settings.add("intrinsic_coeff",        0, (int64_t)1e10);
     settings.add("output_interval",        1, (int64_t)1e10);
     settings.add("save_interval",          1, (int64_t)1e10);
     settings.add("validation_interval",    1, (int64_t)1e10);
@@ -59,6 +60,7 @@ void alphaZero() {
     search_options.thread_num_per_gpu = settings.get<int64_t>("thread_num_per_gpu");
     search_options.search_limit       = settings.get<int64_t>("search_limit");
     search_options.search_batch_size  = settings.get<int64_t>("search_batch_size");
+    search_options.intrinsic_coeff    = settings.get<int64_t>("intrinsic_coeff");
     int64_t batch_size                = settings.get<int64_t>("batch_size");
     int64_t max_step_num              = settings.get<int64_t>("max_step_num");
     int64_t learn_rate_decay_step1    = settings.get<int64_t>("learn_rate_decay_step1");

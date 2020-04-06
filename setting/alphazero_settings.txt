@@ -26,6 +26,7 @@ first_wait             1048576
 data_augmentation      1
 search_limit           800
 search_batch_size      4
+intrinsic_coeff        100000
 output_interval        100
 save_interval          200000
 validation_interval    100000
