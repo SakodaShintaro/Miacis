@@ -71,10 +71,13 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
     //順伝播計算
     gpu_mutex.lock();
     torch::NoGradGuard no_grad_guard;
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = neural_network_->policyAndValueBatch(gpu_queues_[thread_id].inputs);
+    std::tuple<std::vector<PolicyType>, std::vector<ValueType>, std::vector<FloatType>> y = neural_network_->policyAndValueAndIntrinsicValueBatch(gpu_queues_[thread_id].inputs);
     gpu_mutex.unlock();
-    const std::vector<PolicyType>& policies = result.first;
-    const std::vector<ValueType>& values = result.second;
+
+    std::vector<PolicyType> policy;
+    std::vector<ValueType> value;
+    std::vector<FloatType> intrinsic_value;
+    std::tie(policy, value, intrinsic_value) = y;
 
     //各入力が対応する置換表の適切なエントリーに計算結果を書き込んでいく
     for (uint64_t i = 0; i < gpu_queues_[thread_id].hash_tables.size(); i++) {
@@ -85,7 +88,7 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
         //合法手だけ取ってからsoftmax関数にかける
         std::vector<float> legal_moves_policy(curr_node.moves.size());
         for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-            legal_moves_policy[j] = policies[i][curr_node.moves[j].toLabel()];
+            legal_moves_policy[j] = policy[i][curr_node.moves[j].toLabel()];
             assert(!std::isnan(legal_moves_policy[j]));
         }
         curr_node.nn_policy = softmax(legal_moves_policy);
@@ -98,7 +101,10 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
         }
 
         //valueを設定
-        curr_node.value = values[i];
+        curr_node.value = value[i];
+
+        //内的報酬を設定
+        curr_node.intrinsic_value = intrinsic_value[i];
 
         //フラグを設定
         curr_node.evaled = true;
