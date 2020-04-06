@@ -36,6 +36,19 @@ const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{
     "policy", "value", "random_network_distillation"
 };
 
+//RND用のネットワーク
+class RandomNetworkImpl : public torch::nn::Module {
+public:
+    RandomNetworkImpl(int64_t input_channel_num, int64_t output_dim);
+    torch::Tensor forward(const torch::Tensor& x);
+private:
+    Conv2DwithBatchNorm conv_and_norm0_{ nullptr };
+    Conv2DwithBatchNorm conv_and_norm1_{ nullptr };
+    Conv2DwithBatchNorm conv_and_norm2_{ nullptr };
+    torch::nn::Linear   linear_{ nullptr };
+};
+TORCH_MODULE(RandomNetwork);
+
 //使用する全体のニューラルネットワーク
 class NeuralNetworkImpl : public torch::nn::Module {
 public:
@@ -43,9 +56,11 @@ public:
 
     //入力として局面の特徴量を並べたvectorを受け取ってPolicyとValueに対応するTensorを返す関数
     std::pair<torch::Tensor, torch::Tensor> forward(const std::vector<float>& inputs);
+    std::array<torch::Tensor, 3> forwardWithIntrinsicValue(const std::vector<float>& inputs);
 
     //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
+    std::tuple<std::vector<PolicyType>, std::vector<ValueType>, std::vector<FloatType>> policyAndValueAndIntrinsicValueBatch(const std::vector<float>& inputs);
 
     //学習データについて損失を返す関数
     std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
@@ -79,6 +94,9 @@ private:
     Conv2DwithBatchNorm value_conv_and_norm_{ nullptr };
     torch::nn::Linear value_linear0_{ nullptr };
     torch::nn::Linear value_linear1_{ nullptr };
+
+    RandomNetwork random_network_target_{ nullptr };
+    RandomNetwork random_network_infer_{ nullptr };
 };
 TORCH_MODULE(NeuralNetwork);
 

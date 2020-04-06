@@ -13,6 +13,7 @@ static constexpr int32_t CHANNEL_NUM = 64;
 static constexpr int32_t KERNEL_SIZE = 3;
 static constexpr int32_t REDUCTION = 8;
 static constexpr int32_t VALUE_HIDDEN_NUM = 256;
+static constexpr int32_t RND_OUTPUT_DIM = 128;
 
 #ifdef USE_CATEGORICAL
 const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
@@ -31,6 +32,9 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
     value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
     value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
+
+    random_network_target_ = register_module("random_network_target_", RandomNetwork(INPUT_CHANNEL_NUM, RND_OUTPUT_DIM));
+    random_network_infer_ = register_module("random_network_infer_", RandomNetwork(INPUT_CHANNEL_NUM, RND_OUTPUT_DIM));
 }
 
 torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
@@ -377,4 +381,103 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
     (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
+}
+
+std::array<torch::Tensor, 3> NeuralNetworkImpl::forwardWithIntrinsicValue(const std::vector<float>& inputs) {
+    torch::Tensor input_tensor = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
+
+    torch::Tensor x = input_tensor;
+    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+    x = state_first_conv_and_norm_->forward(x);
+    x = torch::relu(x);
+
+    for (ResidualBlock& block : state_blocks_) {
+        x = block->forward(x);
+    }
+
+    //ここから分岐
+    std::pair<torch::Tensor, torch::Tensor> p_and_v = decode(x);
+
+    //内的報酬
+    torch::Tensor target = random_network_target_->forward(input_tensor);
+    torch::Tensor infer = random_network_infer_->forward(input_tensor);
+    torch::Tensor intrinsic_value = torch::mean(torch::pow(target - infer, 2), 1);
+
+    return { p_and_v.first, p_and_v.second, intrinsic_value };
+}
+
+std::tuple<std::vector<PolicyType>, std::vector<ValueType>, std::vector<FloatType>>
+NeuralNetworkImpl::policyAndValueAndIntrinsicValueBatch(const std::vector<float>& inputs) {
+    std::array<torch::Tensor, 3> y = forwardWithIntrinsicValue(inputs);
+
+    uint64_t batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);
+
+    std::vector<PolicyType> policies(batch_size);
+    std::vector<ValueType> values(batch_size);
+    std::vector<FloatType> intrinsic_values(batch_size);
+
+    //CPUに持ってくる
+    torch::Tensor policy = y[0];
+    if (fp16_) {
+        torch::Half* p = policy.data<torch::Half>();
+        for (uint64_t i = 0; i < batch_size; i++) {
+            policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
+        }
+    } else {
+        float* p = policy.data<float>();
+        for (uint64_t i = 0; i < batch_size; i++) {
+            policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
+        }
+    }
+
+#ifdef USE_CATEGORICAL
+    torch::Tensor value = torch::softmax(y[1], 1).cpu();
+    if (fp16_) {
+        torch::Half* value_p = value.data<torch::Half>();
+        for (uint64_t i = 0; i < batch_size; i++) {
+            std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
+        }
+    } else {
+        float* value_p = value.data<float>();
+        for (uint64_t i = 0; i < batch_size; i++) {
+            std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
+        }
+    }
+#else
+    //CPUに持ってくる
+    torch::Tensor value = y.second.cpu();
+    if (fp16_) {
+        std::copy(value.data<torch::Half>(), value.data<torch::Half>() + batch_size, values.begin());
+    } else {
+        std::copy(value.data<float>(), value.data<float>() + batch_size, values.begin());
+    }
+#endif
+
+    //内的報酬
+    torch::Tensor intrinsic_value = y[2].cpu();
+    if (fp16_) {
+        std::copy(intrinsic_value.data<torch::Half>(), intrinsic_value.data<torch::Half>() + batch_size, intrinsic_values.begin());
+    } else {
+        std::copy(intrinsic_value.data<float>(), intrinsic_value.data<float>() + batch_size, intrinsic_values.begin());
+    }
+
+    return { policies, values, intrinsic_values };
+}
+
+RandomNetworkImpl::RandomNetworkImpl(int64_t input_channel_num, int64_t output_dim) {
+    constexpr int64_t channel_num = 128;
+    constexpr int64_t kernel_size = 3;
+    conv_and_norm0_ = register_module("conv_and_norm0_", Conv2DwithBatchNorm(input_channel_num, channel_num, kernel_size));
+    conv_and_norm1_ = register_module("conv_and_norm1_", Conv2DwithBatchNorm(channel_num, channel_num, kernel_size));
+    conv_and_norm2_ = register_module("conv_and_norm2_", Conv2DwithBatchNorm(channel_num, channel_num, kernel_size));
+    linear_ = register_module("linear_", torch::nn::Linear(torch::nn::LinearOptions(BOARD_WIDTH * BOARD_WIDTH * channel_num, output_dim).with_bias(false)));
+}
+
+torch::Tensor RandomNetworkImpl::forward(const torch::Tensor& x) {
+    torch::Tensor y = conv_and_norm0_->forward(x);
+    y = conv_and_norm1_->forward(y);
+    y = conv_and_norm2_->forward(y);
+    y = y.view({ -1, y.size(1) * y.size(2) * y.size(3) });
+    y = linear_->forward(y);
+    return y;
 }
