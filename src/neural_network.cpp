@@ -176,8 +176,8 @@ NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
         value_teachers.push_back(data[i].value);
     }
 
-    std::pair<torch::Tensor, torch::Tensor> y = forward(inputs);
-    torch::Tensor logits = y.first.view({ -1, POLICY_DIM });
+    std::array<torch::Tensor, 3> y = forwardWithIntrinsicValue(inputs);
+    torch::Tensor logits = y[0].view({ -1, POLICY_DIM });
 
     torch::Tensor policy_target = (fp16_ ? torch::tensor(policy_teachers).to(device_, torch::kHalf) :
                                            torch::tensor(policy_teachers).to(device_)).view({ -1, POLICY_DIM });
@@ -186,20 +186,23 @@ NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
 
 #ifdef USE_CATEGORICAL
     torch::Tensor categorical_target = torch::tensor(value_teachers).to(device_);
-    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
+    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y[1], 1), categorical_target);
 #else
 
     torch::Tensor value_t = (fp16_ ? torch::tensor(value_teachers).to(device_, torch::kHalf) :
                                      torch::tensor(value_teachers).to(device_));
-    torch::Tensor value = y.second.view(-1);
+    torch::Tensor value = y[1].view(-1);
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
 #else
     torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
 #endif
 #endif
+
+    //内部報酬に関する損失
+    torch::Tensor intrinsic_value_loss = y[2];
     
-    return { policy_loss, value_loss };
+    return { policy_loss, value_loss, intrinsic_value_loss };
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM>
@@ -257,8 +260,8 @@ NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha)
     }
 
     //順伝播
-    std::pair<torch::Tensor, torch::Tensor> y = forward(inputs);
-    torch::Tensor logits = y.first.view({ -1, POLICY_DIM });
+    std::array<torch::Tensor, 3> y = forwardWithIntrinsicValue(inputs);
+    torch::Tensor logits = y[0].view({ -1, POLICY_DIM });
 
     //Policyの損失計算
     torch::Tensor policy_target = (fp16_ ? torch::tensor(policy_teacher_dist).to(device_, torch::kHalf) :
@@ -269,12 +272,12 @@ NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha)
 #ifdef USE_CATEGORICAL
     torch::Tensor categorical_target = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                                                 torch::tensor(value_teacher_dist).to(device_)).view({ -1, BIN_SIZE });
-    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);;
+    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y[1], 1), 1, false);;
 #else
 
     torch::Tensor value_t = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                                      torch::tensor(value_teacher_dist).to(device_));
-    torch::Tensor value = y.second.view(-1);
+    torch::Tensor value = y[1].view(-1);
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
 #else
@@ -282,7 +285,10 @@ NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha)
 #endif
 #endif
 
-    return { policy_loss, value_loss };
+    //内部報酬に関する損失
+    torch::Tensor intrinsic_value_loss = y[2];
+
+    return { policy_loss, value_loss, intrinsic_value_loss };
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM>
@@ -374,7 +380,14 @@ NeuralNetworkImpl::mixUpLossFinalLayer(const std::vector<LearningData>& data, fl
 #endif
 #endif
 
-    return { policy_loss, value_loss };
+    torch::Tensor input_tensor = (fp16_ ? torch::tensor(inputs1).to(device_, torch::kHalf) : torch::tensor(inputs1).to(device_))
+            .view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+    torch::Tensor target = random_network_target_->forward(input_tensor).detach();
+    torch::Tensor infer = random_network_infer_->forward(input_tensor);
+    torch::Tensor diff = target - infer;
+    torch::Tensor intrinsic_value = torch::mean(torch::pow(diff, 2), 1);
+
+    return { policy_loss, value_loss, intrinsic_value };
 }
 
 void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
@@ -399,7 +412,7 @@ std::array<torch::Tensor, 3> NeuralNetworkImpl::forwardWithIntrinsicValue(const 
     std::pair<torch::Tensor, torch::Tensor> p_and_v = decode(x);
 
     //内的報酬
-    torch::Tensor target = random_network_target_->forward(input_tensor);
+    torch::Tensor target = random_network_target_->forward(input_tensor).detach();
     torch::Tensor infer = random_network_infer_->forward(input_tensor);
     torch::Tensor diff = target - infer;
     torch::Tensor intrinsic_value = torch::mean(torch::pow(diff, 2), 1);
@@ -446,7 +459,7 @@ NeuralNetworkImpl::policyAndValueAndIntrinsicValueBatch(const std::vector<float>
     }
 #else
     //CPUに持ってくる
-    torch::Tensor value = y.second.cpu();
+    torch::Tensor value = y[1].cpu();
     if (fp16_) {
         std::copy(value.data<torch::Half>(), value.data<torch::Half>() + batch_size, values.begin());
     } else {
