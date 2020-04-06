@@ -243,7 +243,7 @@ void Position::fromStr(const std::string& str) {
     color_ = (str.back() == 'b' ? BLACK : WHITE);
 }
 
-bool Position::isFinish(float& score) const {
+bool Position::isFinish(float& score, bool check_repeat) const {
     //ゲームが終了するのは
     //(1)盤面が埋まっている場合
     //(2)盤面は埋まっていないが、どちらのプレイヤーも置くところがない場合

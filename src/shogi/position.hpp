@@ -31,7 +31,7 @@ public:
 
     //この局面が詰み、千日手等で終わっているか確認する関数
     //終わっている場合は手番側から見た点数を引数に書き込んでtrueを返す
-    bool isFinish(float& score);
+    bool isFinish(float& score , bool check_repeat = true);
 
     //千日手の判定
     bool isRepeating(float& score) const;
