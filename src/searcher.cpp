@@ -185,6 +185,7 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
     curr_node.sum_N = 0;
     curr_node.virtual_sum_N = 0;
     curr_node.evaled = false;
+    curr_node.nn_policy.clear();
     curr_node.value = ValueType{};
 
     //ノードを評価
