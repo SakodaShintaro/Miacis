@@ -99,6 +99,7 @@ void Searcher::select(Position& pos) {
     if (curr_indices.empty()) {
         std::cout << "curr_indices.empty()" << std::endl;
         pos.print();
+        std::cout << pos.toStr() << std::endl;
         exit(1);
     }
 
