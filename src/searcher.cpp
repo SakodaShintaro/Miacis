@@ -100,6 +100,10 @@ void Searcher::select(Position& pos) {
         std::cout << "curr_indices.empty()" << std::endl;
         pos.print();
         std::cout << pos.toStr() << std::endl;
+        std::cout << "pos.turnNumber() >= search_options_.draw_turn = " <<  (pos.turnNumber() >= search_options_.draw_turn) << std::endl;
+        float score;
+        std::cout << "index != hash_table_.root_index && pos.isFinish(score) = " << (index != hash_table_.root_index && pos.isFinish(score)) << std::endl;
+        std::cout << "hash_table_[index].nn_policy.size() != hash_table_[index].moves.size() = " << (hash_table_[index].nn_policy.size() != hash_table_[index].moves.size()) << std::endl;
         exit(1);
     }
 
