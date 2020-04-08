@@ -77,6 +77,7 @@ for search_batch_size in [64, 32, 16, 8, 4, 2, 1]:
                                           "print_interval": 10000000,
                                           "USI_Hash": 4096,
                                           "search_limit": 800,
+                                          "gpu_num": 1,
                                           "thread_num_per_gpu": 1,
                                           "search_batch_size": search_batch_size,
                                           "model_name": model_names[-1]})
