@@ -84,7 +84,7 @@ void checkGenSpeed() {
 
     constexpr int64_t buffer_size = 1048576;
     SearchOptions search_options;
-    search_options.search_limit = 200;
+    search_options.search_limit = 800;
     search_options.draw_turn = 320;
     search_options.random_turn = 320;
     search_options.temperature_x1000 = 10;
@@ -103,7 +103,7 @@ void checkGenSpeed() {
 
     for (search_options.thread_num_per_gpu = 2; search_options.thread_num_per_gpu <= 4; search_options.thread_num_per_gpu++) {
         for (int64_t worker_num = 32; worker_num <= 32; worker_num *= 2) {
-            for (search_options.search_batch_size = 4; search_options.search_batch_size <= 8; search_options.search_batch_size *= 2) {
+            for (search_options.search_batch_size = 4; search_options.search_batch_size <= 16; search_options.search_batch_size *= 2) {
                 ReplayBuffer buffer(0, buffer_size, 1, 1.0, 1.0, false);
                 auto start = std::chrono::steady_clock::now();
                 GameGenerator generator(search_options, worker_num, Q_dist_lambda, buffer, nn);
