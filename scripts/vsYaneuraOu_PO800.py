@@ -17,7 +17,7 @@ from calc_elo_rate import calc_elo_rate
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--Threads", type=int, default=1)
-parser.add_argument("--NodesLimit", type=int, default=10000)
+parser.add_argument("--NodesLimit", type=int, default=100000)
 parser.add_argument("--game_num", type=int, default=250)
 args = parser.parse_args()
 
@@ -70,7 +70,7 @@ model_names = natsorted(glob.glob(curr_path + "*0.model"))
 assert len(model_names) > 0
 
 # パラメータを探索
-for search_batch_size in [64, 32, 16, 8, 4, 2, 1]:
+for search_batch_size in [2 ** i for i in range(6)]:
     # Miacisを準備
     server.engines[0].set_engine_options({"random_turn": 320,
                                           "temperature_x1000": 10,
