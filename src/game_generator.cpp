@@ -172,7 +172,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
     element.score = best_value;
 
     //policyのセット
-    if (position_.turnNumber() < search_options_.random_turn) {
+    if (position_.turnNumber() <= search_options_.random_turn) {
         //分布に従ってランダムに行動選択
         //探索回数を正規化した分布
         std::vector<FloatType> N_dist(root_node.moves.size());
@@ -229,7 +229,7 @@ void GenerateWorker::select() {
         game_.elements.push_back(result);
 
         float score;
-        if (position_.isFinish(score, false) || position_.turnNumber() >= search_options_.draw_turn) {
+        if (position_.isFinish(score, false) || position_.turnNumber() > search_options_.draw_turn) {
             //決着したので最終結果を設定
             game_.result = (position_.color() == BLACK ? score : -score);
 

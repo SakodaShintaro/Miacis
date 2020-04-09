@@ -60,6 +60,11 @@ bool SearcherForMate::search(Position& pos, int32_t depth) {
         return false;
     }
 
+    //手数制限に達していたら終了
+    if (pos.turnNumber() > search_options_.draw_turn) {
+        return false;
+    }
+
     //全ての手を試してみる
     //攻め手の場合:どれか一つでも勝ちになる行動があるなら勝ち
     //受け手の場合:どれか一つでも負けを逃れる行動があるなら負けではない
