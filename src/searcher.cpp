@@ -261,22 +261,6 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         node.value += alpha * (value - curr_v);
         value = lambda * value + (1.0f - lambda) * curr_v;
 
-        //最大バックアップ
-//#ifdef USE_CATEGORICAL
-//        node.value = onehotDist(MIN_SCORE);
-//        for (int32_t i = 0; i < node.moves.size(); i++) {
-//            FloatType q = QfromNextValue(node, i);
-//            if (expOfValueDist(q) > expOfValueDist(node.value)) {
-//                node.value = q;
-//            }
-//        }
-//#else
-//        node.value = MIN_SCORE;
-//        for (int32_t i = 0; i < node.moves.size(); i++) {
-//            node.value = std::max(node.value, QfromNextValue(node, i));
-//        }
-//#endif
-
         hash_table_[index].mutex.unlock();
     }
 }
