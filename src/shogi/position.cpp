@@ -65,7 +65,7 @@ void Position::init() {
     color_ = BLACK;
 
     //手数
-    turn_number_ = 0;
+    turn_number_ = 1;
 
     //玉の位置
     king_sq_[BLACK] = SQ59;

@@ -164,8 +164,6 @@ extern const std::array<Square, SQUARE_NUM> SquareList;
 extern const int32_t SquareToNum[];
 extern const Square InvSquare[];
 
-extern const Square FileMirrorSquare[];
-
 extern const ArrayMap<std::string, FileNum> fileToString;
 extern const ArrayMap<std::string, RankNum> rankToString;
 
