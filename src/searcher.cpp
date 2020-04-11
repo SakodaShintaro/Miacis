@@ -9,7 +9,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #endif
 
     int32_t max_index = -1;
-    FloatType max_value = MIN_SCORE - 1;
+    FloatType max_value = INT_MIN;
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
     for (uint64_t i = 0; i < node.moves.size(); i++) {
