@@ -70,7 +70,7 @@ model_names = natsorted(glob.glob(curr_path + "*0.model"))
 assert len(model_names) > 0
 
 # パラメータを探索
-for C_PUCT_x1000 in [1500, 2000, 2500, 3000, 3500]:
+for FPU_x1000 in range(-10000, 10001, 1000):
     # Miacisを準備
     server.engines[0].set_engine_options({"random_turn": 320,
                                           "temperature_x1000": 10,
@@ -80,7 +80,8 @@ for C_PUCT_x1000 in [1500, 2000, 2500, 3000, 3500]:
                                           "gpu_num": 1,
                                           "thread_num_per_gpu": 1,
                                           "search_batch_size": 4,
-                                          "C_PUCT_x1000": C_PUCT_x1000,
+                                          "C_PUCT_x1000": 1500,
+                                          "FPU_x1000": FPU_x1000,
                                           "model_name": model_names[-1]})
     scalar_or_categorical = "scalar" if "sca" in model_names[-1] else "categorical"
     server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
@@ -112,7 +113,7 @@ for C_PUCT_x1000 in [1500, 2000, 2500, 3000, 3500]:
         # ここまでの結果を文字列化
         winning_rate = (total_num[WIN] + 0.5 * total_num[DRAW]) / sum(total_num)
         elo_rate = calc_elo_rate(winning_rate)
-        result_str = f"C_PUCT_x1000={C_PUCT_x1000:4d} {total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
+        result_str = f"FPU_x1000={FPU_x1000:5d} {total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
 
         sys.stdout.write("\033[2K\033[G")
         print(result_str, end="\n" if i == args.game_num - 1 else "")
