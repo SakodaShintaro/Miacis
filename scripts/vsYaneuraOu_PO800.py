@@ -70,7 +70,7 @@ model_names = natsorted(glob.glob(curr_path + "*0.model"))
 assert len(model_names) > 0
 
 # パラメータを探索
-for FPU_x1000 in range(-10000, 10001, 1000):
+for FPU_x1000 in range(-1000, 1001, 100):
     # Miacisを準備
     server.engines[0].set_engine_options({"random_turn": 320,
                                           "temperature_x1000": 10,
