@@ -18,7 +18,7 @@ from calc_elo_rate import calc_elo_rate
 parser = argparse.ArgumentParser()
 parser.add_argument("--Threads", type=int, default=1)
 parser.add_argument("--NodesLimit", type=int, default=100000)
-parser.add_argument("--game_num", type=int, default=250)
+parser.add_argument("--game_num", type=int, default=500)
 args = parser.parse_args()
 
 # 対局数(先後行うので偶数でなければならない)
@@ -70,7 +70,7 @@ model_names = natsorted(glob.glob(curr_path + "*0.model"))
 assert len(model_names) > 0
 
 # パラメータを探索
-for search_batch_size in [2 ** i for i in range(6)]:
+for C_PUCT_x1000 in [1500, 2000, 2500, 3000, 3500]:
     # Miacisを準備
     server.engines[0].set_engine_options({"random_turn": 320,
                                           "temperature_x1000": 10,
@@ -79,7 +79,8 @@ for search_batch_size in [2 ** i for i in range(6)]:
                                           "search_limit": 800,
                                           "gpu_num": 1,
                                           "thread_num_per_gpu": 1,
-                                          "search_batch_size": search_batch_size,
+                                          "search_batch_size": 4,
+                                          "C_PUCT_x1000": C_PUCT_x1000,
                                           "model_name": model_names[-1]})
     scalar_or_categorical = "scalar" if "sca" in model_names[-1] else "categorical"
     server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
@@ -111,7 +112,7 @@ for search_batch_size in [2 ** i for i in range(6)]:
         # ここまでの結果を文字列化
         winning_rate = (total_num[WIN] + 0.5 * total_num[DRAW]) / sum(total_num)
         elo_rate = calc_elo_rate(winning_rate)
-        result_str = f"search_batch_size={search_batch_size:3d} {total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
+        result_str = f"C_PUCT_x1000={C_PUCT_x1000:4d} {total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
 
         sys.stdout.write("\033[2K\033[G")
         print(result_str, end="\n" if i == args.game_num - 1 else "")
