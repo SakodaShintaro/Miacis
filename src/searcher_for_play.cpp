@@ -77,15 +77,21 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
             std::vector<FloatType> feature = root.makeFeature();
             gpu_queues_[0][0].inputs.insert(gpu_queues_[0][0].inputs.begin(), feature.begin(), feature.end());
         }
-        std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = neural_networks_[0]->policyAndValueBatch(gpu_queues_[0][0].inputs);
+        std::tuple<std::vector<PolicyType>, std::vector<ValueType>, std::vector<FloatType>> y = neural_networks_[0]->policyAndValueAndIntrinsicValueBatch(gpu_queues_[0][0].inputs);
+
+        std::vector<PolicyType> policy;
+        std::vector<ValueType> value;
+        std::vector<FloatType> intrinsic_value;
+        std::tie(policy, value, intrinsic_value) = y;
 
         //ルートノードへ書き込み
         curr_node.nn_policy.resize(curr_node.moves.size());
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-            curr_node.nn_policy[i] = y.first[0][curr_node.moves[i].toLabel()];
+            curr_node.nn_policy[i] = policy[0][curr_node.moves[i].toLabel()];
         }
         curr_node.nn_policy = softmax(curr_node.nn_policy);
-        curr_node.value = y.second[0];
+        curr_node.value = value[0];
+        curr_node.intrinsic_value = intrinsic_value[0];
         curr_node.evaled = true;
     }
 
@@ -332,7 +338,7 @@ void SearcherForPlay::printUSIInfo() const {
             moves_with_info[i].N = curr_node.N[i];
             moves_with_info[i].Q = Q[i];
             moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
-            moves_with_info[i].intrinsic_value = hash_table_[curr_node.child_indices[i]].intrinsic_value;
+            moves_with_info[i].intrinsic_value = hash_table_[curr_node.child_indices[i]].intrinsic_value * search_options_.intrinsic_coeff;
 #ifdef USE_CATEGORICAL
             moves_with_info[i].prob_over_best_Q = 0;
             for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
