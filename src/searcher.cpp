@@ -16,12 +16,14 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
         FloatType U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
         assert(U >= 0.0);
 
-        FloatType intrinsic_value = 0;
+        FloatType intrinsic_value;
 
 #ifdef USE_CATEGORICAL
         FloatType P = 0.0;
         if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
             P = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : 1);
+            //未展開だとわからないので親ノードの内部報酬を使う
+            intrinsic_value = node.intrinsic_value;
         } else {
             std::unique_lock lock(hash_table_[node.child_indices[i]].mutex);
             for (int32_t j = 0; j < reversed_best_value_index; j++) {
