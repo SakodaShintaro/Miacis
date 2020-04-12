@@ -9,7 +9,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #endif
 
     int32_t max_index = -1;
-    FloatType max_value = MIN_SCORE - 1;
+    FloatType max_value = INT_MIN;
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
     for (uint64_t i = 0; i < node.moves.size(); i++) {
@@ -21,7 +21,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #ifdef USE_CATEGORICAL
         FloatType P = 0.0;
         if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
-            P = (node.N[i] == 0 ? 0 : 1);
+            P = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : 1);
         } else {
             std::unique_lock lock(hash_table_[node.child_indices[i]].mutex);
             for (int32_t j = 0; j < reversed_best_value_index; j++) {
@@ -36,7 +36,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
             ucb += search_options_.Q_coeff_x1000 / 1000.0 * hash_table_.expQfromNext(node, i);
         }
 #else
-        FloatType Q = (node.N[i] == 0 ? MIN_SCORE : hash_table_.QfromNextValue(node, i));
+        FloatType Q = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : hash_table_.QfromNextValue(node, i));
         FloatType ucb = search_options_.Q_coeff_x1000 / 1000.0 * Q
                       + search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
 #endif
