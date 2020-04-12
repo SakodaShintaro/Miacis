@@ -313,7 +313,7 @@ void SearcherForPlay::printUSIInfo() const {
         struct MoveWithInfo {
             Move move;
             int32_t N;
-            FloatType nn_output_policy, Q, softmaxed_Q;
+            FloatType nn_output_policy, Q, softmaxed_Q, intrinsic_value;
 #ifdef USE_CATEGORICAL
             FloatType prob_over_best_Q;
 #endif
@@ -332,6 +332,7 @@ void SearcherForPlay::printUSIInfo() const {
             moves_with_info[i].N = curr_node.N[i];
             moves_with_info[i].Q = Q[i];
             moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
+            moves_with_info[i].intrinsic_value = hash_table_[curr_node.child_indices[i]].intrinsic_value;
 #ifdef USE_CATEGORICAL
             moves_with_info[i].prob_over_best_Q = 0;
             for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
@@ -346,23 +347,25 @@ void SearcherForPlay::printUSIInfo() const {
         for (uint64_t i = std::max((int64_t)0, (int64_t)curr_node.moves.size() - search_options_.print_policy_num);
                       i < curr_node.moves.size(); i++) {
 #ifdef USE_CATEGORICAL
-            printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  %05.1f ", curr_node.moves.size() - i,
+            printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  %05.1f  %.6f  ", curr_node.moves.size() - i,
                    moves_with_info[i].nn_output_policy * 100.0,
                    moves_with_info[i].N * 100.0 / curr_node.sum_N,
                    moves_with_info[i].softmaxed_Q * 100,
                    moves_with_info[i].Q,
-                   moves_with_info[i].prob_over_best_Q * 100);
+                   moves_with_info[i].prob_over_best_Q * 100,
+                   moves_with_info[i].intrinsic_value);
 #else
-            printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  ", curr_node.moves.size() - i,
+            printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  %.6f  ", curr_node.moves.size() - i,
                                                                           moves_with_info[i].nn_output_policy * 100.0,
                                                                           moves_with_info[i].N * 100.0 / curr_node.sum_N,
                                                                           moves_with_info[i].softmaxed_Q * 100,
-                                                                          moves_with_info[i].Q);
+                                                                          moves_with_info[i].Q
+                                                                          moves_with_info[i].intrinsic_value);
 #endif
             moves_with_info[i].move.print();
         }
 #ifdef USE_CATEGORICAL
-        std::cout << "info string 順位 NN出力 探索割合 価値分布 価値 最善超え確率" << std::endl;
+        std::cout << "info string 順位 NN出力 探索割合 価値分布 価値 最善超え確率 内的報酬" << std::endl;
 #else
         std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
 #endif
