@@ -17,13 +17,9 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
         assert(U >= 0.0);
 
 #ifdef USE_CATEGORICAL
-        FloatType P = 0.0;
-        if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
-            P = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : 1);
-        } else {
-            std::unique_lock lock(hash_table_[node.child_indices[i]].mutex);
-            P = hash_table_[node.child_indices[i]].value[reversed_best_value_index - 1];
-        }
+        FloatType P = (node.child_indices[i] == HashTable::NOT_EXPANDED ?
+                       (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : 1) :
+                       hash_table_[node.child_indices[i]].value[reversed_best_value_index - 1]);
         FloatType ucb = search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
                         + search_options_.P_coeff_x1000 / 1000.0 * P;
         if (search_options_.Q_coeff_x1000 > 0) {
