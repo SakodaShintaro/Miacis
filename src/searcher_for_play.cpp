@@ -325,10 +325,10 @@ void SearcherForPlay::printUSIInfo() const {
             moves_with_info[i].Q = Q[i];
             moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
 #ifdef USE_CATEGORICAL
-            moves_with_info[i].prob_over_best_Q = 0;
-            for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-                moves_with_info[i].prob_over_best_Q += hash_table_.QfromNextValue(curr_node, i)[j];
-            }
+            int32_t best_value_index = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1);
+            int32_t reversed_best_value_index = BIN_SIZE - best_value_index;
+            moves_with_info[i].prob_over_best_Q = (curr_node.child_indices[i] == HashTable::NOT_EXPANDED ? 0 :
+                                          hash_table_[curr_node.child_indices[i]].value[reversed_best_value_index - 1]);
 #endif
         }
         std::sort(moves_with_info.begin(), moves_with_info.end());
