@@ -19,7 +19,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #ifdef USE_CATEGORICAL
         FloatType P = 0.0;
         if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
-            P = (node.N[i] == 0 ? 0 : 1);
+            P = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : 1);
         } else {
             std::unique_lock lock(hash_table_[node.child_indices[i]].mutex);
             P = hash_table_[node.child_indices[i]].value[reversed_best_value_index - 1];
@@ -30,7 +30,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
             ucb += search_options_.Q_coeff_x1000 / 1000.0 * hash_table_.expQfromNext(node, i);
         }
 #else
-        FloatType Q = (node.N[i] == 0 ? MIN_SCORE : hash_table_.QfromNextValue(node, i));
+        FloatType Q = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : hash_table_.QfromNextValue(node, i));
         FloatType ucb = search_options_.Q_coeff_x1000 / 1000.0 * Q
                       + search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
 #endif
@@ -56,7 +56,7 @@ void Searcher::select(Position& pos) {
     while (index != HashTable::NOT_EXPANDED) {
         std::unique_lock<std::mutex> lock(hash_table_[index].mutex);
 
-        if (pos.turnNumber() >= search_options_.draw_turn) {
+        if (pos.turnNumber() > search_options_.draw_turn) {
             //手数が制限まで達している場合も抜ける
             break;
         }
@@ -97,6 +97,11 @@ void Searcher::select(Position& pos) {
     if (curr_indices.empty()) {
         std::cout << "curr_indices.empty()" << std::endl;
         pos.print();
+        std::cout << pos.toStr() << std::endl;
+        std::cout << "pos.turnNumber() >= search_options_.draw_turn = " <<  (pos.turnNumber() >= search_options_.draw_turn) << std::endl;
+        float score;
+        std::cout << "index != hash_table_.root_index && pos.isFinish(score) = " << (index != hash_table_.root_index && pos.isFinish(score)) << std::endl;
+        std::cout << "hash_table_[index].nn_policy.size() != hash_table_[index].moves.size() = " << (hash_table_[index].nn_policy.size() != hash_table_[index].moves.size()) << std::endl;
         exit(1);
     }
 
@@ -178,11 +183,12 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
     curr_node.sum_N = 0;
     curr_node.virtual_sum_N = 0;
     curr_node.evaled = false;
+    curr_node.nn_policy.clear();
     curr_node.value = ValueType{};
 
     //ノードを評価
     float finish_score;
-    if (pos.isFinish(finish_score) || pos.turnNumber() >= search_options_.draw_turn) {
+    if (pos.isFinish(finish_score) || pos.turnNumber() > search_options_.draw_turn) {
 #ifdef USE_CATEGORICAL
         curr_node.value = onehotDist(finish_score);
 #else
@@ -259,27 +265,6 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         FloatType alpha = 1.0f / (node.sum_N + 1);
         node.value += alpha * (value - curr_v);
         value = lambda * value + (1.0f - lambda) * curr_v;
-
-//        std::cout << std::fixed << std::endl;
-//        for (int64_t j = 0; j < BIN_SIZE / 3; j++) {
-//            std::cout << curr_v[j] << " + " << value[j] << " = " << node.value[j] << std::endl;
-//        }
-
-        //最大バックアップ
-//#ifdef USE_CATEGORICAL
-//        node.value = onehotDist(MIN_SCORE);
-//        for (int32_t i = 0; i < node.moves.size(); i++) {
-//            FloatType q = QfromNextValue(node, i);
-//            if (expOfValueDist(q) > expOfValueDist(node.value)) {
-//                node.value = q;
-//            }
-//        }
-//#else
-//        node.value = MIN_SCORE;
-//        for (int32_t i = 0; i < node.moves.size(); i++) {
-//            node.value = std::max(node.value, QfromNextValue(node, i));
-//        }
-//#endif
 
         hash_table_[index].mutex.unlock();
     }

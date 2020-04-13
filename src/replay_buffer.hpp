@@ -5,7 +5,6 @@
 #include"segment_tree.hpp"
 #include"learn.hpp"
 #include<mutex>
-#include<experimental/filesystem>
 #ifdef _MSC_VER
 #include<direct.h>
 #elif __GNUC__
@@ -17,13 +16,12 @@ public:
     ReplayBuffer(int64_t first_wait, int64_t max_size, int64_t output_interval, double lambda, double alpha, bool data_augmentation) :
         data_(max_size), segment_tree_(max_size), first_wait_(first_wait), max_size_(max_size), total_num_(0),
         output_interval_(output_interval), lambda_(lambda),  alpha_(alpha), data_augmentation_(data_augmentation) {
-        //棋譜を保存するディレクトリの削除
-        std::experimental::filesystem::remove_all(KIFU_SAVE_DIR);
-
-        //棋譜を保存するディレクトリの作成
+        //棋譜を保存するディレクトリの削除・作成
 #ifdef _MSC_VER
+        std::filesystem::remove_all(KIFU_SAVE_DIR);
         _mkdir(KIFU_SAVE_DIR.c_str());
 #elif __GNUC__
+        std::experimental::filesystem::remove_all(KIFU_SAVE_DIR);
         mkdir(KIFU_SAVE_DIR.c_str(), ACCESSPERMS);
 #endif
     }
