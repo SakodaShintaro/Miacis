@@ -144,15 +144,6 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
             //どちらの場合でもバックアップして良い,と思う
             //GPUに送らないのでこのタイミングでバックアップを行う
             backup(indices, actions);
-        } else {
-            //評価済みではないけどここへ到達したならば,同じループの中で同じ局面へ到達があったということ
-            //全く同じ経路のものがあるかどうか確認
-            auto itr = std::find(backup_queue_.indices.begin(), backup_queue_.indices.end(), indices);
-            if (itr == backup_queue_.indices.end()) {
-                //同じものがなかったならばバックアップ要求を追加
-                backup_queue_.indices.push_back(indices);
-                backup_queue_.actions.push_back(actions);
-            }
         }
         return index;
     }
@@ -208,6 +199,12 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
         gpu_queue_.inputs.insert(gpu_queue_.inputs.end(), this_feature.begin(), this_feature.end());
         gpu_queue_.hash_tables.emplace_back(hash_table_);
         gpu_queue_.indices.push_back(index);
+        //ここへ2回目の訪問が発生しないようにValueを小さい値で初期化
+#ifdef USE_CATEGORICAL
+        std::fill(curr_node.value.begin(), curr_node.value.end(), -1000);
+#else
+        curr_node.value = -1000;
+#endif
         //バックアップ要求も追加
         backup_queue_.indices.push_back(indices);
         backup_queue_.actions.push_back(actions);
