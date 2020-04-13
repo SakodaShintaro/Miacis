@@ -159,10 +159,11 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
         return -1;
     }
 
-    //取得したノードをロック
-    hash_table_[index].mutex.lock();
-
+    //ノードを取得
     HashEntry& curr_node = hash_table_[index];
+
+    //取得したノードをロック
+    curr_node.mutex.lock();
 
     // 候補手の展開
     curr_node.moves = pos.generateAllMoves();
@@ -189,10 +190,10 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
 #endif
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
-        hash_table_[index].mutex.unlock();
+        curr_node.mutex.unlock();
         backup(indices, actions);
     } else {
-        hash_table_[index].mutex.unlock();
+        curr_node.mutex.unlock();
 
         //GPUへの計算要求を追加
         std::vector<FloatType> this_feature = pos.makeFeature();
@@ -234,9 +235,8 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         value = MAX_SCORE + MIN_SCORE - value;
 #endif
         // 探索結果の反映
-        hash_table_[index].mutex.lock();
-
         HashEntry& node = hash_table_[index];
+        node.mutex.lock();
 
         //探索回数の更新
         node.N[action]++;
@@ -252,7 +252,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         node.value += alpha * (value - curr_v);
         value = lambda * value + (1.0f - lambda) * curr_v;
 
-        hash_table_[index].mutex.unlock();
+        node.mutex.unlock();
     }
 }
 
