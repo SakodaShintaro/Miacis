@@ -1,5 +1,6 @@
 learn_rate             0.015
 momentum               0.9
+weight_decay           0.0
 policy_loss_coeff      1.0
 value_loss_coeff       1.0
 lambda                 0.75

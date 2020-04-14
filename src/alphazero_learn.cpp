@@ -6,6 +6,7 @@ void alphaZero() {
     HyperparameterManager settings;
     settings.add("learn_rate",             0.0f, 100.0f);
     settings.add("momentum",               0.0f, 1.0f);
+    settings.add("weight_decay",           0.0f, 100.0f);
     settings.add("lambda",                 0.0f, 1.0f);
     settings.add("alpha",                  0.0f, 1e10f);
     settings.add("mixup_alpha",            0.0f, 100.0f);
@@ -47,6 +48,7 @@ void alphaZero() {
     SearchOptions search_options;
     float learn_rate                  = settings.get<float>("learn_rate");
     float momentum                    = settings.get<float>("momentum");
+    float weight_decay                = settings.get<float>("weight_decay");
     float lambda                      = settings.get<float>("lambda");
     float alpha                       = settings.get<float>("alpha");
     float mixup_alpha                 = settings.get<float>("mixup_alpha");
@@ -120,6 +122,7 @@ void alphaZero() {
     //Optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
+    sgd_option.weight_decay(weight_decay);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
     //時間計測開始
