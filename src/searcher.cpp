@@ -86,8 +86,8 @@ void Searcher::select(Position& pos) {
         curr_actions.push(action);
 
         //VIRTUAL_LOSSの追加
-        hash_table_[index].virtual_N[action] += VIRTUAL_LOSS;
-        hash_table_[index].virtual_sum_N += VIRTUAL_LOSS;
+        hash_table_[index].virtual_N[action] += search_options_.virtual_loss;
+        hash_table_[index].virtual_sum_N += search_options_.virtual_loss;
 
         //遷移
         pos.doMove(hash_table_[index].moves[action]);

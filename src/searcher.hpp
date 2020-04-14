@@ -44,9 +44,6 @@ private:
     //バックアップ
     void backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions);
 
-    //VIRTUAL_LOSSの大きさ
-    static constexpr int32_t VIRTUAL_LOSS = 1;
-
     //置換表
     HashTable& hash_table_;
 
