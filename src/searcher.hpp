@@ -47,9 +47,13 @@ private:
     //置換表
     HashTable& hash_table_;
 
+    //探索のオプション
     const SearchOptions& search_options_;
 
+    //評価要求を貯めるキュー。これは外部で生成して参照を貰う
     GPUQueue& gpu_queue_;
+
+    //バックアップ要求を貯めるキュー。これは各インスタンスが生成して保持する
     BackupQueue backup_queue_;
 };
 
