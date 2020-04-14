@@ -53,6 +53,7 @@ public:
         spin_options.emplace("C_PUCT_x1000",           SpinOption(C_PUCT_x1000             =  2500,    1,  MAX));
         spin_options.emplace("P_coeff_x1000",          SpinOption(P_coeff_x1000            =  1000,    0,  MAX));
         spin_options.emplace("intrinsic_coeff",        SpinOption(intrinsic_coeff          =     0,    0,  MAX));
+        spin_options.emplace("virtual_loss",           SpinOption(virtual_loss             =     1,    1,  MAX));
         spin_options.emplace("temperature_x1000",      SpinOption(temperature_x1000        =     0,    0,  MAX));
         spin_options.emplace("book_temperature_x1000", SpinOption(book_temperature_x1000   =     0,    0, 1000));
         spin_options.emplace("UCT_lambda_x1000",       SpinOption(UCT_lambda_x1000         =  1000,    0, 1000));
@@ -79,6 +80,7 @@ public:
     int64_t P_coeff_x1000;
     int64_t intrinsic_coeff;
     int64_t FPU_x1000;
+    int64_t virtual_loss;
     int64_t temperature_x1000;
     int64_t book_temperature_x1000;
     int64_t UCT_lambda_x1000;
