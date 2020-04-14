@@ -215,6 +215,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
     indices.pop();
     hash_table_[leaf].mutex.lock();
     ValueType value = hash_table_[leaf].value;
+    assert(hash_table_[leaf].evaled);
     hash_table_[leaf].mutex.unlock();
 
     //毎回計算するのは無駄だけど仕方ないか
