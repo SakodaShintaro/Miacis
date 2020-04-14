@@ -3,7 +3,7 @@
 int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #ifdef USE_CATEGORICAL
     int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
-    FloatType best_value = expOfValueDist(hash_table_.QfromNextValue(node, best_index));
+    FloatType best_value = (node.N[best_index] != 0 ? expOfValueDist(hash_table_.QfromNextValue(node, best_index)) : 0);
     int32_t best_value_index = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1);
     int32_t reversed_best_value_index = BIN_SIZE - best_value_index;
 #endif
