@@ -97,7 +97,7 @@ for file_name in file_names:
 
         # print(turn, move, score)
         if (turn % 2 == 1 and is_miacis_black) or (turn % 2 == 0 and not is_miacis_black):
-            miacis_scores.append(float(score) / 1000)
+            miacis_scores.append(float(score) / 5000)
 
     for i, score in enumerate(miacis_scores):
         index = min(int((score + 1) // BIN_WIDTH), BIN_SIZE - 1)

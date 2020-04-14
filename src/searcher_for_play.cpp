@@ -286,7 +286,7 @@ void SearcherForPlay::printUSIInfo() const {
            (int32_t)(ela),
            curr_node.sum_N,
            (int32_t) (hash_table_.getUsageRate() * 1000),
-           (int32_t) (best_value * 1000));
+           (int32_t) (best_value * 5000));
 
     for (Move move : getPV()) {
         std::cout << move << " ";

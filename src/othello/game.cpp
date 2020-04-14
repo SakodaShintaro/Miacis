@@ -37,7 +37,7 @@ void Game::writeKifuFile(const std::string& dir_path) const {
         File to_file = SquareToFile[m.to()];
         Rank to_rank = SquareToRank[m.to()];
         ofs << fileToString[to_file] << rankToString[to_rank];
-        ofs << "**対局 評価値 " << (m.color() == BLACK ? elements[i].score : -elements[i].score) * 1000
+        ofs << "**対局 評価値 " << (m.color() == BLACK ? elements[i].score : -elements[i].score) * 5000
             << std::endl;
 
         pos.doMove(m);
