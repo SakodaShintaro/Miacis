@@ -65,7 +65,7 @@ void Position::init() {
     color_ = BLACK;
 
     //手数
-    turn_number_ = 0;
+    turn_number_ = 1;
 
     //玉の位置
     king_sq_[BLACK] = SQ59;
@@ -1111,7 +1111,7 @@ bool Position::isLastMoveDropPawn() const {
     return (lastMove().isDrop() && kind(lastMove().subject()) == PAWN);
 }
 
-bool Position::isFinish(float& score) {
+bool Position::isFinish(float& score, bool check_repeat) {
     //詰みの確認
     std::vector<Move> moves = generateAllMoves();
     if (moves.empty()) {
@@ -1121,7 +1121,7 @@ bool Position::isFinish(float& score) {
     }
 
     //千日手の確認
-    if (isRepeating(score)) {
+    if (check_repeat && isRepeating(score)) {
         return true;
     }
 

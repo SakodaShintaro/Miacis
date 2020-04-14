@@ -126,6 +126,16 @@ void GenerateWorker::prepareForCurrPos() {
     std::stack<int32_t> actions;
     hash_table_.root_index = searcher_.expand(position_, indices, actions);
 
+    //千日手模様のときは評価済みなのにPolicyが展開されていないということが起こり得るので対処
+    HashEntry& node = hash_table_[hash_table_.root_index];
+    if (node.evaled && (node.moves.size() != node.nn_policy.size())) {
+        //GPUへの計算要求を追加
+        std::vector<FloatType> this_feature = position_.makeFeature();
+        gpu_queue_.inputs.insert(gpu_queue_.inputs.end(), this_feature.begin(), this_feature.end());
+        gpu_queue_.hash_tables.emplace_back(hash_table_);
+        gpu_queue_.indices.push_back(hash_table_.root_index);
+    }
+
     //50手以降のときだけ詰み探索。本当はこの閾値も制御できるようにした方が良い気はするが……
     if (position_.turnNumber() >= 50) {
         mate_searcher_.mateSearch(position_, 5);
@@ -162,7 +172,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
     element.score = best_value;
 
     //policyのセット
-    if (position_.turnNumber() < search_options_.random_turn) {
+    if (position_.turnNumber() <= search_options_.random_turn) {
         //分布に従ってランダムに行動選択
         //探索回数を正規化した分布
         std::vector<FloatType> N_dist(root_node.moves.size());
@@ -219,7 +229,7 @@ void GenerateWorker::select() {
         game_.elements.push_back(result);
 
         float score;
-        if (position_.isFinish(score) || position_.turnNumber() >= search_options_.draw_turn) {
+        if (position_.isFinish(score, false) || position_.turnNumber() > search_options_.draw_turn) {
             //決着したので最終結果を設定
             game_.result = (position_.color() == BLACK ? score : -score);
 

@@ -83,14 +83,11 @@ void checkGenSpeed() {
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
 
     constexpr int64_t buffer_size = 1048576;
-    constexpr int64_t N = 4;
     SearchOptions search_options;
-    search_options.use_fp16 = false;
     search_options.search_limit = 800;
-    search_options.draw_turn = 512;
-    search_options.random_turn = 512;
-    search_options.temperature_x1000 = 100;
-    search_options.thread_num_per_gpu = 4;
+    search_options.draw_turn = 320;
+    search_options.random_turn = 320;
+    search_options.temperature_x1000 = 10;
     constexpr FloatType Q_dist_lambda = 1.0;
 
     nn->setGPU(0, search_options.use_fp16);
@@ -98,50 +95,44 @@ void checkGenSpeed() {
 
     std::cout << std::fixed;
 
-    std::ofstream ofs("check_gen_speed.txt");
+    std::ofstream ofs("check_gen_speed.txt", std::ios::app);
     ofs << "thread batch_size worker pos sec speed(pos/sec)" << std::fixed << std::endl;
 
-    for (int64_t worker_num = 32; worker_num <= 64; worker_num *= 2) {
-        for (search_options.search_batch_size = 1; search_options.search_batch_size <= search_options.search_limit / 2; search_options.search_batch_size *= 2) {
-            ReplayBuffer buffer(0, buffer_size, 100 * buffer_size, 1.0, 1.0, false);
-            auto start = std::chrono::steady_clock::now();
-            GameGenerator generator(search_options, worker_num, Q_dist_lambda, buffer, nn);
-            std::thread t(&GameGenerator::genGames, &generator);
-            std::vector<double> gen_speeds;
-            while (true) {
-                std::this_thread::sleep_for(std::chrono::seconds(60));
-                auto curr_time = std::chrono::steady_clock::now();
-                auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
-                double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
-                std::cout << "thread = " << search_options.thread_num_per_gpu
-                          << ",  batch_size = " << std::setw(2) << search_options.search_batch_size
-                          << ",  worker = " << std::setw(4) << worker_num
-                          << ",  pos = " << std::setw(7) << buffer.totalNum()
-                          << ",  sec = " << std::setw(9) << ela.count() / 1000
-                          << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec"
-                          << std::endl;
-                gen_speeds.push_back(gen_speed_per_sec);
-                if (gen_speeds.size() < N) {
-                    continue;
-                }
+    constexpr int64_t sec = 120;
+    constexpr int64_t num = 10;
 
-                //直近N回を見て、その中の最大値と最小値が基準値以下だったら収束したと判定して打ち切る
-                double min_value = *std::min_element(gen_speeds.end() - N, gen_speeds.end());
-                double max_value = *std::max_element(gen_speeds.end() - N, gen_speeds.end());
-                if (min_value != 0 && (max_value - min_value) < 5e-2) {
-                    ofs << search_options.thread_num_per_gpu << " "
-                        << std::setw(2) << search_options.search_batch_size << " "
-                        << std::setw(4) << worker_num << " "
-                        << std::setw(7) << buffer.totalNum() << " "
-                        << std::setw(9) << ela.count() / 1000 << " "
-                        << std::setprecision(3) << gen_speed_per_sec << std::endl;
-                    break;
+    for (search_options.thread_num_per_gpu = 2; search_options.thread_num_per_gpu <= 4; search_options.thread_num_per_gpu++) {
+        for (int64_t worker_num = 32; worker_num <= 32; worker_num *= 2) {
+            for (search_options.search_batch_size = 4; search_options.search_batch_size <= 16; search_options.search_batch_size *= 2) {
+                ReplayBuffer buffer(0, buffer_size, 1, 1.0, 1.0, false);
+                auto start = std::chrono::steady_clock::now();
+                GameGenerator generator(search_options, worker_num, Q_dist_lambda, buffer, nn);
+                std::thread t(&GameGenerator::genGames, &generator);
+                for (int64_t i = 0; i < num; i++) {
+                    std::this_thread::sleep_for(std::chrono::seconds(sec));
+                    auto curr_time = std::chrono::steady_clock::now();
+                    auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
+                    double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
+                    std::cout << "thread = " << search_options.thread_num_per_gpu
+                              << ",  batch_size = " << std::setw(2) << search_options.search_batch_size
+                              << ",  worker = " << std::setw(3) << worker_num
+                              << ",  pos = " << std::setw(7) << buffer.totalNum()
+                              << ",  min = " << std::setw(4) << ela.count() / 60000
+                              << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec"
+                              << std::endl;
                 }
+                ofs << search_options.thread_num_per_gpu << " "
+                    << std::setw(2) << search_options.search_batch_size << " "
+                    << std::setw(4) << worker_num << " "
+                    << std::setw(7) << buffer.totalNum() << " "
+                    << std::setw(9) << num * sec << " "
+                    << std::setprecision(3) << (double) buffer.totalNum() / (num * sec) << std::endl;
+                generator.stop_signal = true;
+                t.join();
             }
-            generator.stop_signal = true;
-            t.join();
         }
     }
+    exit(0);
 }
 
 void checkSearchSpeed() {

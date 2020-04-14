@@ -9,7 +9,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #endif
 
     int32_t max_index = -1;
-    FloatType max_value = MIN_SCORE - 1;
+    FloatType max_value = INT_MIN;
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
     for (uint64_t i = 0; i < node.moves.size(); i++) {
@@ -19,7 +19,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #ifdef USE_CATEGORICAL
         FloatType P = 0.0;
         if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
-            P = (node.N[i] == 0 ? 0 : 1);
+            P = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : 1);
         } else {
             std::unique_lock lock(hash_table_[node.child_indices[i]].mutex);
             //勝ち筋があるなら即選ぶ
@@ -36,7 +36,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
             ucb += search_options_.Q_coeff_x1000 / 1000.0 * hash_table_.expQfromNext(node, i);
         }
 #else
-        FloatType Q = (node.N[i] == 0 ? MIN_SCORE : hash_table_.QfromNextValue(node, i));
+        FloatType Q = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : hash_table_.QfromNextValue(node, i));
         FloatType ucb = search_options_.Q_coeff_x1000 / 1000.0 * Q
                       + search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
 #endif
@@ -62,7 +62,7 @@ void Searcher::select(Position& pos) {
     while (index != HashTable::NOT_EXPANDED) {
         std::unique_lock<std::mutex> lock(hash_table_[index].mutex);
 
-        if (pos.turnNumber() >= search_options_.draw_turn) {
+        if (pos.turnNumber() > search_options_.draw_turn) {
             //手数が制限まで達している場合も抜ける
             break;
         }
@@ -90,8 +90,8 @@ void Searcher::select(Position& pos) {
         curr_actions.push(action);
 
         //VIRTUAL_LOSSの追加
-        hash_table_[index].virtual_N[action] += VIRTUAL_LOSS;
-        hash_table_[index].virtual_sum_N += VIRTUAL_LOSS;
+        hash_table_[index].virtual_N[action] += search_options_.virtual_loss;
+        hash_table_[index].virtual_sum_N += search_options_.virtual_loss;
 
         //遷移
         pos.doMove(hash_table_[index].moves[action]);
@@ -103,6 +103,11 @@ void Searcher::select(Position& pos) {
     if (curr_indices.empty()) {
         std::cout << "curr_indices.empty()" << std::endl;
         pos.print();
+        std::cout << pos.toStr() << std::endl;
+        std::cout << "pos.turnNumber() >= search_options_.draw_turn = " <<  (pos.turnNumber() >= search_options_.draw_turn) << std::endl;
+        float score;
+        std::cout << "index != hash_table_.root_index && pos.isFinish(score) = " << (index != hash_table_.root_index && pos.isFinish(score)) << std::endl;
+        std::cout << "hash_table_[index].nn_policy.size() != hash_table_[index].moves.size() = " << (hash_table_[index].nn_policy.size() != hash_table_[index].moves.size()) << std::endl;
         exit(1);
     }
 
@@ -143,15 +148,6 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
             //どちらの場合でもバックアップして良い,と思う
             //GPUに送らないのでこのタイミングでバックアップを行う
             backup(indices, actions);
-        } else {
-            //評価済みではないけどここへ到達したならば,同じループの中で同じ局面へ到達があったということ
-            //全く同じ経路のものがあるかどうか確認
-            auto itr = std::find(backup_queue_.indices.begin(), backup_queue_.indices.end(), indices);
-            if (itr == backup_queue_.indices.end()) {
-                //同じものがなかったならばバックアップ要求を追加
-                backup_queue_.indices.push_back(indices);
-                backup_queue_.actions.push_back(actions);
-            }
         }
         return index;
     }
@@ -167,10 +163,11 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
         return -1;
     }
 
-    //取得したノードをロック
-    hash_table_[index].mutex.lock();
-
+    //ノードを取得
     HashEntry& curr_node = hash_table_[index];
+
+    //取得したノードをロック
+    curr_node.mutex.lock();
 
     // 候補手の展開
     curr_node.moves = pos.generateAllMoves();
@@ -186,11 +183,12 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
     curr_node.is_lose = false;
     curr_node.is_win = false;
     curr_node.evaled = false;
+    curr_node.nn_policy.clear();
     curr_node.value = ValueType{};
 
     //ノードを評価
     float finish_score;
-    if (pos.isFinish(finish_score) || pos.turnNumber() >= search_options_.draw_turn) {
+    if (pos.isFinish(finish_score) || pos.turnNumber() > search_options_.draw_turn) {
 #ifdef USE_CATEGORICAL
         curr_node.value = onehotDist(finish_score);
 #else
@@ -200,10 +198,10 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
         curr_node.is_win = (finish_score == MAX_SCORE);
         curr_node.evaled = true;
         //GPUに送らないのでこのタイミングでバックアップを行う
-        hash_table_[index].mutex.unlock();
+        curr_node.mutex.unlock();
         backup(indices, actions);
     } else {
-        hash_table_[index].mutex.unlock();
+        curr_node.mutex.unlock();
 
         //GPUへの計算要求を追加
         std::vector<FloatType> this_feature = pos.makeFeature();
@@ -225,6 +223,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
     indices.pop();
     hash_table_[leaf].mutex.lock();
     ValueType value = hash_table_[leaf].value;
+    assert(hash_table_[leaf].evaled);
     hash_table_[leaf].mutex.unlock();
 
     //毎回計算するのは無駄だけど仕方ないか
@@ -245,9 +244,8 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         value = MAX_SCORE + MIN_SCORE - value;
 #endif
         // 探索結果の反映
-        hash_table_[index].mutex.lock();
-
         HashEntry& node = hash_table_[index];
+        node.mutex.lock();
 
         //探索回数の更新
         node.N[action]++;
@@ -283,23 +281,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
         node.value += alpha * (value - curr_v);
         value = lambda * value + (1.0f - lambda) * curr_v;
 
-        //最大バックアップ
-//#ifdef USE_CATEGORICAL
-//        node.value = onehotDist(MIN_SCORE);
-//        for (int32_t i = 0; i < node.moves.size(); i++) {
-//            FloatType q = QfromNextValue(node, i);
-//            if (expOfValueDist(q) > expOfValueDist(node.value)) {
-//                node.value = q;
-//            }
-//        }
-//#else
-//        node.value = MIN_SCORE;
-//        for (int32_t i = 0; i < node.moves.size(); i++) {
-//            node.value = std::max(node.value, QfromNextValue(node, i));
-//        }
-//#endif
-
-        hash_table_[index].mutex.unlock();
+        node.mutex.unlock();
     }
 }
 
