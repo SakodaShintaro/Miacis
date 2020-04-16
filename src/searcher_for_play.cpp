@@ -24,6 +24,10 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
         }
     }
 
+    if (search_options.output_log_file) {
+        log_file_.open("search_log.txt");
+    }
+
 #ifdef SHOGI
     book_.open(search_options.book_file_name);
 #endif
@@ -32,6 +36,11 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
 Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
+
+    if (search_options_.output_log_file) {
+        log_file_ << "startSearch" << std::endl;
+        log_file_ << root.toStr() << std::endl;
+    }
 
 #ifdef SHOGI
     float score;
@@ -108,7 +117,15 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     mate_thread.join();
 
     //読み筋などの情報出力
-    printUSIInfo();
+    if (search_options_.print_info) {
+        outputInfo(std::cout, 3);
+    }
+    if (search_options_.output_log_file) {
+        outputInfo(log_file_, 1);
+    }
+    if (search_options_.output_log_file) {
+        log_file_ << "endSearch" << std::endl;
+    }
 
     //行動選択
     if (root.turnNumber() <= search_options_.random_turn) {
@@ -201,7 +218,12 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
         auto elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_).count();
         if (elapsed_msec >= next_print_time_) {
             next_print_time_ += next_print_time_;
-            printUSIInfo();
+            if (search_options_.print_info) {
+                outputInfo(std::cout, 3);
+            }
+            if (search_options_.output_log_file) {
+                outputInfo(log_file_, 1);
+            }
         }
         hash_table_[hash_table_.root_index].mutex.unlock();
 
@@ -252,48 +274,55 @@ std::vector<Move> SearcherForPlay::getPV() const {
     return pv;
 }
 
-void SearcherForPlay::printUSIInfo() const {
-    if (!search_options_.print_info) {
-        return;
-    }
+void SearcherForPlay::outputInfo(std::ostream& ost, int64_t gather_num) const {
+    //表示の設定
+    ost << std::fixed << std::setfill('0');
+
+    //ノードの取得
     const HashEntry& curr_node = hash_table_[hash_table_.root_index];
 
+    //最善手（探索回数最大手）の価値を計算
     int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
-
-    //選択した着手の勝率の算出
     FloatType best_value = hash_table_.expQfromNext(curr_node, best_index);
 
 #ifdef USE_CATEGORICAL
     //分布の表示
-    constexpr int64_t gather_num = 3;
+    //51分割を51行で表示すると見づらいのでいくらか領域をまとめる
     for (int64_t i = 0; i < BIN_SIZE / gather_num; i++) {
         double p = 0.0;
+
+        //gather_num分だけ合算する
         for (int64_t j = 0; j < gather_num; j++) {
             p += hash_table_.QfromNextValue(curr_node, best_index)[i * gather_num + j];
         }
-        printf("info string [%+6.2f:%06.2f%%]:", MIN_SCORE + VALUE_WIDTH * (gather_num * i + 1.5), p * 100);
+
+        //表示
+        ost << "info string [" << std::setprecision(2) << std::showpos << MIN_SCORE + VALUE_WIDTH * (gather_num * (i + 0.5))
+            << ":" << std::setw(5) << std::setprecision(1) << std::noshowpos << p * 100
+            << "]:";
         for (int64_t j = 0; j < p * 50; j++) {
-            printf("*");
+            ost << "*";
         }
-        printf("\n");
+        ost << std::endl;
     }
 #endif
+
     //探索にかかった時間を求める
     auto finish_time = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - start_);
     int64_t ela = elapsed.count();
 
-    printf("info nps %d time %d nodes %d hashfull %d score cp %d pv ",
-           (int32_t)(curr_node.sum_N * 1000LL / std::max(ela, (int64_t)1)),
-           (int32_t)(ela),
-           curr_node.sum_N,
-           (int32_t) (hash_table_.getUsageRate() * 1000),
-           (int32_t) (best_value * 5000));
-
+    //表示
+    ost << "info nps " << (int32_t)(curr_node.sum_N * 1000LL / std::max(ela, (int64_t)1))
+        << " time " << ela
+        << " nodes " << curr_node.sum_N
+        << " hashfull " << (int32_t)(hash_table_.getUsageRate() * 1000)
+        << " score cp " << (int32_t)(best_value * 5000)
+        << " pv ";
     for (Move move : getPV()) {
-        std::cout << move << " ";
+        ost << move << " ";
     }
-    std::cout << std::endl;
+    ost << std::endl;
 
     //指し手について表示する必要がないならここで終了
     if (search_options_.print_policy_num <= 0) {
@@ -305,7 +334,7 @@ void SearcherForPlay::printUSIInfo() const {
     for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
         Q[i] = hash_table_.expQfromNext(curr_node, i);
     }
-    std::vector<FloatType> softmaxed_Q = softmax(Q, search_options_.temperature_x1000 / 1000.f);
+    std::vector<FloatType> softmaxed_Q = softmax(Q, std::max(search_options_.temperature_x1000, (int64_t)1) / 1000.f);
 
     //ソートするために構造体を準備
     struct MoveWithInfo {
@@ -343,26 +372,23 @@ void SearcherForPlay::printUSIInfo() const {
     //指定された数だけ価値が高い順に表示する
     //GUIを通すと後に出力したものが上に来るので昇順ソートしたものを出力すれば上から降順になる
     for (uint64_t i = std::max((int64_t)0, (int64_t)curr_node.moves.size() - search_options_.print_policy_num);
-                  i < curr_node.moves.size(); i++) {
+         i < curr_node.moves.size(); i++) {
+        ost << "info string " << std::setw(3) << curr_node.moves.size() - i << "  "
+                              << std::setw(5) << std::setprecision(1) << moves_with_info[i].nn_output_policy * 100.0 << "  "
+                              << std::setw(5) << std::setprecision(1) << moves_with_info[i].N * 100.0 / curr_node.sum_N << "  "
+                              << std::setw(5) << std::setprecision(1) << moves_with_info[i].softmaxed_Q * 100.0 << "  "
+                              << std::setw(5) << std::setprecision(3) << std::showpos << moves_with_info[i].Q << std::noshowpos << "  "
 #ifdef USE_CATEGORICAL
-        printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  %05.1f ", curr_node.moves.size() - i,
-               moves_with_info[i].nn_output_policy * 100.0,
-               moves_with_info[i].N * 100.0 / curr_node.sum_N,
-               moves_with_info[i].softmaxed_Q * 100,
-               moves_with_info[i].Q,
-               moves_with_info[i].prob_over_best_Q * 100);
-#else
-        printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  ", curr_node.moves.size() - i,
-                                                                      moves_with_info[i].nn_output_policy * 100.0,
-                                                                      moves_with_info[i].N * 100.0 / curr_node.sum_N,
-                                                                      moves_with_info[i].softmaxed_Q * 100,
-                                                                      moves_with_info[i].Q);
+                              << std::setw(5) << std::setprecision(1) << moves_with_info[i].prob_over_best_Q * 100.0 << "  "
 #endif
-        moves_with_info[i].move.print();
+                              << moves_with_info[i].move.toPrettyStr() << std::endl;
     }
 #ifdef USE_CATEGORICAL
-    std::cout << "info string 順位 NN出力 探索割合 価値分布 価値 最善超え確率" << std::endl;
+    ost << "info string 順位 NN出力 探索割合 価値分布 価値 最善超え確率" << std::endl;
 #else
-    std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
+    ost << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
 #endif
+
+    //設定をデフォルトに戻す
+    ost.clear();
 }

@@ -36,8 +36,8 @@ private:
     //PVを取得する関数
     std::vector<Move> getPV() const;
 
-    //情報をUSIプロトコルに従って標準出力に出す関数
-    void printUSIInfo() const;
+    //探索結果をストリームに出力する関数
+    void outputInfo(std::ostream& ost, int64_t gather_num) const;
 
     //探索に関するオプション
     const SearchOptions& search_options_;
@@ -65,6 +65,9 @@ private:
 
     //詰み探索エージェント
     SearcherForMate mate_searcher_;
+
+    //ログファイルを出力する場合のストリーム
+    std::ofstream log_file_;
 
 #ifdef SHOGI
     //定跡
