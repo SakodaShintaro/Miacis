@@ -295,70 +295,74 @@ void SearcherForPlay::printUSIInfo() const {
     }
     std::cout << std::endl;
 
-    if (search_options_.print_policy_num > 0) {
-        //まず各指し手の価値を取得
-        std::vector<FloatType> Q(curr_node.moves.size());
-        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-            Q[i] = hash_table_.expQfromNext(curr_node, i);
-        }
-        std::vector<FloatType> softmaxed_Q = softmax(Q, search_options_.temperature_x1000 / 1000.f);
+    //指し手について表示する必要がないならここで終了
+    if (search_options_.print_policy_num <= 0) {
+        return;
+    }
 
-        //ソートするために構造体を準備
-        struct MoveWithInfo {
-            Move move;
-            int32_t N;
-            FloatType nn_output_policy, Q, softmaxed_Q;
-#ifdef USE_CATEGORICAL
-            FloatType prob_over_best_Q;
-#endif
-            bool operator<(const MoveWithInfo& rhs) const {
-                return Q < rhs.Q;
-            }
-            bool operator>(const MoveWithInfo& rhs) const {
-                return Q > rhs.Q;
-            }
-        };
+    //まず各指し手の価値を取得
+    std::vector<FloatType> Q(curr_node.moves.size());
+    for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
+        Q[i] = hash_table_.expQfromNext(curr_node, i);
+    }
+    std::vector<FloatType> softmaxed_Q = softmax(Q, search_options_.temperature_x1000 / 1000.f);
 
-        std::vector<MoveWithInfo> moves_with_info(curr_node.moves.size());
-        for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-            moves_with_info[i].move = curr_node.moves[i];
-            moves_with_info[i].nn_output_policy = curr_node.nn_policy[i];
-            moves_with_info[i].N = curr_node.N[i];
-            moves_with_info[i].Q = Q[i];
-            moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
+    //ソートするために構造体を準備
+    struct MoveWithInfo {
+        Move move;
+        int32_t N;
+        FloatType nn_output_policy, Q, softmaxed_Q;
 #ifdef USE_CATEGORICAL
-            moves_with_info[i].prob_over_best_Q = 0;
-            for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
-                moves_with_info[i].prob_over_best_Q += hash_table_.QfromNextValue(curr_node, i)[j];
-            }
+        FloatType prob_over_best_Q;
 #endif
+        bool operator<(const MoveWithInfo& rhs) const {
+            return Q < rhs.Q;
         }
-        std::sort(moves_with_info.begin(), moves_with_info.end());
+        bool operator>(const MoveWithInfo& rhs) const {
+            return Q > rhs.Q;
+        }
+    };
 
-        //指定された数だけ価値が高い順に表示する
-        //GUIを通すと後に出力したものが上に来るので昇順ソートしたものを出力すれば上から降順になる
-        for (uint64_t i = std::max((int64_t)0, (int64_t)curr_node.moves.size() - search_options_.print_policy_num);
-                      i < curr_node.moves.size(); i++) {
+    //全指し手について情報を集めて価値順にソート
+    std::vector<MoveWithInfo> moves_with_info(curr_node.moves.size());
+    for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
+        moves_with_info[i].move = curr_node.moves[i];
+        moves_with_info[i].nn_output_policy = curr_node.nn_policy[i];
+        moves_with_info[i].N = curr_node.N[i];
+        moves_with_info[i].Q = Q[i];
+        moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
 #ifdef USE_CATEGORICAL
-            printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  %05.1f ", curr_node.moves.size() - i,
-                   moves_with_info[i].nn_output_policy * 100.0,
-                   moves_with_info[i].N * 100.0 / curr_node.sum_N,
-                   moves_with_info[i].softmaxed_Q * 100,
-                   moves_with_info[i].Q,
-                   moves_with_info[i].prob_over_best_Q * 100);
-#else
-            printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  ", curr_node.moves.size() - i,
-                                                                          moves_with_info[i].nn_output_policy * 100.0,
-                                                                          moves_with_info[i].N * 100.0 / curr_node.sum_N,
-                                                                          moves_with_info[i].softmaxed_Q * 100,
-                                                                          moves_with_info[i].Q);
-#endif
-            moves_with_info[i].move.print();
+        moves_with_info[i].prob_over_best_Q = 0;
+        for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
+            moves_with_info[i].prob_over_best_Q += hash_table_.QfromNextValue(curr_node, i)[j];
         }
-#ifdef USE_CATEGORICAL
-        std::cout << "info string 順位 NN出力 探索割合 価値分布 価値 最善超え確率" << std::endl;
-#else
-        std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
 #endif
     }
+    std::sort(moves_with_info.begin(), moves_with_info.end());
+
+    //指定された数だけ価値が高い順に表示する
+    //GUIを通すと後に出力したものが上に来るので昇順ソートしたものを出力すれば上から降順になる
+    for (uint64_t i = std::max((int64_t)0, (int64_t)curr_node.moves.size() - search_options_.print_policy_num);
+                  i < curr_node.moves.size(); i++) {
+#ifdef USE_CATEGORICAL
+        printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  %05.1f ", curr_node.moves.size() - i,
+               moves_with_info[i].nn_output_policy * 100.0,
+               moves_with_info[i].N * 100.0 / curr_node.sum_N,
+               moves_with_info[i].softmaxed_Q * 100,
+               moves_with_info[i].Q,
+               moves_with_info[i].prob_over_best_Q * 100);
+#else
+        printf("info string %03lu  %05.1f  %05.1f  %05.1f  %+0.3f  ", curr_node.moves.size() - i,
+                                                                      moves_with_info[i].nn_output_policy * 100.0,
+                                                                      moves_with_info[i].N * 100.0 / curr_node.sum_N,
+                                                                      moves_with_info[i].softmaxed_Q * 100,
+                                                                      moves_with_info[i].Q);
+#endif
+        moves_with_info[i].move.print();
+    }
+#ifdef USE_CATEGORICAL
+    std::cout << "info string 順位 NN出力 探索割合 価値分布 価値 最善超え確率" << std::endl;
+#else
+    std::cout << "info string 順位 NN出力 探索割合 価値分布 価値" << std::endl;
+#endif
 }
