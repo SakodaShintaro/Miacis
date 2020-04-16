@@ -31,6 +31,7 @@ USI::USI() : searcher_(nullptr) {
     command_["checkMirror"]        = checkMirror;
     command_["checkBook"]          = checkBook;
     command_["makeBook"]           = makeBook;
+    command_["searchWithLog"]      = searchWithLog;
 }
 
 void USI::loop() {

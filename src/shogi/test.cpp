@@ -378,3 +378,33 @@ void makeBook() {
     }
     std::cout << "finish makeBook" << std::endl;
 }
+
+void searchWithLog() {
+    SearchOptions search_options;
+    search_options.USI_Hash = 8192;
+    search_options.random_turn = 30;
+    search_options.print_info = false;
+    search_options.output_log_file = true;
+    SearcherForPlay searcher(search_options);
+
+    for (int64_t i = 0; i < LLONG_MAX; i++) {
+        std::cout << i << std::endl;
+        Position pos;
+
+        while (true) {
+            Move best_move = searcher.think(pos, 30000);
+            std::cout << best_move << " ";
+            if (best_move == NULL_MOVE) {
+                //終了
+                break;
+            }
+
+            pos.doMove(best_move);
+            float finish_score;
+            if (pos.isFinish(finish_score)) {
+                break;
+            }
+        }
+        std::cout << std::endl;
+    }
+}
