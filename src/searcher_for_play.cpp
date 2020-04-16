@@ -111,7 +111,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     printUSIInfo();
 
     //行動選択
-    if (root.turnNumber() < search_options_.random_turn) {
+    if (root.turnNumber() <= search_options_.random_turn) {
         std::vector<FloatType> distribution(curr_node.moves.size());
         if (search_options_.temperature_x1000 == 0) {
             //探索回数を正規化した分布に従って行動選択
