@@ -122,8 +122,6 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     }
     if (search_options_.output_log_file) {
         outputInfo(log_file_, 1);
-    }
-    if (search_options_.output_log_file) {
         log_file_ << "endSearch" << std::endl;
     }
 
