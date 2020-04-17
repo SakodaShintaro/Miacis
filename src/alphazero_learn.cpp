@@ -169,7 +169,7 @@ void alphaZero() {
         }
 
         //replay_bufferのpriorityを更新
-        std::vector<float> loss_vec(loss_sum.data<float>(), loss_sum.data<float>() + batch_size);
+        std::vector<float> loss_vec(loss_sum.data_ptr<float>(), loss_sum.data_ptr<float>() + batch_size);
 
         //mixupモードのときは損失を複製して2倍に拡張。これもうちょっと上手く書けないものか……
         if (mixup_alpha != 0) {
@@ -242,7 +242,7 @@ void alphaZero() {
         if (step_num == learn_rate_decay_step1
          || step_num == learn_rate_decay_step2
          || step_num == learn_rate_decay_step3) {
-            optimizer.options.learning_rate_ /= 10;
+            optimizer.options.learning_rate() /= 10;
         }
 
         //GPUを解放

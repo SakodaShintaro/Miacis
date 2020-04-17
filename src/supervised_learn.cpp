@@ -144,7 +144,7 @@ void supervisedLearn() {
             }
 
             if (global_step == lr_decay_step1 || global_step == lr_decay_step2) {
-                optimizer.options.learning_rate_ /= 10;
+                optimizer.options.learning_rate() /= 10;
             }
         }
     }

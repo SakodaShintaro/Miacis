@@ -27,7 +27,7 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
         state_blocks_[i] = register_module("state_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
-    policy_conv_ = register_module("policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
+    policy_conv_ = register_module("policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).bias(true)));
     value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
     value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
@@ -113,12 +113,12 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     //CPUに持ってくる
     torch::Tensor policy = y.first.cpu();
     if (fp16_) {
-        torch::Half* p = policy.data<torch::Half>();
+        torch::Half* p = policy.data_ptr<torch::Half>();
         for (uint64_t i = 0; i < batch_size; i++) {
             policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
         }
     } else {
-        float* p = policy.data<float>();
+        float* p = policy.data_ptr<float>();
         for (uint64_t i = 0; i < batch_size; i++) {
             policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
         }
@@ -127,12 +127,12 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
 #ifdef USE_CATEGORICAL
     torch::Tensor value = torch::softmax(y.second, 1).cpu();
     if (fp16_) {
-        torch::Half* value_p = value.data<torch::Half>();
+        torch::Half* value_p = value.data_ptr<torch::Half>();
         for (uint64_t i = 0; i < batch_size; i++) {
             std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
         }
     } else {
-        float* value_p = value.data<float>();
+        float* value_p = value.data_ptr<float>();
         for (uint64_t i = 0; i < batch_size; i++) {
             std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
         }
@@ -141,9 +141,9 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     //CPUに持ってくる
     torch::Tensor value = y.second.cpu();
     if (fp16_) {
-        std::copy(value.data<torch::Half>(), value.data<torch::Half>() + batch_size, values.begin());
+        std::copy(value.data_ptr<torch::Half>(), value.data_ptr<torch::Half>() + batch_size, values.begin());
     } else {
-        std::copy(value.data<float>(), value.data<float>() + batch_size, values.begin());
+        std::copy(value.data_ptr<float>(), value.data_ptr<float>() + batch_size, values.begin());
     }
 #endif
     return { policies, values };
