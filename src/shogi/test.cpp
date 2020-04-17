@@ -182,7 +182,7 @@ void checkSearchSpeed() {
         Move best_move = searcher.think(pos, time_limit);
         const HashTable& hash_table = searcher.hashTable();
         const HashEntry& root_entry = hash_table[hash_table.root_index];
-        std::cout << root_entry.sum_N / (time_limit / 1000.0) << " " << best_move << std::endl;
+        std::cout << root_entry.sum_N / (time_limit / 1000.0) << "\t" << best_move << std::endl;
     }
 
     pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
@@ -192,7 +192,7 @@ void checkSearchSpeed() {
         Move best_move = searcher.think(pos, time_limit);
         const HashTable& hash_table = searcher.hashTable();
         const HashEntry& root_entry = hash_table[hash_table.root_index];
-        std::cout << root_entry.sum_N / (time_limit / 1000.0) << " " << best_move << std::endl;
+        std::cout << root_entry.sum_N / (time_limit / 1000.0) << "\t" << best_move << std::endl;
     }
 
     std::cout << "finish checkSearchSpeed" << std::endl;
@@ -377,4 +377,35 @@ void makeBook() {
         book.write("book.txt");
     }
     std::cout << "finish makeBook" << std::endl;
+}
+
+void searchWithLog() {
+    SearchOptions search_options;
+    search_options.USI_Hash = 8192;
+    search_options.random_turn = 30;
+    search_options.print_policy_num = 600;
+    search_options.print_info = false;
+    search_options.output_log_file = true;
+    SearcherForPlay searcher(search_options);
+
+    for (int64_t i = 0; i < LLONG_MAX; i++) {
+        std::cout << i << std::endl;
+        Position pos;
+
+        while (true) {
+            Move best_move = searcher.think(pos, 30000);
+            std::cout << best_move << " ";
+            if (best_move == NULL_MOVE) {
+                //終了
+                break;
+            }
+
+            pos.doMove(best_move);
+            float finish_score;
+            if (pos.isFinish(finish_score)) {
+                break;
+            }
+        }
+        std::cout << std::endl;
+    }
 }

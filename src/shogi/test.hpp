@@ -12,5 +12,6 @@ void checkDoAndUndo();
 void checkMirror();
 void checkBook();
 void makeBook();
+void searchWithLog();
 
 #endif // !TEST_HPP

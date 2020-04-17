@@ -6,6 +6,7 @@
 #include"../types.hpp"
 #include<unordered_map>
 #include<iostream>
+#include<sstream>
 
 enum MoveConst {
     //0000 0000 0000 0000 0000 0000 0111 1111 to
@@ -84,6 +85,26 @@ public:
             std::cout << "capture:" << PieceToStr[capture()];
         }
         std::cout << std::endl;
+    }
+
+    std::string toPrettyStr() const {
+        if (move_ == MOVE_DECLARE) {
+            return "入玉宣言";
+        }
+        std::stringstream str;
+        str << SquareToFile[to()] << SquareToRank[to()] << PieceToStr[subject()];
+        if (isPromote()) {
+            str << "成";
+        }
+        if (isDrop()) {
+            str << "打";
+        } else {
+            str << "(" << SquareToFile[from()] << SquareToRank[from()] << ") ";
+        }
+        if (capture() != EMPTY) {
+            str << "capture:" << PieceToStr[capture()];
+        }
+        return str.str();
     }
 
     //要素を取り出す関数ら
