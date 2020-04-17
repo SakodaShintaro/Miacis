@@ -265,7 +265,7 @@ NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha)
 #ifdef USE_CATEGORICAL
     torch::Tensor categorical_target = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                                                 torch::tensor(value_teacher_dist).to(device_)).view({ -1, BIN_SIZE });
-    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);;
+    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);
 #else
 
     torch::Tensor value_t = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
@@ -357,7 +357,7 @@ NeuralNetworkImpl::mixUpLossFinalLayer(const std::vector<LearningData>& data, fl
 #ifdef USE_CATEGORICAL
     torch::Tensor categorical_target = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                                                 torch::tensor(value_teacher_dist).to(device_)).view({ -1, BIN_SIZE });
-    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);;
+    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);
 #else
 
     torch::Tensor value_t = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
