@@ -184,7 +184,6 @@ NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
     torch::Tensor categorical_target = torch::tensor(value_teachers).to(device_);
     torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
 #else
-
     torch::Tensor value_t = (fp16_ ? torch::tensor(value_teachers).to(device_, torch::kHalf) :
                                      torch::tensor(value_teachers).to(device_));
     torch::Tensor value = y.second.view(-1);
@@ -265,9 +264,8 @@ NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha)
 #ifdef USE_CATEGORICAL
     torch::Tensor categorical_target = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                                                 torch::tensor(value_teacher_dist).to(device_)).view({ -1, BIN_SIZE });
-    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);;
+    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);
 #else
-
     torch::Tensor value_t = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                                      torch::tensor(value_teacher_dist).to(device_));
     torch::Tensor value = y.second.view(-1);
@@ -357,9 +355,8 @@ NeuralNetworkImpl::mixUpLossFinalLayer(const std::vector<LearningData>& data, fl
 #ifdef USE_CATEGORICAL
     torch::Tensor categorical_target = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                                                 torch::tensor(value_teacher_dist).to(device_)).view({ -1, BIN_SIZE });
-    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);;
+    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);
 #else
-
     torch::Tensor value_t = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                              torch::tensor(value_teacher_dist).to(device_));
     torch::Tensor value = y.second.view(-1);
