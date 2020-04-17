@@ -4,6 +4,7 @@ weight_decay        0.0
 mixup_alpha         0.0
 policy_loss_coeff   1.0
 value_loss_coeff    1.0
+rnd_loss_coeff      1.0
 data_augmentation   1
 batch_size          512
 max_step            50000
