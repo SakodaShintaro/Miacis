@@ -28,9 +28,9 @@ private:
 #ifdef USE_SEPARABLE_CONV
     SeparableConv        conv_{ nullptr };
 #else
-    torch::nn::Conv2d    conv_{ nullptr };
+    torch::nn::Conv2d      conv_{ nullptr };
 #endif
-    torch::nn::BatchNorm norm_{ nullptr };
+    torch::nn::BatchNorm2d norm_{ nullptr };
 };
 TORCH_MODULE(Conv2DwithBatchNorm);
 

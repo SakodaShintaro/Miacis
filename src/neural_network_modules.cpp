@@ -17,7 +17,7 @@ Conv2DwithBatchNormImpl::Conv2DwithBatchNormImpl(int64_t input_ch, int64_t outpu
 #else
     conv_ = register_module("conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(input_ch, output_ch, kernel_size).bias(false).padding(kernel_size / 2)));
 #endif
-    norm_ = register_module("norm_", torch::nn::BatchNorm(output_ch));
+    norm_ = register_module("norm_", torch::nn::BatchNorm2d(output_ch));
 }
 
 torch::Tensor Conv2DwithBatchNormImpl::forward(const torch::Tensor& x) {
