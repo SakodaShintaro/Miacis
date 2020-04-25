@@ -182,7 +182,7 @@ void checkSearchSpeed() {
         Move best_move = searcher.think(pos, time_limit);
         const HashTable& hash_table = searcher.hashTable();
         const HashEntry& root_entry = hash_table[hash_table.root_index];
-        std::cout << root_entry.sum_N / (time_limit / 1000.0) << " " << best_move << std::endl;
+        std::cout << root_entry.sum_N / (time_limit / 1000.0) << "\t" << best_move << std::endl;
     }
 
     pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
@@ -192,7 +192,7 @@ void checkSearchSpeed() {
         Move best_move = searcher.think(pos, time_limit);
         const HashTable& hash_table = searcher.hashTable();
         const HashEntry& root_entry = hash_table[hash_table.root_index];
-        std::cout << root_entry.sum_N / (time_limit / 1000.0) << " " << best_move << std::endl;
+        std::cout << root_entry.sum_N / (time_limit / 1000.0) << "\t" << best_move << std::endl;
     }
 
     std::cout << "finish checkSearchSpeed" << std::endl;

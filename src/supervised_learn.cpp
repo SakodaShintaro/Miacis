@@ -120,7 +120,7 @@ void supervisedLearn() {
             //表示
             dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
+                dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
             }
 
             if (global_step % validation_interval == 0) {

@@ -1,4 +1,4 @@
-learn_rate          0.02
+learn_rate          0.025
 momentum            0.9
 weight_decay        0.0
 mixup_alpha         0.0
@@ -6,9 +6,9 @@ policy_loss_coeff   1.0
 value_loss_coeff    1.0
 data_augmentation   1
 batch_size          512
-max_step            100000
+max_step            50000
 validation_interval 5000
-lr_decay_step1      100000
-lr_decay_step2      100000
+lr_decay_step1      50000
+lr_decay_step2      50000
 train_kifu_path     /root/training_kifu
 valid_kifu_path     /root/validation_kifu
