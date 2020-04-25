@@ -190,10 +190,10 @@ NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
 #endif
 #endif
-    
+
     return { policy_loss, value_loss };
 }
 
@@ -272,7 +272,7 @@ NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha)
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
 #endif
 #endif
 
@@ -363,7 +363,7 @@ NeuralNetworkImpl::mixUpLossFinalLayer(const std::vector<LearningData>& data, fl
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
 #endif
 #endif
 
