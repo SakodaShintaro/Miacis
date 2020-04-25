@@ -135,9 +135,14 @@ def main():
             continue
         miacis_manager.send_option("model_name", model_name)
 
+        # 対局を文字列化して同一性を判定するための集合
         moves_set = set()
 
+        # 勝敗の結果
         total_result = [0, 0, 0]
+
+        # 全く同じ対局が行われた回数
+        repetition_num = 0
 
         game_num = 0
         while game_num < args.game_num:
@@ -166,7 +171,7 @@ def main():
 
             if moves in moves_set:
                 # 以前の対局と重複があったということなので飛ばす
-                print("重複発生")
+                repetition_num += 1
                 continue
 
             game_num += 1
@@ -180,7 +185,7 @@ def main():
 
             winning_rate = (total_result[0] + 0.5 * total_result[1]) / sum(total_result)
             elo_rate = calc_elo_rate(winning_rate)
-            result_str = f"{step:7d}ステップ {total_result[0]:3d}勝 {total_result[1]:3d}引き分け {total_result[2]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
+            result_str = f"{step:7d}ステップ {total_result[0]:3d}勝 {total_result[1]:3d}引き分け {total_result[2]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f} 重複 {repetition_num:3d}"
 
             sys.stdout.write("\033[2K\033[G")
             print(result_str, end="\n" if game_num == args.game_num else "")
