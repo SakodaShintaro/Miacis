@@ -144,7 +144,7 @@ void supervisedLearn() {
             }
 
             if (global_step == lr_decay_step1 || global_step == lr_decay_step2) {
-                optimizer.options.learning_rate() /= 10;
+                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
             }
         }
     }

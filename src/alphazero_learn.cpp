@@ -242,7 +242,7 @@ void alphaZero() {
         if (step_num == learn_rate_decay_step1
          || step_num == learn_rate_decay_step2
          || step_num == learn_rate_decay_step3) {
-            optimizer.options.learning_rate() /= 10;
+            (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
         }
 
         //GPUを解放
