@@ -99,6 +99,8 @@ def main():
     parser.add_argument("--game_num", type=int, default=500)
     parser.add_argument("--search_limit", type=int, default=800)
     parser.add_argument("--init_model_step", type=int, default=0)
+    parser.add_argument("--search_batch_size", type=int, default=4)
+    parser.add_argument("--temperature_x1000", type=int, default=75)
     args = parser.parse_args()
 
     # カレントディレクトリ内にある{prefix}_{step}.modelを評価する
@@ -106,10 +108,6 @@ def main():
     # ディレクトリ名が"/"で終わっていることの確認
     if curr_path[-1] != "/":
         curr_path += "/"
-
-    # 結果を書き込むファイルを取得
-    f = open(curr_path + "result.txt", mode="a")
-    f.write(f"level = {args.level}, search_limit = {args.search_limit}\n")
 
     # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
     model_names = natsorted(glob.glob(curr_path + "*0.model"))
@@ -122,11 +120,18 @@ def main():
     miacis_manager = MiacisManager("scalar" if "sca" in model_names[0] else "categorical")
     miacis_manager.send_option("search_limit", args.search_limit)
     miacis_manager.send_option("byoyomi_margin", 10000000)
-    miacis_manager.send_option("search_batch_size", 8)
-    miacis_manager.send_option("temperature_x1000", 75)
+    miacis_manager.send_option("search_batch_size", args.search_batch_size)
+    miacis_manager.send_option("temperature_x1000", args.temperature_x1000)
     miacis_manager.send_option("gpu_num", 1)
     miacis_manager.send_option("thread_num_per_gpu", 1)
     miacis_manager.send_option("random_turn", 30)
+
+    # 結果を書き込むファイルを取得
+    f = open(curr_path + "result.txt", mode="a")
+    f.write(f"level = {args.level}, "
+            f"search_limit = {args.search_limit}, "
+            f"search_batch_size = {args.search_batch_size}"
+            f"temperature_x1000 = {args.temperature_x1000}\n")
 
     for model_name in model_names:
         # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
