@@ -117,9 +117,9 @@ void Searcher::select(Position& pos) {
     if (leaf_index == -1) {
         //shouldStopがtrueになったということ
         //基本的には置換表に空きがなかったということだと思われる
-        //ここには来ないように制御しているはずなので思い切って止める
+        //ここには来ないように制御しているはずだが、現状ときどき来ているっぽい
+        //別に止める必要はないので表示だけして進行
         std::cout << "leaf_index == -1" << std::endl;
-        std::exit(1);
     } else {
         //葉の直前ノードを更新
         hash_table_[index].mutex.lock();
