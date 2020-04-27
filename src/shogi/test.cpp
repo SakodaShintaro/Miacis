@@ -409,3 +409,12 @@ void searchWithLog() {
         std::cout << std::endl;
     }
 }
+
+void convertModelToCPU() {
+    //ネットワークの準備
+    NeuralNetwork nn;
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    nn->to(torch::kCPU);
+    torch::save(nn, NeuralNetworkImpl::MODEL_PREFIX + "_cpu.model");
+    std::cout << "finish convertModelToCPU" << std::endl;
+}
