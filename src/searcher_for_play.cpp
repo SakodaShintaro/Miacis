@@ -165,7 +165,9 @@ bool SearcherForPlay::shouldStop() {
 
     //ハッシュテーブルの容量チェック
     //並列化しているのでいくらか容量には余裕を持って確認しておかないといけない
-    if (!hash_table_.hasEmptyEntries(search_options_.thread_num_per_gpu * (search_options_.gpu_num + 1))) {
+    if (!hash_table_.hasEmptyEntries(search_options_.search_batch_size *
+                                     search_options_.thread_num_per_gpu *
+                                     search_options_.gpu_num)) {
         return true;
     }
 
