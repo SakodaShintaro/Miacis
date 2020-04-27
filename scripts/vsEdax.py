@@ -130,7 +130,7 @@ def main():
     f = open(curr_path + "result.txt", mode="a")
     f.write(f"level = {args.level}, "
             f"search_limit = {args.search_limit}, "
-            f"search_batch_size = {args.search_batch_size}"
+            f"search_batch_size = {args.search_batch_size}, "
             f"temperature_x1000 = {args.temperature_x1000}\n")
 
     for model_name in model_names:
