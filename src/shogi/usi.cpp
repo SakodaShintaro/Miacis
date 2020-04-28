@@ -32,6 +32,7 @@ USI::USI() : searcher_(nullptr) {
     command_["checkBook"]          = checkBook;
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
+    command_["convertModelToCPU"]  = convertModelToCPU;
 }
 
 void USI::loop() {

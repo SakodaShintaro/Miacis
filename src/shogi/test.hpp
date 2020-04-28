@@ -13,5 +13,6 @@ void checkMirror();
 void checkBook();
 void makeBook();
 void searchWithLog();
+void convertModelToCPU();
 
 #endif // !TEST_HPP
