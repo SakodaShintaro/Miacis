@@ -346,14 +346,18 @@ void SearcherForPlay::outputInfo(std::ostream& ost, int64_t gather_num) const {
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - start_);
     int64_t ela = elapsed.count();
 
+    //PVを取得
+    std::vector<Move> pv = getPV();
+
     //表示
     ost << "info nps " << (int32_t)(curr_node.sum_N * 1000LL / std::max(ela, (int64_t)1))
         << " time " << ela
         << " nodes " << curr_node.sum_N
+        << " depth " << pv.size()
         << " hashfull " << (int32_t)(hash_table_.getUsageRate() * 1000)
         << " score cp " << (int32_t)(best_value * 5000)
         << " pv ";
-    for (Move move : getPV()) {
+    for (Move move : pv) {
         ost << move << " ";
     }
     ost << std::endl;
