@@ -1,6 +1,18 @@
 ﻿#include "searcher_for_play.hpp"
 #include <thread>
 
+struct MoveWithScore {
+public:
+    Move move;
+    FloatType score;
+    bool operator<(const MoveWithScore& rhs) const {
+        return score < rhs.score;
+    }
+    bool operator>(const MoveWithScore& rhs) const {
+        return score > rhs.score;
+    }
+};
+
 SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
 : stop_signal(false), search_options_(search_options), hash_table_(search_options.USI_Hash * 1024 * 1024 / 10000), mate_searcher_(hash_table_, search_options) {
     //GPUを準備
@@ -247,9 +259,31 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
             for (uint64_t i = 0; i < gpu_queue.indices.size(); i++) {
                 std::unique_lock<std::mutex> lock(hash_table_[gpu_queue.indices[i]].mutex);
                 HashEntry& curr_node = hash_table_[gpu_queue.indices[i]];
-                curr_node.nn_policy.resize(curr_node.moves.size());
+
+                //Policyの大きい順にsearch_option.hold_moves_num個だけ残す
+                std::vector<MoveWithScore> moves_with_score(curr_node.moves.size());
                 for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-                    curr_node.nn_policy[j] = y.first[i][curr_node.moves[j].toLabel()];
+                    moves_with_score[j].move = curr_node.moves[j];
+                    moves_with_score[j].score = y.first[i][curr_node.moves[j].toLabel()];;
+                }
+
+                std::sort(moves_with_score.begin(), moves_with_score.end(), std::greater<MoveWithScore>());
+
+                int64_t moves_num = std::min((int64_t)curr_node.moves.size(), search_options_.hold_moves_num);
+                curr_node.moves.resize(moves_num);
+                curr_node.moves.shrink_to_fit();
+                curr_node.nn_policy.resize(moves_num);
+                curr_node.nn_policy.shrink_to_fit();
+                curr_node.child_indices.assign(moves_num, HashTable::NOT_EXPANDED);
+                curr_node.child_indices.shrink_to_fit();
+                curr_node.N.assign(moves_num, 0);
+                curr_node.N.shrink_to_fit();
+                curr_node.virtual_N.assign(moves_num, 0);
+                curr_node.virtual_N.shrink_to_fit();
+
+                for (uint64_t j = 0; j < moves_num; j++) {
+                    curr_node.moves[j] = moves_with_score[j].move;
+                    curr_node.nn_policy[j] = moves_with_score[j].score;
                 }
                 curr_node.nn_policy = softmax(curr_node.nn_policy);
                 curr_node.value = y.second[i];
