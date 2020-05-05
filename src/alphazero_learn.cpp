@@ -1,51 +1,10 @@
 ﻿#include"learn.hpp"
 #include"game_generator.hpp"
-#include"hyperparameter_manager.hpp"
+#include"hyperparameter_loader.hpp"
 
 void alphaZero() {
-    HyperparameterManager settings;
-    settings.add("learn_rate",             0.0f, 100.0f);
-    settings.add("momentum",               0.0f, 1.0f);
-    settings.add("weight_decay",           0.0f, 100.0f);
-    settings.add("lambda",                 0.0f, 1.0f);
-    settings.add("alpha",                  0.0f, 1e10f);
-    settings.add("mixup_alpha",            0.0f, 100.0f);
-    settings.add("Q_dist_temperature",     0.0f, 1e10f);
-    settings.add("Q_dist_lambda",          0.0f, 1.0f);
-    settings.add("C_PUCT",                 0.0f, 1e10f);
-    settings.add("use_fp16",               0, (int64_t)1);
-    settings.add("draw_turn",              0, (int64_t)1024);
-    settings.add("random_turn",            0, (int64_t)1024);
-    settings.add("batch_size",             1, (int64_t)1e10);
-    settings.add("thread_num_per_gpu",     1, (int64_t)std::thread::hardware_concurrency());
-    settings.add("max_step_num",           1, (int64_t)1e10);
-    settings.add("learn_rate_decay_step1", 0, (int64_t)1e10);
-    settings.add("learn_rate_decay_step2", 0, (int64_t)1e10);
-    settings.add("learn_rate_decay_step3", 0, (int64_t)1e10);
-    settings.add("update_interval",        1, (int64_t)1e10);
-    settings.add("batch_size_per_gen",     1, (int64_t)1e10);
-    settings.add("worker_num_per_thread",  1, (int64_t)1e10);
-    settings.add("max_stack_size",         1, (int64_t)1e10);
-    settings.add("first_wait",             0, (int64_t)1e10);
-    settings.add("data_augmentation",      0, (int64_t)1);
-    settings.add("search_limit",           1, (int64_t)1e10);
-    settings.add("search_batch_size",      1, (int64_t)1e10);
-    settings.add("output_interval",        1, (int64_t)1e10);
-    settings.add("save_interval",          1, (int64_t)1e10);
-    settings.add("validation_interval",    1, (int64_t)1e10);
-    settings.add("sleep_msec",            -1, (int64_t)1e10);
-    settings.add("init_buffer_by_kifu",    0, (int64_t)1);
-    settings.add("training_kifu_path");
-    settings.add("validation_kifu_path");
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
-    }
-
-    //設定をファイルからロード
-    settings.load("alphazero_settings.txt");
-
-    //値の取得
     SearchOptions search_options;
+    HyperparameterLoader settings("alphazero_settings.txt");
     float learn_rate                  = settings.get<float>("learn_rate");
     float momentum                    = settings.get<float>("momentum");
     float weight_decay                = settings.get<float>("weight_decay");
@@ -55,7 +14,7 @@ void alphaZero() {
     float Q_dist_lambda               = settings.get<float>("Q_dist_lambda");
     search_options.temperature_x1000  = settings.get<float>("Q_dist_temperature") * 1000;
     search_options.C_PUCT_x1000       = settings.get<float>("C_PUCT") * 1000;
-    search_options.use_fp16           = settings.get<int64_t>("use_fp16");
+    search_options.use_fp16           = settings.get<bool>("use_fp16");
     search_options.draw_turn          = settings.get<int64_t>("draw_turn");
     search_options.random_turn        = settings.get<int64_t>("random_turn");
     search_options.thread_num_per_gpu = settings.get<int64_t>("thread_num_per_gpu");
@@ -71,12 +30,12 @@ void alphaZero() {
     int64_t worker_num_per_thread     = settings.get<int64_t>("worker_num_per_thread");
     int64_t max_stack_size            = settings.get<int64_t>("max_stack_size");
     int64_t first_wait                = settings.get<int64_t>("first_wait");
-    int64_t data_augmentation         = settings.get<int64_t>("data_augmentation");
     int64_t output_interval           = settings.get<int64_t>("output_interval");
     int64_t save_interval             = settings.get<int64_t>("save_interval");
     int64_t validation_interval       = settings.get<int64_t>("validation_interval");
     int64_t sleep_msec                = settings.get<int64_t>("sleep_msec");
     int64_t init_buffer_by_kifu       = settings.get<int64_t>("init_buffer_by_kifu");
+    int64_t data_augmentation         = settings.get<bool>("data_augmentation");
     std::string training_kifu_path    = settings.get<std::string>("training_kifu_path");
     std::string validation_kifu_path  = settings.get<std::string>("validation_kifu_path");
 

@@ -21,7 +21,7 @@ set(SRCS hash_table.cpp
          searcher.cpp
          searcher_for_play.cpp
          searcher_for_mate.cpp
-         hyperparameter_manager.cpp
+         hyperparameter_loader.cpp
          segment_tree.cpp
          )
 

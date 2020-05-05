@@ -1,35 +1,15 @@
 ﻿#include"learn.hpp"
-#include"hyperparameter_manager.hpp"
+#include"hyperparameter_loader.hpp"
 #include<iostream>
 #include<random>
 
 void supervisedLearn() {
-    HyperparameterManager settings;
-    settings.add("learn_rate",          0.0f, 100.0f);
-    settings.add("momentum",            0.0f, 1.0f);
-    settings.add("weight_decay",        0.0f, 100.0f);
-    settings.add("mixup_alpha",         0.0f, 100.0f);
-    settings.add("batch_size",          1, (int64_t)1e10);
-    settings.add("data_augmentation",   0, (int64_t)1);
-    settings.add("max_step",            1, (int64_t)1e10);
-    settings.add("validation_interval", 1, (int64_t)1e10);
-    settings.add("lr_decay_step1",      1, (int64_t)1e10);
-    settings.add("lr_decay_step2",      1, (int64_t)1e10);
-    settings.add("train_kifu_path");
-    settings.add("valid_kifu_path");
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
-    }
-
-    //設定をファイルからロード
-    settings.load("supervised_learn_settings.txt");
-
-    //値の取得
+    HyperparameterLoader settings("supervised_learn_settings.txt");
     float learn_rate            = settings.get<float>("learn_rate");
     float momentum              = settings.get<float>("momentum");
     float weight_decay          = settings.get<float>("weight_decay");
     float mixup_alpha           = settings.get<float>("mixup_alpha");
-    bool data_augmentation      = settings.get<int64_t>("data_augmentation");
+    bool data_augmentation      = settings.get<bool>("data_augmentation");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
