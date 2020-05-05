@@ -17,6 +17,7 @@ result_points = [list() for _ in range(BIN_SIZE)]
 PHASE_NUM = 3
 result_points_each_phase = [[list() for _ in range(BIN_SIZE)] for i in range(PHASE_NUM)]
 
+total_result_for_miacis = [0, 0, 0]
 
 file_names = natsorted(glob.glob("./*.kif"))
 for file_name in file_names:
@@ -86,6 +87,17 @@ for file_name in file_names:
                 print(f"勝者:{white}")
                 result = -1
             break
+        elif move == "持将棋":
+            print(file_name, move)
+            turns.append(turn - 1)
+
+            # 読み筋が記録されている場合があるのでコメントだったら読み込み直す
+            if line2[0:2] == "**":
+                line2 = f.readline().strip()
+
+            # 勝敗を解釈
+            result = 0
+            break
 
         # 評価値を取得
         score_index = elements2.index("評価値") + 1
@@ -99,6 +111,9 @@ for file_name in file_names:
         if (turn % 2 == 1 and is_miacis_black) or (turn % 2 == 0 and not is_miacis_black):
             miacis_scores.append(float(score) / 5000)
 
+    result_for_miacis = result if is_miacis_black else -result
+    total_result_for_miacis[int(1 - result_for_miacis)] += 1
+
     for i, score in enumerate(miacis_scores):
         index = min(int((score + 1) // BIN_WIDTH), BIN_SIZE - 1)
         result_points[index].append(result)
@@ -106,10 +121,13 @@ for file_name in file_names:
         phase = min(i * PHASE_NUM // len(miacis_scores), PHASE_NUM - 1)
         result_points_each_phase[phase][index].append(result)
 print(f"対局数 {len(turns)}")
-print(np.min(turns))
-print(np.max(turns))
-print(np.mean(turns))
-print(np.std(turns))
+print(f"最小手数 {np.min(turns)}")
+print(f"最大手数 {np.max(turns)}")
+print(f"平均手数 {np.mean(turns)}")
+print(f"標準偏差 {np.std(turns)}")
+
+print("Miacisから見た勝敗")
+print(f"{total_result_for_miacis[0]}勝 {total_result_for_miacis[1]}引き分け {total_result_for_miacis[2]}敗")
 
 x = [-1 + BIN_WIDTH * (i + 0.5) for i in range(BIN_SIZE)]
 y = list()
