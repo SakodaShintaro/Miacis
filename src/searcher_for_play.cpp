@@ -269,7 +269,7 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
 
                 std::sort(moves_with_score.begin(), moves_with_score.end(), std::greater<MoveWithScore>());
 
-                int64_t moves_num = std::min((int64_t)curr_node.moves.size(), search_options_.hold_moves_num);
+                uint64_t moves_num = std::min((int64_t)curr_node.moves.size(), search_options_.hold_moves_num);
                 curr_node.moves.resize(moves_num);
                 curr_node.moves.shrink_to_fit();
                 curr_node.nn_policy.resize(moves_num);
