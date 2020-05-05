@@ -93,6 +93,10 @@ void checkGenSpeed() {
     nn->setGPU(0, search_options.use_fp16);
     nn->eval();
 
+    int64_t total_worker_num;
+    std::cout << "total_worker_num(デフォルトは128): ";
+    std::cin >> total_worker_num;
+
     std::cout << std::fixed;
 
     std::ofstream ofs("check_gen_speed.txt", std::ios::app);
@@ -102,34 +106,33 @@ void checkGenSpeed() {
     constexpr int64_t num = 10;
 
     for (search_options.thread_num_per_gpu = 2; search_options.thread_num_per_gpu <= 4; search_options.thread_num_per_gpu++) {
-        for (int64_t worker_num = 32; worker_num <= 32; worker_num *= 2) {
-            for (search_options.search_batch_size = 4; search_options.search_batch_size <= 16; search_options.search_batch_size *= 2) {
-                ReplayBuffer buffer(0, buffer_size, 1, 1.0, 1.0, false);
-                auto start = std::chrono::steady_clock::now();
-                GameGenerator generator(search_options, worker_num, Q_dist_lambda, buffer, nn);
-                std::thread t(&GameGenerator::genGames, &generator);
-                for (int64_t i = 0; i < num; i++) {
-                    std::this_thread::sleep_for(std::chrono::seconds(sec));
-                    auto curr_time = std::chrono::steady_clock::now();
-                    auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
-                    double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
-                    std::cout << "thread = " << search_options.thread_num_per_gpu
-                              << ",  batch_size = " << std::setw(2) << search_options.search_batch_size
-                              << ",  worker = " << std::setw(3) << worker_num
-                              << ",  pos = " << std::setw(7) << buffer.totalNum()
-                              << ",  min = " << std::setw(4) << ela.count() / 60000
-                              << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec"
-                              << std::endl;
-                }
-                ofs << search_options.thread_num_per_gpu << " "
-                    << std::setw(2) << search_options.search_batch_size << " "
-                    << std::setw(4) << worker_num << " "
-                    << std::setw(7) << buffer.totalNum() << " "
-                    << std::setw(9) << num * sec << " "
-                    << std::setprecision(3) << (double) buffer.totalNum() / (num * sec) << std::endl;
-                generator.stop_signal = true;
-                t.join();
+        int64_t worker_num = total_worker_num / search_options.thread_num_per_gpu;
+        for (search_options.search_batch_size = 1; search_options.search_batch_size <= 4; search_options.search_batch_size *= 2) {
+            ReplayBuffer buffer(0, buffer_size, 1, 1.0, 1.0, false);
+            auto start = std::chrono::steady_clock::now();
+            GameGenerator generator(search_options, worker_num, Q_dist_lambda, buffer, nn);
+            std::thread t(&GameGenerator::genGames, &generator);
+            for (int64_t i = 0; i < num; i++) {
+                std::this_thread::sleep_for(std::chrono::seconds(sec));
+                auto curr_time = std::chrono::steady_clock::now();
+                auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
+                double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
+                std::cout << "thread = " << search_options.thread_num_per_gpu
+                          << ",  batch_size = " << std::setw(2) << search_options.search_batch_size
+                          << ",  worker = " << std::setw(3) << worker_num
+                          << ",  pos = " << std::setw(7) << buffer.totalNum()
+                          << ",  min = " << std::setw(4) << ela.count() / 60000
+                          << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec"
+                          << std::endl;
             }
+            ofs << search_options.thread_num_per_gpu << " "
+                << std::setw(2) << search_options.search_batch_size << " "
+                << std::setw(4) << worker_num << " "
+                << std::setw(7) << buffer.totalNum() << " "
+                << std::setw(9) << num * sec << " "
+                << std::setprecision(3) << (double) buffer.totalNum() / (num * sec) << std::endl;
+            generator.stop_signal = true;
+            t.join();
         }
     }
     exit(0);
