@@ -225,7 +225,6 @@ void checkPredictSpeed() {
     Position pos;
     constexpr int64_t REPEAT_NUM = 1000;
     std::cout << std::fixed;
-    std::mt19937_64 engine(0);
 
     NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
@@ -277,7 +276,6 @@ void checkSegmentTree() {
     float sum = st.getSum();
     std::cout << std::fixed;
     std::cout << "sum = " << sum << std::endl;
-    std::mt19937_64 engine(0);
     std::uniform_real_distribution<float> dist(0.0, sum);
 
     constexpr int64_t sample_num = 10000;
@@ -296,7 +294,6 @@ void checkSegmentTree() {
 }
 
 void checkDoAndUndo() {
-    std::mt19937_64 engine(std::random_device{}());
     for (int64_t i = 0; i < 1000000000000; i++) {
         Position pos;
         float score;
@@ -319,7 +316,6 @@ void checkDoAndUndo() {
 }
 
 void checkMirror() {
-    std::mt19937_64 engine(std::random_device{}());
     for (int64_t i = 0; i < 1; i++) {
         Position pos;
         float score;

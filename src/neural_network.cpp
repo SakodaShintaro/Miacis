@@ -1,5 +1,6 @@
 ﻿#include"neural_network.hpp"
 #include"include_switch.hpp"
+#include"common.hpp"
 
 //ネットワークの設定
 static constexpr int32_t BLOCK_NUM = 10;
@@ -206,7 +207,6 @@ NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha)
     std::vector<float> policy_teacher_dist(actual_batch_size * POLICY_DIM, 0.0);
     std::vector<float> value_teacher_dist(actual_batch_size * BIN_SIZE, 0.0);
 
-    static std::mt19937_64 engine(std::random_device{}());
     std::gamma_distribution<float> gamma_dist(alpha);
 
     for (uint64_t i = 0; i < data.size(); i += 2) {
@@ -290,7 +290,6 @@ NeuralNetworkImpl::mixUpLossFinalLayer(const std::vector<LearningData>& data, fl
     std::vector<float> policy_teacher_dist(actual_batch_size * POLICY_DIM, 0.0);
     std::vector<float> value_teacher_dist(actual_batch_size * BIN_SIZE, 0.0);
 
-    static std::mt19937_64 engine(std::random_device{}());
     std::gamma_distribution<float> gamma_dist(alpha);
 
     for (uint64_t i = 0; i < data.size(); i += 2) {

@@ -53,7 +53,6 @@ Move YaneBook::pickOne(const Position& pos, float temperature) {
         }
     }
 
-    std::mt19937_64 engine(std::random_device{}());
     std::uniform_int_distribution<int64_t> dist(0, best_score_moves.size() - 1);
     return best_score_moves[dist(engine)];
 }

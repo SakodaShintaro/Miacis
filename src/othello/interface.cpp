@@ -218,9 +218,6 @@ void Interface::battleVSRandom() {
     options_.print_policy_num = 00;
     searcher_ = std::make_unique<SearcherForPlay>(options_);
 
-    //乱数生成器を準備
-    std::mt19937_64 engine(std::random_device{}());
-
     for (int64_t i = 0; i < 100; i++) {
         root_.init();
 
@@ -287,7 +284,6 @@ void Interface::outputValue() {
     torch::load(nn, options_.model_name);
     nn->setGPU(0);
 
-    std::mt19937_64 engine(std::random_device{}());
     std::uniform_real_distribution<float> dist(0.0, 1.0);
 
     float score;

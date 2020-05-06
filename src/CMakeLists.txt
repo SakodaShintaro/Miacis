@@ -23,6 +23,7 @@ set(SRCS hash_table.cpp
          searcher_for_mate.cpp
          hyperparameter_loader.cpp
          segment_tree.cpp
+         common.cpp
          )
 
 #将棋用のバイナリをコンパイルするのに必要なソース

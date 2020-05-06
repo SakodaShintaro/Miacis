@@ -1,5 +1,6 @@
 ﻿#include"replay_buffer.hpp"
 #include"include_switch.hpp"
+#include"common.hpp"
 #include<thread>
 #include<iomanip>
 #include<random>
@@ -19,7 +20,6 @@ std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
 
     //現時点のpriorityの和を取得し,そこまでの範囲の一様分布生成器を作る
     float sum = segment_tree_.getSum();
-    static std::mt19937 engine(0);
     std::uniform_real_distribution<float> dist(0.0, sum);
 
     //データを取得
