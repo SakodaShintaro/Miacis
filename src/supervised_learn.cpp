@@ -6,6 +6,7 @@
 void supervisedLearn() {
     HyperparameterLoader settings("supervised_learn_settings.txt");
     float learn_rate            = settings.get<float>("learn_rate");
+    float min_learn_rate        = settings.get<float>("min_learn_rate");
     float momentum              = settings.get<float>("momentum");
     float weight_decay          = settings.get<float>("weight_decay");
     float mixup_alpha           = settings.get<float>("mixup_alpha");
@@ -13,8 +14,10 @@ void supervisedLearn() {
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
+    int64_t lr_decay_mode       = settings.get<int64_t>("lr_decay_mode");
     int64_t lr_decay_step1      = settings.get<int64_t>("lr_decay_step1");
     int64_t lr_decay_step2      = settings.get<int64_t>("lr_decay_step2");
+    int64_t lr_decay_period     = settings.get<int64_t>("lr_decay_period");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
 
@@ -123,8 +126,15 @@ void supervisedLearn() {
                 torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");
             }
 
-            if (global_step == lr_decay_step1 || global_step == lr_decay_step2) {
-                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
+            if (lr_decay_mode == 1) {
+                if (global_step == lr_decay_step1 || global_step == lr_decay_step2) {
+                    (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
+                }
+            } else if (lr_decay_mode == 2) {
+                int64_t curr_step = (step + 1) % lr_decay_period;
+                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr()
+                  = min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / lr_decay_period));
+                std::cout << min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / lr_decay_period)) << std::endl;
             }
         }
     }
