@@ -52,7 +52,6 @@ void GameGenerator::genSlave(int64_t thread_id) {
 }
 
 std::vector<FloatType> GameGenerator::dirichletDistribution(uint64_t k, FloatType alpha) {
-    static std::default_random_engine engine(std::random_device{}());
     std::gamma_distribution<FloatType> gamma(alpha, 1.0);
     std::vector<FloatType> dirichlet(k);
 
@@ -65,6 +64,13 @@ std::vector<FloatType> GameGenerator::dirichletDistribution(uint64_t k, FloatTyp
         dirichlet[i] /= sum;
     }
     return dirichlet;
+}
+
+std::vector<FloatType> GameGenerator::onehotNoise(uint64_t k) {
+    std::uniform_int_distribution<uint64_t> dist(0, k - 1);
+    std::vector<FloatType> onehot(k, 0.0);
+    onehot[dist(engine)] = 1.0;
+    return onehot;
 }
 
 void GameGenerator::evalWithGPU(int64_t thread_id) {
@@ -91,9 +97,10 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
         curr_node.nn_policy = softmax(legal_moves_policy);
 
         //policyにディリクレノイズを付与
-        std::vector<FloatType> dirichlet = dirichletDistribution(curr_node.moves.size(), noise_alpha_);
+        std::vector<FloatType> noise = (noise_mode_ == DIRICHLET ? dirichletDistribution(curr_node.moves.size(), noise_alpha_)
+                                                                 : onehotNoise(curr_node.moves.size()));
         for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-            curr_node.nn_policy[j] = (FloatType) ((1.0 - noise_epsilon_) * curr_node.nn_policy[j] + noise_epsilon_ * dirichlet[j]);
+            curr_node.nn_policy[j] = (FloatType) ((1.0 - noise_epsilon_) * curr_node.nn_policy[j] + noise_epsilon_ * noise[j]);
         }
 
         //valueを設定

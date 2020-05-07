@@ -21,6 +21,7 @@ public:
           noise_mode_(noise_mode), noise_epsilon_(noise_epsilon), noise_alpha_(noise_alpha), replay_buffer_(rb),
           neural_network_(std::move(nn)), gpu_queues_(search_options_.thread_num_per_gpu) {
         neural_network_->eval();
+        assert(0 <= noise_mode_ && noise_mode_ < NOISE_MODE_SIZE);
     };
 
     //生成してリプレイバッファに送り続ける関数
@@ -33,8 +34,14 @@ public:
     bool stop_signal;
 
 private:
+    enum NoiseMode {
+        DIRICHLET, ONEHOT, NOISE_MODE_SIZE
+    };
     //ディリクレ分布に従ったものを返す関数
     static std::vector<FloatType> dirichletDistribution(uint64_t k, FloatType alpha);
+
+    //onehotベクトルとしてのノイズを返す関数
+    static std::vector<FloatType> onehotNoise(uint64_t k);
 
     //gpu_queue_に溜まっている入力を処理する関数
     void evalWithGPU(int64_t thread_id);
