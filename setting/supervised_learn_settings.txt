@@ -7,11 +7,11 @@ policy_loss_coeff   1.0
 value_loss_coeff    1.0
 data_augmentation   1
 batch_size          512
-max_step            200000
+max_step            400000
 validation_interval 20000
 lr_decay_mode       2
-lr_decay_step1      100000
-lr_decay_step2      150000
+lr_decay_step1      200000
+lr_decay_step2      300000
 lr_decay_period     20000
 train_kifu_path     /root/training_kifu
 valid_kifu_path     /root/validation_kifu
