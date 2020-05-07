@@ -22,6 +22,9 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
         state_blocks_[i] = register_module("state_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
+#ifdef REPRESENTATION_DROPOUT
+    representation_dropout_ = register_module("representation_dropout_", torch::nn::Dropout2d());
+#endif
     policy_conv_ = register_module("policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).bias(true)));
     value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
     value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
@@ -37,6 +40,10 @@ torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
     for (ResidualBlock& block : state_blocks_) {
         x = block->forward(x);
     }
+
+#ifdef REPRESENTATION_DROPOUT
+    x = representation_dropout_->forward(x);
+#endif
     return x;
 }
 
@@ -72,6 +79,10 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::ve
     for (ResidualBlock& block : state_blocks_) {
         x = block->forward(x);
     }
+
+#ifdef REPRESENTATION_DROPOUT
+    x = representation_dropout_->forward(x);
+#endif
 
     //ここから分岐
     //policy
