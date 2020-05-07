@@ -12,6 +12,8 @@ void alphaZero() {
     float alpha                       = settings.get<float>("alpha");
     float mixup_alpha                 = settings.get<float>("mixup_alpha");
     float Q_dist_lambda               = settings.get<float>("Q_dist_lambda");
+    float noise_epsilon               = settings.get<float>("noise_epsilon");
+    float noise_alpha                 = settings.get<float>("noise_alpha");
     search_options.temperature_x1000  = settings.get<float>("Q_dist_temperature") * 1000;
     search_options.C_PUCT_x1000       = settings.get<float>("C_PUCT") * 1000;
     search_options.use_fp16           = settings.get<bool>("use_fp16");
@@ -35,6 +37,7 @@ void alphaZero() {
     int64_t validation_interval       = settings.get<int64_t>("validation_interval");
     int64_t sleep_msec                = settings.get<int64_t>("sleep_msec");
     int64_t init_buffer_by_kifu       = settings.get<int64_t>("init_buffer_by_kifu");
+    int64_t noise_mode                = settings.get<int64_t>("noise_mode");
     int64_t data_augmentation         = settings.get<bool>("data_augmentation");
     std::string training_kifu_path    = settings.get<std::string>("training_kifu_path");
     std::string validation_kifu_path  = settings.get<std::string>("validation_kifu_path");
@@ -95,7 +98,8 @@ void alphaZero() {
     for (uint64_t i = 0; i < gpu_num; i++) {
         torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
         neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
-        generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_thread, Q_dist_lambda, replay_buffer, neural_networks[i]);
+        generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_thread, Q_dist_lambda,
+                noise_mode, noise_epsilon, noise_alpha, replay_buffer, neural_networks[i]);
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
     }
 

@@ -91,10 +91,9 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
         curr_node.nn_policy = softmax(legal_moves_policy);
 
         //policyにディリクレノイズを付与
-        constexpr FloatType epsilon = 0.25;
-        std::vector<FloatType> dirichlet = dirichletDistribution(curr_node.moves.size(), 0.15);
+        std::vector<FloatType> dirichlet = dirichletDistribution(curr_node.moves.size(), noise_alpha_);
         for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-            curr_node.nn_policy[j] = (FloatType) ((1.0 - epsilon) * curr_node.nn_policy[j] + epsilon * dirichlet[j]);
+            curr_node.nn_policy[j] = (FloatType) ((1.0 - noise_epsilon_) * curr_node.nn_policy[j] + noise_epsilon_ * dirichlet[j]);
         }
 
         //valueを設定

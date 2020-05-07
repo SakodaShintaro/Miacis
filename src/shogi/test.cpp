@@ -89,6 +89,9 @@ void checkGenSpeed() {
     search_options.random_turn = 320;
     search_options.temperature_x1000 = 10;
     constexpr FloatType Q_dist_lambda = 1.0;
+    constexpr int64_t noise_mode = 0;
+    constexpr FloatType noise_epsilon = 0.25;
+    constexpr FloatType noise_alpha = 0.15;
 
     nn->setGPU(0, search_options.use_fp16);
     nn->eval();
@@ -110,7 +113,7 @@ void checkGenSpeed() {
         for (search_options.search_batch_size = 1; search_options.search_batch_size <= 4; search_options.search_batch_size *= 2) {
             ReplayBuffer buffer(0, buffer_size, 1, 1.0, 1.0, false);
             auto start = std::chrono::steady_clock::now();
-            GameGenerator generator(search_options, worker_num, Q_dist_lambda, buffer, nn);
+            GameGenerator generator(search_options, worker_num, Q_dist_lambda, noise_mode, noise_epsilon, noise_alpha, buffer, nn);
             std::thread t(&GameGenerator::genGames, &generator);
             for (int64_t i = 0; i < num; i++) {
                 std::this_thread::sleep_for(std::chrono::seconds(sec));

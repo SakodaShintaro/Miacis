@@ -8,6 +8,8 @@ alpha                  2.0
 mixup_alpha            0.0
 Q_dist_temperature     0.05
 Q_dist_lambda          1.0
+noise_epsilon          0.25
+noise_alpha            0.15
 C_PUCT                 2.5
 use_fp16               1
 draw_turn              320
@@ -31,5 +33,6 @@ save_interval          50000
 validation_interval    100000000
 sleep_msec             -1
 init_buffer_by_kifu    0
+noise_mode             0
 training_kifu_path     /root/training_kifu
 validation_kifu_path   /root/validation_kifu
