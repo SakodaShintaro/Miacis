@@ -3,7 +3,11 @@
 #include"common.hpp"
 
 //ネットワークの設定
+#ifdef SHOGI
 static constexpr int32_t BLOCK_NUM = 10;
+#elif OTHELLO
+static constexpr int32_t BLOCK_NUM = 5;
+#endif
 static constexpr int32_t CHANNEL_NUM = 64;
 static constexpr int32_t KERNEL_SIZE = 3;
 static constexpr int32_t REDUCTION = 8;
