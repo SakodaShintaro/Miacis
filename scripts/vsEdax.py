@@ -101,6 +101,7 @@ def main():
     parser.add_argument("--init_model_step", type=int, default=0)
     parser.add_argument("--search_batch_size", type=int, default=4)
     parser.add_argument("--temperature_x1000", type=int, default=75)
+    parser.add_argument("--exp_search", action="store_true")
     args = parser.parse_args()
 
     # カレントディレクトリ内にある{prefix}_{step}.modelを評価する
@@ -123,6 +124,9 @@ def main():
     miacis_manager.send_option("search_batch_size", args.search_batch_size)
     miacis_manager.send_option("temperature_x1000", args.temperature_x1000)
     miacis_manager.send_option("gpu_num", 1)
+    if args.exp_search:
+        miacis_manager.send_option("Q_coeff_x1000", 1000)
+        miacis_manager.send_option("P_coeff_x1000", 0)
     miacis_manager.send_option("thread_num_per_gpu", 1)
     miacis_manager.send_option("random_turn", 30)
 
