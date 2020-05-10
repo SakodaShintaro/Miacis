@@ -4,6 +4,7 @@
 void test();
 void infiniteTest();
 void checkSearchSpeed();
+void checkSearchSpeed2();
 void checkGenSpeed();
 void checkPredictSpeed();
 void checkVal();
