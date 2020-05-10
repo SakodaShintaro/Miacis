@@ -6,6 +6,7 @@ void alphaZero() {
     SearchOptions search_options;
     HyperparameterLoader settings("alphazero_settings.txt");
     float learn_rate                  = settings.get<float>("learn_rate");
+    float min_learn_rate              = settings.get<float>("min_learn_rate");
     float momentum                    = settings.get<float>("momentum");
     float weight_decay                = settings.get<float>("weight_decay");
     float lambda                      = settings.get<float>("lambda");
@@ -24,9 +25,11 @@ void alphaZero() {
     search_options.search_batch_size  = settings.get<int64_t>("search_batch_size");
     int64_t batch_size                = settings.get<int64_t>("batch_size");
     int64_t max_step_num              = settings.get<int64_t>("max_step_num");
+    int64_t learn_rate_decay_mode     = settings.get<int64_t>("learn_rate_decay_mode");
     int64_t learn_rate_decay_step1    = settings.get<int64_t>("learn_rate_decay_step1");
     int64_t learn_rate_decay_step2    = settings.get<int64_t>("learn_rate_decay_step2");
     int64_t learn_rate_decay_step3    = settings.get<int64_t>("learn_rate_decay_step3");
+    int64_t learn_rate_decay_period   = settings.get<int64_t>("learn_rate_decay_period");
     int64_t update_interval           = settings.get<int64_t>("update_interval");
     int64_t batch_size_per_gen        = settings.get<int64_t>("batch_size_per_gen");
     int64_t worker_num_per_thread     = settings.get<int64_t>("worker_num_per_thread");
@@ -202,10 +205,16 @@ void alphaZero() {
         }
 
         //学習率の減衰.AlphaZeroを意識して3回まで設定可能
-        if (step_num == learn_rate_decay_step1
-         || step_num == learn_rate_decay_step2
-         || step_num == learn_rate_decay_step3) {
-            (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
+        if (learn_rate_decay_mode == 1) {
+            if (step_num == learn_rate_decay_step1
+                || step_num == learn_rate_decay_step2
+                || step_num == learn_rate_decay_step3) {
+                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
+            }
+        } else if (learn_rate_decay_mode == 2) {
+            int64_t curr_step = step_num % learn_rate_decay_period;
+            (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr()
+                    = min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period));
         }
 
         //GPUを解放
