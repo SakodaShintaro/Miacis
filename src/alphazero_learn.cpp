@@ -41,7 +41,7 @@ void alphaZero() {
     int64_t sleep_msec                = settings.get<int64_t>("sleep_msec");
     int64_t init_buffer_by_kifu       = settings.get<int64_t>("init_buffer_by_kifu");
     int64_t noise_mode                = settings.get<int64_t>("noise_mode");
-    int64_t data_augmentation         = settings.get<bool>("data_augmentation");
+    bool data_augmentation            = settings.get<bool>("data_augmentation");
     std::string training_kifu_path    = settings.get<std::string>("training_kifu_path");
     std::string validation_kifu_path  = settings.get<std::string>("validation_kifu_path");
 
