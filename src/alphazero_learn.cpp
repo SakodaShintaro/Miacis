@@ -42,12 +42,19 @@ void alphaZero() {
     int64_t init_buffer_by_kifu       = settings.get<int64_t>("init_buffer_by_kifu");
     int64_t noise_mode                = settings.get<int64_t>("noise_mode");
     bool data_augmentation            = settings.get<bool>("data_augmentation");
+    bool Q_search                     = settings.get<bool>("Q_search");
     std::string training_kifu_path    = settings.get<std::string>("training_kifu_path");
     std::string validation_kifu_path  = settings.get<std::string>("validation_kifu_path");
 
     std::array<float, LOSS_TYPE_NUM> coefficients{};
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         coefficients[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
+    }
+
+    //カテゴリカルモデルでもQをもとに探索したい場合
+    if (Q_search) {
+        search_options.P_coeff_x1000 = 0;
+        search_options.Q_coeff_x1000 = 1000;
     }
 
     //値同士の制約関係を確認
