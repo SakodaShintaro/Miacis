@@ -1,7 +1,7 @@
 learn_rate              0.025
 min_learn_rate          0.0025
 momentum                0.9
-weight_decay            0.0
+weight_decay            0.0001
 policy_loss_coeff       1.0
 value_loss_coeff        1.0
 lambda                  0.75
@@ -18,7 +18,7 @@ random_turn             320
 batch_size              512
 thread_num_per_gpu      4
 max_step_num            500000
-learn_rate_decay_mode   1
+learn_rate_decay_mode   2
 learn_rate_decay_step1  500000
 learn_rate_decay_step2  500000
 learn_rate_decay_step3  500000
