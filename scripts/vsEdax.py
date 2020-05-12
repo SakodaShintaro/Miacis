@@ -95,7 +95,7 @@ def main():
     }
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--level", type=int, default=5)
+    parser.add_argument("--level", type=int, default=6)
     parser.add_argument("--game_num", type=int, default=500)
     parser.add_argument("--search_limit", type=int, default=800)
     parser.add_argument("--init_model_step", type=int, default=0)
