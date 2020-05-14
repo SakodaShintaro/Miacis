@@ -22,7 +22,7 @@ learn_rate_decay_mode   2
 learn_rate_decay_step1  500000
 learn_rate_decay_step2  500000
 learn_rate_decay_step3  500000
-learn_rate_decay_period 50000
+learn_rate_decay_period 25000
 update_interval         1000
 batch_size_per_gen      4
 worker_num_per_thread   32
@@ -33,7 +33,7 @@ Q_search                1
 search_limit            800
 search_batch_size       4
 output_interval         100000000
-save_interval           50000
+save_interval           25000
 validation_interval     100000000
 sleep_msec              -1
 init_buffer_by_kifu     0
