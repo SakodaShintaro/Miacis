@@ -237,7 +237,7 @@ void GenerateWorker::select() {
         float score;
         if (position_.isFinish(score, false) || position_.turnNumber() > search_options_.draw_turn) {
             //決着したので最終結果を設定
-            game_.result = (position_.color() == BLACK ? score : -score);
+            game_.result = (position_.color() == BLACK ? score : MAX_SCORE + MIN_SCORE- score);
 
             //データを送る
             replay_buffer_.push(game_);
