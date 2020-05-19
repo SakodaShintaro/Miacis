@@ -198,7 +198,7 @@ NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
                                      torch::tensor(value_teachers).to(device_));
     torch::Tensor value = y.second.view(-1);
 #ifdef USE_SIGMOID
-    torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
+    torch::Tensor value_loss =  torch::binary_cross_entropy(value, value_t, {}, torch::Reduction::None);
 #else
     torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
 #endif
