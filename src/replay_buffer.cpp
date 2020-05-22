@@ -91,7 +91,12 @@ void ReplayBuffer::push(Game &game) {
 #ifdef USE_CATEGORICAL
         priority += -std::log(e.nn_output_value[value_teacher] + 1e-9f);
 #else
+#ifdef USE_SIGMOID
+        constexpr FloatType eps = 1e-5f;
+        priority += -value_teacher * std::log(e.nn_output_value + eps) - (1.0 - value_teacher) * std::log(1 - e.nn_output_value + eps);
+#else
         priority += std::pow(e.nn_output_value - value_teacher, 2.0f);
+#endif
 #endif
 
         for (int64_t j = 0; j < (data_augmentation_ ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); j++) {
