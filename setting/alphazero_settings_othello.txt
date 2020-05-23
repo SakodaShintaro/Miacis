@@ -5,7 +5,7 @@ weight_decay            0.0001
 policy_loss_coeff       1.0
 value_loss_coeff        1.0
 lambda                  0.75
-alpha                   2.0
+alpha                   0.0
 mixup_alpha             0.0
 Q_dist_temperature      0.05
 Q_dist_lambda           1.0
