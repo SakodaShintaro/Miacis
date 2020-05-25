@@ -168,6 +168,7 @@ void alphaZero() {
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
             }
+            dout(std::cout, learn_log) << std::flush;
         }
 
         //一定間隔でActorのパラメータをLearnerと同期
@@ -209,6 +210,7 @@ void alphaZero() {
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 dout(std::cout, validation_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
             }
+            dout(std::cout, validation_log) << std::flush;
         }
 
         //学習率の減衰.AlphaZeroを意識して3回まで設定可能
