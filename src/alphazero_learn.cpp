@@ -224,6 +224,10 @@ void alphaZero() {
             int64_t curr_step = step_num % learn_rate_decay_period;
             (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr()
                     = min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period));
+        } else if (learn_rate_decay_mode == 3) {
+            if (step_num % learn_rate_decay_period == 0) {
+                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() *= 0.9;
+            }
         }
 
         //GPUを解放
