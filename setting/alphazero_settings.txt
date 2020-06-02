@@ -16,7 +16,7 @@ use_fp16                1
 draw_turn               320
 random_turn             320
 batch_size              512
-thread_num_per_gpu      4
+thread_num_per_gpu      3
 max_step_num            1000000
 learn_rate_decay_mode   1
 learn_rate_decay_step1  800000
@@ -25,7 +25,7 @@ learn_rate_decay_step3  2000000
 learn_rate_decay_period 100000
 update_interval         1000
 batch_size_per_gen      4
-worker_num_per_thread   32
+worker_num_per_thread   64
 max_stack_size          1048576
 first_wait              1048576
 data_augmentation       1
