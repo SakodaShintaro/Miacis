@@ -2,11 +2,16 @@
 import matplotlib.pyplot as plt
 import japanize_matplotlib
 import subprocess
+import urllib.parse
+import requests
+
 f = open("search_log.txt")
 lines = f.readlines()
 index = 0
 
 turn = 0
+
+prefix = "http://sfenreader.appspot.com/sfen?sfen="
 
 while index < len(lines):
     line = lines[index].strip()
@@ -18,7 +23,6 @@ while index < len(lines):
 
         x = list()
         y = list()
-        print(f"pos_str = {pos_str}")
         while True:
             string = lines[index].strip()
             index += 1
@@ -38,7 +42,19 @@ while index < len(lines):
         plt.xlabel("Value")
         plt.ylabel("Probability")
         plt.ylim((0, 100))
-        plt.savefig(f"fig/{turn}.png", bbox_inches="tight", pad_inches=0.05)
+        plt.text(0.2, 95, f"turn = {turn}")
+        plt.savefig(f"value_{turn}.png", bbox_inches="tight", pad_inches=0.05)
         plt.cla()
 
-subprocess.call('convert -delay 25 -loop 1 $(ls -v fig/*.png) fig/out.gif', shell=True)
+        print(pos_str)
+        r = requests.get(prefix + urllib.parse.quote(pos_str))
+        with open(f"board_{turn}.png", "wb") as out_file:
+            out_file.write(r.content)
+
+# 画像の結合
+for t in range(1, turn + 1):
+    subprocess.call(f'convert +append board_{t}.png value_{t}.png mixed_{t}.png', shell=True)
+
+# GIF化
+subprocess.call('convert -delay 25 -loop 1 $(ls -v mixed_*.png) mixed_out.gif', shell=True)
+subprocess.call('convert -delay 25 -loop 1 $(ls -v value_*.png) value_out.gif', shell=True)
