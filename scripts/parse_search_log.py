@@ -41,4 +41,4 @@ while index < len(lines):
         plt.savefig(f"fig/{turn}.png", bbox_inches="tight", pad_inches=0.05)
         plt.cla()
 
-subprocess.call('convert -delay 50 -loop 1 $(ls -v fig/*.png) fig/out.gif', shell=True)
+subprocess.call('convert -delay 25 -loop 1 $(ls -v fig/*.png) fig/out.gif', shell=True)

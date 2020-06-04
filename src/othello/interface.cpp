@@ -1,6 +1,7 @@
 ﻿#include"interface.hpp"
 #include"../neural_network.hpp"
 #include"../learn.hpp"
+#include"../game.hpp"
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
@@ -96,46 +97,50 @@ void Interface::think() {
 }
 
 void Interface::test() {
-    root_.init();
+    SearchOptions search_options;
+    search_options.search_limit = 800;
+    search_options.print_interval = 100000;
+    search_options.thread_num_per_gpu = 1;
+    search_options.search_batch_size = 1;
+    search_options.output_log_file = true;
+    NeuralNetwork nn;
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    nn->setGPU(0);
+    nn->eval();
+    SearcherForPlay searcher(search_options);
 
-    //対局の準備
-    options_.search_limit = 800;
-    options_.search_batch_size = 1;
-    options_.thread_num_per_gpu = 1;
-    options_.print_interval = INT_MAX;
-    options_.print_policy_num = 800;
-    searcher_ = std::make_unique<SearcherForPlay>(options_);
+    Position pos;
+    Game game;
 
+    auto start = std::chrono::steady_clock::now();
     while (true) {
-        root_.print();
-        float score;
-        if (root_.isFinish(score)) {
-            std::cout << "score = " << score << std::endl;
+        Move best_move = searcher.think(pos, LLONG_MAX);
+
+        if (best_move == NULL_MOVE) {
+            //投了
+            game.result = (pos.color() == BLACK ? MIN_SCORE : MAX_SCORE);
             break;
         }
 
-        Move best_move = searcher_->think(root_, 1000000);
-
-        std::string str = root_.toStr();
-        uint32_t label = best_move.toLabel();
-
-        for (int64_t augmentation = 0; augmentation < Position::DATA_AUGMENTATION_PATTERN_NUM; augmentation++) {
-            std::cout << augmentation << std::endl;
-            std::string augmented_str = root_.augmentStr(str, augmentation);
-            for (int64_t i = 0; i < BOARD_WIDTH; i++) {
-                for (int64_t j = 0; j < BOARD_WIDTH; j++) {
-                    std::cout << augmented_str[i + (BOARD_WIDTH - 1 - j) * BOARD_WIDTH];
-                }
-                std::cout << std::endl;
-            }
-            std::cout << augmented_str.back() << std::endl;
-            uint32_t augmented_label = Move::augmentLabel(label, augmentation);
-            std::cout << "label = " << augmented_label << " means = (" << augmented_label % BOARD_WIDTH << ", " << augmented_label / BOARD_WIDTH << ")" << std::endl;
-            std::cout << std::endl;
+        float finish_score;
+        if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2)
+            || pos.turnNumber() > search_options.draw_turn) {
+            //千日手or持将棋
+            game.result = finish_score;
+            break;
         }
 
-        root_.doMove(best_move);
+        pos.doMove(best_move);
+        OneTurnElement element;
+        element.move = best_move;
+        game.elements.push_back(element);
     }
+    auto end = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << elapsed.count() / pos.turnNumber() << " msec / pos" << std::endl;
+
+    game.writeKifuFile("./");
+    std::cout << "finish test" << std::endl;
 }
 
 void Interface::infiniteTest() {
