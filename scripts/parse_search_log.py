@@ -4,6 +4,14 @@ import japanize_matplotlib
 import subprocess
 import urllib.parse
 import requests
+import argparse
+
+# ディレクトリの名前をコマンドライン引数として受け取る
+parser = argparse.ArgumentParser()
+parser.add_argument("--get_board", action="store_true")
+parser.add_argument("--mix", action="store_true")
+args = parser.parse_args()
+
 
 f = open("search_log.txt")
 lines = f.readlines()
@@ -47,14 +55,18 @@ while index < len(lines):
         plt.cla()
 
         print(pos_str)
-        r = requests.get(prefix + urllib.parse.quote(pos_str))
-        with open(f"board_{turn}.png", "wb") as out_file:
-            out_file.write(r.content)
+        if args.get_board:
+            r = requests.get(prefix + urllib.parse.quote(pos_str))
+            with open(f"board_{turn}.png", "wb") as out_file:
+                out_file.write(r.content)
+
+# ValueをGIF化
+subprocess.call('convert -delay 25 -loop 1 $(ls -v value_*.png) value_out.gif', shell=True)
 
 # 画像の結合
-for t in range(1, turn + 1):
-    subprocess.call(f'convert +append board_{t}.png value_{t}.png mixed_{t}.png', shell=True)
+if args.mix:
+    for t in range(1, turn + 1):
+        subprocess.call(f'convert +append board_{t}.png value_{t}.png mixed_{t}.png', shell=True)
 
-# GIF化
-subprocess.call('convert -delay 25 -loop 1 $(ls -v mixed_*.png) mixed_out.gif', shell=True)
-subprocess.call('convert -delay 25 -loop 1 $(ls -v value_*.png) value_out.gif', shell=True)
+    # GIF化
+    subprocess.call('convert -delay 25 -loop 1 $(ls -v mixed_*.png) mixed_out.gif', shell=True)
