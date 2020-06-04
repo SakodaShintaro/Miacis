@@ -10,6 +10,7 @@ void test() {
     search_options.print_interval = 100000;
     search_options.thread_num_per_gpu = 1;
     search_options.search_batch_size = 1;
+    search_options.output_log_file = true;
     NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     nn->setGPU(0);

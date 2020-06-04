@@ -49,11 +49,6 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
 
-    if (search_options_.output_log_file) {
-        log_file_ << "startSearch" << std::endl;
-        log_file_ << root.toStr() << std::endl;
-    }
-
 #ifdef SHOGI
     float score;
     if (!root.isRepeating(score) && search_options_.use_book && book_.hasEntry(root)) {
@@ -90,6 +85,11 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     //合法手が0だったら投了
     if (curr_node.moves.empty()) {
         return NULL_MOVE;
+    }
+
+    if (search_options_.output_log_file) {
+        log_file_ << "startSearch" << std::endl;
+        log_file_ << root.toStr() << std::endl;
     }
 
     //GPUで計算
