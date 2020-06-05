@@ -110,6 +110,10 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
         curr_node.evaled = true;
     }
 
+    if (search_options_.output_log_file) {
+        outputInfo(log_file_, 1);
+    }
+
     //GPUに付随するスレッドを立ち上げ
     std::vector<std::thread> threads(search_options_.gpu_num);
     for (int64_t i = 0; i < search_options_.gpu_num; i++) {
@@ -327,7 +331,7 @@ void SearcherForPlay::outputInfo(std::ostream& ost, int64_t gather_num) const {
 
         //gather_num分だけ合算する
         for (int64_t j = 0; j < gather_num; j++) {
-            p += hash_table_.QfromNextValue(curr_node, best_index)[i * gather_num + j];
+            p += curr_node.value[i * gather_num + j];
         }
 
         //表示
