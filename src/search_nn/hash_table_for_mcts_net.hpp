@@ -33,6 +33,9 @@ struct HashEntryForMCTSNet {
     //価値。漸進的に更新され、常にこのノードを根とする部分木内の価値の平均となる
     ValueType value;
 
+    //埋め込みベクトル
+    torch::Tensor embedding_vector;
+
     //ニューラルネットワークによる評価が行われたかを示すフラグ
     bool evaled;
 
