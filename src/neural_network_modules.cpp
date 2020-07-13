@@ -38,19 +38,30 @@ torch::Tensor ResidualBlockImpl::forward(const torch::Tensor& x) {
     torch::Tensor t = x;
 
     t = conv_and_norm0_->forward(t);
-    t = torch::relu(t);
+    t = activation(t);
     t = conv_and_norm1_->forward(t);
 
     //SENet構造
     torch::Tensor y = torch::avg_pool2d(t, {t.size(2), t.size(3)});
     y = y.view({-1, t.size(1)});
     y = linear0_->forward(y);
-    y = torch::relu(y);
+    y = activation(y);
     y = linear1_->forward(y);
     y = torch::sigmoid(y);
     y = y.view({-1, t.size(1), 1, 1});
     t = t * y;
 
-    t = torch::relu(x + t);
+    t = activation(x + t);
     return t;
+}
+
+torch::Tensor activation(const torch::Tensor& x) {
+    //ReLU
+    return torch::relu(x);
+
+    //Mish
+    //return x * torch::tanh(torch::softplus(x));
+
+    //Swish
+    //return x * torch::sigmoid(x);
 }

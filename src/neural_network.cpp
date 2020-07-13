@@ -39,7 +39,7 @@ torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     x = state_first_conv_and_norm_->forward(x);
-    x = torch::relu(x);
+    x = activation(x);
 
     for (ResidualBlock& block : state_blocks_) {
         x = block->forward(x);
@@ -57,10 +57,10 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::decode(const torch::T
 
     //value
     torch::Tensor value = value_conv_and_norm_->forward(representation);
-    value = torch::relu(value);
+    value = activation(value);
     value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
     value = value_linear0_->forward(value);
-    value = torch::relu(value);
+    value = activation(value);
     value = value_linear1_->forward(value);
 
 #ifndef USE_CATEGORICAL
