@@ -2,6 +2,7 @@
 #define MIACIS_MCTS_NET_HPP
 
 #include "hash_table_for_mcts_net.hpp"
+#include "mcts_net_nn.hpp"
 #include "../search_options.hpp"
 
 //MCTSを行うクラス
@@ -22,10 +23,7 @@ private:
     HashTableForMCTSNet hash_table_;
 
     //使用するニューラルネットワーク
-    //policy network
-    //embed network
-    //backup network
-    //readout network
+    NeuralNetworks neural_networks_;
 };
 
 #endif //MIACIS_MCTS_NET_HPP
