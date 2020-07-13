@@ -24,7 +24,8 @@ set(SRCS hash_table.cpp
          hyperparameter_loader.cpp
          segment_tree.cpp
          common.cpp
-         )
+         search_nn/proposed_lstm.cpp
+        )
 
 #将棋用のバイナリをコンパイルするのに必要なソース
 set(SHOGI_SRCS shogi/main.cpp
