@@ -25,6 +25,8 @@ set(SRCS hash_table.cpp
          segment_tree.cpp
          common.cpp
          search_nn/proposed_lstm.cpp
+         search_nn/mcts_net.cpp
+         search_nn/hash_table_for_mcts_net.cpp
         )
 
 #将棋用のバイナリをコンパイルするのに必要なソース
