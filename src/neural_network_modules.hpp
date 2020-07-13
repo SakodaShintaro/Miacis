@@ -47,4 +47,6 @@ private:
 };
 TORCH_MODULE(ResidualBlock);
 
+torch::Tensor activation(const torch::Tensor& x);
+
 #endif //MIACIS_NEURAL_NETWORK_MODULES_HPP

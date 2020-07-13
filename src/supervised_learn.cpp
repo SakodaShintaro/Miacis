@@ -103,6 +103,7 @@ void supervisedLearn() {
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
             }
+            dout(std::cout, learn_log) << std::flush;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
@@ -119,6 +120,7 @@ void supervisedLearn() {
                 for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                     dout(std::cout, validation_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
                 }
+                dout(std::cout, validation_log) << std::flush;
 
                 //学習中のパラメータを書き出す
                 torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");

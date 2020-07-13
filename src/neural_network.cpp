@@ -5,10 +5,11 @@
 //ネットワークの設定
 #ifdef SHOGI
 static constexpr int32_t BLOCK_NUM = 10;
+static constexpr int32_t CHANNEL_NUM = 128;
 #elif OTHELLO
 static constexpr int32_t BLOCK_NUM = 5;
-#endif
 static constexpr int32_t CHANNEL_NUM = 64;
+#endif
 static constexpr int32_t KERNEL_SIZE = 3;
 static constexpr int32_t REDUCTION = 8;
 static constexpr int32_t VALUE_HIDDEN_NUM = 256;
@@ -39,7 +40,7 @@ torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     x = state_first_conv_and_norm_->forward(x);
-    x = torch::relu(x);
+    x = activation(x);
 
     for (ResidualBlock& block : state_blocks_) {
         x = block->forward(x);
@@ -57,10 +58,10 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::decode(const torch::T
 
     //value
     torch::Tensor value = value_conv_and_norm_->forward(representation);
-    value = torch::relu(value);
+    value = activation(value);
     value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
     value = value_linear0_->forward(value);
-    value = torch::relu(value);
+    value = activation(value);
     value = value_linear1_->forward(value);
 
 #ifndef USE_CATEGORICAL
@@ -75,40 +76,7 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::decode(const torch::T
 }
 
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::vector<float>& inputs) {
-    torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    x = state_first_conv_and_norm_->forward(x);
-    x = torch::relu(x);
-
-    for (ResidualBlock& block : state_blocks_) {
-        x = block->forward(x);
-    }
-
-#ifdef REPRESENTATION_DROPOUT
-    x = representation_dropout_->forward(x);
-#endif
-
-    //ここから分岐
-    //policy
-    torch::Tensor policy = policy_conv_->forward(x);
-
-    //value
-    torch::Tensor value = value_conv_and_norm_->forward(x);
-    value = torch::relu(value);
-    value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
-    value = value_linear0_->forward(value);
-    value = torch::relu(value);
-    value = value_linear1_->forward(value);
-
-#ifndef USE_CATEGORICAL
-#ifdef USE_SIGMOID
-    value = torch::sigmoid(value);
-#else
-    value = torch::tanh(value);
-#endif
-#endif
-
-    return { policy, value };
+    return decode(encode(inputs));
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>

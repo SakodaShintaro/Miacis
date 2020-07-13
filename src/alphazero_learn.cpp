@@ -162,14 +162,12 @@ void alphaZero() {
         loss_sum.backward();
         optimizer.step();
 
-        //1回パラメータ保存する間隔につき10回表示
-        if (step_num % (save_interval / 10) == 0) {
-            dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << loss_sum.item<float>() << "\t";
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
-            }
-            dout(std::cout, learn_log) << std::flush;
+        //表示
+        dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << loss_sum.item<float>() << "\t";
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
         }
+        dout(std::cout, learn_log) << std::flush;
 
         //一定間隔でActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
