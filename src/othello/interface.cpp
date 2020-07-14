@@ -2,6 +2,7 @@
 #include"../neural_network.hpp"
 #include"../learn.hpp"
 #include"../game.hpp"
+#include"../search_nn/mcts_net.hpp"
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
@@ -18,6 +19,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["go"]             = std::bind(&Interface::go,             this);
     command_["stop"]           = std::bind(&Interface::stop,           this);
     command_["quit"]           = std::bind(&Interface::quit,           this);
+    command_["thinkByMCTSNet"] = std::bind(&Interface::thinkByMCTSNet, this);
 
     //メンバ関数以外
     command_["initParams"]         = initParams;
@@ -334,4 +336,17 @@ void Interface::outputValue() {
     std::cout << score << std::endl;
     ofs << -1 << std::endl;
     std::cout << "finish outputValue" << std::endl;
+}
+
+void Interface::thinkByMCTSNet() {
+    root_.init();
+
+    options_.search_limit = 800;
+    options_.print_interval = INT_MAX;
+    options_.print_policy_num = 800;
+    options_.search_batch_size = 1;
+    options_.thread_num_per_gpu = 1;
+
+    MCTSNet mcts_net(options_);
+    mcts_net.think(root_, INT_MAX);
 }

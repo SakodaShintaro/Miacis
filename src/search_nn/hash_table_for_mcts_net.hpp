@@ -1,5 +1,5 @@
-﻿#ifndef HASH_TABLE_HPP
-#define HASH_TABLE_HPP
+﻿#ifndef HASH_FOR_MCTS_NET_TABLE_HPP
+#define HASH_FOR_MCTS_NET_TABLE_HPP
 
 #include"../neural_network.hpp"
 #include"../common.hpp"

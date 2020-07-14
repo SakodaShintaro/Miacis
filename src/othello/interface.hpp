@@ -38,6 +38,9 @@ public:
     //Policyに従って対局し、Valueのログを残していく関数
     void outputValue();
 
+    //MCTSNetを使って思考
+    void thinkByMCTSNet();
+
     //現盤面について思考してbest_moveを標準出力に出し、盤面を更新する関数
     void go();
     void stop();
