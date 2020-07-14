@@ -19,6 +19,8 @@ NeuralNetworksImpl::NeuralNetworksImpl() : blocks_(BLOCK_NUM, nullptr), device_(
     backup_linear_ = register_module("backup_linear_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
 
     readout_policy_ = register_module("readout_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
+
+    to(device_);
 }
 
 torch::Tensor NeuralNetworksImpl::simulationPolicy(const torch::Tensor& h) {

@@ -30,6 +30,8 @@ Move MCTSNet::think(Position& root, int64_t time_limit) {
                 //未展開のノードだったら次にここを評価
                 break;
             } else {
+                indices.push(index);
+
                 const HashEntryForMCTSNet& entry = hash_table_[index];
                 torch::Tensor h = entry.embedding_vector;
                 torch::Tensor policy_logit = neural_networks_->simulationPolicy(h);
