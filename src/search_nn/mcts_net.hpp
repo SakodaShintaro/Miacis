@@ -13,7 +13,7 @@ public:
     explicit MCTSNet(const SearchOptions& search_options);
 
     //探索を行って一番良い指し手を返す関数
-    Move think(Position& root, int64_t time_limit);
+    Move think(Position& root, int64_t time_limit, bool save_info_to_learn = false);
 
     //一つの局面について損失等を計算する関数
     torch::Tensor loss(const LearningData& datum);
@@ -27,6 +27,10 @@ private:
 
     //使用するニューラルネットワーク
     NeuralNetworks neural_networks_;
+
+    //学習で使うために探索中に保存しておく値
+    std::vector<torch::Tensor> root_h_;
+    std::vector<torch::Tensor> probs_;
 };
 
 #endif //MIACIS_MCTS_NET_HPP
