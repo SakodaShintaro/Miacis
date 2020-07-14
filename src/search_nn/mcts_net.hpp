@@ -15,6 +15,9 @@ public:
     //探索を行って一番良い指し手を返す関数
     Move think(Position& root, int64_t time_limit);
 
+    //一つの局面について損失等を計算する関数
+    torch::Tensor loss(const LearningData& datum);
+
 private:
     //探索に関するオプション
     const SearchOptions& search_options_;
