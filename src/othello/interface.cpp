@@ -341,12 +341,18 @@ void Interface::outputValue() {
 void Interface::thinkByMCTSNet() {
     root_.init();
 
-    options_.search_limit = 800;
+    options_.search_limit = 100;
     options_.print_interval = INT_MAX;
     options_.print_policy_num = 800;
     options_.search_batch_size = 1;
     options_.thread_num_per_gpu = 1;
-
     MCTSNet mcts_net(options_);
-    mcts_net.think(root_, INT_MAX);
+    mcts_net->setGPU(0);
+
+    FloatType score;
+    while (!root_.isFinish(score)) {
+        Move best_move = mcts_net->think(root_, INT_MAX);
+        root_.doMove(best_move);
+        root_.print();
+    }
 }
