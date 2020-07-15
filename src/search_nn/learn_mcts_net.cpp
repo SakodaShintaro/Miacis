@@ -35,7 +35,9 @@ void learnMCTSNet() {
     tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tloss" << std::endl;
 
     //評価関数読み込み
-    MCTSNet mcts_net;
+    SearchOptions options;
+    options.search_limit = 100;
+    MCTSNet mcts_net(options);
     torch::load(mcts_net, MCTSNetImpl::DEFAULT_MODEL_NAME);
     mcts_net->setGPU(0);
 

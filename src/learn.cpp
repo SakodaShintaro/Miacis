@@ -2,6 +2,7 @@
 #include"game.hpp"
 #include"hyperparameter_loader.hpp"
 #include"include_switch.hpp"
+#include"search_nn/mcts_net.hpp"
 #include<sstream>
 #include<iomanip>
 #include<random>
@@ -115,4 +116,8 @@ void initParams() {
     NeuralNetwork nn;
     torch::save(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     std::cout << "初期化したパラメータを" << NeuralNetworkImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
+
+    MCTSNet mcts_net;
+    torch::save(mcts_net, MCTSNetImpl::DEFAULT_MODEL_NAME);
+    std::cout << "初期化したパラメータを" << MCTSNetImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
 }

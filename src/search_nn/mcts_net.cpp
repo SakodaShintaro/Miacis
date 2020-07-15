@@ -91,11 +91,12 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
 
         //(1)選択
         if (save_info_to_learn) {
-            probs_[m] = torch::ones({ 1 });
+            probs_[m] = torch::ones({ 1 }).to(device_);
         }
         while (true) {
             Index index = hash_table_.findSameHashIndex(root);
-            if (index == (Index)hash_table_.size()) {
+            FloatType score;
+            if (index == (Index)hash_table_.size() || root.isFinish(score)) {
                 //未展開のノードだったら次にここを評価
                 break;
             } else {
@@ -115,7 +116,8 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
                 int32_t move_id = randomChoose(masked_policy);
                 root.doMove(moves[move_id]);
                 if (save_info_to_learn) {
-                    probs_[m] *= masked_policy[move_id];
+                    torch::Tensor policy = torch::softmax(policy_logit, 1);
+                    probs_[m] *= policy[0][moves[move_id].toLabel()];
                 }
             }
         }
@@ -138,7 +140,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
 
         if (save_info_to_learn) {
             //ルートノードの現状態を保存しておく
-            root_h_.push_back(hash_table_[hash_table_.root_index].embedding_vector);
+            root_h_[m] = hash_table_[hash_table_.root_index].embedding_vector;
         }
     }
 
@@ -188,8 +190,13 @@ torch::Tensor MCTSNetImpl::loss(const std::vector<LearningData>& data) {
 
     //各探索後の損失を計算
     std::vector<torch::Tensor> l(search_options_.search_limit + 1);
+    l[0] = torch::zeros({ 1 });
+    std::cout << std::fixed;
     for (int64_t m = 0; m < search_options_.search_limit; m++) {
-        l[m + 1] = (-policy_teacher * torch::log_softmax(readoutPolicy(root_h_[m]), 1)).sum();
+        torch::Tensor policy_logit = readoutPolicy(root_h_[m]);
+        torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
+        torch::Tensor clipped = torch::clamp_min(log_softmax, -10);
+        l[m + 1] = (-policy_teacher * clipped).sum();
     }
 
     //損失の差分を計算
@@ -208,12 +215,12 @@ torch::Tensor MCTSNetImpl::loss(const std::vector<LearningData>& data) {
         }
 
         //この値は勾配を切る
-        R[m] = R[m].detach();
+        R[m] = R[m].detach().to(device_);
     }
 
     torch::Tensor loss = l[search_options_.search_limit];
     for (int64_t m = 1; m <= search_options_.search_limit; m++) {
-        loss += probs_[m - 1] * R[m];
+        loss = (loss + probs_[m - 1] * R[m]);
     }
 
     return loss;
