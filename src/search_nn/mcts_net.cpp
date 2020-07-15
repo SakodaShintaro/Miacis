@@ -9,7 +9,7 @@ static constexpr int64_t CHANNEL_NUM = 64;
 static constexpr int64_t HIDDEN_CHANNEL_NUM = 32;
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * HIDDEN_CHANNEL_NUM;
 
-const std::string MCTSNetImpl::MODEL_PREFIX = "mcts_net_" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+const std::string MCTSNetImpl::MODEL_PREFIX = "mcts_net_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 const std::string MCTSNetImpl::DEFAULT_MODEL_NAME = MCTSNetImpl::MODEL_PREFIX + ".model";
 
 MCTSNetImpl::MCTSNetImpl() : search_options_(),
