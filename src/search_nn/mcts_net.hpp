@@ -9,6 +9,7 @@
 //なのでSearcherForPlayと置き換えられるように作れば良さそう
 class MCTSNetImpl : public torch::nn::Module  {
 public:
+    MCTSNetImpl();
     explicit MCTSNetImpl(const SearchOptions& search_options);
 
     //探索を行って一番良い指し手を返す関数
@@ -35,7 +36,7 @@ private:
     torch::Tensor readoutPolicy(const torch::Tensor& h);
 
     //探索に関するオプション
-    const SearchOptions& search_options_;
+    SearchOptions search_options_;
 
     //置換表は1個
     HashTableForMCTSNet hash_table_;

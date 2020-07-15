@@ -85,18 +85,18 @@ void learnMCTSNetByGen() {
     std::cout << "validation_data.size() = " << validation_data.size() << std::endl;
 
     //学習に使うネットワークの生成
-    MCTSNet learning_model(search_options);
-    torch::load(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    learning_model->setGPU(0);
+    MCTSNet mcts_net(search_options);
+    torch::load(mcts_net, MCTSNetImpl::DEFAULT_MODEL_NAME);
+    mcts_net->setGPU(0);
 
     //学習前のパラメータを保存
-    torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_before_learn.model");
+    torch::save(mcts_net, MCTSNetImpl::MODEL_PREFIX + "_before_learn.model");
 
     //Optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
     sgd_option.weight_decay(weight_decay);
-    torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
+    torch::optim::SGD optimizer(mcts_net->parameters(), sgd_option);
 
     //時間計測開始
     auto start_time = std::chrono::steady_clock::now();
@@ -107,7 +107,7 @@ void learnMCTSNetByGen() {
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     std::vector<std::thread> gen_threads;
     for (uint64_t i = 0; i < gpu_num; i++) {
-        torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+        torch::load(neural_networks[i], MCTSNetImpl::DEFAULT_MODEL_NAME);
         neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
         generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_thread, Q_dist_lambda,
                                                         noise_mode, noise_epsilon, noise_alpha, replay_buffer, neural_networks[i]);
@@ -135,44 +135,19 @@ void learnMCTSNetByGen() {
 
         //損失計算
         optimizer.zero_grad();
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = learning_model->loss(curr_data);
-        torch::Tensor loss_sum = torch::zeros({batch_size});
-        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            loss_sum += coefficients[i] * loss[i].cpu();
-        }
-
-        //replay_bufferのpriorityを更新
-        std::vector<float> loss_vec(loss_sum.data_ptr<float>(), loss_sum.data_ptr<float>() + batch_size);
-
-        //mixupモードのときは損失を複製して2倍に拡張。これもうちょっと上手く書けないものか……
-        if (mixup_alpha != 0) {
-            std::vector<float> copy = loss_vec;
-            loss_vec.clear();
-            for (float v : copy) {
-                loss_vec.push_back(v);
-                loss_vec.push_back(v);
-            }
-        }
-        replay_buffer.update(loss_vec);
-
-        //損失をバッチについて平均を取ったものに修正
-        loss_sum = loss_sum.mean();
+        torch::Tensor loss = mcts_net->loss(curr_data);
 
         //逆伝播してパラメータ更新
-        loss_sum.backward();
+        loss.backward();
         optimizer.step();
 
         //表示
-        dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << loss_sum.item<float>() << "\t";
-        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            dout(std::cout, train_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
-        }
-        dout(std::cout, train_log) << std::flush;
+        dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << loss.item<float>() << "\t\r" << std::flush;
 
         //一定間隔でActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
             //学習パラメータを保存
-            torch::save(learning_model, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+            torch::save(mcts_net, MCTSNetImpl::DEFAULT_MODEL_NAME);
 
             //各ネットワークで保存されたパラメータを読み込み
             for (uint64_t i = 0; i < gpu_num; i++) {
@@ -183,7 +158,7 @@ void learnMCTSNetByGen() {
                 //ロードするときは一度fp32に直さないとエラーになる
                 //もっと良いやり方はありそうだがなぁ
                 neural_networks[i]->setGPU(i, false);
-                torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+                torch::load(neural_networks[i], MCTSNetImpl::DEFAULT_MODEL_NAME);
                 neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
                 if (i > 0) {
                     generators[i]->gpu_mutex.unlock();
@@ -193,22 +168,19 @@ void learnMCTSNetByGen() {
 
         //パラメータをステップ付きで保存
         if (step_num % save_interval == 0) {
-            torch::save(learning_model, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
+            torch::save(mcts_net, MCTSNetImpl::MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
         }
 
         if (step_num % validation_interval == 0) {
-            learning_model->eval();
-            std::array<float, LOSS_TYPE_NUM> valid_loss = validation(learning_model, validation_data, 4096);
-            learning_model->train();
-            float valid_loss_sum = 0.0;
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                valid_loss_sum += coefficients[i] * valid_loss[i];
+            mcts_net->eval();
+            float sum_loss = 0;
+            for (const LearningData& datum : validation_data) {
+                torch::Tensor valid_loss = mcts_net->loss({ datum });
+                sum_loss += valid_loss.item<float>();
             }
-            dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << valid_loss_sum << "\t";
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, valid_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
-            }
-            dout(std::cout, valid_log) << std::flush;
+            sum_loss /= validation_data.size();
+            mcts_net->train();
+            dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << sum_loss << "\t" << std::endl;
         }
 
         //学習率の減衰

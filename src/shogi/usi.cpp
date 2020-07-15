@@ -3,6 +3,7 @@
 #include"../neural_network.hpp"
 #include"../learn.hpp"
 #include"../game.hpp"
+#include"../search_nn/learn.hpp"
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数
@@ -34,6 +35,7 @@ USI::USI() : searcher_(nullptr) {
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
     command_["convertModelToCPU"]  = convertModelToCPU;
+    command_["learnMCTSNet"]       = learnMCTSNet;
 }
 
 void USI::loop() {

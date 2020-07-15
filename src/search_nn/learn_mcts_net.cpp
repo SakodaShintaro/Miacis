@@ -1,3 +1,4 @@
+#include"learn.hpp"
 #include"mcts_net.hpp"
 #include"../learn.hpp"
 #include"../hyperparameter_loader.hpp"
@@ -34,18 +35,18 @@ void learnMCTSNet() {
     tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tloss" << std::endl;
 
     //評価関数読み込み
-    MCTSNet neural_network;
-    torch::load(neural_network, MCTSNetImpl::DEFAULT_MODEL_NAME);
-    neural_network->setGPU(0);
+    MCTSNet mcts_net;
+    torch::load(mcts_net, MCTSNetImpl::DEFAULT_MODEL_NAME);
+    mcts_net->setGPU(0);
 
     //学習前のパラメータを出力
-    torch::save(neural_network, MCTSNetImpl::MODEL_PREFIX + "_before_learn.model");
+    torch::save(mcts_net, MCTSNetImpl::MODEL_PREFIX + "_before_learn.model");
 
     //optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
     sgd_option.weight_decay(weight_decay);
-    torch::optim::SGD optimizer(neural_network->parameters(), sgd_option);
+    torch::optim::SGD optimizer(mcts_net->parameters(), sgd_option);
 
     //エポックを超えたステップ数を初期化
     int64_t global_step = 0;
@@ -75,7 +76,7 @@ void learnMCTSNet() {
 
             //学習
             optimizer.zero_grad();
-            torch::Tensor loss = neural_network->loss(curr_data);
+            torch::Tensor loss = mcts_net->loss(curr_data);
             loss.mean().backward();
             optimizer.step();
             global_step++;
@@ -88,14 +89,14 @@ void learnMCTSNet() {
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
-                neural_network->eval();
+                mcts_net->eval();
                 float sum_loss = 0;
                 for (const LearningData& datum : valid_data) {
-                    torch::Tensor valid_loss = neural_network->loss({ datum });
+                    torch::Tensor valid_loss = mcts_net->loss({ datum });
                     sum_loss += valid_loss.item<float>();
                 }
                 sum_loss /= valid_data.size();
-                neural_network->train();
+                mcts_net->train();
 
                 //表示
                 dout(std::cout, valid_log) << elapsedTime(start_time) << "\t"
@@ -104,7 +105,7 @@ void learnMCTSNet() {
                                            << sum_loss << std::endl;
 
                 //学習中のパラメータを書き出す
-                torch::save(neural_network, MCTSNetImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");
+                torch::save(mcts_net, MCTSNetImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");
             }
 
             if (lr_decay_mode == 1) {

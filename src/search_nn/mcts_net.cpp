@@ -9,8 +9,23 @@ static constexpr int64_t CHANNEL_NUM = 64;
 static constexpr int64_t HIDDEN_CHANNEL_NUM = 32;
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * HIDDEN_CHANNEL_NUM;
 
-const std::string NeuralNetworkImpl::MODEL_PREFIX = "mcts_net_" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MODEL_PREFIX + ".model";
+const std::string MCTSNetImpl::MODEL_PREFIX = "mcts_net_" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+const std::string MCTSNetImpl::DEFAULT_MODEL_NAME = MCTSNetImpl::MODEL_PREFIX + ".model";
+
+MCTSNetImpl::MCTSNetImpl() : search_options_(),
+                             hash_table_(1600),
+                             blocks_(BLOCK_NUM, nullptr), device_(torch::kCUDA), fp16_(false)  {
+    simulation_policy_ = register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
+    first_conv_ = register_module("first_conv_", Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
+    for (int32_t i = 0; i < BLOCK_NUM; i++) {
+        blocks_[i] = register_module("blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
+    }
+    last_conv_ = register_module("last_conv_", Conv2DwithBatchNorm(CHANNEL_NUM, HIDDEN_CHANNEL_NUM, KERNEL_SIZE));
+
+    backup_linear_ = register_module("backup_linear_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
+
+    readout_policy_ = register_module("readout_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
+}
 
 MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options) : search_options_(search_options),
                                                                 hash_table_(search_options.USI_Hash * 1024 * 1024 / 10000),
@@ -25,8 +40,6 @@ MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options) : search_options_(
     backup_linear_ = register_module("backup_linear_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
 
     readout_policy_ = register_module("readout_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
-
-    to(device_);
 }
 
 torch::Tensor MCTSNetImpl::simulationPolicy(const torch::Tensor& h) {
