@@ -1,10 +1,60 @@
 #include "mcts_net.hpp"
+#include "../include_switch.hpp"
 #include <stack>
 
-MCTSNet::MCTSNet(const SearchOptions& search_options) : search_options_(search_options),
-                                                        hash_table_(search_options.USI_Hash * 1024 * 1024 / 10000) {}
+static constexpr int64_t BLOCK_NUM = 3;
+static constexpr int32_t KERNEL_SIZE = 3;
+static constexpr int32_t REDUCTION = 8;
+static constexpr int64_t CHANNEL_NUM = 64;
+static constexpr int64_t HIDDEN_CHANNEL_NUM = 32;
+static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * HIDDEN_CHANNEL_NUM;
 
-Move MCTSNet::think(Position& root, int64_t time_limit, bool save_info_to_learn) {
+MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options) : search_options_(search_options),
+                                                                hash_table_(search_options.USI_Hash * 1024 * 1024 / 10000),
+                                                                blocks_(BLOCK_NUM, nullptr), device_(torch::kCUDA), fp16_(false) {
+    simulation_policy_ = register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
+    first_conv_ = register_module("first_conv_", Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
+    for (int32_t i = 0; i < BLOCK_NUM; i++) {
+        blocks_[i] = register_module("blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
+    }
+    last_conv_ = register_module("last_conv_", Conv2DwithBatchNorm(CHANNEL_NUM, HIDDEN_CHANNEL_NUM, KERNEL_SIZE));
+
+    backup_linear_ = register_module("backup_linear_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
+
+    readout_policy_ = register_module("readout_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
+
+    to(device_);
+}
+
+torch::Tensor MCTSNetImpl::simulationPolicy(const torch::Tensor& h) {
+    return simulation_policy_->forward(h);
+}
+
+torch::Tensor MCTSNetImpl::embed(const std::vector<float>& inputs) {
+    torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
+    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+    return embed(x);
+}
+
+torch::Tensor MCTSNetImpl::embed(const torch::Tensor& x) {
+    torch::Tensor y = first_conv_->forward(x);
+    for (ResidualBlock& block : blocks_) {
+        y = block->forward(y);
+    }
+    y = last_conv_->forward(y);
+    y = torch::flatten(y, 1);
+    return y;
+}
+
+torch::Tensor MCTSNetImpl::backup(const torch::Tensor& h1, const torch::Tensor& h2) {
+    return h1 + backup_linear_->forward(torch::cat({ h1, h2 }, 1));
+}
+
+torch::Tensor MCTSNetImpl::readoutPolicy(const torch::Tensor& h) {
+    return readout_policy_->forward(h);
+}
+
+Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_learn) {
     //思考を行う
     //時間制限、あるいはノード数制限に基づいて何回やるかを決める
 
@@ -15,7 +65,7 @@ Move MCTSNet::think(Position& root, int64_t time_limit, bool save_info_to_learn)
         hash_table_.root_index = hash_table_.searchEmptyIndex(root);
     }
     HashEntryForMCTSNet& root_entry = hash_table_[hash_table_.root_index];
-    root_entry.embedding_vector = neural_networks_->embed(root.makeFeature());
+    root_entry.embedding_vector = embed(root.makeFeature());
 
     for (int64_t m = 0; m < search_options_.search_limit; m++) {
         //1回探索する
@@ -37,7 +87,7 @@ Move MCTSNet::think(Position& root, int64_t time_limit, bool save_info_to_learn)
 
                 const HashEntryForMCTSNet& entry = hash_table_[index];
                 torch::Tensor h = entry.embedding_vector;
-                torch::Tensor policy_logit = neural_networks_->simulationPolicy(h);
+                torch::Tensor policy_logit = simulationPolicy(h);
 
                 //合法手だけマスクをかける
                 std::vector<Move> moves = root.generateAllMoves();
@@ -57,7 +107,7 @@ Move MCTSNet::think(Position& root, int64_t time_limit, bool save_info_to_learn)
         //(2)評価
         std::vector<float> feature = root.makeFeature();
         Index index = hash_table_.searchEmptyIndex(root);
-        torch::Tensor h = (hash_table_[index].embedding_vector = neural_networks_->embed(feature));
+        torch::Tensor h = (hash_table_[index].embedding_vector = embed(feature));
 
         //(3)バックアップ
         while (!indices.empty()) {
@@ -65,7 +115,7 @@ Move MCTSNet::think(Position& root, int64_t time_limit, bool save_info_to_learn)
             indices.pop();
 
             //Backup Networkにより更新(差分更新)
-            h = (hash_table_[top].embedding_vector = neural_networks_->backup(hash_table_[top].embedding_vector, h));
+            h = (hash_table_[top].embedding_vector = backup(hash_table_[top].embedding_vector, h));
 
             root.undo();
         }
@@ -79,7 +129,7 @@ Move MCTSNet::think(Position& root, int64_t time_limit, bool save_info_to_learn)
     //最終的な行動決定
     //Readout Networkにより最終決定
     torch::Tensor h = root_entry.embedding_vector;
-    torch::Tensor policy_logit = neural_networks_->readoutPolicy(h);
+    torch::Tensor policy_logit = readoutPolicy(h);
 
     //合法手だけマスクをかける
     std::vector<Move> moves = root.generateAllMoves();
@@ -100,7 +150,7 @@ Move MCTSNet::think(Position& root, int64_t time_limit, bool save_info_to_learn)
     }
 }
 
-torch::Tensor MCTSNet::loss(const LearningData& datum) {
+torch::Tensor MCTSNetImpl::loss(const LearningData& datum) {
     Position root;
     root.fromStr(datum.position_str);
 
@@ -115,12 +165,12 @@ torch::Tensor MCTSNet::loss(const LearningData& datum) {
         policy_teachers[e.first] = e.second;
     }
 
-    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(torch::kCUDA).view({ -1, POLICY_DIM });
+    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
 
     //各探索後の損失を計算
     std::vector<torch::Tensor> l(search_options_.search_limit + 1);
     for (int64_t m = 0; m < search_options_.search_limit; m++) {
-        l[m + 1] = (-policy_teacher * torch::log_softmax(neural_networks_->readoutPolicy(root_h_[m]), 1)).sum();
+        l[m + 1] = (-policy_teacher * torch::log_softmax(readoutPolicy(root_h_[m]), 1)).sum();
     }
 
     //損失の差分を計算
