@@ -23,11 +23,6 @@ void learnMCTSNet() {
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
 
-    std::array<float, LOSS_TYPE_NUM> coefficients{};
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        coefficients[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
-    }
-
     //データを取得
     std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation);
     std::vector<LearningData> valid_data = loadData(valid_kifu_path, false);
@@ -35,25 +30,16 @@ void learnMCTSNet() {
 
     //学習推移のログファイル
     std::ofstream train_log("mcts_net_train_log.txt");
-    dout(std::cout, train_log) << std::fixed << "time\tepoch\tstep\t";
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        dout(std::cout, train_log) << LOSS_TYPE_NAME[i] + "_loss" << "\t\n"[i == LOSS_TYPE_NUM - 1];
-    }
-
-    //validation結果のログファイル
     std::ofstream valid_log("mcts_net_valid_log.txt");
-    valid_log << std::fixed << "time\tepoch\tstep\t";
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        valid_log << LOSS_TYPE_NAME[i] + "_loss" << "\t\n"[i == LOSS_TYPE_NUM - 1];
-    }
+    tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tloss" << std::endl;
 
     //評価関数読み込み
     MCTSNet neural_network;
-    torch::load(neural_network, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::load(neural_network, MCTSNetImpl::DEFAULT_MODEL_NAME);
     neural_network->setGPU(0);
 
     //学習前のパラメータを出力
-    torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_before_learn.model");
+    torch::save(neural_network, MCTSNetImpl::MODEL_PREFIX + "_before_learn.model");
 
     //optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
@@ -89,41 +75,36 @@ void learnMCTSNet() {
 
             //学習
             optimizer.zero_grad();
-            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = neural_network->loss(curr_data);
-            torch::Tensor loss_sum = torch::zeros({batch_size});
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                loss_sum += coefficients[i] * loss[i].cpu();
-            }
-            loss_sum.mean().backward();
+            torch::Tensor loss = neural_network->loss(curr_data);
+            loss.mean().backward();
             optimizer.step();
             global_step++;
 
             //表示
-            dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, train_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
-            }
-            dout(std::cout, train_log) << std::flush;
+            dout(std::cout, train_log) << elapsedTime(start_time) << "\t"
+                                       << epoch << "\t"
+                                       << global_step << "\t"
+                                       << loss.item<float>() << "\r" << std::flush;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
                 neural_network->eval();
-                std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network, valid_data, 4096);
-                neural_network->train();
                 float sum_loss = 0;
-                for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                    sum_loss += coefficients[i] * valid_loss[i];
+                for (const LearningData& datum : valid_data) {
+                    torch::Tensor valid_loss = neural_network->loss({ datum });
+                    sum_loss += valid_loss.item<float>();
                 }
+                sum_loss /= valid_data.size();
+                neural_network->train();
 
                 //表示
-                dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
-                for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                    dout(std::cout, valid_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
-                }
-                dout(std::cout, valid_log) << std::flush;
+                dout(std::cout, valid_log) << elapsedTime(start_time) << "\t"
+                                           << epoch << "\t"
+                                           << global_step << "\t"
+                                           << sum_loss << std::endl;
 
                 //学習中のパラメータを書き出す
-                torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");
+                torch::save(neural_network, MCTSNetImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");
             }
 
             if (lr_decay_mode == 1) {

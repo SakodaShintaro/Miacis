@@ -2,7 +2,6 @@
 #define MIACIS_MCTS_NET_HPP
 
 #include "hash_table_for_mcts_net.hpp"
-#include "mcts_net_nn.hpp"
 #include "../search_options.hpp"
 
 //MCTSを行うクラス
@@ -16,10 +15,16 @@ public:
     Move think(Position& root, int64_t time_limit, bool save_info_to_learn = false);
 
     //一つの局面について損失等を計算する関数
-    torch::Tensor loss(const LearningData& datum);
+    torch::Tensor loss(const std::vector<LearningData>& data);
 
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
+
+    //評価パラメータを読み書きするファイルのprefix
+    static const std::string MODEL_PREFIX;
+
+    //デフォルトで読み書きするファイル名
+    static const std::string DEFAULT_MODEL_NAME;
 
 private:
     //各部分の推論

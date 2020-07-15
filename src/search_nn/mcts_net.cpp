@@ -9,6 +9,9 @@ static constexpr int64_t CHANNEL_NUM = 64;
 static constexpr int64_t HIDDEN_CHANNEL_NUM = 32;
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * HIDDEN_CHANNEL_NUM;
 
+const std::string NeuralNetworkImpl::MODEL_PREFIX = "mcts_net_" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MODEL_PREFIX + ".model";
+
 MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options) : search_options_(search_options),
                                                                 hash_table_(search_options.USI_Hash * 1024 * 1024 / 10000),
                                                                 blocks_(BLOCK_NUM, nullptr), device_(torch::kCUDA), fp16_(false) {
@@ -150,9 +153,12 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
     }
 }
 
-torch::Tensor MCTSNetImpl::loss(const LearningData& datum) {
+torch::Tensor MCTSNetImpl::loss(const std::vector<LearningData>& data) {
+    //現状バッチサイズは1のみに対応
+    assert(data.size() == 1);
+
     Position root;
-    root.fromStr(datum.position_str);
+    root.fromStr(data.front().position_str);
 
     //探索を行い、途中のルート埋め込みベクトル,各探索の確率等を保存しておく
     root_h_.resize(search_options_.search_limit);
@@ -161,7 +167,7 @@ torch::Tensor MCTSNetImpl::loss(const LearningData& datum) {
 
     std::vector<float> policy_teachers(POLICY_DIM, 0.0);
     //policyの教師信号
-    for (const std::pair<int32_t, float>& e : datum.policy) {
+    for (const std::pair<int32_t, float>& e : data.front().policy) {
         policy_teachers[e.first] = e.second;
     }
 

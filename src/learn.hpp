@@ -23,6 +23,18 @@ public:
       For more information, see ostream header */
 };
 
+class tout {
+private:
+    std::ostream &os1, &os2, &os3;
+public:
+    explicit tout (std::ostream &_os1, std::ostream &_os2, std::ostream &_os3) : os1(_os1), os2(_os2), os3(_os3) {};
+    template <typename T>
+    tout& operator<< (const T &rhs)  { os1 << rhs; os2 << rhs; os3 << rhs; return *this; };
+    tout& operator<< (std::ostream& (*__pf)(std::ostream&))  { __pf(os1); __pf(os2); __pf(os3); return *this; };
+    /*!<  Interface for manipulators, such as \c std::endl and \c std::setw
+      For more information, see ostream header */
+};
+
 //教師データを読み込む関数
 std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation);
 
