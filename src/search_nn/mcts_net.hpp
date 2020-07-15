@@ -18,6 +18,9 @@ public:
     //一つの局面について損失等を計算する関数
     torch::Tensor loss(const LearningData& datum);
 
+    //GPUにネットワークを送る関数
+    void setGPU(int16_t gpu_id, bool fp16 = false);
+
 private:
     //各部分の推論
     torch::Tensor simulationPolicy(const torch::Tensor& h);
