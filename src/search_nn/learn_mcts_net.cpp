@@ -12,7 +12,6 @@ void learnMCTSNet() {
     float min_learn_rate        = settings.get<float>("min_learn_rate");
     float momentum              = settings.get<float>("momentum");
     float weight_decay          = settings.get<float>("weight_decay");
-    float mixup_alpha           = settings.get<float>("mixup_alpha");
     bool data_augmentation      = settings.get<bool>("data_augmentation");
     bool pretrain               = settings.get<bool>("pretrain");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
@@ -67,19 +66,11 @@ void learnMCTSNet() {
         //データをシャッフル
         std::shuffle(train_data.begin(), train_data.end(), engine);
 
-        for (uint64_t step = 0; (step + 1 + (mixup_alpha != 0)) * batch_size <= train_data.size() && global_step < max_step; step++) {
+        for (uint64_t step = 0; (step + 1) * batch_size <= train_data.size() && global_step < max_step; step++) {
             //バッチサイズ分データを確保
             std::vector<LearningData> curr_data;
             for (int64_t b = 0; b < batch_size; b++) {
                 curr_data.push_back(train_data[step * batch_size + b]);
-            }
-
-            if (mixup_alpha != 0) {
-                //データ2つを混ぜて使うので倍の量取る
-                step++;
-                for (int64_t b = 0; b < batch_size; b++) {
-                    curr_data.push_back(train_data[step * batch_size + b]);
-                }
             }
 
             //学習
@@ -137,7 +128,6 @@ void pretrainMCTSNet() {
     float min_learn_rate        = settings.get<float>("min_learn_rate");
     float momentum              = settings.get<float>("momentum");
     float weight_decay          = settings.get<float>("weight_decay");
-    float mixup_alpha           = settings.get<float>("mixup_alpha");
     bool data_augmentation      = settings.get<bool>("data_augmentation");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
@@ -184,19 +174,11 @@ void pretrainMCTSNet() {
         //データをシャッフル
         std::shuffle(train_data.begin(), train_data.end(), engine);
 
-        for (uint64_t step = 0; (step + 1 + (mixup_alpha != 0)) * batch_size <= train_data.size() && global_step < max_step; step++) {
+        for (uint64_t step = 0; (step + 1) * batch_size <= train_data.size() && global_step < max_step; step++) {
             //バッチサイズ分データを確保
             std::vector<LearningData> curr_data;
             for (int64_t b = 0; b < batch_size; b++) {
                 curr_data.push_back(train_data[step * batch_size + b]);
-            }
-
-            if (mixup_alpha != 0) {
-                //データ2つを混ぜて使うので倍の量取る
-                step++;
-                for (int64_t b = 0; b < batch_size; b++) {
-                    curr_data.push_back(train_data[step * batch_size + b]);
-                }
             }
 
             //学習
