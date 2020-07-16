@@ -36,6 +36,7 @@ USI::USI() : searcher_(nullptr) {
     command_["searchWithLog"]      = searchWithLog;
     command_["convertModelToCPU"]  = convertModelToCPU;
     command_["learnMCTSNet"]       = learnMCTSNet;
+    command_["pretrainMCTSNet"]    = pretrainMCTSNet;
 }
 
 void USI::loop() {

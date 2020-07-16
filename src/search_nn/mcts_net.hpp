@@ -18,6 +18,9 @@ public:
     //一つの局面について損失等を計算する関数
     torch::Tensor loss(const std::vector<LearningData>& data);
 
+    //事前学習のロス
+    std::tuple<torch::Tensor, torch::Tensor> pretrainLoss(const std::vector<LearningData>& data);
+
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
 

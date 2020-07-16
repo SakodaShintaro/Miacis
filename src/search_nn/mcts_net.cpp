@@ -226,6 +226,45 @@ torch::Tensor MCTSNetImpl::loss(const std::vector<LearningData>& data) {
     return loss;
 }
 
+std::tuple<torch::Tensor, torch::Tensor> MCTSNetImpl::pretrainLoss(const std::vector<LearningData>& data) {
+    static Position pos;
+    std::vector<FloatType> inputs;
+    std::vector<FloatType> policy_teachers(data.size() * POLICY_DIM, 0.0);
+    std::vector<ValueTeacherType> value_teachers;
+
+    for (uint64_t i = 0; i < data.size(); i++) {
+        pos.fromStr(data[i].position_str);
+
+        //入力
+        const std::vector<float> feature = pos.makeFeature();
+        inputs.insert(inputs.end(), feature.begin(), feature.end());
+
+        //policyの教師信号
+        for (const std::pair<int32_t, float>& e : data[i].policy) {
+            policy_teachers[i * POLICY_DIM + e.first] = e.second;
+        }
+
+        //valueの教師信号
+        value_teachers.push_back(data[i].value);
+    }
+
+    torch::Tensor policy_target = (fp16_ ? torch::tensor(policy_teachers).to(device_, torch::kHalf) :
+                                           torch::tensor(policy_teachers).to(device_)).view({ -1, POLICY_DIM });
+
+    torch::Tensor h = embed(inputs);
+
+    //Readout Policyについての損失
+    torch::Tensor readout_logits = readoutPolicy(h);
+    torch::Tensor readout_loss = torch::sum(-policy_target * torch::log_softmax(readout_logits, 1), 1, false);
+
+    //Simulation Policyについての損失
+    //埋め込み部分へ2重に勾配が流れ込むのを防ぐため、こっちはdetachする
+    torch::Tensor simulation_logits = simulationPolicy(h.detach());
+    torch::Tensor simulation_loss = torch::sum(-policy_target * torch::log_softmax(simulation_logits, 1), 1, false);
+
+    return std::make_tuple(readout_loss, simulation_loss);
+}
+
 void MCTSNetImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
