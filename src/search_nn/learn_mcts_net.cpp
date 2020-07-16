@@ -14,6 +14,7 @@ void learnMCTSNet() {
     float weight_decay          = settings.get<float>("weight_decay");
     float mixup_alpha           = settings.get<float>("mixup_alpha");
     bool data_augmentation      = settings.get<bool>("data_augmentation");
+    bool pretrain               = settings.get<bool>("pretrain");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
@@ -23,6 +24,11 @@ void learnMCTSNet() {
     int64_t lr_decay_period     = settings.get<int64_t>("lr_decay_period");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
+
+    //pretrain
+    if (pretrain) {
+        pretrainMCTSNet();
+    }
 
     //データを取得
     std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation);
