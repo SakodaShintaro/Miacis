@@ -201,6 +201,7 @@ void pretrainMCTSNet() {
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
                 mcts_net->eval();
+                torch::NoGradGuard no_grad_guard;
                 std::vector<torch::Tensor> readout_losses, simulation_losses;
                 for (uint64_t i = 0; i * batch_size < valid_data.size(); i++) {
                     std::vector<LearningData> curr_valid_batch;
