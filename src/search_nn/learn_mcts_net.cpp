@@ -222,9 +222,6 @@ void pretrainMCTSNet() {
                                            << global_step << "\t"
                                            << readout_loss.item<float>() << "\t"
                                            << simulation_loss.item<float>() << std::endl;
-
-                //学習中のパラメータを書き出す
-                torch::save(mcts_net, MCTSNetImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");
             }
 
             if (lr_decay_mode == 1) {
@@ -238,6 +235,9 @@ void pretrainMCTSNet() {
             }
         }
     }
+
+    //学習したパラメータを書き出す
+    torch::save(mcts_net, MCTSNetImpl::DEFAULT_MODEL_NAME);
 
     std::cout << "finish pretrainMCTSNet" << std::endl;
 }
