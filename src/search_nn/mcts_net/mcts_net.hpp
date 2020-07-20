@@ -7,7 +7,7 @@
 //MCTSを行うクラス
 //想定の使い方は局面を放り投げて探索せよと投げることか
 //なのでSearcherForPlayと置き換えられるように作れば良さそう
-class MCTSNetImpl : public torch::nn::Module  {
+class MCTSNetImpl : public torch::nn::Module {
 public:
     MCTSNetImpl();
     explicit MCTSNetImpl(const SearchOptions& search_options);
