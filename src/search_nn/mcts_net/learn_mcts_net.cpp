@@ -210,8 +210,8 @@ void pretrainMCTSNet() {
                         curr_valid_batch.push_back(train_data[i * batch_size + b]);
                     }
                     auto[readout_loss, simulation_loss] = mcts_net->pretrainLoss(curr_valid_batch);
-                    readout_losses.push_back(readout_loss);
-                    simulation_losses.push_back(simulation_loss);
+                    readout_losses.push_back(readout_loss.cpu());
+                    simulation_losses.push_back(simulation_loss.cpu());
                 }
                 mcts_net->train();
 
