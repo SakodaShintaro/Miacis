@@ -3,7 +3,7 @@
 #include"../neural_network.hpp"
 #include"../learn.hpp"
 #include"../game.hpp"
-#include"../search_nn/learn.hpp"
+#include"../search_nn/mcts_net/learn.hpp"
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数

@@ -1,8 +1,8 @@
 #include"learn.hpp"
 #include"mcts_net.hpp"
-#include"../learn.hpp"
-#include"../hyperparameter_loader.hpp"
-#include"../common.hpp"
+#include"../../learn.hpp"
+#include"../../hyperparameter_loader.hpp"
+#include"../../common.hpp"
 #include<iostream>
 #include<random>
 

@@ -2,7 +2,7 @@
 #define MIACIS_MCTS_NET_HPP
 
 #include "hash_table_for_mcts_net.hpp"
-#include "../search_options.hpp"
+#include "../../search_options.hpp"
 
 //MCTSを行うクラス
 //想定の使い方は局面を放り投げて探索せよと投げることか

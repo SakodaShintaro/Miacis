@@ -1,7 +1,7 @@
 #include"mcts_net.hpp"
-#include"../learn.hpp"
-#include"../game_generator.hpp"
-#include"../hyperparameter_loader.hpp"
+#include"../../learn.hpp"
+#include"../../game_generator.hpp"
+#include"../../hyperparameter_loader.hpp"
 
 void learnMCTSNetByGen() {
     SearchOptions search_options;

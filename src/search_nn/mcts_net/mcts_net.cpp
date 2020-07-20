@@ -1,5 +1,5 @@
 #include "mcts_net.hpp"
-#include "../include_switch.hpp"
+#include "../../include_switch.hpp"
 #include <stack>
 
 static constexpr int64_t BLOCK_NUM = 3;

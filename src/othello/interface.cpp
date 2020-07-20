@@ -2,7 +2,7 @@
 #include"../neural_network.hpp"
 #include"../learn.hpp"
 #include"../game.hpp"
-#include"../search_nn/mcts_net.hpp"
+#include"../search_nn/mcts_net/mcts_net.hpp"
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数

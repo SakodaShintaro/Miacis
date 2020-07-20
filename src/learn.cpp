@@ -2,7 +2,7 @@
 #include"game.hpp"
 #include"hyperparameter_loader.hpp"
 #include"include_switch.hpp"
-#include"search_nn/mcts_net.hpp"
+#include"search_nn/mcts_net/mcts_net.hpp"
 #include<sstream>
 #include<iomanip>
 #include<random>
