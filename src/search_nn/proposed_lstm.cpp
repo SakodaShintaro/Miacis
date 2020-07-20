@@ -11,7 +11,7 @@ static constexpr int32_t CHANNEL_NUM = 64;
 static constexpr int32_t HIDDEN_SIZE = 512;
 static constexpr int32_t NUM_LAYERS = 2;
 
-ProposedModel::ProposedModel() {
+ProposedModelImpl::ProposedModelImpl() {
     torch::nn::LSTMOptions option(BOARD_WIDTH * BOARD_WIDTH * CHANNEL_NUM, HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
     lstm_ = register_module("lstm_", torch::nn::LSTM(option));
@@ -20,7 +20,7 @@ ProposedModel::ProposedModel() {
     resetState();
 }
 
-std::tuple<torch::Tensor, torch::Tensor> ProposedModel::forward(const torch::Tensor& x) {
+std::tuple<torch::Tensor, torch::Tensor> ProposedModelImpl::forward(const torch::Tensor& x) {
     //lstmは入力(input, (h_0, c_0))
     //inputのshapeは(seq_len, batch, input_size)
     //h_0, c_0は任意の引数で、状態を初期化できる
@@ -37,7 +37,7 @@ std::tuple<torch::Tensor, torch::Tensor> ProposedModel::forward(const torch::Ten
     return std::make_tuple(policy, value);
 }
 
-torch::Tensor ProposedModel::loss(const torch::Tensor& x, const torch::Tensor& t) {
+torch::Tensor ProposedModelImpl::loss(const torch::Tensor& x, const torch::Tensor& t) {
     auto[policy, value] = forward(x);
 
     //policyについての損失
@@ -56,7 +56,7 @@ torch::Tensor ProposedModel::loss(const torch::Tensor& x, const torch::Tensor& t
     return torch::Tensor();
 }
 
-void ProposedModel::resetState() {
+void ProposedModelImpl::resetState() {
     //(num_layers * num_directions, batch, hidden_size)
     h_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE });
     c_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE });
