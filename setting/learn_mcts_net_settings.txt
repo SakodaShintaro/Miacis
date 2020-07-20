@@ -5,6 +5,7 @@ weight_decay        0.0
 data_augmentation   1
 pretrain            1
 batch_size          1
+search_limit        10
 max_step            50000
 validation_interval 5000
 lr_decay_mode       0

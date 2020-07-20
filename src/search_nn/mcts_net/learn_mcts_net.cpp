@@ -7,6 +7,7 @@
 #include<random>
 
 void learnMCTSNet() {
+    SearchOptions options;
     HyperparameterLoader settings("learn_mcts_net_settings.txt");
     float learn_rate            = settings.get<float>("learn_rate");
     float min_learn_rate        = settings.get<float>("min_learn_rate");
@@ -15,6 +16,7 @@ void learnMCTSNet() {
     bool data_augmentation      = settings.get<bool>("data_augmentation");
     bool pretrain               = settings.get<bool>("pretrain");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
+    options.search_limit        = settings.get<int64_t>("search_limit");
     int64_t max_step            = settings.get<int64_t>("max_step");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
     int64_t lr_decay_mode       = settings.get<int64_t>("lr_decay_mode");
@@ -40,8 +42,6 @@ void learnMCTSNet() {
     tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tloss" << std::endl;
 
     //評価関数読み込み
-    SearchOptions options;
-    options.search_limit = 100;
     MCTSNet mcts_net(options);
     torch::load(mcts_net, MCTSNetImpl::DEFAULT_MODEL_NAME);
     mcts_net->setGPU(0);
