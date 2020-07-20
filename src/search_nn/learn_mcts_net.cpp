@@ -89,6 +89,7 @@ void learnMCTSNet() {
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
                 mcts_net->eval();
+                torch::NoGradGuard no_grad_guard;
                 float sum_loss = 0;
                 for (const LearningData& datum : valid_data) {
                     torch::Tensor valid_loss = mcts_net->loss({ datum });
