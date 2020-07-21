@@ -78,7 +78,9 @@ void cleanGames() {
     std::string path;
     std::cin >> path;
 
-    constexpr double rate_threshold = 2800;
+    double rate_threshold = 2800;
+    std::cout << "削除するレートの閾値 : ";
+    std::cin >> rate_threshold;
     constexpr int32_t move_threshold = 50;
 
     const sys::path dir(path);
