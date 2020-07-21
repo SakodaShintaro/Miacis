@@ -41,6 +41,9 @@ public:
     //MCTSNetを使って思考
     void thinkByMCTSNet();
 
+    //提案モデルを使って思考
+    void thinkByProposedModel();
+
     //現盤面について思考してbest_moveを標準出力に出し、盤面を更新する関数
     void go();
     void stop();

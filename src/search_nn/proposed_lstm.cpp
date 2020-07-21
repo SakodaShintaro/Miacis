@@ -1,7 +1,6 @@
 #include "proposed_lstm.hpp"
-
-#include <utility>
 #include "../include_switch.hpp"
+#include "../common.hpp"
 
 //ネットワークの設定
 #ifdef SHOGI
@@ -38,6 +37,10 @@ ProposedModelImpl::ProposedModelImpl(SearchOptions search_options) : search_opti
 
 Move ProposedModelImpl::think(Position& root, int64_t time_limit, bool save_info_to_learn) {
     //思考を行う
+
+    //状態を初期化
+    resetState();
+
     //時間制限、あるいはノード数制限に基づいて何回やるかを決める
     std::vector<torch::Tensor> outputs;
 
@@ -55,6 +58,8 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit, bool save_info
         //LSTMでの探索を実行
         auto[simulation_policy, simulation_value] = simulationPolicy(embed_vector);
 
+        std::cout << simulation_policy.sizes() << std::endl;
+
         //Policyからサンプリングして行動決定(undoを含む)
         std::vector<Move> moves = root.generateAllMoves();
         if (depth > 0) {
@@ -63,8 +68,8 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit, bool save_info
         }
         std::vector<FloatType> logits(moves.size());
         for (uint64_t i = 0; i < moves.size(); i++) {
-            logits[i] = (depth > 0 && i == 0 ? simulation_policy[POLICY_DIM].item<float>()
-                                             : simulation_policy[moves[i].toLabel()].item<float>());
+            logits[i] = (depth > 0 && i == 0 ? simulation_policy[0][0][POLICY_DIM].item<float>()
+                                             : simulation_policy[0][0][moves[i].toLabel()].item<float>());
         }
         std::vector<FloatType> softmaxed = softmax(logits, 1.0f);
         int64_t move_index = randomChoose(softmaxed);
@@ -82,11 +87,16 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit, bool save_info
         embed_vector = embed(root.makeFeature());
     }
 
+    //局面を戻す
+    for (int64_t i = 0; i < depth; i++) {
+        root.undo();
+    }
+
     //合法手だけマスクをかける
     std::vector<Move> moves = root.generateAllMoves();
     std::vector<float> logits;
     for (const Move& move : moves) {
-        logits.push_back(outputs.back()[0][move.toLabel()].item<float>());
+        logits.push_back(outputs.back()[0][0][move.toLabel()].item<float>());
     }
 
     if (root.turnNumber() <= search_options_.random_turn) {
@@ -110,6 +120,7 @@ torch::Tensor ProposedModelImpl::embed(const std::vector<float>& inputs) {
     }
     y = last_conv_->forward(y);
     y = torch::flatten(y, 1);
+    y = y.view({ 1, -1, HIDDEN_DIM });
     return y;
 }
 
@@ -168,8 +179,14 @@ torch::Tensor ProposedModelImpl::loss(const torch::Tensor& x, const torch::Tenso
 
 void ProposedModelImpl::resetState() {
     //(num_layers * num_directions, batch, hidden_size)
-    simulation_h_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE });
-    simulation_c_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE });
-    readout_h_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE });
-    readout_c_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE });
+    simulation_h_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
+    simulation_c_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
+    readout_h_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
+    readout_c_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
+}
+
+void ProposedModelImpl::setGPU(int16_t gpu_id, bool fp16) {
+    device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
+    fp16_ = fp16;
+    (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
 }

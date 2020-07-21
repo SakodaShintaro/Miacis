@@ -19,6 +19,10 @@ public:
 
     torch::Tensor loss(const torch::Tensor& x, const torch::Tensor& t);
     void resetState();
+
+    //GPUにネットワークを送る関数
+    void setGPU(int16_t gpu_id, bool fp16 = false);
+
 private:
     torch::Tensor embed(const std::vector<float>& inputs);
 

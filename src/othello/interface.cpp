@@ -3,23 +3,25 @@
 #include"../learn.hpp"
 #include"../game.hpp"
 #include"../search_nn/mcts_net/mcts_net.hpp"
+#include"../search_nn/proposed_lstm.hpp"
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
-    command_["printOption"]    = std::bind(&Interface::printOption,    this);
-    command_["set"]            = std::bind(&Interface::set,            this);
-    command_["think"]          = std::bind(&Interface::think,          this);
-    command_["test"]           = std::bind(&Interface::test,           this);
-    command_["infiniteTest"]   = std::bind(&Interface::infiniteTest,   this);
-    command_["battle"]         = std::bind(&Interface::battle,         this);
-    command_["battleVSRandom"] = std::bind(&Interface::battleVSRandom, this);
-    command_["outputValue"]    = std::bind(&Interface::outputValue,    this);
-    command_["init"]           = std::bind(&Interface::init,           this);
-    command_["play"]           = std::bind(&Interface::play,           this);
-    command_["go"]             = std::bind(&Interface::go,             this);
-    command_["stop"]           = std::bind(&Interface::stop,           this);
-    command_["quit"]           = std::bind(&Interface::quit,           this);
-    command_["thinkByMCTSNet"] = std::bind(&Interface::thinkByMCTSNet, this);
+    command_["printOption"]          = std::bind(&Interface::printOption,    this);
+    command_["set"]                  = std::bind(&Interface::set,            this);
+    command_["think"]                = std::bind(&Interface::think,          this);
+    command_["test"]                 = std::bind(&Interface::test,           this);
+    command_["infiniteTest"]         = std::bind(&Interface::infiniteTest,   this);
+    command_["battle"]               = std::bind(&Interface::battle,         this);
+    command_["battleVSRandom"]       = std::bind(&Interface::battleVSRandom, this);
+    command_["outputValue"]          = std::bind(&Interface::outputValue,    this);
+    command_["init"]                 = std::bind(&Interface::init,           this);
+    command_["play"]                 = std::bind(&Interface::play,           this);
+    command_["go"]                   = std::bind(&Interface::go,             this);
+    command_["stop"]                 = std::bind(&Interface::stop,           this);
+    command_["quit"]                 = std::bind(&Interface::quit,           this);
+    command_["thinkByMCTSNet"]       = std::bind(&Interface::thinkByMCTSNet, this);
+    command_["thinkByProposedModel"] = std::bind(&Interface::thinkByProposedModel, this);
 
     //メンバ関数以外
     command_["initParams"]         = initParams;
@@ -352,6 +354,25 @@ void Interface::thinkByMCTSNet() {
     FloatType score;
     while (!root_.isFinish(score)) {
         Move best_move = mcts_net->think(root_, INT_MAX);
+        root_.doMove(best_move);
+        root_.print();
+    }
+}
+
+void Interface::thinkByProposedModel() {
+    root_.init();
+
+    options_.search_limit = 10;
+    options_.print_interval = INT_MAX;
+    options_.print_policy_num = 800;
+    options_.search_batch_size = 1;
+    options_.thread_num_per_gpu = 1;
+    ProposedModel model(options_);
+    model->setGPU(0);
+
+    FloatType score;
+    while (!root_.isFinish(score)) {
+        Move best_move = model->think(root_, INT_MAX);
         root_.doMove(best_move);
         root_.print();
     }
