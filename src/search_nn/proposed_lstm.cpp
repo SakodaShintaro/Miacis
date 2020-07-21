@@ -44,19 +44,42 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit, bool save_info
     //最初のエンコード
     torch::Tensor embed_vector = embed(root.makeFeature());
 
+    //思考開始局面から考えた深さ
+    int64_t depth = 0;
+
     for (int64_t m = 0; m < search_options_.search_limit; m++) {
         //今までの探索から現時点での結論を推論
         auto[readout_policy, readout_value] = readoutPolicy(embed_vector);
+        outputs.push_back(readout_policy);
 
         //LSTMでの探索を実行
         auto[simulation_policy, simulation_value] = simulationPolicy(embed_vector);
 
         //Policyからサンプリングして行動決定(undoを含む)
+        std::vector<Move> moves = root.generateAllMoves();
+        if (depth > 0) {
+            //深さが1以上のときは1手戻るという選択肢が可能
+            moves.insert(moves.begin(), NULL_MOVE);
+        }
+        std::vector<FloatType> logits(moves.size());
+        for (uint64_t i = 0; i < moves.size(); i++) {
+            logits[i] = (depth > 0 && i == 0 ? simulation_policy[POLICY_DIM].item<float>()
+                                             : simulation_policy[moves[i].toLabel()].item<float>());
+        }
+        std::vector<FloatType> softmaxed = softmax(logits, 1.0f);
+        int64_t move_index = randomChoose(softmaxed);
 
         //盤面を遷移
+        if (depth > 0 && move_index == 0) {
+            root.undo();
+            depth--;
+        } else {
+            root.doMove(moves[move_index]);
+            depth++;
+        }
 
         //埋め込みベクトルを更新
-        embed_vector = embed_vector;
+        embed_vector = embed(root.makeFeature());
     }
 
     //合法手だけマスクをかける
