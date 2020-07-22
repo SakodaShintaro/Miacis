@@ -59,7 +59,8 @@ private:
     Conv2DwithBatchNorm last_conv_{ nullptr };
 
     //backup network
-    torch::nn::Linear backup_linear_{ nullptr };
+    torch::nn::Linear backup_update_{ nullptr };
+    torch::nn::Linear backup_gate_{ nullptr };
 
     //readout network
     torch::nn::Linear readout_policy_{ nullptr };

@@ -22,7 +22,8 @@ MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options) : search_options_(
     }
     last_conv_ = register_module("last_conv_", Conv2DwithBatchNorm(CHANNEL_NUM, HIDDEN_CHANNEL_NUM, KERNEL_SIZE));
 
-    backup_linear_ = register_module("backup_linear_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
+    backup_update_ = register_module("backup_update_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
+    backup_gate_ = register_module("backup_gate_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
 
     readout_policy_ = register_module("readout_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
 }
@@ -48,7 +49,9 @@ torch::Tensor MCTSNetImpl::embed(const torch::Tensor& x) {
 }
 
 torch::Tensor MCTSNetImpl::backup(const torch::Tensor& h1, const torch::Tensor& h2) {
-    return h1 + backup_linear_->forward(torch::cat({ h1, h2 }, 1));
+    torch::Tensor cat_h = torch::cat({ h1, h2 }, 1);
+    torch::Tensor gate = torch::sigmoid(backup_gate_->forward(cat_h));
+    return h1 + gate * backup_update_->forward(cat_h);
 }
 
 torch::Tensor MCTSNetImpl::readoutPolicy(const torch::Tensor& h) {
