@@ -13,7 +13,7 @@ const std::string MCTSNetImpl::MODEL_PREFIX = "mcts_net_bl" + std::to_string(BLO
 const std::string MCTSNetImpl::DEFAULT_MODEL_NAME = MCTSNetImpl::MODEL_PREFIX + ".model";
 
 MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options) : search_options_(search_options),
-                                                                hash_table_(search_options.USI_Hash * 1024 * 1024 / 10000),
+                                                                hash_table_(std::min(search_options.USI_Hash * 1024 * 1024 / 10000, search_options.search_limit * 10)),
                                                                 blocks_(BLOCK_NUM, nullptr), device_(torch::kCUDA), fp16_(false) {
     simulation_policy_ = register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
     first_conv_ = register_module("first_conv_", Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
