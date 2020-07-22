@@ -350,6 +350,8 @@ void Interface::thinkByMCTSNet() {
     options_.thread_num_per_gpu = 1;
     MCTSNet mcts_net(options_);
     mcts_net->setGPU(0);
+    mcts_net->eval();
+    torch::NoGradGuard no_grad_guard;
 
     FloatType score;
     while (!root_.isFinish(score)) {
@@ -369,6 +371,8 @@ void Interface::thinkByProposedModel() {
     options_.thread_num_per_gpu = 1;
     ProposedModel model(options_);
     model->setGPU(0);
+    model->eval();
+    torch::NoGradGuard no_grad_guard;
 
     FloatType score;
     while (!root_.isFinish(score)) {
