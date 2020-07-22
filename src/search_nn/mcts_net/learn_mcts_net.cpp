@@ -39,7 +39,11 @@ void learnMCTSNet() {
     //学習推移のログファイル
     std::ofstream train_log("mcts_net_train_log.txt");
     std::ofstream valid_log("mcts_net_valid_log.txt");
-    tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tloss" << std::endl;
+    tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tloss";
+    for (int64_t i = 0; i < options.search_limit; i++) {
+        tout(std::cout, train_log, valid_log) << "\tloss_" << i + 1;
+    }
+    tout(std::cout, train_log, valid_log) << std::endl;
 
     //評価関数読み込み
     MCTSNet mcts_net(options);
@@ -75,34 +79,45 @@ void learnMCTSNet() {
 
             //学習
             optimizer.zero_grad();
-            torch::Tensor loss = mcts_net->loss(curr_data);
-            loss.mean().backward();
+            std::vector<torch::Tensor> loss = mcts_net->loss(curr_data);
+            torch::Tensor loss_sum = torch::cat(loss).sum();
+            loss_sum.mean().backward();
             optimizer.step();
             global_step++;
 
             //表示
             dout(std::cout, train_log) << elapsedTime(start_time) << "\t"
                                        << epoch << "\t"
-                                       << global_step << "\t"
-                                       << loss.item<float>() << "\r" << std::flush;
+                                       << global_step;
+            for (const torch::Tensor& t : loss) {
+                dout(std::cout, train_log) << "\t" << t.item<float>();
+            }
+            dout(std::cout, train_log) << "\r" << std::flush;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
                 mcts_net->eval();
                 torch::NoGradGuard no_grad_guard;
-                float sum_loss = 0;
+                std::vector<float> valid_loss_sum(loss.size(), 0);
                 for (const LearningData& datum : valid_data) {
-                    torch::Tensor valid_loss = mcts_net->loss({ datum });
-                    sum_loss += valid_loss.item<float>();
+                    std::vector<torch::Tensor> valid_loss = mcts_net->loss({ datum });
+                    for (uint64_t i = 0; i < valid_loss_sum.size(); i++) {
+                        valid_loss_sum[i] += valid_loss[i].item<float>();
+                    }
                 }
-                sum_loss /= valid_data.size();
+                for (float& v : valid_loss_sum) {
+                    v /= valid_data.size();
+                }
                 mcts_net->train();
 
                 //表示
                 dout(std::cout, valid_log) << elapsedTime(start_time) << "\t"
                                            << epoch << "\t"
-                                           << global_step << "\t"
-                                           << sum_loss << std::endl;
+                                           << global_step;
+                for (float v : valid_loss_sum) {
+                    dout(std::cout, valid_log) << "\t" << v;
+                }
+                dout(std::cout, valid_log) << std::endl;
 
                 //学習中のパラメータを書き出す
                 torch::save(mcts_net, MCTSNetImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");

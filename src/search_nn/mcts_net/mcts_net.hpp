@@ -16,7 +16,7 @@ public:
     Move think(Position& root, int64_t time_limit, bool save_info_to_learn = false);
 
     //一つの局面について損失等を計算する関数
-    torch::Tensor loss(const std::vector<LearningData>& data);
+    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
 
     //事前学習のロス
     std::tuple<torch::Tensor, torch::Tensor> pretrainLoss(const std::vector<LearningData>& data);

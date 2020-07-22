@@ -168,7 +168,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
     }
 }
 
-torch::Tensor MCTSNetImpl::loss(const std::vector<LearningData>& data) {
+std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& data) {
     //現状バッチサイズは1のみに対応
     assert(data.size() == 1);
 
@@ -195,7 +195,7 @@ torch::Tensor MCTSNetImpl::loss(const std::vector<LearningData>& data) {
     for (int64_t m = 0; m < search_options_.search_limit; m++) {
         torch::Tensor policy_logit = readoutPolicy(root_h_[m]);
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
-        torch::Tensor clipped = torch::clamp_min(log_softmax, -10);
+        torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
         l[m + 1] = (-policy_teacher * clipped).sum();
     }
 
@@ -218,9 +218,11 @@ torch::Tensor MCTSNetImpl::loss(const std::vector<LearningData>& data) {
         R[m] = R[m].detach().to(device_);
     }
 
-    torch::Tensor loss = l[search_options_.search_limit];
+    std::vector<torch::Tensor> loss;
+    loss.push_back(l[search_options_.search_limit].view({1}));
     for (int64_t m = 1; m <= search_options_.search_limit; m++) {
-        loss = (loss + probs_[m - 1] * R[m]);
+        //loss.push_back(probs_[m - 1] * R[m]);
+        loss.push_back(l[m].view({1}));
     }
 
     return loss;
