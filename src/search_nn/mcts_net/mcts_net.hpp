@@ -9,7 +9,7 @@
 //なのでSearcherForPlayと置き換えられるように作れば良さそう
 class MCTSNetImpl : public torch::nn::Module {
 public:
-    MCTSNetImpl();
+    MCTSNetImpl() : MCTSNetImpl(SearchOptions()) {}
     explicit MCTSNetImpl(const SearchOptions& search_options);
 
     //探索を行って一番良い指し手を返す関数
