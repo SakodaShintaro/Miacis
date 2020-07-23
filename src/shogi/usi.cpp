@@ -1,6 +1,5 @@
 ﻿#include"usi.hpp"
 #include"test.hpp"
-#include"../neural_network.hpp"
 #include"../learn.hpp"
 #include"../game.hpp"
 #include"../search_nn/learn_search_nn.hpp"

@@ -1,9 +1,9 @@
 ﻿#ifndef HASH_FOR_MCTS_NET_TABLE_HPP
 #define HASH_FOR_MCTS_NET_TABLE_HPP
 
-#include"../../neural_network.hpp"
 #include"../../common.hpp"
 #include"../../include_switch.hpp"
+#include<torch/torch.h>
 
 using Index = int32_t;
 

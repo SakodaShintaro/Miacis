@@ -1,5 +1,4 @@
 #include "proposed_model.hpp"
-#include "../../include_switch.hpp"
 #include "../../common.hpp"
 
 //ネットワークの設定
