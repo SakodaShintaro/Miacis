@@ -16,6 +16,9 @@ static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * HIDDEN_CHANNEL
 static constexpr int32_t HIDDEN_SIZE = 512;
 static constexpr int32_t NUM_LAYERS = 2;
 
+const std::string ProposedModelImpl::MODEL_PREFIX = "proposed_model_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+const std::string ProposedModelImpl::DEFAULT_MODEL_NAME = ProposedModelImpl::MODEL_PREFIX + ".model";
+
 ProposedModelImpl::ProposedModelImpl(SearchOptions search_options) : search_options_(std::move(search_options)),
                                                                      blocks_(BLOCK_NUM, nullptr), device_(torch::kCUDA), fp16_(false) {
     first_conv_ = register_module("first_conv_", Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));

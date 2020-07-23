@@ -23,6 +23,12 @@ public:
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
 
+    //評価パラメータを読み書きするファイルのprefix
+    static const std::string MODEL_PREFIX;
+
+    //デフォルトで読み書きするファイル名
+    static const std::string DEFAULT_MODEL_NAME;
+
 private:
     torch::Tensor embed(const std::vector<float>& inputs);
 
