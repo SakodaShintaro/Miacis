@@ -41,8 +41,8 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit, bool save_info
     //状態を初期化
     resetState();
 
-    //時間制限、あるいはノード数制限に基づいて何回やるかを決める
-    std::vector<torch::Tensor> outputs;
+    //出力系列を初期化
+    outputs_.clear();
 
     //最初のエンコード
     torch::Tensor embed_vector = embed(root.makeFeature());
@@ -53,12 +53,10 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit, bool save_info
     for (int64_t m = 0; m < search_options_.search_limit; m++) {
         //今までの探索から現時点での結論を推論
         auto[readout_policy, readout_value] = readoutPolicy(embed_vector);
-        outputs.push_back(readout_policy);
+        outputs_.push_back(readout_policy);
 
         //LSTMでの探索を実行
         auto[simulation_policy, simulation_value] = simulationPolicy(embed_vector);
-
-        std::cout << simulation_policy.sizes() << std::endl;
 
         //Policyからサンプリングして行動決定(undoを含む)
         std::vector<Move> moves = root.generateAllMoves();
@@ -96,7 +94,7 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit, bool save_info
     std::vector<Move> moves = root.generateAllMoves();
     std::vector<float> logits;
     for (const Move& move : moves) {
-        logits.push_back(outputs.back()[0][0][move.toLabel()].item<float>());
+        logits.push_back(outputs_.back()[0][0][move.toLabel()].item<float>());
     }
 
     if (root.turnNumber() <= search_options_.random_turn) {
@@ -158,23 +156,62 @@ std::tuple<torch::Tensor, torch::Tensor> ProposedModelImpl::readoutPolicy(const 
     return std::make_tuple(policy, value);
 }
 
-torch::Tensor ProposedModelImpl::loss(const torch::Tensor& x, const torch::Tensor& t) {
-//    auto[policy, value] = simulationPolicy(x);
-//
-//    //policyについての損失
-//    std::vector<float> losses;
-//    for (int64_t i = 0; i < x.size(0); i++) {
-//        //最終結果と比較して損失を貯めていく
-//
-//    }
+std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningData>& data) {
+    //現状バッチサイズは1のみに対応
+    assert(data.size() == 1);
 
-    //差分を計算する
+    Position root;
+    root.fromStr(data.front().position_str);
 
-    //差分が報酬のようなものになる
-    //これを用いて方策勾配
-    //今回選んだ行動と報酬の積をもとに勾配を計算
+    //探索を行い、途中のルート埋め込みベクトル,各探索の確率等を保存しておく
+    think(root, INT_MAX, true);
 
-    return torch::Tensor();
+    const int64_t M = outputs_.size();
+
+    std::vector<float> policy_teachers(POLICY_DIM, 0.0);
+    //policyの教師信号
+    for (const std::pair<int32_t, float>& e : data.front().policy) {
+        policy_teachers[e.first] = e.second;
+    }
+
+    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
+
+    //各探索後の損失を計算
+    std::vector<torch::Tensor> l(M + 1);
+    l[0] = torch::zeros({ 1 });
+    std::cout << std::fixed;
+    for (int64_t m = 0; m < M; m++) {
+        torch::Tensor policy_logit = outputs_[m][0][0];
+        torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
+        torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
+        l[m + 1] = (-policy_teacher * clipped).sum();
+    }
+
+    //損失の差分を計算
+    std::vector<torch::Tensor> r(M + 1);
+    for (int64_t m = 0; m < M; m++) {
+        r[m + 1] = -(l[m + 1] - l[m]);
+    }
+
+    //重み付き累積和
+    constexpr float gamma = 1.0;
+    std::vector<torch::Tensor> R(M + 1);
+    for (int64_t m = 1; m <= M; m++) {
+        R[m] = torch::zeros({ 1 });
+        for (int64_t m2 = m; m2 <= M; m2++) {
+            R[m] += std::pow(gamma, m2 - m) * r[m2];
+        }
+
+        //この値は勾配を切る
+        R[m] = R[m].detach().to(device_);
+    }
+
+    std::vector<torch::Tensor> loss;
+    for (int64_t m = 1; m <= M; m++) {
+        loss.push_back(l[m].view({1}));
+    }
+
+    return loss;
 }
 
 void ProposedModelImpl::resetState() {

@@ -17,7 +17,7 @@ public:
     //探索を行って一番良い指し手を返す関数
     Move think(Position& root, int64_t time_limit, bool save_info_to_learn = false);
 
-    torch::Tensor loss(const torch::Tensor& x, const torch::Tensor& t);
+    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
     void resetState();
 
     //GPUにネットワークを送る関数
@@ -61,6 +61,9 @@ private:
     torch::nn::Linear readout_value_head_{ nullptr };
     torch::Tensor readout_h_;
     torch::Tensor readout_c_;
+
+    //出力方策の系列
+    std::vector<torch::Tensor> outputs_;
 
     //デバイスとfp16化
     torch::Device device_;
