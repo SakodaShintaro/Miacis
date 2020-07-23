@@ -4,21 +4,18 @@
 #include "hash_table_for_mcts_net.hpp"
 #include "../../search_options.hpp"
 
-//MCTSを行うクラス
-//想定の使い方は局面を放り投げて探索せよと投げることか
-//なのでSearcherForPlayと置き換えられるように作れば良さそう
 class MCTSNetImpl : public torch::nn::Module {
 public:
     MCTSNetImpl() : MCTSNetImpl(SearchOptions()) {}
     explicit MCTSNetImpl(const SearchOptions& search_options);
 
-    //探索を行って一番良い指し手を返す関数
+    //root局面について探索を行って一番良い指し手を返す関数
     Move think(Position& root, int64_t time_limit, bool save_info_to_learn = false);
 
-    //一つの局面について損失等を計算する関数
+    //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
     std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
 
-    //事前学習のロス
+    //事前学習のロスを計算する関数(これは探索を含まないので複数バッチに対応している)
     std::tuple<torch::Tensor, torch::Tensor> pretrainLoss(const std::vector<LearningData>& data);
 
     //GPUにネットワークを送る関数
@@ -30,6 +27,7 @@ public:
     //デフォルトで読み書きするファイル名
     static const std::string DEFAULT_MODEL_NAME;
 
+    //インタンスから上記のクラス変数を参照するための関数
     static std::string modelPrefix() { return MODEL_PREFIX; }
     static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
 
@@ -52,13 +50,8 @@ private:
     torch::nn::Linear simulation_policy_{ nullptr };
 
     //embed network
-    //最初にチャンネル数を変えるConv
     Conv2DwithBatchNorm first_conv_{ nullptr };
-
-    //同じチャンネル数で残差ブロックを通す
     std::vector<ResidualBlock> blocks_;
-
-    //最後にまた絞るConv
     Conv2DwithBatchNorm last_conv_{ nullptr };
 
     //backup network
