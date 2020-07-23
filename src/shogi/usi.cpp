@@ -3,7 +3,6 @@
 #include"../neural_network.hpp"
 #include"../learn.hpp"
 #include"../game.hpp"
-#include"../search_nn/mcts_net/learn_mcts_net.hpp"
 #include"../search_nn/learn_search_nn.hpp"
 #include"../search_nn/proposed_model/proposed_model.hpp"
 #include"../search_nn/mcts_net/mcts_net.hpp"

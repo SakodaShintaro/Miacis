@@ -15,9 +15,6 @@ public:
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
     std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
 
-    //事前学習のロスを計算する関数(これは探索を含まないので複数バッチに対応している)
-    std::tuple<torch::Tensor, torch::Tensor> pretrainLoss(const std::vector<LearningData>& data);
-
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
 
