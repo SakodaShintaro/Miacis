@@ -1,6 +1,6 @@
 #include "proposed_lstm.hpp"
-#include "../include_switch.hpp"
-#include "../common.hpp"
+#include "../../include_switch.hpp"
+#include "../../common.hpp"
 
 //ネットワークの設定
 #ifdef SHOGI

@@ -1,8 +1,8 @@
 #ifndef MIACIS_PROPOSED_LSTM_HPP
 #define MIACIS_PROPOSED_LSTM_HPP
 
-#include"../search_options.hpp"
-#include"../include_switch.hpp"
+#include"../../search_options.hpp"
+#include"../../include_switch.hpp"
 #include<torch/torch.h>
 
 //提案手法で用いるNN
