@@ -1,5 +1,5 @@
-#ifndef MIACIS_PROPOSED_LSTM_HPP
-#define MIACIS_PROPOSED_LSTM_HPP
+#ifndef MIACIS_PROPOSED_MODEL_HPP
+#define MIACIS_PROPOSED_MODEL_HPP
 
 #include"../../search_options.hpp"
 #include"../../include_switch.hpp"
@@ -80,4 +80,4 @@ private:
 };
 TORCH_MODULE(ProposedModel);
 
-#endif //MIACIS_PROPOSED_LSTM_HPP
+#endif //MIACIS_PROPOSED_MODEL_HPP

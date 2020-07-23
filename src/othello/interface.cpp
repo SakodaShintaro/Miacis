@@ -3,7 +3,7 @@
 #include"../learn.hpp"
 #include"../game.hpp"
 #include"../search_nn/mcts_net/mcts_net.hpp"
-#include"../search_nn/proposed_model/proposed_lstm.hpp"
+#include"../search_nn/proposed_model/proposed_model.hpp"
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
