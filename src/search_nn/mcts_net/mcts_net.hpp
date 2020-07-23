@@ -30,6 +30,9 @@ public:
     //デフォルトで読み書きするファイル名
     static const std::string DEFAULT_MODEL_NAME;
 
+    static std::string modelPrefix() { return MODEL_PREFIX; }
+    static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
+
 private:
     //各部分の推論
     torch::Tensor simulationPolicy(const torch::Tensor& h);

@@ -4,6 +4,9 @@
 #include"../learn.hpp"
 #include"../game.hpp"
 #include"../search_nn/mcts_net/learn_mcts_net.hpp"
+#include"../search_nn/learn_search_nn.hpp"
+#include"../search_nn/proposed_model/proposed_lstm.hpp"
+#include"../search_nn/mcts_net/mcts_net.hpp"
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数
@@ -35,8 +38,8 @@ USI::USI() : searcher_(nullptr) {
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
     command_["convertModelToCPU"]  = convertModelToCPU;
-    command_["learnMCTSNet"]       = learnMCTSNet;
-    command_["pretrainMCTSNet"]    = pretrainMCTSNet;
+    command_["learnMCTSNet"]       = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
+    command_["learnProposedModel"] = [](){ learnSearchNN<ProposedModel>("proposed_model"); };
 }
 
 void USI::loop() {
