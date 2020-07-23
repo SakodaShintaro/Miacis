@@ -30,14 +30,17 @@ ProposedModelImpl::ProposedModelImpl(SearchOptions search_options) : search_opti
     readout_lstm_ = register_module("readout_lstm_", torch::nn::LSTM(option));
     readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM + 1));
     readout_value_head_ = register_module("readout_value_head_", torch::nn::Linear(HIDDEN_SIZE, 1));
-    resetState();
 }
 
 Move ProposedModelImpl::think(Position& root, int64_t time_limit, bool save_info_to_learn) {
     //思考を行う
 
     //状態を初期化
-    resetState();
+    //(num_layers * num_directions, batch, hidden_size)
+    simulation_h_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
+    simulation_c_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
+    readout_h_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
+    readout_c_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
 
     //出力系列を初期化
     outputs_.clear();
@@ -210,14 +213,6 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     }
 
     return loss;
-}
-
-void ProposedModelImpl::resetState() {
-    //(num_layers * num_directions, batch, hidden_size)
-    simulation_h_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
-    simulation_c_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
-    readout_h_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
-    readout_c_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_SIZE }).to(device_);
 }
 
 void ProposedModelImpl::setGPU(int16_t gpu_id, bool fp16) {
