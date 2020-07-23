@@ -63,7 +63,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
     //時間制限、あるいはノード数制限に基づいて何回やるかを決める
 
     //ルートノードについての設定
-    hash_table_.deleteOldHash(root, search_options_.leave_root);
+    hash_table_.deleteOldHash();
     hash_table_.root_index = hash_table_.findSameHashIndex(root);
     if (hash_table_.root_index == (Index)hash_table_.size()) {
         hash_table_.root_index = hash_table_.searchEmptyIndex(root);
