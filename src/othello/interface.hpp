@@ -38,11 +38,8 @@ public:
     //Policyに従って対局し、Valueのログを残していく関数
     void outputValue();
 
-    //MCTSNetを使って思考
-    void thinkByMCTSNet();
-
-    //提案モデルを使って思考
-    void thinkByProposedModel();
+    //探索系のNNを用いて自己対局が正常に動くか検証する関数
+    template<class T> void testSearchNN();
 
     //現盤面について思考してbest_moveを標準出力に出し、盤面を更新する関数
     void go();
