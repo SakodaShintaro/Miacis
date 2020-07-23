@@ -19,6 +19,7 @@ void learnMCTSNet() {
     options.search_limit        = settings.get<int64_t>("search_limit");
     int64_t max_step            = settings.get<int64_t>("max_step");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
+    int64_t save_interval       = settings.get<int64_t>("save_interval");
     int64_t lr_decay_mode       = settings.get<int64_t>("lr_decay_mode");
     int64_t lr_decay_step1      = settings.get<int64_t>("lr_decay_step1");
     int64_t lr_decay_step2      = settings.get<int64_t>("lr_decay_step2");
@@ -118,7 +119,8 @@ void learnMCTSNet() {
                     dout(std::cout, valid_log) << "\t" << v;
                 }
                 dout(std::cout, valid_log) << std::endl;
-
+            }
+            if (global_step % save_interval == 0) {
                 //学習中のパラメータを書き出す
                 torch::save(mcts_net, MCTSNetImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");
             }
