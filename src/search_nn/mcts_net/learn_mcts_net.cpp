@@ -1,4 +1,4 @@
-#include"learn.hpp"
+#include"learn_mcts_net.hpp"
 #include"mcts_net.hpp"
 #include"../../learn.hpp"
 #include"../../hyperparameter_loader.hpp"
