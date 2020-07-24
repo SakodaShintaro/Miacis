@@ -4,6 +4,7 @@
 #include"include_switch.hpp"
 #include"search_nn/mcts_net/mcts_net.hpp"
 #include"search_nn/proposed_model/proposed_model.hpp"
+#include"search_nn/stacked_lstm/stacked_lstm.hpp"
 #include<sstream>
 #include<iomanip>
 #include<random>
@@ -125,4 +126,8 @@ void initParams() {
     ProposedModel proposed_model;
     torch::save(proposed_model, ProposedModelImpl::DEFAULT_MODEL_NAME);
     std::cout << "初期化したパラメータを" << ProposedModelImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
+
+    StackedLSTM stacked_lstm;
+    torch::save(stacked_lstm, StackedLSTMImpl::DEFAULT_MODEL_NAME);
+    std::cout << "初期化したパラメータを" << StackedLSTMImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
 }

@@ -4,6 +4,7 @@
 #include"../game.hpp"
 #include"../search_nn/mcts_net/mcts_net.hpp"
 #include"../search_nn/proposed_model/proposed_model.hpp"
+#include"../search_nn/stacked_lstm/stacked_lstm.hpp"
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
@@ -22,6 +23,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["quit"]              = std::bind(&Interface::quit,           this);
     command_["testMCTSNet"]       = [this](){ testSearchNN<MCTSNet>(); };
     command_["testProposedModel"] = [this](){ testSearchNN<ProposedModel>(); };
+    command_["testStackedLSTM"]   = [this](){ testSearchNN<StackedLSTM>(); };
 
     //メンバ関数以外
     command_["initParams"]        = initParams;

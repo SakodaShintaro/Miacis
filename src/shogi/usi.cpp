@@ -5,6 +5,7 @@
 #include"../search_nn/learn_search_nn.hpp"
 #include"../search_nn/proposed_model/proposed_model.hpp"
 #include"../search_nn/mcts_net/mcts_net.hpp"
+#include"../search_nn/stacked_lstm/stacked_lstm.hpp"
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数
@@ -38,6 +39,7 @@ USI::USI() : searcher_(nullptr) {
     command_["convertModelToCPU"]  = convertModelToCPU;
     command_["learnMCTSNet"]       = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
     command_["learnProposedModel"] = [](){ learnSearchNN<ProposedModel>("proposed_model"); };
+    command_["learnStackedLSTM"]   = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
 }
 
 void USI::loop() {

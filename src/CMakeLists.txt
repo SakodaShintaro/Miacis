@@ -27,6 +27,7 @@ set(SRCS hash_table.cpp
          search_nn/mcts_net/mcts_net.cpp
          search_nn/mcts_net/hash_table_for_mcts_net.cpp
          search_nn/proposed_model/proposed_model.cpp
+         search_nn/stacked_lstm/stacked_lstm.cpp
         )
 
 #将棋用のバイナリをコンパイルするのに必要なソース
