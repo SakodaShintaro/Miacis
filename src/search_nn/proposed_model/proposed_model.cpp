@@ -9,7 +9,7 @@ static constexpr int32_t CHANNEL_NUM = 64;
 static constexpr int64_t HIDDEN_CHANNEL_NUM = 32;
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * HIDDEN_CHANNEL_NUM;
 static constexpr int32_t HIDDEN_SIZE = 512;
-static constexpr int32_t NUM_LAYERS = 2;
+static constexpr int32_t NUM_LAYERS = 1;
 
 const std::string ProposedModelImpl::MODEL_PREFIX = "proposed_model_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 const std::string ProposedModelImpl::DEFAULT_MODEL_NAME = ProposedModelImpl::MODEL_PREFIX + ".model";
@@ -28,7 +28,7 @@ ProposedModelImpl::ProposedModelImpl(SearchOptions search_options) : search_opti
     simulation_policy_head_ = register_module("simulation_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM + 1));
     simulation_value_head_ = register_module("simulation_value_head_", torch::nn::Linear(HIDDEN_SIZE, 1));
     readout_lstm_ = register_module("readout_lstm_", torch::nn::LSTM(option));
-    readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM + 1));
+    readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM));
     readout_value_head_ = register_module("readout_value_head_", torch::nn::Linear(HIDDEN_SIZE, 1));
 }
 
@@ -182,7 +182,7 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     l[0] = torch::zeros({ 1 });
     std::cout << std::fixed;
     for (int64_t m = 0; m < M; m++) {
-        torch::Tensor policy_logit = outputs_[m][0][0];
+        torch::Tensor policy_logit = outputs_[m][0];
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
         l[m + 1] = (-policy_teacher * clipped).sum();
@@ -208,6 +208,7 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     }
 
     std::vector<torch::Tensor> loss;
+    loss.push_back(l[M].view({1}));
     for (int64_t m = 1; m <= M; m++) {
         loss.push_back(l[m].view({1}));
     }

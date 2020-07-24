@@ -14,4 +14,4 @@ lr_decay_step1      50000
 lr_decay_step2      50000
 lr_decay_period     5000
 train_kifu_path     /root/training_kifu
-valid_kifu_path     /root/validation_kifu
+valid_kifu_path     /root/validation_kifu_small

@@ -3,6 +3,7 @@
 #include"hyperparameter_loader.hpp"
 #include"include_switch.hpp"
 #include"search_nn/mcts_net/mcts_net.hpp"
+#include"search_nn/proposed_model/proposed_model.hpp"
 #include<sstream>
 #include<iomanip>
 #include<random>
@@ -120,4 +121,8 @@ void initParams() {
     MCTSNet mcts_net;
     torch::save(mcts_net, MCTSNetImpl::DEFAULT_MODEL_NAME);
     std::cout << "初期化したパラメータを" << MCTSNetImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
+
+    ProposedModel proposed_model;
+    torch::save(proposed_model, ProposedModelImpl::DEFAULT_MODEL_NAME);
+    std::cout << "初期化したパラメータを" << ProposedModelImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
 }

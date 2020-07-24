@@ -9,7 +9,7 @@
 
 template<class T> void learnSearchNN(const std::string& model_name) {
     SearchOptions options;
-    HyperparameterLoader settings("learn_" + model_name + "_settings.txt");
+    HyperparameterLoader settings("learn_search_nn_settings.txt");
     float learn_rate            = settings.get<float>("learn_rate");
     float min_learn_rate        = settings.get<float>("min_learn_rate");
     float momentum              = settings.get<float>("momentum");
