@@ -1,9 +1,7 @@
 #ifndef MIACIS_PROPOSED_MODEL_HPP
 #define MIACIS_PROPOSED_MODEL_HPP
 
-#include"../../search_options.hpp"
-#include"../../include_switch.hpp"
-#include<torch/torch.h>
+#include "../state_encoder.hpp"
 
 class ProposedModelImpl : public torch::nn::Module {
 public:
@@ -41,9 +39,7 @@ private:
     //---------------
     //    Encoder
     //---------------
-    Conv2DwithBatchNorm first_conv_{ nullptr };
-    std::vector<ResidualBlock> blocks_;
-    Conv2DwithBatchNorm last_conv_{ nullptr };
+    StateEncoder encoder_{ nullptr };
 
     //-------------------------
     //    Simulation Policy

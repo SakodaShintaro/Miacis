@@ -2,7 +2,7 @@
 #define MIACIS_MCTS_NET_HPP
 
 #include "hash_table_for_mcts_net.hpp"
-#include "../../search_options.hpp"
+#include "../state_encoder.hpp"
 
 class MCTSNetImpl : public torch::nn::Module {
 public:
@@ -32,7 +32,6 @@ private:
     //各部分の推論
     torch::Tensor simulationPolicy(const torch::Tensor& h);
     torch::Tensor embed(const std::vector<float>& inputs);
-    torch::Tensor embed(const torch::Tensor& x);
     torch::Tensor backup(const torch::Tensor& h1, const torch::Tensor& h2);
     torch::Tensor readoutPolicy(const torch::Tensor& h);
 
@@ -47,9 +46,7 @@ private:
     torch::nn::Linear simulation_policy_{ nullptr };
 
     //embed network
-    Conv2DwithBatchNorm first_conv_{ nullptr };
-    std::vector<ResidualBlock> blocks_;
-    Conv2DwithBatchNorm last_conv_{ nullptr };
+    StateEncoder encoder_{ nullptr };
 
     //backup network
     torch::nn::Linear backup_update_{ nullptr };

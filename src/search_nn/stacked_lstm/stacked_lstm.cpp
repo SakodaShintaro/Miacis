@@ -2,26 +2,16 @@
 #include "../../common.hpp"
 
 //ネットワークの設定
-static constexpr int64_t BLOCK_NUM = 3;
-static constexpr int32_t KERNEL_SIZE = 3;
-static constexpr int32_t REDUCTION = 8;
-static constexpr int32_t CHANNEL_NUM = 64;
-static constexpr int64_t HIDDEN_CHANNEL_NUM = 32;
-static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * HIDDEN_CHANNEL_NUM;
+static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
 static constexpr int32_t LSTM_HIDDEN_SIZE = 512;
 static constexpr int32_t ABSTRACT_ACTION_DIM = 512;
 static constexpr int32_t NUM_LAYERS = 1;
 
-const std::string StackedLSTMImpl::MODEL_PREFIX = "stacked_lstm_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+const std::string StackedLSTMImpl::MODEL_PREFIX = "stacked_lstm";
 const std::string StackedLSTMImpl::DEFAULT_MODEL_NAME = StackedLSTMImpl::MODEL_PREFIX + ".model";
 
-StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options) : search_options_(std::move(search_options)),
-                                                                     blocks_(BLOCK_NUM, nullptr), device_(torch::kCUDA), fp16_(false) {
-    first_conv_ = register_module("first_conv_", Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
-    for (int32_t i = 0; i < BLOCK_NUM; i++) {
-        blocks_[i] = register_module("blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
-    }
-    last_conv_ = register_module("last_conv_", Conv2DwithBatchNorm(CHANNEL_NUM, HIDDEN_CHANNEL_NUM, KERNEL_SIZE));
+StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options) : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
+    encoder_ = register_module("encoder_", StateEncoder());
 
     using torch::nn::LSTM;
     using torch::nn::LSTMOptions;
@@ -99,14 +89,9 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
 torch::Tensor StackedLSTMImpl::embed(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    torch::Tensor y = first_conv_->forward(x);
-    for (ResidualBlock& block : blocks_) {
-        y = block->forward(y);
-    }
-    y = last_conv_->forward(y);
-    y = torch::flatten(y, 1);
-    y = y.view({ 1, -1, HIDDEN_DIM });
-    return y;
+    x = encoder_->forward(x);
+    x = x.view({ 1, -1, HIDDEN_DIM });
+    return x;
 }
 
 torch::Tensor StackedLSTMImpl::simulationPolicy(const torch::Tensor& x) {
