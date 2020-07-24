@@ -62,7 +62,7 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit, bool save_info
         //Policyからサンプリングして行動決定(undoを含む)
         std::vector<Move> moves = root.generateAllMoves();
         if (depth > 0) {
-            //深さが1以上のときは1手戻るという選択肢が可能
+            //深さが1以上のときは1手戻るという選択肢を先頭に加える
             moves.insert(moves.begin(), NULL_MOVE);
         }
         std::vector<FloatType> logits(moves.size());
@@ -169,8 +169,8 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
 
     const int64_t M = outputs_.size();
 
-    std::vector<float> policy_teachers(POLICY_DIM, 0.0);
     //policyの教師信号
+    std::vector<float> policy_teachers(POLICY_DIM, 0.0);
     for (const std::pair<int32_t, float>& e : data.front().policy) {
         policy_teachers[e.first] = e.second;
     }
@@ -180,7 +180,6 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     //各探索後の損失を計算
     std::vector<torch::Tensor> l(M + 1);
     l[0] = torch::zeros({ 1 });
-    std::cout << std::fixed;
     for (int64_t m = 0; m < M; m++) {
         torch::Tensor policy_logit = outputs_[m][0];
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);

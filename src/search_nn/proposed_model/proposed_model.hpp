@@ -30,8 +30,8 @@ public:
     static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
 
 private:
+    //各部分の推論
     torch::Tensor embed(const std::vector<float>& inputs);
-
     std::tuple<torch::Tensor, torch::Tensor> simulationPolicy(const torch::Tensor& x);
     std::tuple<torch::Tensor, torch::Tensor> readoutPolicy(const torch::Tensor& x);
 
@@ -41,13 +41,8 @@ private:
     //---------------
     //    Encoder
     //---------------
-    //最初にチャンネル数を変えるConv
     Conv2DwithBatchNorm first_conv_{ nullptr };
-
-    //同じチャンネル数で残差ブロックを通す
     std::vector<ResidualBlock> blocks_;
-
-    //最後にチャンネル数を絞るConv
     Conv2DwithBatchNorm last_conv_{ nullptr };
 
     //-------------------------
