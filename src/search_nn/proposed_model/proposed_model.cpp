@@ -32,7 +32,7 @@ ProposedModelImpl::ProposedModelImpl(SearchOptions search_options) : search_opti
     readout_value_head_ = register_module("readout_value_head_", torch::nn::Linear(HIDDEN_SIZE, 1));
 }
 
-Move ProposedModelImpl::think(Position& root, int64_t time_limit, bool save_info_to_learn) {
+Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
     //思考を行う
 
     //状態を初期化
@@ -164,8 +164,8 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     Position root;
     root.fromStr(data.front().position_str);
 
-    //探索を行い、途中のルート埋め込みベクトル,各探索の確率等を保存しておく
-    think(root, INT_MAX, true);
+    //探索を行い、各探索後の方策を得る(output_に保存される)
+    think(root, INT_MAX);
 
     const int64_t M = outputs_.size();
 

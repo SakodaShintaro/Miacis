@@ -11,7 +11,7 @@ public:
     explicit ProposedModelImpl(SearchOptions search_options);
 
     //root局面について探索を行って一番良い指し手を返す関数
-    Move think(Position& root, int64_t time_limit, bool save_info_to_learn = false);
+    Move think(Position& root, int64_t time_limit);
 
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
     std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
