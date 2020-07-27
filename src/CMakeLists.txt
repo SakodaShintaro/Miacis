@@ -30,6 +30,7 @@ set(SRCS hash_table.cpp
          search_nn/stacked_lstm/stacked_lstm.cpp
          search_nn/state_encoder.cpp
          search_nn/simple_MLP/simple_mlp.cpp
+         search_nn/muzero/muzero.cpp search_nn/muzero/muzero.hpp
         )
 
 #将棋用のバイナリをコンパイルするのに必要なソース

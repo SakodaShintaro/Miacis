@@ -6,8 +6,8 @@ static constexpr int32_t KERNEL_SIZE = 3;
 static constexpr int32_t REDUCTION = 8;
 static constexpr int32_t CHANNEL_NUM = 64;
 
-StateEncoderImpl::StateEncoderImpl() : blocks_(BLOCK_NUM, nullptr) {
-    first_conv_ = register_module("first_conv_", Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
+StateEncoderImpl::StateEncoderImpl(int64_t input_channel_num) : blocks_(BLOCK_NUM, nullptr) {
+    first_conv_ = register_module("first_conv_", Conv2DwithBatchNorm(input_channel_num, CHANNEL_NUM, KERNEL_SIZE));
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
         blocks_[i] = register_module("blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
