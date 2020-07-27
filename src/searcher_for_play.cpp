@@ -98,6 +98,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
             std::vector<FloatType> feature = root.makeFeature();
             gpu_queues_[0][0].inputs.insert(gpu_queues_[0][0].inputs.begin(), feature.begin(), feature.end());
         }
+        torch::NoGradGuard no_grad_guard;
         std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = neural_networks_[0]->policyAndValueBatch(gpu_queues_[0][0].inputs);
 
         //ルートノードへ書き込み
