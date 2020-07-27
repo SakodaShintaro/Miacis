@@ -17,7 +17,7 @@ void YaneBook::open(const std::string& file_name) {
         } else {
             int64_t start = 0;
             std::vector<std::string> vec;
-            for (int64_t i = 0; i <= input.size(); i++) {
+            for (uint64_t i = 0; i <= input.size(); i++) {
                 if (i == input.size() || input[i] == ' ') {
                     vec.push_back(input.substr(start, i - start));
                     start = i;
@@ -53,7 +53,6 @@ Move YaneBook::pickOne(const Position& pos, float temperature) {
         }
     }
 
-    std::mt19937_64 engine(std::random_device{}());
     std::uniform_int_distribution<int64_t> dist(0, best_score_moves.size() - 1);
     return best_score_moves[dist(engine)];
 }
@@ -79,7 +78,7 @@ void Book::open(const std::string& file_name) {
             //move policy value select_num
             int64_t start = 0;
             std::vector<std::string> vec;
-            for (int64_t i = 0; i <= input.size(); i++) {
+            for (uint64_t i = 0; i <= input.size(); i++) {
                 if (i == input.size() || input[i] == ' ') {
                     vec.push_back(input.substr(start, i - start));
                     start = i;
@@ -100,7 +99,7 @@ void Book::write(const std::string& file_name) {
     ofs << std::fixed;
     for (const auto& p : book_) {
         ofs << "sfen " << p.first << " 0" << std::endl;
-        for (int64_t i = 0; i < p.second.moves.size(); i++) {
+        for (uint64_t i = 0; i < p.second.moves.size(); i++) {
             ofs << p.second.moves[i] << " " << p.second.policies[i] << " " << p.second.values[i] << " " << p.second.select_num[i] << std::endl;
         }
     }
@@ -128,7 +127,7 @@ void Book::updateOne(int64_t think_sec) {
         //UCBを計算し、一番高い行動を選択
         int64_t max_index = -1;
         float max_value = -1;
-        for (int64_t i = 0; i < book_entry.moves.size(); i++) {
+        for (uint64_t i = 0; i < book_entry.moves.size(); i++) {
             FloatType U = std::sqrt(sum + 1) / (book_entry.select_num[i] + 1);
             FloatType ucb = search_options.Q_coeff_x1000 / 1000.0 * book_entry.values[i]
                             + search_options.C_PUCT_x1000 / 1000.0 * book_entry.policies[i] * U;
@@ -160,7 +159,7 @@ void Book::updateOne(int64_t think_sec) {
     book_entry.moves = root_node.moves;
     book_entry.policies = root_node.nn_policy;
     book_entry.values.resize(book_entry.moves.size());
-    for (int64_t i = 0; i < book_entry.moves.size(); i++) {
+    for (uint64_t i = 0; i < book_entry.moves.size(); i++) {
         book_entry.values[i] = searched.expQfromNext(root_node, i);
     }
     book_entry.select_num.assign(book_entry.moves.size(), 1);
@@ -172,7 +171,7 @@ void Book::updateOne(int64_t think_sec) {
         //局面を戻し、そこに相当するエントリを取得
         pos.undo();
         std::string sfen = removeTurnNumber(pos.toStr());
-        BookEntry& book_entry = book_[sfen];
+        book_entry = book_[sfen];
 
         //価値を反転
         value = -value;
@@ -182,7 +181,7 @@ void Book::updateOne(int64_t think_sec) {
         selected_moves.pop_back();
 
         //更新
-        for (int64_t i = 0; i < book_entry.moves.size(); i++) {
+        for (uint64_t i = 0; i < book_entry.moves.size(); i++) {
             if (pos.transformValidMove(book_entry.moves[i]) != last_move) {
                 continue;
             }
@@ -206,7 +205,7 @@ Move Book::pickOne(const Position& pos, float temperature) {
     std::vector<float> softmaxed = softmax(entry.values, temperature);
 
     std::cout << std::fixed;
-    for (int64_t i = 0; i < entry.moves.size(); i++) {
+    for (uint64_t i = 0; i < entry.moves.size(); i++) {
         std::cout << entry.moves[i] << " " << softmaxed[i] << std::endl;
     }
     return entry.moves[randomChoose(softmaxed)];

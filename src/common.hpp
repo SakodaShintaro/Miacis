@@ -14,6 +14,8 @@
 #include<bmi2intrin.h>
 #endif
 
+extern std::mt19937_64 engine;
+
 #ifdef __GNUC__
 //cf : http://blog.jiubao.org/2015/01/gcc-bitscanforward-bitscanreverse-msvc.html
 unsigned char inline GNUBitScanForward(unsigned long *Index, uint64_t Mask) {
@@ -99,9 +101,8 @@ inline std::vector<Type> softmax(std::vector<Type> x, Type temperature = 1.0) {
 
 template<class Type>
 inline int32_t randomChoose(const std::vector<Type>& x) {
-    std::random_device seed;
     std::uniform_real_distribution<Type> dist(0.0, 1.0);
-    Type prob = dist(seed);
+    Type prob = dist(engine);
     for (uint64_t i = 0; i < x.size(); i++) {
         if ((prob -= x[i]) < 0) {
             return i;

@@ -1,5 +1,6 @@
 ﻿#include"replay_buffer.hpp"
 #include"include_switch.hpp"
+#include"common.hpp"
 #include<thread>
 #include<iomanip>
 #include<random>
@@ -19,7 +20,6 @@ std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
 
     //現時点のpriorityの和を取得し,そこまでの範囲の一様分布生成器を作る
     float sum = segment_tree_.getSum();
-    static std::mt19937 engine(0);
     std::uniform_real_distribution<float> dist(0.0, sum);
 
     //データを取得
@@ -91,7 +91,12 @@ void ReplayBuffer::push(Game &game) {
 #ifdef USE_CATEGORICAL
         priority += -std::log(e.nn_output_value[value_teacher] + 1e-9f);
 #else
+#ifdef USE_SIGMOID
+        constexpr FloatType eps = 1e-5f;
+        priority += -value_teacher * std::log(e.nn_output_value + eps) - (1.0 - value_teacher) * std::log(1 - e.nn_output_value + eps);
+#else
         priority += std::pow(e.nn_output_value - value_teacher, 2.0f);
+#endif
 #endif
 
         for (int64_t j = 0; j < (data_augmentation_ ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); j++) {

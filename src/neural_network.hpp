@@ -36,6 +36,8 @@ const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{
     "policy", "value"
 };
 
+//#define REPRESENTATION_DROPOUT
+
 //使用する全体のニューラルネットワーク
 class NeuralNetworkImpl : public torch::nn::Module {
 public:
@@ -74,6 +76,10 @@ private:
 
     Conv2DwithBatchNorm state_first_conv_and_norm_{ nullptr };
     std::vector<ResidualBlock> state_blocks_;
+
+#ifdef REPRESENTATION_DROPOUT
+    torch::nn::Dropout2d representation_dropout_{ nullptr };
+#endif
 
     torch::nn::Conv2d policy_conv_{ nullptr };
     Conv2DwithBatchNorm value_conv_and_norm_{ nullptr };

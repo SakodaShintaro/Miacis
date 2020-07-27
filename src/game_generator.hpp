@@ -15,10 +15,13 @@
 //一つのGPUに対して割り当てられる
 class GameGenerator {
 public:
-    GameGenerator(const SearchOptions& search_options, int64_t worker_num, FloatType Q_dist_lambda, ReplayBuffer& rb, NeuralNetwork nn)
-        : stop_signal(false), search_options_(search_options), worker_num_(worker_num), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb),
+    GameGenerator(const SearchOptions& search_options, int64_t worker_num, FloatType Q_dist_lambda, int64_t noise_mode,
+                  FloatType noise_epsilon, FloatType noise_alpha, ReplayBuffer& rb, NeuralNetwork nn)
+        : stop_signal(false), search_options_(search_options), worker_num_(worker_num), Q_dist_lambda_(Q_dist_lambda),
+          noise_mode_(noise_mode), noise_epsilon_(noise_epsilon), noise_alpha_(noise_alpha), replay_buffer_(rb),
           neural_network_(std::move(nn)), gpu_queues_(search_options_.thread_num_per_gpu) {
         neural_network_->eval();
+        assert(0 <= noise_mode_ && noise_mode_ < NOISE_MODE_SIZE);
     };
 
     //生成してリプレイバッファに送り続ける関数
@@ -31,8 +34,14 @@ public:
     bool stop_signal;
 
 private:
+    enum NoiseMode {
+        DIRICHLET, ONEHOT, NOISE_MODE_SIZE
+    };
     //ディリクレ分布に従ったものを返す関数
     static std::vector<FloatType> dirichletDistribution(uint64_t k, FloatType alpha);
+
+    //onehotベクトルとしてのノイズを返す関数
+    static std::vector<FloatType> onehotNoise(uint64_t k);
 
     //gpu_queue_に溜まっている入力を処理する関数
     void evalWithGPU(int64_t thread_id);
@@ -49,6 +58,15 @@ private:
     //探索結果の分布として価値のsoftmax分布を混ぜる割合([0,1])
     //0で探索回数を正規化した分布(AlphaZeroと同じ), 1で完全に価値のsoftmax分布
     const FloatType Q_dist_lambda_;
+
+    //ノイズモード
+    const int64_t noise_mode_;
+
+    //ノイズを混合する割合
+    const FloatType noise_epsilon_;
+
+    //ディリクレノイズ時のalpha
+    const FloatType noise_alpha_;
 
     //データを送るReplayBufferへの参照
     ReplayBuffer& replay_buffer_;

@@ -34,6 +34,7 @@ public:
         check_options.emplace("use_fp16",              CheckOption(use_fp16   = true));
         check_options.emplace("use_book",              CheckOption(use_book   = false));
         check_options.emplace("print_info",            CheckOption(print_info = true));
+        check_options.emplace("output_log_file",       CheckOption(output_log_file = false));
         spin_options.emplace("USI_Hash",               SpinOption(USI_Hash                 =   256,    0,  MAX));
         spin_options.emplace("byoyomi_margin",         SpinOption(byoyomi_margin           =     0,    0,  MAX));
         spin_options.emplace("random_turn",            SpinOption(random_turn              =     0,    0,  MAX));
@@ -57,6 +58,8 @@ public:
         spin_options.emplace("book_temperature_x1000", SpinOption(book_temperature_x1000   =     0,    0, 1000));
         spin_options.emplace("UCT_lambda_x1000",       SpinOption(UCT_lambda_x1000         =  1000,    0, 1000));
         spin_options.emplace("print_policy_num",       SpinOption(print_policy_num         =     0,    0,  593));
+        spin_options.emplace("remained_turn_divisor",  SpinOption(remained_turn_divisor    =     1,    1,  MAX));
+        spin_options.emplace("hold_moves_num",         SpinOption(hold_moves_num           =    16,    1,  593));
         filename_options.emplace("model_name",         FilenameOption(model_name = NeuralNetworkImpl::DEFAULT_MODEL_NAME));
         filename_options.emplace("book_file_name",     FilenameOption(book_file_name       = "book.txt"));
     }
@@ -65,6 +68,7 @@ public:
     bool use_fp16;
     bool use_book;
     bool print_info;
+    bool output_log_file;
     int64_t byoyomi_margin;
     int64_t random_turn;
     int64_t USI_Hash;
@@ -83,6 +87,8 @@ public:
     int64_t book_temperature_x1000;
     int64_t UCT_lambda_x1000;
     int64_t print_policy_num;
+    int64_t remained_turn_divisor;
+    int64_t hold_moves_num;
     std::string model_name;
     std::string book_file_name;
 

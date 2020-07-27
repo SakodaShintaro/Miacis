@@ -1,15 +1,15 @@
 ﻿#include"neural_network.hpp"
 #include"include_switch.hpp"
+#include"common.hpp"
 
 //ネットワークの設定
 #ifdef SHOGI
 static constexpr int32_t BLOCK_NUM = 10;
 static constexpr int32_t CHANNEL_NUM = 128;
-#elif defined(OTHELLO)
+#elif OTHELLO
 static constexpr int32_t BLOCK_NUM = 5;
 static constexpr int32_t CHANNEL_NUM = 64;
 #endif
-
 static constexpr int32_t KERNEL_SIZE = 3;
 static constexpr int32_t REDUCTION = 8;
 static constexpr int32_t VALUE_HIDDEN_NUM = 256;
@@ -27,7 +27,10 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
         state_blocks_[i] = register_module("state_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
-    policy_conv_ = register_module("policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).with_bias(true)));
+#ifdef REPRESENTATION_DROPOUT
+    representation_dropout_ = register_module("representation_dropout_", torch::nn::Dropout2d());
+#endif
+    policy_conv_ = register_module("policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).bias(true)));
     value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
     value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
@@ -37,11 +40,15 @@ torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     x = state_first_conv_and_norm_->forward(x);
-    x = torch::relu(x);
+    x = activation(x);
 
     for (ResidualBlock& block : state_blocks_) {
         x = block->forward(x);
     }
+
+#ifdef REPRESENTATION_DROPOUT
+    x = representation_dropout_->forward(x);
+#endif
     return x;
 }
 
@@ -51,10 +58,10 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::decode(const torch::T
 
     //value
     torch::Tensor value = value_conv_and_norm_->forward(representation);
-    value = torch::relu(value);
+    value = activation(value);
     value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
     value = value_linear0_->forward(value);
-    value = torch::relu(value);
+    value = activation(value);
     value = value_linear1_->forward(value);
 
 #ifndef USE_CATEGORICAL
@@ -69,36 +76,7 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::decode(const torch::T
 }
 
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::forward(const std::vector<float>& inputs) {
-    torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    x = state_first_conv_and_norm_->forward(x);
-    x = torch::relu(x);
-
-    for (ResidualBlock& block : state_blocks_) {
-        x = block->forward(x);
-    }
-
-    //ここから分岐
-    //policy
-    torch::Tensor policy = policy_conv_->forward(x);
-
-    //value
-    torch::Tensor value = value_conv_and_norm_->forward(x);
-    value = torch::relu(value);
-    value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
-    value = value_linear0_->forward(value);
-    value = torch::relu(value);
-    value = value_linear1_->forward(value);
-
-#ifndef USE_CATEGORICAL
-#ifdef USE_SIGMOID
-    value = torch::sigmoid(value);
-#else
-    value = torch::tanh(value);
-#endif
-#endif
-
-    return { policy, value };
+    return decode(encode(inputs));
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
@@ -113,12 +91,12 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     //CPUに持ってくる
     torch::Tensor policy = y.first.cpu();
     if (fp16_) {
-        torch::Half* p = policy.data<torch::Half>();
+        torch::Half* p = policy.data_ptr<torch::Half>();
         for (uint64_t i = 0; i < batch_size; i++) {
             policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
         }
     } else {
-        float* p = policy.data<float>();
+        float* p = policy.data_ptr<float>();
         for (uint64_t i = 0; i < batch_size; i++) {
             policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
         }
@@ -127,7 +105,7 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
 #ifdef USE_CATEGORICAL
     torch::Tensor value = torch::softmax(y.second, 1).cpu();
     if (fp16_) {
-        torch::Half* value_p = value.data<torch::Half>();
+        torch::Half* value_p = value.data_ptr<torch::Half>();
         for (uint64_t i = 0; i < batch_size; i++) {
             std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
             for (int64_t j = 1; j < BIN_SIZE; j++) {
@@ -135,7 +113,7 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
             }
         }
     } else {
-        float* value_p = value.data<float>();
+        float* value_p = value.data_ptr<float>();
         for (uint64_t i = 0; i < batch_size; i++) {
             std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
             for (int64_t j = 1; j < BIN_SIZE; j++) {
@@ -147,9 +125,9 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
     //CPUに持ってくる
     torch::Tensor value = y.second.cpu();
     if (fp16_) {
-        std::copy(value.data<torch::Half>(), value.data<torch::Half>() + batch_size, values.begin());
+        std::copy(value.data_ptr<torch::Half>(), value.data_ptr<torch::Half>() + batch_size, values.begin());
     } else {
-        std::copy(value.data<float>(), value.data<float>() + batch_size, values.begin());
+        std::copy(value.data_ptr<float>(), value.data_ptr<float>() + batch_size, values.begin());
     }
 #endif
     return { policies, values };
@@ -190,17 +168,16 @@ NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
     torch::Tensor categorical_target = torch::tensor(value_teachers).to(device_);
     torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
 #else
-
     torch::Tensor value_t = (fp16_ ? torch::tensor(value_teachers).to(device_, torch::kHalf) :
                                      torch::tensor(value_teachers).to(device_));
     torch::Tensor value = y.second.view(-1);
 #ifdef USE_SIGMOID
-    torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
+    torch::Tensor value_loss =  torch::binary_cross_entropy(value, value_t, {}, torch::Reduction::None);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
 #endif
 #endif
-    
+
     return { policy_loss, value_loss };
 }
 
@@ -219,7 +196,6 @@ NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha)
     std::vector<float> policy_teacher_dist(actual_batch_size * POLICY_DIM, 0.0);
     std::vector<float> value_teacher_dist(actual_batch_size * BIN_SIZE, 0.0);
 
-    static std::mt19937_64 engine(std::random_device{}());
     std::gamma_distribution<float> gamma_dist(alpha);
 
     for (uint64_t i = 0; i < data.size(); i += 2) {
@@ -271,16 +247,15 @@ NeuralNetworkImpl::mixUpLoss(const std::vector<LearningData>& data, float alpha)
 #ifdef USE_CATEGORICAL
     torch::Tensor categorical_target = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                                                 torch::tensor(value_teacher_dist).to(device_)).view({ -1, BIN_SIZE });
-    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);;
+    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);
 #else
-
     torch::Tensor value_t = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                                      torch::tensor(value_teacher_dist).to(device_));
     torch::Tensor value = y.second.view(-1);
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
 #endif
 #endif
 
@@ -304,7 +279,6 @@ NeuralNetworkImpl::mixUpLossFinalLayer(const std::vector<LearningData>& data, fl
     std::vector<float> policy_teacher_dist(actual_batch_size * POLICY_DIM, 0.0);
     std::vector<float> value_teacher_dist(actual_batch_size * BIN_SIZE, 0.0);
 
-    static std::mt19937_64 engine(std::random_device{}());
     std::gamma_distribution<float> gamma_dist(alpha);
 
     for (uint64_t i = 0; i < data.size(); i += 2) {
@@ -363,16 +337,15 @@ NeuralNetworkImpl::mixUpLossFinalLayer(const std::vector<LearningData>& data, fl
 #ifdef USE_CATEGORICAL
     torch::Tensor categorical_target = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                                                 torch::tensor(value_teacher_dist).to(device_)).view({ -1, BIN_SIZE });
-    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);;
+    torch::Tensor value_loss = torch::sum(-categorical_target * torch::log_softmax(y.second, 1), 1, false);
 #else
-
     torch::Tensor value_t = (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) :
                              torch::tensor(value_teacher_dist).to(device_));
     torch::Tensor value = y.second.view(-1);
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
 #endif
 #endif
 

@@ -4,6 +4,7 @@
 void test();
 void infiniteTest();
 void checkSearchSpeed();
+void checkSearchSpeed2();
 void checkGenSpeed();
 void checkPredictSpeed();
 void checkVal();
@@ -12,5 +13,7 @@ void checkDoAndUndo();
 void checkMirror();
 void checkBook();
 void makeBook();
+void searchWithLog();
+void convertModelToCPU();
 
 #endif // !TEST_HPP

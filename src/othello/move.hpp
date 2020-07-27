@@ -6,6 +6,7 @@
 #include"../types.hpp"
 #include<unordered_map>
 #include<iostream>
+#include<sstream>
 
 //行動の次元数
 //1ch目は普通の行動,2ch目はパス専用
@@ -25,6 +26,12 @@ public:
     //表示
     void print() const {
         std::cout << to() << std::endl;
+    }
+
+    std::string toPrettyStr() const {
+        std::stringstream str;
+        str << to();
+        return str.str();
     }
 
     //要素を取り出す関数ら

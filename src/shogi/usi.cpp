@@ -24,6 +24,7 @@ USI::USI() : searcher_(nullptr) {
     command_["test"]               = test;
     command_["infiniteTest"]       = infiniteTest;
     command_["checkSearchSpeed"]   = checkSearchSpeed;
+    command_["checkSearchSpeed2"]  = checkSearchSpeed2;
     command_["checkGenSpeed"]      = checkGenSpeed;
     command_["checkPredictSpeed"]  = checkPredictSpeed;
     command_["checkVal"]           = checkVal;
@@ -31,6 +32,8 @@ USI::USI() : searcher_(nullptr) {
     command_["checkMirror"]        = checkMirror;
     command_["checkBook"]          = checkBook;
     command_["makeBook"]           = makeBook;
+    command_["searchWithLog"]      = searchWithLog;
+    command_["convertModelToCPU"]  = convertModelToCPU;
 }
 
 void USI::loop() {
@@ -162,6 +165,7 @@ void USI::go() {
         int64_t wtime = stoll(input);
         int64_t time = (root_.color() == BLACK ? btime : wtime);
         int64_t remained_turn = (search_options_.draw_turn - root_.turnNumber()) / 2;
+        remained_turn = (remained_turn + search_options_.remained_turn_divisor - 1) / search_options_.remained_turn_divisor;
         int64_t curr_time = (remained_turn == 0 ? 0 : time / remained_turn);
         std::cin >> input; //input == "byoyomi" or "binc"となるはず
         if (input == "byoyomi") {

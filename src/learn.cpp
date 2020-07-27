@@ -1,6 +1,6 @@
 ﻿#include"learn.hpp"
 #include"game.hpp"
-#include"hyperparameter_manager.hpp"
+#include"hyperparameter_loader.hpp"
 #include"include_switch.hpp"
 #include<sstream>
 #include<iomanip>

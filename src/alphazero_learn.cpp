@@ -1,59 +1,23 @@
 ﻿#include"learn.hpp"
 #include"game_generator.hpp"
-#include"hyperparameter_manager.hpp"
+#include"hyperparameter_loader.hpp"
 
 void alphaZero() {
-    HyperparameterManager settings;
-    settings.add("learn_rate",             0.0f, 100.0f);
-    settings.add("momentum",               0.0f, 1.0f);
-    settings.add("lambda",                 0.0f, 1.0f);
-    settings.add("alpha",                  0.0f, 1e10f);
-    settings.add("mixup_alpha",            0.0f, 100.0f);
-    settings.add("Q_dist_temperature",     0.0f, 1e10f);
-    settings.add("Q_dist_lambda",          0.0f, 1.0f);
-    settings.add("C_PUCT",                 0.0f, 1e10f);
-    settings.add("use_fp16",               0, (int64_t)1);
-    settings.add("draw_turn",              0, (int64_t)1024);
-    settings.add("random_turn",            0, (int64_t)1024);
-    settings.add("batch_size",             1, (int64_t)1e10);
-    settings.add("thread_num_per_gpu",     1, (int64_t)std::thread::hardware_concurrency());
-    settings.add("max_step_num",           1, (int64_t)1e10);
-    settings.add("learn_rate_decay_step1", 0, (int64_t)1e10);
-    settings.add("learn_rate_decay_step2", 0, (int64_t)1e10);
-    settings.add("learn_rate_decay_step3", 0, (int64_t)1e10);
-    settings.add("update_interval",        1, (int64_t)1e10);
-    settings.add("batch_size_per_gen",     1, (int64_t)1e10);
-    settings.add("worker_num_per_thread",  1, (int64_t)1e10);
-    settings.add("max_stack_size",         1, (int64_t)1e10);
-    settings.add("first_wait",             0, (int64_t)1e10);
-    settings.add("data_augmentation",      0, (int64_t)1);
-    settings.add("search_limit",           1, (int64_t)1e10);
-    settings.add("search_batch_size",      1, (int64_t)1e10);
-    settings.add("output_interval",        1, (int64_t)1e10);
-    settings.add("save_interval",          1, (int64_t)1e10);
-    settings.add("validation_interval",    1, (int64_t)1e10);
-    settings.add("sleep_msec",            -1, (int64_t)1e10);
-    settings.add("init_buffer_by_kifu",    0, (int64_t)1);
-    settings.add("training_kifu_path");
-    settings.add("validation_kifu_path");
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
-    }
-
-    //設定をファイルからロード
-    settings.load("alphazero_settings.txt");
-
-    //値の取得
     SearchOptions search_options;
+    HyperparameterLoader settings("alphazero_settings.txt");
     float learn_rate                  = settings.get<float>("learn_rate");
+    float min_learn_rate              = settings.get<float>("min_learn_rate");
     float momentum                    = settings.get<float>("momentum");
+    float weight_decay                = settings.get<float>("weight_decay");
     float lambda                      = settings.get<float>("lambda");
     float alpha                       = settings.get<float>("alpha");
     float mixup_alpha                 = settings.get<float>("mixup_alpha");
     float Q_dist_lambda               = settings.get<float>("Q_dist_lambda");
+    float noise_epsilon               = settings.get<float>("noise_epsilon");
+    float noise_alpha                 = settings.get<float>("noise_alpha");
     search_options.temperature_x1000  = settings.get<float>("Q_dist_temperature") * 1000;
     search_options.C_PUCT_x1000       = settings.get<float>("C_PUCT") * 1000;
-    search_options.use_fp16           = settings.get<int64_t>("use_fp16");
+    search_options.use_fp16           = settings.get<bool>("use_fp16");
     search_options.draw_turn          = settings.get<int64_t>("draw_turn");
     search_options.random_turn        = settings.get<int64_t>("random_turn");
     search_options.thread_num_per_gpu = settings.get<int64_t>("thread_num_per_gpu");
@@ -61,26 +25,36 @@ void alphaZero() {
     search_options.search_batch_size  = settings.get<int64_t>("search_batch_size");
     int64_t batch_size                = settings.get<int64_t>("batch_size");
     int64_t max_step_num              = settings.get<int64_t>("max_step_num");
+    int64_t learn_rate_decay_mode     = settings.get<int64_t>("learn_rate_decay_mode");
     int64_t learn_rate_decay_step1    = settings.get<int64_t>("learn_rate_decay_step1");
     int64_t learn_rate_decay_step2    = settings.get<int64_t>("learn_rate_decay_step2");
     int64_t learn_rate_decay_step3    = settings.get<int64_t>("learn_rate_decay_step3");
+    int64_t learn_rate_decay_period   = settings.get<int64_t>("learn_rate_decay_period");
     int64_t update_interval           = settings.get<int64_t>("update_interval");
     int64_t batch_size_per_gen        = settings.get<int64_t>("batch_size_per_gen");
     int64_t worker_num_per_thread     = settings.get<int64_t>("worker_num_per_thread");
     int64_t max_stack_size            = settings.get<int64_t>("max_stack_size");
     int64_t first_wait                = settings.get<int64_t>("first_wait");
-    int64_t data_augmentation         = settings.get<int64_t>("data_augmentation");
     int64_t output_interval           = settings.get<int64_t>("output_interval");
     int64_t save_interval             = settings.get<int64_t>("save_interval");
     int64_t validation_interval       = settings.get<int64_t>("validation_interval");
     int64_t sleep_msec                = settings.get<int64_t>("sleep_msec");
     int64_t init_buffer_by_kifu       = settings.get<int64_t>("init_buffer_by_kifu");
+    int64_t noise_mode                = settings.get<int64_t>("noise_mode");
+    bool data_augmentation            = settings.get<bool>("data_augmentation");
+    bool Q_search                     = settings.get<bool>("Q_search");
     std::string training_kifu_path    = settings.get<std::string>("training_kifu_path");
     std::string validation_kifu_path  = settings.get<std::string>("validation_kifu_path");
 
     std::array<float, LOSS_TYPE_NUM> coefficients{};
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         coefficients[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
+    }
+
+    //カテゴリカルモデルでもQをもとに探索したい場合
+    if (Q_search) {
+        search_options.P_coeff_x1000 = 0;
+        search_options.Q_coeff_x1000 = 1000;
     }
 
     //値同士の制約関係を確認
@@ -120,6 +94,7 @@ void alphaZero() {
     //Optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
+    sgd_option.weight_decay(weight_decay);
     torch::optim::SGD optimizer(learning_model->parameters(), sgd_option);
 
     //時間計測開始
@@ -133,7 +108,8 @@ void alphaZero() {
     for (uint64_t i = 0; i < gpu_num; i++) {
         torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
         neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
-        generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_thread, Q_dist_lambda, replay_buffer, neural_networks[i]);
+        generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_thread, Q_dist_lambda,
+                noise_mode, noise_epsilon, noise_alpha, replay_buffer, neural_networks[i]);
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
     }
 
@@ -166,7 +142,7 @@ void alphaZero() {
         }
 
         //replay_bufferのpriorityを更新
-        std::vector<float> loss_vec(loss_sum.data<float>(), loss_sum.data<float>() + batch_size);
+        std::vector<float> loss_vec(loss_sum.data_ptr<float>(), loss_sum.data_ptr<float>() + batch_size);
 
         //mixupモードのときは損失を複製して2倍に拡張。これもうちょっと上手く書けないものか……
         if (mixup_alpha != 0) {
@@ -186,13 +162,12 @@ void alphaZero() {
         loss_sum.backward();
         optimizer.step();
 
-        //1回パラメータ保存する間隔につき10回表示
-        if (step_num % (save_interval / 10) == 0) {
-            dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << loss_sum.item<float>() << "\t";
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
-            }
+        //表示
+        dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << loss_sum.item<float>() << "\t";
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
         }
+        dout(std::cout, learn_log) << std::flush;
 
         //一定間隔でActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
@@ -233,13 +208,24 @@ void alphaZero() {
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 dout(std::cout, validation_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
             }
+            dout(std::cout, validation_log) << std::flush;
         }
 
         //学習率の減衰.AlphaZeroを意識して3回まで設定可能
-        if (step_num == learn_rate_decay_step1
-         || step_num == learn_rate_decay_step2
-         || step_num == learn_rate_decay_step3) {
-            optimizer.options.learning_rate_ /= 10;
+        if (learn_rate_decay_mode == 1) {
+            if (step_num == learn_rate_decay_step1
+                || step_num == learn_rate_decay_step2
+                || step_num == learn_rate_decay_step3) {
+                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
+            }
+        } else if (learn_rate_decay_mode == 2) {
+            int64_t curr_step = step_num % learn_rate_decay_period;
+            (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr()
+                    = min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period));
+        } else if (learn_rate_decay_mode == 3) {
+            if (step_num % learn_rate_decay_period == 0) {
+                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() *= 0.9;
+            }
         }
 
         //GPUを解放

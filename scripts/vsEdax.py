@@ -95,10 +95,13 @@ def main():
     }
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--level", type=int, default=8)
-    parser.add_argument("--game_num", type=int, default=250)
+    parser.add_argument("--level", type=int, default=6)
+    parser.add_argument("--game_num", type=int, default=500)
     parser.add_argument("--search_limit", type=int, default=800)
     parser.add_argument("--init_model_step", type=int, default=0)
+    parser.add_argument("--search_batch_size", type=int, default=4)
+    parser.add_argument("--temperature_x1000", type=int, default=75)
+    parser.add_argument("--exp_search", action="store_true")
     args = parser.parse_args()
 
     # カレントディレクトリ内にある{prefix}_{step}.modelを評価する
@@ -106,10 +109,6 @@ def main():
     # ディレクトリ名が"/"で終わっていることの確認
     if curr_path[-1] != "/":
         curr_path += "/"
-
-    # 結果を書き込むファイルを取得
-    f = open(curr_path + "result.txt", mode="a")
-    f.write(f"level = {args.level}, search_limit = {args.search_limit}\n")
 
     # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
     model_names = natsorted(glob.glob(curr_path + "*0.model"))
@@ -122,11 +121,21 @@ def main():
     miacis_manager = MiacisManager("scalar" if "sca" in model_names[0] else "categorical")
     miacis_manager.send_option("search_limit", args.search_limit)
     miacis_manager.send_option("byoyomi_margin", 10000000)
-    miacis_manager.send_option("search_batch_size", 8)
-    miacis_manager.send_option("temperature_x1000", 75)
+    miacis_manager.send_option("search_batch_size", args.search_batch_size)
+    miacis_manager.send_option("temperature_x1000", args.temperature_x1000)
     miacis_manager.send_option("gpu_num", 1)
+    if args.exp_search:
+        miacis_manager.send_option("Q_coeff_x1000", 1000)
+        miacis_manager.send_option("P_coeff_x1000", 0)
     miacis_manager.send_option("thread_num_per_gpu", 1)
     miacis_manager.send_option("random_turn", 30)
+
+    # 結果を書き込むファイルを取得
+    f = open(curr_path + "result.txt", mode="a")
+    f.write(f"level = {args.level}, "
+            f"search_limit = {args.search_limit}, "
+            f"search_batch_size = {args.search_batch_size}, "
+            f"temperature_x1000 = {args.temperature_x1000}\n")
 
     for model_name in model_names:
         # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
@@ -135,9 +144,14 @@ def main():
             continue
         miacis_manager.send_option("model_name", model_name)
 
+        # 対局を文字列化して同一性を判定するための集合
         moves_set = set()
 
+        # 勝敗の結果
         total_result = [0, 0, 0]
+
+        # 全く同じ対局が行われた回数
+        repetition_num = 0
 
         game_num = 0
         while game_num < args.game_num:
@@ -166,7 +180,7 @@ def main():
 
             if moves in moves_set:
                 # 以前の対局と重複があったということなので飛ばす
-                print("重複発生")
+                repetition_num += 1
                 continue
 
             game_num += 1
@@ -180,7 +194,7 @@ def main():
 
             winning_rate = (total_result[0] + 0.5 * total_result[1]) / sum(total_result)
             elo_rate = calc_elo_rate(winning_rate)
-            result_str = f"{step:7d}ステップ {total_result[0]:3d}勝 {total_result[1]:3d}引き分け {total_result[2]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
+            result_str = f"{step:7d}ステップ {total_result[0]:3d}勝 {total_result[1]:3d}引き分け {total_result[2]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f} 重複 {repetition_num:3d}"
 
             sys.stdout.write("\033[2K\033[G")
             print(result_str, end="\n" if game_num == args.game_num else "")

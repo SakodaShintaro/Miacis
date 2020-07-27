@@ -595,7 +595,7 @@ std::string Position::toStr() const {
             } else {
                 //まずこのマスまでの空白マスを処理
                 result += (empty_num == 0 ? "" : std::to_string(empty_num));
-                
+
                 //駒を処理
                 result += PieceToSfenStr2[board_[FRToSquare[f][r]]];
 
@@ -606,12 +606,12 @@ std::string Position::toStr() const {
 
         //段最後の空白マスを処理
         result += (empty_num == 0 ? "" : std::to_string(empty_num));
-        
+
         if (r < Rank9) {
             result += "/";
         }
     }
-   
+
     //手番
     result += (color_ == BLACK ? " b " : " w ");
 
@@ -1072,7 +1072,6 @@ void Position::initHashValue() {
 }
 
 std::vector<float> Position::makeFeature() const {
-    //引数の指定により左右反転のデータ拡張を行う
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
 
     uint64_t i;
@@ -1091,7 +1090,7 @@ std::vector<float> Position::makeFeature() const {
     }
 
     //持ち駒の特徴量:最大枚数で割って正規化する
-    static constexpr std::array<Color, ColorNum> colors[2] = { { BLACK, WHITE }, { WHITE, BLACK} };
+    static constexpr std::array<Color, ColorNum> colors[2] = { { BLACK, WHITE }, { WHITE, BLACK } };
     static constexpr int32_t HAND_PIECE_NUM = 7;
     static constexpr std::array<Piece, HAND_PIECE_NUM> HAND_PIECES = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
     static constexpr std::array<FloatType, HAND_PIECE_NUM> MAX_NUMS = { 18.0, 4.0, 4.0, 4.0, 4.0, 2.0, 2.0 };

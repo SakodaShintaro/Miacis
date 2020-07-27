@@ -109,11 +109,9 @@ void Searcher::select(Position& pos) {
     //今の局面を展開・GPUに評価依頼を投げる
     Index leaf_index = expand(pos, curr_indices, curr_actions);
     if (leaf_index == -1) {
-        //shouldStopがtrueになったということ
-        //基本的には置換表に空きがなかったということだと思われる
-        //ここには来ないように制御しているはずなので思い切って止める
-        std::cout << "leaf_index == -1" << std::endl;
-        std::exit(1);
+        //置換表に空きがなかった場合こうなる
+        //ここには来ないように制御しているはずだが、現状ときどき来ているっぽい
+        //別に止める必要はないので進行
     } else {
         //葉の直前ノードを更新
         hash_table_[index].mutex.lock();

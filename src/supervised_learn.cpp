@@ -1,40 +1,24 @@
 ﻿#include"learn.hpp"
-#include"hyperparameter_manager.hpp"
+#include"hyperparameter_loader.hpp"
+#include"common.hpp"
 #include<iostream>
 #include<random>
 
 void supervisedLearn() {
-    HyperparameterManager settings;
-    settings.add("learn_rate",          0.0f, 100.0f);
-    settings.add("momentum",            0.0f, 1.0f);
-    settings.add("weight_decay",        0.0f, 100.0f);
-    settings.add("mixup_alpha",         0.0f, 100.0f);
-    settings.add("batch_size",          1, (int64_t)1e10);
-    settings.add("data_augmentation",   0, (int64_t)1);
-    settings.add("max_step",            1, (int64_t)1e10);
-    settings.add("validation_interval", 1, (int64_t)1e10);
-    settings.add("lr_decay_step1",      1, (int64_t)1e10);
-    settings.add("lr_decay_step2",      1, (int64_t)1e10);
-    settings.add("train_kifu_path");
-    settings.add("valid_kifu_path");
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        settings.add(LOSS_TYPE_NAME[i] + "_loss_coeff", 0.0f, 1e10f);
-    }
-
-    //設定をファイルからロード
-    settings.load("supervised_learn_settings.txt");
-
-    //値の取得
+    HyperparameterLoader settings("supervised_learn_settings.txt");
     float learn_rate            = settings.get<float>("learn_rate");
+    float min_learn_rate        = settings.get<float>("min_learn_rate");
     float momentum              = settings.get<float>("momentum");
     float weight_decay          = settings.get<float>("weight_decay");
     float mixup_alpha           = settings.get<float>("mixup_alpha");
-    bool data_augmentation      = settings.get<int64_t>("data_augmentation");
+    bool data_augmentation      = settings.get<bool>("data_augmentation");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
+    int64_t lr_decay_mode       = settings.get<int64_t>("lr_decay_mode");
     int64_t lr_decay_step1      = settings.get<int64_t>("lr_decay_step1");
     int64_t lr_decay_step2      = settings.get<int64_t>("lr_decay_step2");
+    int64_t lr_decay_period     = settings.get<int64_t>("lr_decay_period");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
 
@@ -47,9 +31,6 @@ void supervisedLearn() {
     std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation);
     std::vector<LearningData> valid_data = loadData(valid_kifu_path, false);
     std::cout << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size() << std::endl;
-
-    //データをシャッフルするためのengine
-    std::mt19937_64 engine(0);
 
     //学習推移のログファイル
     std::ofstream learn_log("supervised_learn_log.txt");
@@ -120,8 +101,9 @@ void supervisedLearn() {
             //表示
             dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\n"[i == LOSS_TYPE_NUM - 1];
+                dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
             }
+            dout(std::cout, learn_log) << std::flush;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
@@ -138,13 +120,20 @@ void supervisedLearn() {
                 for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                     dout(std::cout, validation_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
                 }
+                dout(std::cout, validation_log) << std::flush;
 
                 //学習中のパラメータを書き出す
                 torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");
             }
 
-            if (global_step == lr_decay_step1 || global_step == lr_decay_step2) {
-                optimizer.options.learning_rate_ /= 10;
+            if (lr_decay_mode == 1) {
+                if (global_step == lr_decay_step1 || global_step == lr_decay_step2) {
+                    (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
+                }
+            } else if (lr_decay_mode == 2) {
+                int64_t curr_step = (step + 1) % lr_decay_period;
+                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr()
+                  = min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / lr_decay_period));
             }
         }
     }

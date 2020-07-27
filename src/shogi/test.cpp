@@ -10,6 +10,7 @@ void test() {
     search_options.print_interval = 100000;
     search_options.thread_num_per_gpu = 1;
     search_options.search_batch_size = 1;
+    search_options.output_log_file = true;
     NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     nn->setGPU(0);
@@ -89,9 +90,16 @@ void checkGenSpeed() {
     search_options.random_turn = 320;
     search_options.temperature_x1000 = 10;
     constexpr FloatType Q_dist_lambda = 1.0;
+    constexpr int64_t noise_mode = 0;
+    constexpr FloatType noise_epsilon = 0.25;
+    constexpr FloatType noise_alpha = 0.15;
 
     nn->setGPU(0, search_options.use_fp16);
     nn->eval();
+
+    int64_t total_worker_num;
+    std::cout << "total_worker_num(デフォルトは128): ";
+    std::cin >> total_worker_num;
 
     std::cout << std::fixed;
 
@@ -102,34 +110,33 @@ void checkGenSpeed() {
     constexpr int64_t num = 10;
 
     for (search_options.thread_num_per_gpu = 2; search_options.thread_num_per_gpu <= 4; search_options.thread_num_per_gpu++) {
-        for (int64_t worker_num = 32; worker_num <= 32; worker_num *= 2) {
-            for (search_options.search_batch_size = 4; search_options.search_batch_size <= 16; search_options.search_batch_size *= 2) {
-                ReplayBuffer buffer(0, buffer_size, 1, 1.0, 1.0, false);
-                auto start = std::chrono::steady_clock::now();
-                GameGenerator generator(search_options, worker_num, Q_dist_lambda, buffer, nn);
-                std::thread t(&GameGenerator::genGames, &generator);
-                for (int64_t i = 0; i < num; i++) {
-                    std::this_thread::sleep_for(std::chrono::seconds(sec));
-                    auto curr_time = std::chrono::steady_clock::now();
-                    auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
-                    double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
-                    std::cout << "thread = " << search_options.thread_num_per_gpu
-                              << ",  batch_size = " << std::setw(2) << search_options.search_batch_size
-                              << ",  worker = " << std::setw(3) << worker_num
-                              << ",  pos = " << std::setw(7) << buffer.totalNum()
-                              << ",  min = " << std::setw(4) << ela.count() / 60000
-                              << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec"
-                              << std::endl;
-                }
-                ofs << search_options.thread_num_per_gpu << " "
-                    << std::setw(2) << search_options.search_batch_size << " "
-                    << std::setw(4) << worker_num << " "
-                    << std::setw(7) << buffer.totalNum() << " "
-                    << std::setw(9) << num * sec << " "
-                    << std::setprecision(3) << (double) buffer.totalNum() / (num * sec) << std::endl;
-                generator.stop_signal = true;
-                t.join();
+        int64_t worker_num = total_worker_num / search_options.thread_num_per_gpu;
+        for (search_options.search_batch_size = 1; search_options.search_batch_size <= 4; search_options.search_batch_size *= 2) {
+            ReplayBuffer buffer(0, buffer_size, 1, 1.0, 1.0, false);
+            auto start = std::chrono::steady_clock::now();
+            GameGenerator generator(search_options, worker_num, Q_dist_lambda, noise_mode, noise_epsilon, noise_alpha, buffer, nn);
+            std::thread t(&GameGenerator::genGames, &generator);
+            for (int64_t i = 0; i < num; i++) {
+                std::this_thread::sleep_for(std::chrono::seconds(sec));
+                auto curr_time = std::chrono::steady_clock::now();
+                auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
+                double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
+                std::cout << "thread = " << search_options.thread_num_per_gpu
+                          << ",  batch_size = " << std::setw(2) << search_options.search_batch_size
+                          << ",  worker = " << std::setw(3) << worker_num
+                          << ",  pos = " << std::setw(7) << buffer.totalNum()
+                          << ",  min = " << std::setw(4) << ela.count() / 60000
+                          << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec"
+                          << std::endl;
             }
+            ofs << search_options.thread_num_per_gpu << " "
+                << std::setw(2) << search_options.search_batch_size << " "
+                << std::setw(4) << worker_num << " "
+                << std::setw(7) << buffer.totalNum() << " "
+                << std::setw(9) << num * sec << " "
+                << std::setprecision(3) << (double) buffer.totalNum() / (num * sec) << std::endl;
+            generator.stop_signal = true;
+            t.join();
         }
     }
     exit(0);
@@ -182,7 +189,7 @@ void checkSearchSpeed() {
         Move best_move = searcher.think(pos, time_limit);
         const HashTable& hash_table = searcher.hashTable();
         const HashEntry& root_entry = hash_table[hash_table.root_index];
-        std::cout << root_entry.sum_N / (time_limit / 1000.0) << " " << best_move << std::endl;
+        std::cout << root_entry.sum_N / (time_limit / 1000.0) << "\t" << best_move << std::endl;
     }
 
     pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
@@ -192,7 +199,47 @@ void checkSearchSpeed() {
         Move best_move = searcher.think(pos, time_limit);
         const HashTable& hash_table = searcher.hashTable();
         const HashEntry& root_entry = hash_table[hash_table.root_index];
-        std::cout << root_entry.sum_N / (time_limit / 1000.0) << " " << best_move << std::endl;
+        std::cout << root_entry.sum_N / (time_limit / 1000.0) << "\t" << best_move << std::endl;
+    }
+
+    std::cout << "finish checkSearchSpeed" << std::endl;
+}
+
+void checkSearchSpeed2() {
+    constexpr int64_t time_limit = 10000;
+    constexpr int64_t trial_num = 10;
+    SearchOptions search_options;
+    search_options.print_interval = time_limit * 2;
+    search_options.print_info = false;
+    search_options.USI_Hash = 8192;
+
+    std::cout << std::fixed << std::setprecision(1);
+
+    for (search_options.search_batch_size = 1; search_options.search_batch_size <= 256; search_options.search_batch_size++) {
+        Position pos;
+        double sum_init = 0.0, sum_mid = 0.0;
+        for (int64_t _ = 0; _ < trial_num; _++) {
+            SearcherForPlay searcher(search_options);
+            Move best_move = searcher.think(pos, time_limit);
+            const HashTable& hash_table = searcher.hashTable();
+            const HashEntry& root_entry = hash_table[hash_table.root_index];
+            double curr_nps = root_entry.sum_N / (time_limit / 1000.0);
+            std::cout << "s:" << _ << " " << curr_nps << "\t" << best_move << "  \r" << std::flush;
+            sum_init += curr_nps;
+        }
+
+        pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
+        for (int64_t _ = 0; _ < trial_num; _++) {
+            SearcherForPlay searcher(search_options);
+            Move best_move = searcher.think(pos, time_limit);
+            const HashTable& hash_table = searcher.hashTable();
+            const HashEntry& root_entry = hash_table[hash_table.root_index];
+            double curr_nps = root_entry.sum_N / (time_limit / 1000.0);
+            std::cout << "m:" << _ << " " << curr_nps << "\t" << best_move << "  \r" << std::flush;
+            sum_mid += curr_nps;
+        }
+
+        std::cout << search_options.search_batch_size << " " << sum_init / trial_num << " " << sum_mid / trial_num << std::endl;
     }
 
     std::cout << "finish checkSearchSpeed" << std::endl;
@@ -222,7 +269,6 @@ void checkPredictSpeed() {
     Position pos;
     constexpr int64_t REPEAT_NUM = 1000;
     std::cout << std::fixed;
-    std::mt19937_64 engine(0);
 
     NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
@@ -274,7 +320,6 @@ void checkSegmentTree() {
     float sum = st.getSum();
     std::cout << std::fixed;
     std::cout << "sum = " << sum << std::endl;
-    std::mt19937_64 engine(0);
     std::uniform_real_distribution<float> dist(0.0, sum);
 
     constexpr int64_t sample_num = 10000;
@@ -293,7 +338,6 @@ void checkSegmentTree() {
 }
 
 void checkDoAndUndo() {
-    std::mt19937_64 engine(std::random_device{}());
     for (int64_t i = 0; i < 1000000000000; i++) {
         Position pos;
         float score;
@@ -316,7 +360,6 @@ void checkDoAndUndo() {
 }
 
 void checkMirror() {
-    std::mt19937_64 engine(std::random_device{}());
     for (int64_t i = 0; i < 1; i++) {
         Position pos;
         float score;
@@ -377,4 +420,44 @@ void makeBook() {
         book.write("book.txt");
     }
     std::cout << "finish makeBook" << std::endl;
+}
+
+void searchWithLog() {
+    SearchOptions search_options;
+    search_options.USI_Hash = 8192;
+    search_options.random_turn = 30;
+    search_options.print_policy_num = 600;
+    search_options.print_info = false;
+    search_options.output_log_file = true;
+    SearcherForPlay searcher(search_options);
+
+    for (int64_t i = 0; i < LLONG_MAX; i++) {
+        std::cout << i << std::endl;
+        Position pos;
+
+        while (true) {
+            Move best_move = searcher.think(pos, 30000);
+            std::cout << best_move << " ";
+            if (best_move == NULL_MOVE) {
+                //終了
+                break;
+            }
+
+            pos.doMove(best_move);
+            float finish_score;
+            if (pos.isFinish(finish_score)) {
+                break;
+            }
+        }
+        std::cout << std::endl;
+    }
+}
+
+void convertModelToCPU() {
+    //ネットワークの準備
+    NeuralNetwork nn;
+    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    nn->to(torch::kCPU);
+    torch::save(nn, NeuralNetworkImpl::MODEL_PREFIX + "_cpu.model");
+    std::cout << "finish convertModelToCPU" << std::endl;
 }
