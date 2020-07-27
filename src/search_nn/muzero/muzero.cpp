@@ -3,7 +3,7 @@
 
 //ネットワークの設定
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
-static constexpr int64_t ACTION_DIM = 10;
+static constexpr int64_t ACTION_FEATURE_CHANNEL_NUM = 10;
 
 const std::string MuZeroImpl::MODEL_PREFIX = "muzero";
 const std::string MuZeroImpl::DEFAULT_MODEL_NAME = MuZeroImpl::MODEL_PREFIX + ".model";
@@ -12,7 +12,7 @@ MuZeroImpl::MuZeroImpl(SearchOptions search_options) : search_options_(std::move
     encoder_ = register_module("encoder_", StateEncoder());
     policy_ = register_module("policy_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
     value_ = register_module("value_", torch::nn::Linear(HIDDEN_DIM, 1));
-    env_model_ = register_module("env_model_", StateEncoder(StateEncoderImpl::LAST_CHANNEL_NUM + ACTION_DIM));
+    env_model_ = register_module("env_model_", StateEncoder(StateEncoderImpl::LAST_CHANNEL_NUM + ACTION_FEATURE_CHANNEL_NUM));
 }
 
 Move MuZeroImpl::think(Position& root, int64_t time_limit) {
@@ -70,6 +70,68 @@ std::vector<torch::Tensor> MuZeroImpl::loss(const std::vector<LearningData>& dat
     loss[0] = (-policy_teacher * clipped).sum().view({ 1 });
 
     return loss;
+}
+
+torch::Tensor MuZeroImpl::encodeAction(Move move) {
+#ifdef SHOGI
+    static const ArrayMap<int32_t, PieceNum> PieceToNum({
+        { BLACK_PAWN,    0 },
+        { BLACK_LANCE,   1 },
+        { BLACK_KNIGHT,  2 },
+        { BLACK_SILVER,  3 },
+        { BLACK_GOLD,    4 },
+        { BLACK_BISHOP,  5 },
+        { BLACK_ROOK,    6 },
+        { BLACK_KING,    7 },
+        { BLACK_PAWN_PROMOTE,   8 },
+        { BLACK_LANCE_PROMOTE,  9 },
+        { BLACK_KNIGHT_PROMOTE, 10 },
+        { BLACK_SILVER_PROMOTE, 11 },
+        { BLACK_BISHOP_PROMOTE, 12 },
+        { BLACK_ROOK_PROMOTE,   13 },
+    });
+
+    //各moveにつき9×9×MOVE_FEATURE_CHANNEL_NUMの特徴マップを得る
+    std::vector<float> move_features(9 * 9 * ACTION_FEATURE_CHANNEL_NUM, 0.0);
+
+    //この行動の手番
+    Color color = pieceToColor(move.subject());
+
+    //1ch:toの位置に1を立てる
+    Square to = (color == BLACK ? move.to() : InvSquare[move.to()]);
+    move_features[SquareToNum[to]] = 1;
+
+    //2ch:fromの位置に1を立てる.持ち駒から打つ手ならなし
+    //3ch:持ち駒から打つ手なら全て1
+    if (move.isDrop()) {
+        for (Square sq : SquareList) {
+            move_features[2 * SQUARE_NUM + SquareToNum[sq]] = 1;
+        }
+    } else {
+        Square from = (color == BLACK ? move.from() : InvSquare[move.from()]);
+        move_features[SQUARE_NUM + SquareToNum[from]] = 1;
+    }
+
+    //4ch:成りなら全て1
+    if (move.isPromote()) {
+        for (Square sq : SquareList) {
+            move_features[3 * SQUARE_NUM + SquareToNum[sq]] = 1;
+        }
+    }
+
+    //5ch以降:駒の種類に合わせたところだけ全て1
+    for (Square sq : SquareList) {
+        Piece p = (color == BLACK ? move.subject() : oppositeColor(move.subject()));
+        move_features[(4 + PieceToNum[p]) * SQUARE_NUM + SquareToNum[sq]] = 1;
+    }
+
+    torch::Tensor move_features_tensor = (fp16_ ? torch::tensor(move_features).to(device_, torch::kHalf):
+                                                  torch::tensor(move_features).to(device_));
+    move_features_tensor = move_features_tensor.view({ -1, ACTION_FEATURE_CHANNEL_NUM, 9, 9 });
+    return move_features_tensor;
+#elif OTHELLO
+    return torch::zeros({ 1 });
+#endif
 }
 
 torch::Tensor MuZeroImpl::embed(const std::vector<float>& inputs) {

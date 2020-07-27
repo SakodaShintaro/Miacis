@@ -28,6 +28,9 @@ private:
     //デフォルトで読み書きするファイル名
     static const std::string DEFAULT_MODEL_NAME;
 
+    //行動をtorch::Tensorにする関数
+    torch::Tensor encodeAction(Move move);
+
     //各部分の推論
     torch::Tensor embed(const std::vector<float>& inputs);
     torch::Tensor inferPolicy(const Position& pos);
