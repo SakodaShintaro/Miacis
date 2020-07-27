@@ -29,6 +29,7 @@ set(SRCS hash_table.cpp
          search_nn/proposed_model/proposed_model.cpp
          search_nn/stacked_lstm/stacked_lstm.cpp
          search_nn/state_encoder.cpp
+         search_nn/simple_MLP/simple_mlp.cpp
         )
 
 #将棋用のバイナリをコンパイルするのに必要なソース
@@ -58,7 +59,7 @@ target_compile_definitions(Miacis_shogi_categorical PUBLIC SHOGI)
 target_compile_definitions(Miacis_shogi_categorical PUBLIC USE_CATEGORICAL)
 
 add_executable(Miacis_othello_scalar      ${SRCS} ${OTHELLO_SRCS})
-add_executable(Miacis_othello_categorical ${SRCS} ${OTHELLO_SRCS})
+add_executable(Miacis_othello_categorical ${SRCS} ${OTHELLO_SRCS} search_nn/models.hpp)
 target_compile_definitions(Miacis_othello_scalar      PUBLIC OTHELLO)
 target_compile_definitions(Miacis_othello_categorical PUBLIC OTHELLO)
 target_compile_definitions(Miacis_othello_categorical PUBLIC USE_CATEGORICAL)

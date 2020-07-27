@@ -2,9 +2,7 @@
 #include"../neural_network.hpp"
 #include"../learn.hpp"
 #include"../game.hpp"
-#include"../search_nn/mcts_net/mcts_net.hpp"
-#include"../search_nn/proposed_model/proposed_model.hpp"
-#include"../search_nn/stacked_lstm/stacked_lstm.hpp"
+#include"../search_nn/models.hpp"
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
@@ -24,6 +22,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["testMCTSNet"]       = [this](){ testSearchNN<MCTSNet>(); };
     command_["testProposedModel"] = [this](){ testSearchNN<ProposedModel>(); };
     command_["testStackedLSTM"]   = [this](){ testSearchNN<StackedLSTM>(); };
+    command_["testSimpleMLP"]     = [this](){ testSearchNN<SimpleMLP>(); };
 
     //メンバ関数以外
     command_["initParams"]        = initParams;

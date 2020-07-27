@@ -2,9 +2,7 @@
 #include"game.hpp"
 #include"hyperparameter_loader.hpp"
 #include"include_switch.hpp"
-#include"search_nn/mcts_net/mcts_net.hpp"
-#include"search_nn/proposed_model/proposed_model.hpp"
-#include"search_nn/stacked_lstm/stacked_lstm.hpp"
+#include"search_nn/models.hpp"
 #include<sstream>
 #include<iomanip>
 #include<random>
@@ -130,4 +128,8 @@ void initParams() {
     StackedLSTM stacked_lstm;
     torch::save(stacked_lstm, stacked_lstm->defaultModelName());
     std::cout << "初期化したパラメータを" << stacked_lstm->defaultModelName() << "に出力" << std::endl;
+
+    SimpleMLP simple_mlp;
+    torch::save(simple_mlp, simple_mlp->defaultModelName());
+    std::cout << "初期化したパラメータを" << simple_mlp->defaultModelName() << "に出力" << std::endl;
 }
