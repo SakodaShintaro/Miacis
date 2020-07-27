@@ -31,6 +31,9 @@ private:
     //行動をtorch::Tensorにする関数
     torch::Tensor encodeAction(Move move);
 
+    //状態表現と行動表現から次状態の表現を予測する関数
+    torch::Tensor predictTransition(const torch::Tensor& state_representations, const torch::Tensor& move_representations);
+
     //各部分の推論
     torch::Tensor embed(const std::vector<float>& inputs);
     torch::Tensor inferPolicy(const Position& pos);

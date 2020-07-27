@@ -150,6 +150,18 @@ torch::Tensor MuZeroImpl::inferPolicy(const Position& pos) {
     return policy_->forward(x);
 }
 
+torch::Tensor MuZeroImpl::predictTransition(const torch::Tensor& state_representations, const torch::Tensor& move_representations) {
+    torch::Tensor x = torch::cat({state_representations, move_representations}, 1);
+    x = env_model_->forward(x);
+#ifdef SHOGI
+    //手番が変わることを考慮して180度ひっくり返す
+    x = torch::rot90(x, 2, { 2, 3 });
+#elif OTHELLO
+#endif
+
+    return x;
+}
+
 void MuZeroImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
