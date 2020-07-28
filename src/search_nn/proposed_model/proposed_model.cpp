@@ -192,7 +192,6 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     }
 
     std::vector<torch::Tensor> loss;
-    loss.push_back(l[M].view({1}));
     for (int64_t m = 1; m <= M; m++) {
         loss.push_back(l[m].view({1}));
     }

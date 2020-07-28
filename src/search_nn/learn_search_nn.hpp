@@ -35,7 +35,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     //学習推移のログファイル
     std::ofstream train_log(model_name + "_train_log.txt");
     std::ofstream valid_log(model_name + "_valid_log.txt");
-    tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tloss";
+    tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep";
     for (int64_t i = 0; i < options.search_limit; i++) {
         tout(std::cout, train_log, valid_log) << "\tloss_" << i + 1;
     }

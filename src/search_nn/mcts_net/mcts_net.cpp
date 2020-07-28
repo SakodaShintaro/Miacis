@@ -194,7 +194,6 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     }
 
     std::vector<torch::Tensor> loss;
-    loss.push_back(l[M].view({1}));
     for (int64_t m = 1; m <= M; m++) {
         //loss.push_back(probs_[m - 1] * R[m]);
         loss.push_back(l[m].view({1}));
