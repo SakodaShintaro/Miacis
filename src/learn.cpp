@@ -2,7 +2,6 @@
 #include"game.hpp"
 #include"hyperparameter_loader.hpp"
 #include"include_switch.hpp"
-#include"search_nn/models.hpp"
 #include<sstream>
 #include<iomanip>
 #include<random>
@@ -116,20 +115,4 @@ void initParams() {
     NeuralNetwork nn;
     torch::save(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     std::cout << "初期化したパラメータを" << NeuralNetworkImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
-
-    MCTSNet mcts_net;
-    torch::save(mcts_net, mcts_net->defaultModelName());
-    std::cout << "初期化したパラメータを" << mcts_net->defaultModelName() << "に出力" << std::endl;
-
-    ProposedModel proposed_model;
-    torch::save(proposed_model, proposed_model->defaultModelName());
-    std::cout << "初期化したパラメータを" << proposed_model->defaultModelName() << "に出力" << std::endl;
-
-    StackedLSTM stacked_lstm;
-    torch::save(stacked_lstm, stacked_lstm->defaultModelName());
-    std::cout << "初期化したパラメータを" << stacked_lstm->defaultModelName() << "に出力" << std::endl;
-
-    SimpleMLP simple_mlp;
-    torch::save(simple_mlp, simple_mlp->defaultModelName());
-    std::cout << "初期化したパラメータを" << simple_mlp->defaultModelName() << "に出力" << std::endl;
 }

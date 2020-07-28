@@ -41,9 +41,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     }
     tout(std::cout, train_log, valid_log) << std::endl;
 
-    //評価関数読み込み
+    //モデル作成
     T model(options);
-    torch::load(model, model->defaultModelName());
     model->setGPU(0);
 
     //学習前のパラメータを出力
