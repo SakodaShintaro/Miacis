@@ -220,6 +220,7 @@ void USI::quit() {
 }
 
 void USI::gameover() {
+    stop();
     std::string input;
     std::cin >> input;
     if (input == "win") {
