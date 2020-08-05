@@ -87,3 +87,27 @@ uint32_t Move::augmentLabel(uint32_t label, int64_t augmentation) {
 
     return static_cast<uint32_t>(mirror_sq_num + SQUARE_NUM * direction);
 }
+
+void Move::print() const {
+    std::cout << toPrettyStr() << std::endl;
+}
+
+std::string Move::toPrettyStr() const {
+    if (move_ == MOVE_DECLARE) {
+        return "入玉宣言";
+    }
+    std::stringstream str;
+    str << SquareToFile[to()] << SquareToRank[to()] << PieceToStr[subject()];
+    if (isPromote()) {
+        str << "成";
+    }
+    if (isDrop()) {
+        str << "打";
+    } else {
+        str << "(" << SquareToFile[from()] << SquareToRank[from()] << ") ";
+    }
+    if (capture() != EMPTY) {
+        str << "capture:" << PieceToStr[capture()];
+    }
+    return str.str();
+}

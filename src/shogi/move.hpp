@@ -68,44 +68,9 @@ public:
             | to << MOVE_TO_SHIFT) {}
 
     //日本語での表示
-    void print() const {
-        if (move_ == MOVE_DECLARE) {
-            std::cout << "入玉宣言" << std::endl;
-        }
-        std::cout << SquareToFile[to()] << SquareToRank[to()] << PieceToStr[subject()];
-        if (isPromote()) {
-            std::cout << "成";
-        }
-        if (isDrop()) {
-            std::cout << "打";
-        } else {
-            std::cout << "(" << SquareToFile[from()] << SquareToRank[from()] << ") ";
-        }
-        if (capture() != EMPTY) {
-            std::cout << "capture:" << PieceToStr[capture()];
-        }
-        std::cout << std::endl;
-    }
+    void print() const;
 
-    std::string toPrettyStr() const {
-        if (move_ == MOVE_DECLARE) {
-            return "入玉宣言";
-        }
-        std::stringstream str;
-        str << SquareToFile[to()] << SquareToRank[to()] << PieceToStr[subject()];
-        if (isPromote()) {
-            str << "成";
-        }
-        if (isDrop()) {
-            str << "打";
-        } else {
-            str << "(" << SquareToFile[from()] << SquareToRank[from()] << ") ";
-        }
-        if (capture() != EMPTY) {
-            str << "capture:" << PieceToStr[capture()];
-        }
-        return str.str();
-    }
+    std::string toPrettyStr() const;
 
     //要素を取り出す関数ら
     inline Square to() const { return static_cast<Square>(move_ & MOVE_TO_MASK); }
