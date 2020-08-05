@@ -23,11 +23,7 @@ public:
     Move(Square to) : move(to) {}
     Move(Square to, Color c) : move(c == BLACK ? to : to | (1 << TURN_BIT)) {}
 
-    //表示
-    void print() const {
-        std::cout << to() << std::endl;
-    }
-
+    //見やすい日本語での表示
     std::string toPrettyStr() const {
         std::stringstream str;
         str << to();

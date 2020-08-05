@@ -63,8 +63,7 @@ void Position::print() const {
 
     //最後の手
     if (!kifu_.empty()) {
-        printf("最後の手:");
-        lastMove().print();
+        std::cout << "最後の手:" << lastMove().toPrettyStr() << std::endl;
     }
 
     printf("ハッシュ値:%lld\n", static_cast<long long int>(hash_value_));

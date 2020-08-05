@@ -88,10 +88,6 @@ uint32_t Move::augmentLabel(uint32_t label, int64_t augmentation) {
     return static_cast<uint32_t>(mirror_sq_num + SQUARE_NUM * direction);
 }
 
-void Move::print() const {
-    std::cout << toPrettyStr() << std::endl;
-}
-
 std::string Move::toPrettyStr() const {
     if (move_ == MOVE_DECLARE) {
         return "入玉宣言";

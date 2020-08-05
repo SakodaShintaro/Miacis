@@ -57,8 +57,7 @@ std::vector<Game> loadGames(const std::string& path) {
             move = pos.transformValidMove(move);
 
             if (!pos.isLegalMove(move)) {
-                std::cerr << "There is a illegal move in " << p->path() << std::endl;
-                move.print();
+                std::cerr << "There is a illegal move in " << p->path() << " " << move.toPrettyStr() << std::endl;
                 exit(1);
             }
             OneTurnElement element;

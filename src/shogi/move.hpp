@@ -67,9 +67,7 @@ public:
             | from << MOVE_FROM_SHIFT
             | to << MOVE_TO_SHIFT) {}
 
-    //日本語での表示
-    void print() const;
-
+    //見やすい日本語での表示
     std::string toPrettyStr() const;
 
     //要素を取り出す関数ら
