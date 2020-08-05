@@ -77,7 +77,9 @@ void cleanGames() {
     std::string path;
     std::cin >> path;
 
-    constexpr double rate_threshold = 2800;
+    double rate_threshold;
+    std::cout << "削除するレートの閾値 : ";
+    std::cin >> rate_threshold;
     constexpr int32_t move_threshold = 50;
 
     const sys::path dir(path);
@@ -85,22 +87,22 @@ void cleanGames() {
         std::ifstream ifs(p->path());
         std::string buf;
         int32_t move_count = 0;
-        bool should_remove = false;
+        bool illegal_summary = false;
+        double black_rate = 0, white_rate = 0;
         while (getline(ifs, buf)) {
             //レート読み込み
-            if (buf.find("'black_rate") < buf.size() || buf.find("'white_rate") < buf.size()) {
-                double rate = std::stod(buf.substr(buf.rfind(':') + 1));
-                if (rate < rate_threshold) {
-                    should_remove = true;
-                    break;
-                }
+            if (buf.find("'black_rate") < buf.size()) {
+                black_rate = std::stod(buf.substr(buf.rfind(':') + 1));
+                continue;
+            } else if (buf.find("'white_rate") < buf.size()) {
+                white_rate = std::stod(buf.substr(buf.rfind(':') + 1));
                 continue;
             }
 
             //summaryが投了以外のものは削除
             if (buf.find("summary") < buf.size()) {
                 if (buf.find("toryo") > buf.size()) {
-                    should_remove = true;
+                    illegal_summary = true;
                     break;
                 }
                 continue;
@@ -115,8 +117,8 @@ void cleanGames() {
             move_count++;
         }
 
-        //上で削除すべきと判断されたもの及び手数が短すぎるものを削除
-        if (should_remove || move_count < move_threshold) {
+        //条件を見て削除
+        if (illegal_summary || move_count < move_threshold || black_rate < rate_threshold || white_rate < rate_threshold) {
             ifs.close();
             std::string s = p->path().string();
             std::cout << s << " ";
