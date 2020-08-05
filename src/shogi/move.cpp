@@ -93,7 +93,11 @@ std::string Move::toPrettyStr() const {
         return "入玉宣言";
     }
     std::stringstream str;
-    str << SquareToFile[to()] << SquareToRank[to()] << PieceToStr[subject()];
+    Color c = pieceToColor(subject());
+    str << (c == BLACK ? "▲" : "△")
+        << fileToString[SquareToFile[to()]]
+        << rankToString[SquareToRank[to()]]
+        << PieceToStr[kind(subject())];
     if (isPromote()) {
         str << "成";
     }
@@ -102,8 +106,8 @@ std::string Move::toPrettyStr() const {
     } else {
         str << "(" << SquareToFile[from()] << SquareToRank[from()] << ") ";
     }
-    if (capture() != EMPTY) {
-        str << "capture:" << PieceToStr[capture()];
-    }
+//    if (capture() != EMPTY) {
+//        str << "capture:" << PieceToStr[capture()];
+//    }
     return str.str();
 }
