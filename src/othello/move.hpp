@@ -108,7 +108,7 @@ inline std::ostream& operator<<(std::ostream& os, Move m) {
 }
 
 inline Move stringToMove(std::string input) {
-    if (input == "PA" || input == "PS") {
+    if (input == "PA" || input == "PS" || input == "pass") {
         return NULL_MOVE;
     }
     Square to = FRToSquare[File8 - (input[0] - 'A')][input[1] - '0'];
