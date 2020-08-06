@@ -10,8 +10,10 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 
     int32_t max_index = -1;
     FloatType max_value = INT_MIN;
-
     const int32_t sum = node.sum_N + node.virtual_sum_N;
+    FloatType C_PUCT = search_options_.C_PUCT_x1000 / 1000.0
+                       + std::log((1 + sum + search_options_.C_PUCT_base) / search_options_.C_PUCT_base);
+
     for (uint64_t i = 0; i < node.moves.size(); i++) {
         FloatType U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
         assert(U >= 0.0);
@@ -26,7 +28,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
                 P += hash_table_[node.child_indices[i]].value[j];
             }
         }
-        FloatType ucb = search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
+        FloatType ucb = C_PUCT * node.nn_policy[i] * U
                         + search_options_.P_coeff_x1000 / 1000.0 * P;
         if (search_options_.Q_coeff_x1000 > 0) {
             ucb += search_options_.Q_coeff_x1000 / 1000.0 * hash_table_.expQfromNext(node, i);
@@ -34,7 +36,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #else
         FloatType Q = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : hash_table_.QfromNextValue(node, i));
         FloatType ucb = search_options_.Q_coeff_x1000 / 1000.0 * Q
-                      + search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
+                      + C_PUCT * node.nn_policy[i] * U;
 #endif
 
         if (ucb > max_value) {

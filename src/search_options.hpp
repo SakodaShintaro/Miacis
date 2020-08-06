@@ -52,6 +52,7 @@ public:
         spin_options.emplace("FPU_x1000",              SpinOption(FPU_x1000                = -1000, -MAX,  MAX));
 #endif
         spin_options.emplace("C_PUCT_x1000",           SpinOption(C_PUCT_x1000             =  2500,    1,  MAX));
+        spin_options.emplace("C_PUCT_base",            SpinOption(C_PUCT_base              =  2500,    1,  MAX));
         spin_options.emplace("P_coeff_x1000",          SpinOption(P_coeff_x1000            =  1000,    0,  MAX));
         spin_options.emplace("virtual_loss",           SpinOption(virtual_loss             =     1,    1,  MAX));
         spin_options.emplace("temperature_x1000",      SpinOption(temperature_x1000        =     0,    0,  MAX));
@@ -80,6 +81,7 @@ public:
     int64_t search_limit;
     int64_t Q_coeff_x1000;
     int64_t C_PUCT_x1000;
+    int64_t C_PUCT_base;
     int64_t P_coeff_x1000;
     int64_t FPU_x1000;
     int64_t virtual_loss;
