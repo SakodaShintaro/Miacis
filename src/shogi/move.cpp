@@ -87,3 +87,27 @@ uint32_t Move::augmentLabel(uint32_t label, int64_t augmentation) {
 
     return static_cast<uint32_t>(mirror_sq_num + SQUARE_NUM * direction);
 }
+
+std::string Move::toPrettyStr() const {
+    if (move_ == MOVE_DECLARE) {
+        return "入玉宣言";
+    }
+    std::stringstream str;
+    Color c = pieceToColor(subject());
+    str << (c == BLACK ? "▲" : "△")
+        << fileToString[SquareToFile[to()]]
+        << rankToString[SquareToRank[to()]]
+        << PieceToStr[kind(subject())];
+    if (isPromote()) {
+        str << "成";
+    }
+    if (isDrop()) {
+        str << "打";
+    } else {
+        str << "(" << SquareToFile[from()] << SquareToRank[from()] << ") ";
+    }
+//    if (capture() != EMPTY) {
+//        str << "capture:" << PieceToStr[capture()];
+//    }
+    return str.str();
+}

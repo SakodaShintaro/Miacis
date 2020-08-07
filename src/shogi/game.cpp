@@ -57,8 +57,7 @@ std::vector<Game> loadGames(const std::string& path) {
             move = pos.transformValidMove(move);
 
             if (!pos.isLegalMove(move)) {
-                std::cerr << "There is a illegal move in " << p->path() << std::endl;
-                move.print();
+                std::cerr << "There is a illegal move in " << p->path() << " " << move.toPrettyStr() << std::endl;
                 exit(1);
             }
             OneTurnElement element;
@@ -78,7 +77,7 @@ void cleanGames() {
     std::string path;
     std::cin >> path;
 
-    double rate_threshold = 2800;
+    double rate_threshold;
     std::cout << "削除するレートの閾値 : ";
     std::cin >> rate_threshold;
     constexpr int32_t move_threshold = 50;

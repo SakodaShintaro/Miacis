@@ -23,11 +23,7 @@ public:
     Move(Square to) : move(to) {}
     Move(Square to, Color c) : move(c == BLACK ? to : to | (1 << TURN_BIT)) {}
 
-    //表示
-    void print() const {
-        std::cout << to() << std::endl;
-    }
-
+    //見やすい日本語での表示
     std::string toPrettyStr() const {
         std::stringstream str;
         str << to();
@@ -112,7 +108,7 @@ inline std::ostream& operator<<(std::ostream& os, Move m) {
 }
 
 inline Move stringToMove(std::string input) {
-    if (input == "PA" || input == "PS") {
+    if (input == "PA" || input == "PS" || input == "pass") {
         return NULL_MOVE;
     }
     Square to = FRToSquare[File8 - (input[0] - 'A')][input[1] - '0'];

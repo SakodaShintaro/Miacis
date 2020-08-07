@@ -375,7 +375,7 @@ void checkMirror() {
 
             uint32_t label = moves[index].toLabel();
             uint32_t mirror_label = Move::augmentLabel(label, 1);
-            moves[index].print();
+            std::cout << moves[index].toPrettyStr() << std::endl;
             std::cout << label % SQUARE_NUM << ", " << label / SQUARE_NUM << std::endl;
             std::cout << mirror_label % SQUARE_NUM << ", " << mirror_label / SQUARE_NUM << std::endl;
         }
