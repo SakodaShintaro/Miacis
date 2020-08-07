@@ -108,31 +108,28 @@ inline std::ostream& operator<<(std::ostream& os, Move m) {
 }
 
 inline Move stringToMove(std::string input) {
-    if (input == "PA" || input == "PS" || input == "pass" || input == "pa") {
+    if (input == "PA" || input == "PS" || input == "pass" || input == "pa" || input == "PASS") {
         return NULL_MOVE;
     }
 
     if (input.size() != 2) {
-        std::cout << "illegal move string (size) : " << input << std::endl;
-        return NULL_MOVE;
+        input = input.substr(0, 2);
     }
 
     char x = input[0];
     char y = input[1];
 
     if (!('1' <= y && y < '1' + BOARD_WIDTH)) {
-        std::cout << "illegal move string (y) : " << input << std::endl;
         return NULL_MOVE;
     }
 
     if ('A' <= x && x < 'A' + BOARD_WIDTH) {
-        Square to = FRToSquare[File8 - (input[0] - 'A')][input[1] - '0'];
+        Square to = FRToSquare[File8 - (x - 'A')][y - '0'];
         return Move(to);
     } else if ('a' <= x && x < 'a' + BOARD_WIDTH) {
-        Square to = FRToSquare[File8 - (input[0] - 'a')][input[1] - '0'];
+        Square to = FRToSquare[File8 - (x - 'a')][y - '0'];
         return Move(to);
     } else {
-        std::cout << "illegal move string (x) : " << input << std::endl;
         return NULL_MOVE;
     }
 }
