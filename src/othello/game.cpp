@@ -23,7 +23,7 @@ std::pair<std::string, uint64_t> extractValue(const std::string& source, const s
     }
 
     return std::make_pair(source.substr(left + 1, right - left - 1), right + 1);
-};
+}
 
 std::pair<Game, bool> parseGGF(const std::string& ggf_str) {
     //合法性確認
