@@ -22,6 +22,7 @@ Interface::Interface() : searcher_(nullptr) {
     //メンバ関数以外
     command_["initParams"]         = initParams;
     command_["alphaZero"]          = alphaZero;
+    command_["supervisedLearn"]    = supervisedLearn;
     command_["testLoadGame"]       = [this](){ std::string path; std::cin>>path; loadGames(path); };
 }
 
