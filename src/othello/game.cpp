@@ -74,7 +74,9 @@ std::vector<Game> loadGames(const std::string& path) {
                 if (!pos.isLegalMove(move)) {
                     std::cout << "illegal move!" << std::endl;
                     pos.print();
+                    std::cout << "move_str =" << move_value.first << std::endl;
                     std::cout << "move -> " << move.toPrettyStr() << std::endl;
+                    std::cout << buf << std::endl;
                     std::exit(1);
                 }
 

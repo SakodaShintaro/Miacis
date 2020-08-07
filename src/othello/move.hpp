@@ -108,11 +108,33 @@ inline std::ostream& operator<<(std::ostream& os, Move m) {
 }
 
 inline Move stringToMove(std::string input) {
-    if (input == "PA" || input == "PS" || input == "pass") {
+    if (input == "PA" || input == "PS" || input == "pass" || input == "pa") {
         return NULL_MOVE;
     }
-    Square to = FRToSquare[File8 - (input[0] - 'A')][input[1] - '0'];
-    return Move(to);
+
+    if (input.size() != 2) {
+        std::cout << "illegal move string (size) : " << input << std::endl;
+        return NULL_MOVE;
+    }
+
+    char x = input[0];
+    char y = input[1];
+
+    if (!('1' <= y && y < '1' + BOARD_WIDTH)) {
+        std::cout << "illegal move string (y) : " << input << std::endl;
+        return NULL_MOVE;
+    }
+
+    if ('A' <= x && x < 'A' + BOARD_WIDTH) {
+        Square to = FRToSquare[File8 - (input[0] - 'A')][input[1] - '0'];
+        return Move(to);
+    } else if ('a' <= x && x < 'a' + BOARD_WIDTH) {
+        Square to = FRToSquare[File8 - (input[0] - 'a')][input[1] - '0'];
+        return Move(to);
+    } else {
+        std::cout << "illegal move string (x) : " << input << std::endl;
+        return NULL_MOVE;
+    }
 }
 
 #endif //MIACIS_MOVE_HPP
