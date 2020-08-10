@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-list(APPEND CMAKE_PREFIX_PATH ../../libtorch)
+list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.6.0)
 find_package(Torch REQUIRED)
 
 #各ゲームで共通する部分のソース
