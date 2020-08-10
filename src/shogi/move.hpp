@@ -1,12 +1,12 @@
 ﻿#ifndef MOVE_HPP
 #define MOVE_HPP
 
-#include"square.hpp"
-#include"piece.hpp"
-#include"../types.hpp"
-#include<unordered_map>
-#include<iostream>
-#include<sstream>
+#include "../types.hpp"
+#include "piece.hpp"
+#include "square.hpp"
+#include <iostream>
+#include <sstream>
+#include <unordered_map>
 
 enum MoveConst {
     //0000 0000 0000 0000 0000 0000 0111 1111 to
@@ -15,24 +15,24 @@ enum MoveConst {
     //0000 0000 0000 0000 1000 0000 0000 0000 promote
     //0000 0000 1111 1111 0000 0000 0000 0000 subject
     //1111 1111 0000 0000 0000 0000 0000 0000 capture
-    MOVE_TO_SHIFT = 0,
-    MOVE_FROM_SHIFT = 7,
-    MOVE_DROP_SHIFT = 14,
+    MOVE_TO_SHIFT      = 0,
+    MOVE_FROM_SHIFT    = 7,
+    MOVE_DROP_SHIFT    = 14,
     MOVE_PROMOTE_SHIFT = 15,
     MOVE_SUBJECT_SHIFT = 16,
     MOVE_CAPTURE_SHIFT = 24,
-    MOVE_TO_MASK = 0b1111111,
-    MOVE_FROM_MASK = MOVE_TO_MASK << MOVE_FROM_SHIFT,
-    MOVE_DROP_MASK = 1 << MOVE_DROP_SHIFT,
-    MOVE_PROMOTE_MASK = 1 << MOVE_PROMOTE_SHIFT,
-    MOVE_SUBJECT_MASK = 0xff << MOVE_SUBJECT_SHIFT,
-    MOVE_CAPTURE_MASK = 0xff << MOVE_CAPTURE_SHIFT,
-    MOVE_DECLARE = -1,
+    MOVE_TO_MASK       = 0b1111111,
+    MOVE_FROM_MASK     = MOVE_TO_MASK << MOVE_FROM_SHIFT,
+    MOVE_DROP_MASK     = 1 << MOVE_DROP_SHIFT,
+    MOVE_PROMOTE_MASK  = 1 << MOVE_PROMOTE_SHIFT,
+    MOVE_SUBJECT_MASK  = 0xff << MOVE_SUBJECT_SHIFT,
+    MOVE_CAPTURE_MASK  = 0xff << MOVE_CAPTURE_SHIFT,
+    MOVE_DECLARE       = -1,
 };
 
 //行動の次元数
 constexpr int64_t POLICY_CHANNEL_NUM = 27;
-constexpr int64_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM;
+constexpr int64_t POLICY_DIM         = SQUARE_NUM * POLICY_CHANNEL_NUM;
 
 class Move {
 public:
@@ -41,31 +41,21 @@ public:
 
     explicit Move(int32_t x) : move_(x) {}
 
-    Move(Square to, Square from) : move_(from << MOVE_FROM_SHIFT
-                                         | to << MOVE_TO_SHIFT) {}
+    Move(Square to, Square from) : move_(from << MOVE_FROM_SHIFT | to << MOVE_TO_SHIFT) {}
 
-    Move(Square to, Square from, bool isDrop) : move_(isDrop << MOVE_DROP_SHIFT
-                                                      | from << MOVE_FROM_SHIFT
-                                                      | to << MOVE_TO_SHIFT) {}
+    Move(Square to, Square from, bool isDrop)
+        : move_(isDrop << MOVE_DROP_SHIFT | from << MOVE_FROM_SHIFT | to << MOVE_TO_SHIFT) {}
 
-    Move(Square to, Square from, bool isDrop, bool isPromote) : move_(isPromote << MOVE_PROMOTE_SHIFT
-                                                                      | isDrop << MOVE_DROP_SHIFT
-                                                                      | from << MOVE_FROM_SHIFT
-                                                                      | to << MOVE_TO_SHIFT) {}
+    Move(Square to, Square from, bool isDrop, bool isPromote)
+        : move_(isPromote << MOVE_PROMOTE_SHIFT | isDrop << MOVE_DROP_SHIFT | from << MOVE_FROM_SHIFT | to << MOVE_TO_SHIFT) {}
 
-    Move(Square to, Square from, bool isDrop, bool isPromote, Piece subject) : move_(subject << MOVE_SUBJECT_SHIFT
-                                                                                     | isPromote << MOVE_PROMOTE_SHIFT
-                                                                                     | isDrop << MOVE_DROP_SHIFT
-                                                                                     | from << MOVE_FROM_SHIFT
-                                                                                     | to << MOVE_TO_SHIFT) {}
+    Move(Square to, Square from, bool isDrop, bool isPromote, Piece subject)
+        : move_(subject << MOVE_SUBJECT_SHIFT | isPromote << MOVE_PROMOTE_SHIFT | isDrop << MOVE_DROP_SHIFT |
+                from << MOVE_FROM_SHIFT | to << MOVE_TO_SHIFT) {}
 
-    Move(Square to, Square from, bool isDrop, bool isPromote, Piece subject, Piece capture) : move_(
-              capture << MOVE_CAPTURE_SHIFT
-            | subject << MOVE_SUBJECT_SHIFT
-            | isPromote << MOVE_PROMOTE_SHIFT
-            | isDrop << MOVE_DROP_SHIFT
-            | from << MOVE_FROM_SHIFT
-            | to << MOVE_TO_SHIFT) {}
+    Move(Square to, Square from, bool isDrop, bool isPromote, Piece subject, Piece capture)
+        : move_(capture << MOVE_CAPTURE_SHIFT | subject << MOVE_SUBJECT_SHIFT | isPromote << MOVE_PROMOTE_SHIFT |
+                isDrop << MOVE_DROP_SHIFT | from << MOVE_FROM_SHIFT | to << MOVE_TO_SHIFT) {}
 
     //見やすい日本語での表示
     std::string toPrettyStr() const;
@@ -121,10 +111,8 @@ inline std::ostream& operator<<(std::ostream& os, Move m) {
         os << PieceToSfenStr[kind(m.subject())][0] << '*' << static_cast<int>(SquareToFile[m.to()])
            << static_cast<char>(SquareToRank[m.to()] + 'a' - 1);
     } else {
-        os << static_cast<int>(SquareToFile[m.from()])
-           << static_cast<char>(SquareToRank[m.from()] + 'a' - 1)
-           << static_cast<int>(SquareToFile[m.to()])
-           << static_cast<char>(SquareToRank[m.to()] + 'a' - 1);
+        os << static_cast<int>(SquareToFile[m.from()]) << static_cast<char>(SquareToRank[m.from()] + 'a' - 1)
+           << static_cast<int>(SquareToFile[m.to()]) << static_cast<char>(SquareToRank[m.to()] + 'a' - 1);
         if (m.isPromote()) {
             os << '+';
         }
@@ -136,20 +124,14 @@ inline std::ostream& operator<<(std::ostream& os, Move m) {
 //まぁ動けばいいのかなぁ
 inline Move stringToMove(std::string input) {
     static std::unordered_map<char, Piece> charToPiece = {
-            {'P', PAWN},
-            {'L', LANCE},
-            {'N', KNIGHT},
-            {'S', SILVER},
-            {'G', GOLD},
-            {'B', BISHOP},
-            {'R', ROOK},
+        { 'P', PAWN }, { 'L', LANCE }, { 'N', KNIGHT }, { 'S', SILVER }, { 'G', GOLD }, { 'B', BISHOP }, { 'R', ROOK },
     };
     if ('A' <= input[0] && input[0] <= 'Z') { //持ち駒を打つ手
         Square to = FRToSquare[input[2] - '0'][input[3] - 'a' + 1];
         return dropMove(to, charToPiece[input[0]]);
     } else { //盤上の駒を動かす手
-        Square from = FRToSquare[input[0] - '0'][input[1] - 'a' + 1];
-        Square to = FRToSquare[input[2] - '0'][input[3] - 'a' + 1];
+        Square from  = FRToSquare[input[0] - '0'][input[1] - 'a' + 1];
+        Square to    = FRToSquare[input[2] - '0'][input[3] - 'a' + 1];
         bool promote = (input.size() == 5 && input[4] == '+');
         return Move(to, from, false, promote, EMPTY, EMPTY);
     }

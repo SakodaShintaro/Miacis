@@ -1,16 +1,16 @@
-﻿#include"test.hpp"
-#include"../game_generator.hpp"
-#include"../searcher_for_play.hpp"
-#include"../learn.hpp"
-#include"book.hpp"
+﻿#include "test.hpp"
+#include "../game_generator.hpp"
+#include "../searcher_for_play.hpp"
+#include "book.hpp"
+#include <cmath>
 
 void test() {
     SearchOptions search_options;
-    search_options.search_limit = 800;
-    search_options.print_interval = 100000;
+    search_options.search_limit       = 800;
+    search_options.print_interval     = 100000;
     search_options.thread_num_per_gpu = 1;
-    search_options.search_batch_size = 1;
-    search_options.output_log_file = true;
+    search_options.search_batch_size  = 1;
+    search_options.output_log_file    = true;
     NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     nn->setGPU(0);
@@ -30,9 +30,9 @@ void test() {
             break;
         }
 
-        float finish_score;
-        if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2)
-            || pos.turnNumber() > search_options.draw_turn) {
+        float finish_score = NAN;
+        if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2) ||
+            pos.turnNumber() > search_options.draw_turn) {
             //千日手or持将棋
             game.result = finish_score;
             break;
@@ -43,7 +43,7 @@ void test() {
         element.move = best_move;
         game.elements.push_back(element);
     }
-    auto end = std::chrono::steady_clock::now();
+    auto end     = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cout << elapsed.count() / pos.turnNumber() << " msec / pos" << std::endl;
 
@@ -54,8 +54,8 @@ void test() {
 void infiniteTest() {
     SearchOptions search_options;
     search_options.thread_num_per_gpu = 1;
-    search_options.search_batch_size = 32;
-    search_options.random_turn = 30;
+    search_options.search_batch_size  = 32;
+    search_options.random_turn        = 30;
     SearcherForPlay searcher(search_options);
 
     for (int64_t i = 0; i < LLONG_MAX; i++) {
@@ -71,7 +71,7 @@ void infiniteTest() {
 
             pos.doMove(best_move);
             //pos.print();
-            float finish_score;
+            float finish_score = NAN;
             if (pos.isFinish(finish_score)) {
                 break;
             }
@@ -85,19 +85,19 @@ void checkGenSpeed() {
 
     constexpr int64_t buffer_size = 1048576;
     SearchOptions search_options;
-    search_options.search_limit = 800;
-    search_options.draw_turn = 320;
-    search_options.random_turn = 320;
-    search_options.temperature_x1000 = 10;
+    search_options.search_limit       = 800;
+    search_options.draw_turn          = 320;
+    search_options.random_turn        = 320;
+    search_options.temperature_x1000  = 10;
     constexpr FloatType Q_dist_lambda = 1.0;
-    constexpr int64_t noise_mode = 0;
+    constexpr int64_t noise_mode      = 0;
     constexpr FloatType noise_epsilon = 0.25;
-    constexpr FloatType noise_alpha = 0.15;
+    constexpr FloatType noise_alpha   = 0.15;
 
     nn->setGPU(0, search_options.use_fp16);
     nn->eval();
 
-    int64_t total_worker_num;
+    int64_t total_worker_num = 0;
     std::cout << "total_worker_num(デフォルトは128): ";
     std::cin >> total_worker_num;
 
@@ -114,13 +114,15 @@ void checkGenSpeed() {
         for (search_options.search_batch_size = 1; search_options.search_batch_size <= 4; search_options.search_batch_size *= 2) {
             ReplayBuffer buffer(0, buffer_size, 1, 1.0, 1.0, false);
             auto start = std::chrono::steady_clock::now();
-            GameGenerator generator(search_options, worker_num, Q_dist_lambda, noise_mode, noise_epsilon, noise_alpha, buffer, nn);
+            GameGenerator generator(search_options, worker_num, Q_dist_lambda, noise_mode, noise_epsilon, noise_alpha, buffer,
+                                    nn);
             std::thread t(&GameGenerator::genGames, &generator);
             for (int64_t i = 0; i < num; i++) {
                 std::this_thread::sleep_for(std::chrono::seconds(sec));
-                auto curr_time = std::chrono::steady_clock::now();
-                auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
+                auto curr_time           = std::chrono::steady_clock::now();
+                auto ela                 = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
                 double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
+                // clang-format off
                 std::cout << "thread = " << search_options.thread_num_per_gpu
                           << ",  batch_size = " << std::setw(2) << search_options.search_batch_size
                           << ",  worker = " << std::setw(3) << worker_num
@@ -128,13 +130,11 @@ void checkGenSpeed() {
                           << ",  min = " << std::setw(4) << ela.count() / 60000
                           << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec"
                           << std::endl;
+                // clang-format on
             }
-            ofs << search_options.thread_num_per_gpu << " "
-                << std::setw(2) << search_options.search_batch_size << " "
-                << std::setw(4) << worker_num << " "
-                << std::setw(7) << buffer.totalNum() << " "
-                << std::setw(9) << num * sec << " "
-                << std::setprecision(3) << (double) buffer.totalNum() / (num * sec) << std::endl;
+            ofs << search_options.thread_num_per_gpu << " " << std::setw(2) << search_options.search_batch_size << " "
+                << std::setw(4) << worker_num << " " << std::setw(7) << buffer.totalNum() << " " << std::setw(9) << num * sec
+                << " " << std::setprecision(3) << (double)buffer.totalNum() / (num * sec) << std::endl;
             generator.stop_signal = true;
             t.join();
         }
@@ -144,10 +144,10 @@ void checkGenSpeed() {
 
 void checkSearchSpeed() {
     constexpr int64_t time_limit = 10000;
-    constexpr int64_t trial_num = 10;
+    constexpr int64_t trial_num  = 10;
     SearchOptions search_options;
     search_options.print_interval = time_limit * 2;
-    search_options.print_info = false;
+    search_options.print_info     = false;
     while (true) {
         std::string input;
         std::cin >> input;
@@ -186,7 +186,7 @@ void checkSearchSpeed() {
     std::cout << "初期局面" << std::endl;
     for (int64_t _ = 0; _ < trial_num; _++) {
         SearcherForPlay searcher(search_options);
-        Move best_move = searcher.think(pos, time_limit);
+        Move best_move              = searcher.think(pos, time_limit);
         const HashTable& hash_table = searcher.hashTable();
         const HashEntry& root_entry = hash_table[hash_table.root_index];
         std::cout << root_entry.sum_N / (time_limit / 1000.0) << "\t" << best_move << std::endl;
@@ -196,7 +196,7 @@ void checkSearchSpeed() {
     std::cout << "中盤の局面" << std::endl;
     for (int64_t _ = 0; _ < trial_num; _++) {
         SearcherForPlay searcher(search_options);
-        Move best_move = searcher.think(pos, time_limit);
+        Move best_move              = searcher.think(pos, time_limit);
         const HashTable& hash_table = searcher.hashTable();
         const HashEntry& root_entry = hash_table[hash_table.root_index];
         std::cout << root_entry.sum_N / (time_limit / 1000.0) << "\t" << best_move << std::endl;
@@ -207,11 +207,11 @@ void checkSearchSpeed() {
 
 void checkSearchSpeed2() {
     constexpr int64_t time_limit = 10000;
-    constexpr int64_t trial_num = 10;
+    constexpr int64_t trial_num  = 10;
     SearchOptions search_options;
     search_options.print_interval = time_limit * 2;
-    search_options.print_info = false;
-    search_options.USI_Hash = 8192;
+    search_options.print_info     = false;
+    search_options.USI_Hash       = 8192;
 
     std::cout << std::fixed << std::setprecision(1);
 
@@ -220,10 +220,10 @@ void checkSearchSpeed2() {
         double sum_init = 0.0, sum_mid = 0.0;
         for (int64_t _ = 0; _ < trial_num; _++) {
             SearcherForPlay searcher(search_options);
-            Move best_move = searcher.think(pos, time_limit);
+            Move best_move              = searcher.think(pos, time_limit);
             const HashTable& hash_table = searcher.hashTable();
             const HashEntry& root_entry = hash_table[hash_table.root_index];
-            double curr_nps = root_entry.sum_N / (time_limit / 1000.0);
+            double curr_nps             = root_entry.sum_N / (time_limit / 1000.0);
             std::cout << "s:" << _ << " " << curr_nps << "\t" << best_move << "  \r" << std::flush;
             sum_init += curr_nps;
         }
@@ -231,10 +231,10 @@ void checkSearchSpeed2() {
         pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
         for (int64_t _ = 0; _ < trial_num; _++) {
             SearcherForPlay searcher(search_options);
-            Move best_move = searcher.think(pos, time_limit);
+            Move best_move              = searcher.think(pos, time_limit);
             const HashTable& hash_table = searcher.hashTable();
             const HashEntry& root_entry = hash_table[hash_table.root_index];
-            double curr_nps = root_entry.sum_N / (time_limit / 1000.0);
+            double curr_nps             = root_entry.sum_N / (time_limit / 1000.0);
             std::cout << "m:" << _ << " " << curr_nps << "\t" << best_move << "  \r" << std::flush;
             sum_mid += curr_nps;
         }
@@ -298,12 +298,13 @@ void checkPredictSpeed() {
             auto start = std::chrono::steady_clock::now();
             torch::NoGradGuard no_grad_guard;
             nn->policyAndValueBatch(pos.makeFeature());
-            auto end = std::chrono::steady_clock::now();
+            auto end     = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
             time += elapsed.count();
         }
 
-        std::cout << "batch_size = " << std::setw(5) << batch_size << ", " << time / REPEAT_NUM << " microsec / batch" << std::endl;
+        std::cout << "batch_size = " << std::setw(5) << batch_size << ", " << time / REPEAT_NUM << " microsec / batch"
+                  << std::endl;
     }
 }
 
@@ -340,7 +341,7 @@ void checkSegmentTree() {
 void checkDoAndUndo() {
     for (int64_t i = 0; i < 1000000000000; i++) {
         Position pos;
-        float score;
+        float score = NAN;
         while (!pos.isFinish(score)) {
             std::vector<Move> moves = pos.generateAllMoves();
             std::uniform_int_distribution<int64_t> dist(0, moves.size() - 1);
@@ -362,7 +363,7 @@ void checkDoAndUndo() {
 void checkMirror() {
     for (int64_t i = 0; i < 1; i++) {
         Position pos;
-        float score;
+        float score = NAN;
         while (!pos.isFinish(score)) {
             std::vector<Move> moves = pos.generateAllMoves();
             std::uniform_int_distribution<int64_t> dist(0, moves.size() - 1);
@@ -373,7 +374,7 @@ void checkMirror() {
             std::cout << str << std::endl;
             std::cout << Position::augmentStr(str, 1) << std::endl;
 
-            uint32_t label = moves[index].toLabel();
+            uint32_t label        = moves[index].toLabel();
             uint32_t mirror_label = Move::augmentLabel(label, 1);
             std::cout << moves[index].toPrettyStr() << std::endl;
             std::cout << label % SQUARE_NUM << ", " << label / SQUARE_NUM << std::endl;
@@ -390,7 +391,7 @@ void checkBook() {
     YaneBook book;
     book.open("./standard_book.db");
     Position pos;
-    float score;
+    float score = NAN;
     while (!pos.isFinish(score)) {
         pos.print();
         if (book.hasEntry(pos)) {
@@ -407,7 +408,7 @@ void checkBook() {
 }
 
 void makeBook() {
-    int64_t search_num, think_sec;
+    int64_t search_num = 0, think_sec = 0;
     std::cout << "定跡に追加するノード数: ";
     std::cin >> search_num;
     std::cout << "一局面の思考時間(秒): ";
@@ -424,11 +425,11 @@ void makeBook() {
 
 void searchWithLog() {
     SearchOptions search_options;
-    search_options.USI_Hash = 8192;
-    search_options.random_turn = 30;
+    search_options.USI_Hash         = 8192;
+    search_options.random_turn      = 30;
     search_options.print_policy_num = 600;
-    search_options.print_info = false;
-    search_options.output_log_file = true;
+    search_options.print_info       = false;
+    search_options.output_log_file  = true;
     SearcherForPlay searcher(search_options);
 
     for (int64_t i = 0; i < LLONG_MAX; i++) {
@@ -444,7 +445,7 @@ void searchWithLog() {
             }
 
             pos.doMove(best_move);
-            float finish_score;
+            float finish_score = NAN;
             if (pos.isFinish(finish_score)) {
                 break;
             }

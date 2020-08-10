@@ -16,6 +16,7 @@ public:
     void open(const std::string& file_name);
     bool hasEntry(const Position& pos);
     Move pickOne(const Position& pos, float temperature);
+
 private:
     std::unordered_map<std::string, std::vector<YaneBookEntry>> book_;
 };
@@ -34,6 +35,7 @@ public:
     void updateOne(int64_t think_sec);
     bool hasEntry(const Position& pos);
     Move pickOne(const Position& pos, float temperature);
+
 private:
     static std::string removeTurnNumber(const std::string& sfen);
     std::unordered_map<std::string, BookEntry> book_;

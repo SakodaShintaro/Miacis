@@ -1,11 +1,11 @@
 ﻿#ifndef USI_HPP
 #define USI_HPP
 
-#include"position.hpp"
-#include"../searcher_for_play.hpp"
-#include"../search_options.hpp"
-#include<thread>
-#include<functional>
+#include "../search_options.hpp"
+#include "../searcher_for_play.hpp"
+#include "position.hpp"
+#include <functional>
+#include <thread>
 
 class USI {
 public:
@@ -20,6 +20,7 @@ public:
     void stop();
     void quit();
     void gameover();
+
 private:
     std::unordered_map<std::string, std::function<void()>> command_;
     Position root_;

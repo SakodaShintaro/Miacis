@@ -1,21 +1,17 @@
-﻿#include"move.hpp"
-#include"position.hpp"
+﻿#include "move.hpp"
+#include "position.hpp"
 
 uint32_t Move::toLabel() const {
     Color c = pieceToColor(subject());
-    Square to_sq = (c == BLACK ? to() : InvSquare[to()]);
+
+    Square to_sq   = (c == BLACK ? to() : InvSquare[to()]);
+    File to_file   = SquareToFile[to_sq];
+    Rank to_rank   = SquareToRank[to_sq];
     Square from_sq = (c == BLACK ? from() : InvSquare[from()]);
-
-    //移動先のマス
-    int32_t to_num = SquareToNum[to_sq];
-
-    //移動元からの方向
-    int32_t direction = {};
-    File to_file = SquareToFile[to_sq];
-    Rank to_rank = SquareToRank[to_sq];
     File from_file = SquareToFile[from_sq];
     Rank from_rank = SquareToRank[from_sq];
 
+    int32_t direction = {};
     if (from() == WALL00) { //打つ手
         direction = 20 + kind(subject()) - PAWN;
     } else if (to_file == from_file - 1 && to_rank == from_rank + 2) { //桂馬
@@ -45,7 +41,7 @@ uint32_t Move::toLabel() const {
         direction += 10;
     }
 
-    return static_cast<uint32_t>(to_num + SQUARE_NUM * direction);
+    return static_cast<uint32_t>(SquareToNum[to_sq] + SQUARE_NUM * direction);
 }
 
 uint32_t Move::augmentLabel(uint32_t label, int64_t augmentation) {
@@ -94,9 +90,7 @@ std::string Move::toPrettyStr() const {
     }
     std::stringstream str;
     Color c = pieceToColor(subject());
-    str << (c == BLACK ? "▲" : "△")
-        << fileToString[SquareToFile[to()]]
-        << rankToString[SquareToRank[to()]]
+    str << (c == BLACK ? "▲" : "△") << fileToString[SquareToFile[to()]] << rankToString[SquareToRank[to()]]
         << PieceToStr[kind(subject())];
     if (isPromote()) {
         str << "成";
@@ -106,8 +100,8 @@ std::string Move::toPrettyStr() const {
     } else {
         str << "(" << SquareToFile[from()] << SquareToRank[from()] << ") ";
     }
-//    if (capture() != EMPTY) {
-//        str << "capture:" << PieceToStr[capture()];
-//    }
+    //    if (capture() != EMPTY) {
+    //        str << "capture:" << PieceToStr[capture()];
+    //    }
     return str.str();
 }

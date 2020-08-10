@@ -1,9 +1,9 @@
 ﻿#ifndef POSITION_HPP
 #define POSITION_HPP
 
-#include"move.hpp"
-#include"hand.hpp"
-#include"bitboard.hpp"
+#include "bitboard.hpp"
+#include "hand.hpp"
+#include "move.hpp"
 
 class Position {
 public:
@@ -31,7 +31,7 @@ public:
 
     //この局面が詰み、千日手等で終わっているか確認する関数
     //終わっている場合は手番側から見た点数を引数に書き込んでtrueを返す
-    bool isFinish(float& score , bool check_repeat = true);
+    bool isFinish(float& score, bool check_repeat = true);
 
     //千日手の判定
     bool isRepeating(float& score) const;
@@ -57,11 +57,12 @@ public:
     Color color() const { return color_; }
     int64_t hashValue() const { return hash_value_; }
     Piece on(const Square sq) const { return board_[sq]; }
-    bool isChecked() { return is_checked_; }
+    bool isChecked() const { return is_checked_; }
 
     //左右反転のみに対応。将棋はこれ以上の拡張はできない
     static constexpr int64_t DATA_AUGMENTATION_PATTERN_NUM = 2;
     static std::string augmentStr(const std::string& str, int64_t augmentation);
+
 private:
     //--------------------
     //    内部メソッド
@@ -130,8 +131,7 @@ private:
         Hand hand[ColorNum];
         bool is_checked;
 
-        StateInfo(Position& pos) :
-            board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), is_checked(pos.is_checked_) {
+        explicit StateInfo(Position& pos) : board_hash(pos.board_hash_), hand_hash(pos.hand_hash_), is_checked(pos.is_checked_) {
             hand[BLACK] = pos.hand_[BLACK];
             hand[WHITE] = pos.hand_[WHITE];
         }

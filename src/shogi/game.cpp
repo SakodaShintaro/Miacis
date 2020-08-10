@@ -1,5 +1,7 @@
 ﻿#include "../game.hpp"
 
+#include "math.h"
+
 #ifdef _MSC_VER
 namespace sys = std::filesystem;
 #elif __GNUC__
@@ -12,20 +14,10 @@ std::vector<Game> loadGames(const std::string& path) {
     for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
         //対応関係をunordered_mapで引けるようにしておく
         static std::unordered_map<std::string, Piece> CSAstringToPiece = {
-                { "FU", PAWN },
-                { "KY", LANCE },
-                { "KE", KNIGHT },
-                { "GI", SILVER },
-                { "KI", GOLD },
-                { "KA", BISHOP },
-                { "HI", ROOK },
-                { "OU", KING },
-                { "TO", PAWN_PROMOTE },
-                { "NY", LANCE_PROMOTE },
-                { "NK", KNIGHT_PROMOTE },
-                { "NG", SILVER_PROMOTE },
-                { "UM", BISHOP_PROMOTE },
-                { "RY", ROOK_PROMOTE },
+            { "FU", PAWN },           { "KY", LANCE },         { "KE", KNIGHT },         { "GI", SILVER },
+            { "KI", GOLD },           { "KA", BISHOP },        { "HI", ROOK },           { "OU", KING },
+            { "TO", PAWN_PROMOTE },   { "NY", LANCE_PROMOTE }, { "NK", KNIGHT_PROMOTE }, { "NG", SILVER_PROMOTE },
+            { "UM", BISHOP_PROMOTE }, { "RY", ROOK_PROMOTE },
         };
 
         Position pos;
@@ -39,17 +31,17 @@ std::vector<Game> loadGames(const std::string& path) {
             }
 
             //指し手の情報を取得
-            Square from = FRToSquare[buf[1] - '0'][buf[2] - '0'];
-            Square to = FRToSquare[buf[3] - '0'][buf[4] - '0'];
+            Square from   = FRToSquare[buf[1] - '0'][buf[2] - '0'];
+            Square to     = FRToSquare[buf[3] - '0'][buf[4] - '0'];
             Piece subject = CSAstringToPiece[buf.substr(5, 2)];
             //手番を設定
-            subject = (pos.color() == BLACK ? toBlack(subject) : toWhite(subject));
+            subject     = (pos.color() == BLACK ? toBlack(subject) : toWhite(subject));
             bool isDrop = (from == WALL00);
 
             //CSAのフォーマットから、動くものが成済なのにfromにある駒が不成の場合、成る手
             bool isPromote = ((subject & PROMOTE) && !(pos.on(from) & PROMOTE));
             if (isPromote) {
-                subject = (Piece) (subject & ~PROMOTE);
+                subject = (Piece)(subject & ~PROMOTE);
             }
 
             //Moveを生成し、Positionの情報を使って完全なものとする
@@ -77,7 +69,7 @@ void cleanGames() {
     std::string path;
     std::cin >> path;
 
-    double rate_threshold;
+    double rate_threshold = NAN;
     std::cout << "削除するレートの閾値 : ";
     std::cin >> rate_threshold;
     constexpr int32_t move_threshold = 50;
@@ -86,7 +78,7 @@ void cleanGames() {
     for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
         std::ifstream ifs(p->path());
         std::string buf;
-        int32_t move_count = 0;
+        int32_t move_count   = 0;
         bool illegal_summary = false;
         double black_rate = 0, white_rate = 0;
         while (getline(ifs, buf)) {
@@ -150,7 +142,7 @@ void Game::writeKifuFile(const std::string& dir_path) const {
         File to_file = SquareToFile[m.to()];
         Rank to_rank = SquareToRank[m.to()];
         ofs << fileToString[to_file] << rankToString[to_rank];
-        Piece subject = (Piece) (m.subject() & (PROMOTE | PIECE_KIND_MASK));
+        Piece subject = (Piece)(m.subject() & (PROMOTE | PIECE_KIND_MASK));
         ofs << PieceToStr[subject];
         if (m.isDrop()) {
             ofs << "打" << std::endl;

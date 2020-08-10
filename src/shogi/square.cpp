@@ -1,5 +1,6 @@
-﻿#include"square.hpp"
+﻿#include "square.hpp"
 
+// clang-format off
 const std::array<Square, SQUARE_NUM> SquareList = {
     SQ11, SQ12, SQ13, SQ14, SQ15, SQ16, SQ17, SQ18, SQ19,
     SQ21, SQ22, SQ23, SQ24, SQ25, SQ26, SQ27, SQ28, SQ29,
@@ -40,11 +41,6 @@ const Square InvSquare[] = {
     WALLA0, WALLA1, WALLA2, WALLA3, WALLA4, WALLA5, WALLA6, WALLA7, WALLA8, WALLA9, WALLAA,
 };
 
-std::ostream& operator<<(std::ostream& os, Square sq) {
-    os << SquareToFile[sq] << SquareToRank[sq];
-    return os;
-}
-
 const ArrayMap<std::string, FileNum> fileToString({
     { File1, "１" },
     { File2, "２" },
@@ -68,3 +64,9 @@ const ArrayMap<std::string, RankNum> rankToString({
     { Rank8, "八" },
     { Rank9, "九" }
 });
+// clang-format on
+
+std::ostream& operator<<(std::ostream& os, Square sq) {
+    os << SquareToFile[sq] << SquareToRank[sq];
+    return os;
+}

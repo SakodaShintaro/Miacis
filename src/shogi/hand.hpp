@@ -29,6 +29,7 @@ enum HandConst {
     HAND_ROOK_MASK   = 0b11 << HAND_ROOK_SHIFT,
 };
 
+// clang-format off
 static int32_t PieceToHandShift[] = {
     0,
     HAND_PAWN_SHIFT,
@@ -50,6 +51,7 @@ static int32_t PieceToHandMask[] = {
     HAND_BISHOP_MASK,
     HAND_ROOK_MASK,
 };
+// clang-format on
 
 class Hand {
 public:

@@ -9,3 +9,4 @@ UseTab: Never
 SpaceAfterTemplateKeyword: false
 Cpp11BracedListStyle: false
 AllowShortIfStatementsOnASingleLine: Always
+AllowShortLoopsOnASingleLine: true
