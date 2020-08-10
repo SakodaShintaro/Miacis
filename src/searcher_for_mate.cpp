@@ -50,7 +50,7 @@ bool SearcherForMate::search(Position& pos, int32_t depth) {
     }
 
     //攻め手のとき勝ち、あるいは受け手のとき負けかどうか確認
-    float score;
+    float score{};
     if (pos.isFinish(score)) {
         return (score == (is_attacker ? MAX_SCORE : MIN_SCORE));
     }
