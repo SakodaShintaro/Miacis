@@ -1,16 +1,12 @@
-#include"position.hpp"
-#include"piece.hpp"
-#include"move.hpp"
-#include<iostream>
-#include<cstdio>
-#include<bitset>
-#include<algorithm>
+#include "position.hpp"
+#include <algorithm>
+#include <bitset>
+#include <cstdio>
+#include <iostream>
 
 int64_t Position::HashSeed[PieceNum][SquareNum];
 
-Position::Position() {
-    init();
-}
+Position::Position() { init(); }
 
 void Position::init() {
     //盤上の初期化
@@ -54,9 +50,7 @@ void Position::print() const {
     }
 
     //手番
-    printf("手番:");
-    if (color_ == BLACK) printf("先手\n");
-    else printf("後手\n");
+    std::cout << "手番:" << (color_ == BLACK ? "先手" : "後手") << std::endl;
 
     //手数
     printf("手数:%d\n", turn_number_);
@@ -114,7 +108,7 @@ void Position::doMove(const Move move) {
 
     for (Dir d : DirList) {
         bool is_there_enemy = false;
-        bool isOK = false;
+        bool isOK           = false;
         for (int32_t sq = move.to() + d; board_[sq] != WALL; sq += d) {
             if (board_[sq] == oppositeColor(p)) {
                 is_there_enemy = true;
@@ -255,10 +249,11 @@ bool Position::isFinish(float& score, bool check_repeat) const {
     }
     assert(piece_num[WALL] == 0);
 
-    score = (piece_num[color_] == piece_num[~color_] ? (MAX_SCORE + MIN_SCORE) / 2 :
-             piece_num[color_] >  piece_num[~color_] ? MAX_SCORE : MIN_SCORE);
+    score = (piece_num[color_] == piece_num[~color_] ? (MAX_SCORE + MIN_SCORE) / 2
+                                                     : piece_num[color_] > piece_num[~color_] ? MAX_SCORE : MIN_SCORE);
 
-    return (piece_num[EMPTY] == 0) || (kifu_.size() >= 2 && kifu_[kifu_.size() - 1] == NULL_MOVE && kifu_[kifu_.size() - 2] == NULL_MOVE);
+    return (piece_num[EMPTY] == 0) ||
+           (kifu_.size() >= 2 && kifu_[kifu_.size() - 1] == NULL_MOVE && kifu_[kifu_.size() - 2] == NULL_MOVE);
 }
 
 std::vector<float> Position::makeFeature() const {
@@ -267,10 +262,8 @@ std::vector<float> Position::makeFeature() const {
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
 
     //駒を見る順番
-    static constexpr std::array<Piece, INPUT_CHANNEL_NUM> TARGET_PIECE[ColorNum] = {
-        { BLACK_PIECE, WHITE_PIECE },
-        { WHITE_PIECE, BLACK_PIECE }
-    };
+    static constexpr std::array<Piece, INPUT_CHANNEL_NUM> TARGET_PIECE[ColorNum] = { { BLACK_PIECE, WHITE_PIECE },
+                                                                                     { WHITE_PIECE, BLACK_PIECE } };
 
     //盤上の駒の特徴量
     for (uint64_t i = 0; i < ColorNum; i++) {

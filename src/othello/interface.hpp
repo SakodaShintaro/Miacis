@@ -1,11 +1,11 @@
-﻿#ifndef USI_HPP
-#define USI_HPP
+﻿#ifndef MIACIS_OTHELLO_INTERFACE_HPP
+#define MIACIS_OTHELLO_INTERFACE_HPP
 
-#include"position.hpp"
-#include"../searcher_for_play.hpp"
-#include"../search_options.hpp"
-#include<thread>
-#include<functional>
+#include "../search_options.hpp"
+#include "../searcher_for_play.hpp"
+#include "position.hpp"
+#include <functional>
+#include <thread>
 
 class Interface {
 public:
@@ -42,6 +42,7 @@ public:
     void go();
     void stop();
     void quit();
+
 private:
     std::unordered_map<std::string, std::function<void()>> command_;
     Position root_;

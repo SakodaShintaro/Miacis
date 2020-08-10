@@ -27,27 +27,33 @@ std::pair<std::string, uint64_t> extractValue(const std::string& source, const s
 
 std::pair<Game, bool> parseGGF(const std::string& ggf_str) {
     //合法性確認
-    //レート確認
+    //(1)レート
+    //これを閾値とする
     constexpr double RATE_THRESHOLD = 2000;
+
+    //読み込んで比較
     std::string black_rate_str = extractValue(ggf_str, "RB").first;
     std::string white_rate_str = extractValue(ggf_str, "RW").first;
-    double black_rate = stod(black_rate_str);
-    double white_rate = stod(white_rate_str);
-
+    double black_rate          = stod(black_rate_str);
+    double white_rate          = stod(white_rate_str);
     if (black_rate < RATE_THRESHOLD || white_rate < RATE_THRESHOLD) {
         return std::make_pair(Game(), false);
     }
 
-    //盤面確認
+    //(2)初期局面
     //初期局面からではない対局を混じっているようなので、一応弾く
-    //別に弾く必要もないかもしれないが
+
+    //初期局面のstring
+    const std::string INITIAL_BOARD_STR = "8 -------- -------- -------- ---O*--- ---*O--- -------- -------- -------- *";
+
+    //読み込んで比較
     std::pair<std::string, uint64_t> board_value = extractValue(ggf_str, "BO");
-    std::string board_str = board_value.first;
-    const std::string initial_board = "8 -------- -------- -------- ---O*--- ---*O--- -------- -------- -------- *";
-    if (board_str != initial_board) {
+    std::string board_str                        = board_value.first;
+    if (board_str != INITIAL_BOARD_STR) {
         return std::make_pair(Game(), false);
     }
 
+    //(3)最終結果
     std::pair<std::string, uint64_t> result_value = extractValue(ggf_str, "RE");
     if (result_value.second == std::string::npos) {
         return std::make_pair(Game(), false);
@@ -62,14 +68,19 @@ std::pair<Game, bool> parseGGF(const std::string& ggf_str) {
     Position pos;
     Game game;
 
+    //盤面の後に指し手が続くという前提で、そこから探していく
     int64_t index = board_value.second;
+
     std::string key = "B";
     while (true) {
         std::pair<std::string, uint64_t> move_value = extractValue(ggf_str, key, index);
         if (move_value.second == std::string::npos) {
             break;
         }
+
+        //指し手の後に秒数や評価値が記述されている場合もあるので最初の'/'までで切る
         std::string move_str = move_value.first.substr(0, move_value.first.find('/'));
+
         Move move = stringToMove(move_str);
         if (!pos.isLegalMove(move)) {
             pos.print();
@@ -84,7 +95,7 @@ std::pair<Game, bool> parseGGF(const std::string& ggf_str) {
         game.elements.push_back(element);
 
         pos.doMove(move);
-        key = (key == "B" ? "W" : "B");
+        key   = (key == "B" ? "W" : "B");
         index = move_value.second;
     }
 
@@ -103,8 +114,7 @@ std::vector<Game> loadGames(const std::string& path) {
         std::ifstream ifs(p->path());
         std::string buf;
         while (getline(ifs, buf)) {
-            //どうも1行に2対局ある場合があるらしい
-            //それを分解しなければ
+            //1行に2対局以上が記述されている場合があるので分解する
             uint64_t start_index = 0;
             while (true) {
                 uint64_t left = buf.find("(;", start_index);
@@ -113,7 +123,7 @@ std::vector<Game> loadGames(const std::string& path) {
                 }
                 uint64_t right = buf.find(";)", start_index) + 2;
                 //[left, right)のところが1ゲーム分に相当
-                std::string game_str = buf.substr(left, right - left);
+                std::string game_str               = buf.substr(left, right - left);
                 std::pair<Game, bool> parse_result = parseGGF(game_str);
                 if (parse_result.second) {
                     games.push_back(parse_result.first);
@@ -154,8 +164,7 @@ void Game::writeKifuFile(const std::string& dir_path) const {
         File to_file = SquareToFile[m.to()];
         Rank to_rank = SquareToRank[m.to()];
         ofs << fileToString[to_file] << rankToString[to_rank];
-        ofs << "**対局 評価値 " << (m.color() == BLACK ? elements[i].score : -elements[i].score) * 5000
-            << std::endl;
+        ofs << "**対局 評価値 " << (m.color() == BLACK ? elements[i].score : -elements[i].score) * 5000 << std::endl;
 
         pos.doMove(m);
     }

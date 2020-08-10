@@ -1,17 +1,17 @@
-#ifndef MIACIS_MOVE_HPP
-#define MIACIS_MOVE_HPP
+#ifndef MIACIS_OTHELLO_MOVE_HPP
+#define MIACIS_OTHELLO_MOVE_HPP
 
-#include"square.hpp"
-#include"piece.hpp"
-#include"../types.hpp"
-#include<unordered_map>
-#include<iostream>
-#include<sstream>
+#include "../types.hpp"
+#include "piece.hpp"
+#include "square.hpp"
+#include <iostream>
+#include <sstream>
+#include <unordered_map>
 
 //行動の次元数
 //1ch目は普通の行動,2ch目はパス専用
 constexpr int64_t POLICY_CHANNEL_NUM = 2;
-constexpr int64_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM;
+constexpr int64_t POLICY_DIM         = SQUARE_NUM * POLICY_CHANNEL_NUM;
 
 class Move {
 public:
@@ -19,8 +19,8 @@ public:
 
     //コンストラクタ
     Move() = default;
-    Move(int32_t x) : move(x) {}
-    Move(Square to) : move(to) {}
+    explicit Move(int32_t x) : move(x) {}
+    explicit Move(Square to) : move(to) {}
     Move(Square to, Color c) : move(c == BLACK ? to : to | (1 << TURN_BIT)) {}
 
     //見やすい日本語での表示
@@ -35,14 +35,12 @@ public:
     inline Color color() const { return (move & (1 << TURN_BIT) ? WHITE : BLACK); }
 
     //演算子オーバーロード
-    bool operator==(const Move &rhs) const { return (move == rhs.move); }
-    bool operator!=(const Move &rhs) const { return !(*this == rhs); }
+    bool operator==(const Move& rhs) const { return (move == rhs.move); }
+    bool operator!=(const Move& rhs) const { return !(*this == rhs); }
 
     //ラベル系
     //行動から教師ラベルへと変換する関数
-    int32_t toLabel() const {
-        return (move == 0 ? SQUARE_NUM : SquareToNum[to()]);
-    }
+    int32_t toLabel() const { return (move == 0 ? SQUARE_NUM : SquareToNum[to()]); }
     //ラベルをデータ拡張に対応させる関数
     static uint32_t augmentLabel(uint32_t label, int64_t augmentation) {
         if (label == SQUARE_NUM) {
@@ -134,4 +132,4 @@ inline Move stringToMove(std::string input) {
     }
 }
 
-#endif //MIACIS_MOVE_HPP
+#endif //MIACIS_OTHELLO_MOVE_HPP

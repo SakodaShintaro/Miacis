@@ -1,29 +1,30 @@
-﻿#include"interface.hpp"
-#include"../neural_network.hpp"
-#include"../learn.hpp"
-#include"../game.hpp"
+﻿#include "interface.hpp"
+#include "../game.hpp"
+#include "../learn.hpp"
+#include "../neural_network.hpp"
+#include "math.h"
+#include <cmath>
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
-    command_["printOption"]    = std::bind(&Interface::printOption,    this);
-    command_["set"]            = std::bind(&Interface::set,            this);
-    command_["think"]          = std::bind(&Interface::think,          this);
-    command_["test"]           = std::bind(&Interface::test,           this);
-    command_["infiniteTest"]   = std::bind(&Interface::infiniteTest,   this);
-    command_["battle"]         = std::bind(&Interface::battle,         this);
-    command_["battleVSRandom"] = std::bind(&Interface::battleVSRandom, this);
-    command_["outputValue"]    = std::bind(&Interface::outputValue,    this);
-    command_["init"]           = std::bind(&Interface::init,           this);
-    command_["play"]           = std::bind(&Interface::play,           this);
-    command_["go"]             = std::bind(&Interface::go,             this);
-    command_["stop"]           = std::bind(&Interface::stop,           this);
-    command_["quit"]           = std::bind(&Interface::quit,           this);
+    command_["printOption"]    = [this] { printOption(); };
+    command_["set"]            = [this] { set(); };
+    command_["think"]          = [this] { think(); };
+    command_["test"]           = [this] { test(); };
+    command_["infiniteTest"]   = [this] { infiniteTest(); };
+    command_["battle"]         = [this] { battle(); };
+    command_["battleVSRandom"] = [this] { battleVSRandom(); };
+    command_["outputValue"]    = [this] { outputValue(); };
+    command_["init"]           = [this] { init(); };
+    command_["play"]           = [this] { play(); };
+    command_["go"]             = [this] { go(); };
+    command_["stop"]           = [this] { stop(); };
+    command_["quit"]           = [this] { quit(); };
 
     //メンバ関数以外
-    command_["initParams"]         = initParams;
-    command_["alphaZero"]          = alphaZero;
-    command_["supervisedLearn"]    = supervisedLearn;
-    command_["testLoadGame"]       = [this](){ std::string path; std::cin>>path; loadGames(path); };
+    command_["initParams"]      = initParams;
+    command_["alphaZero"]       = alphaZero;
+    command_["supervisedLearn"] = supervisedLearn;
 }
 
 void Interface::loop() {
@@ -50,8 +51,8 @@ void Interface::printOption() {
         std::cout << "option name " << pair.first << " type check default " << std::boolalpha << pair.second.value << std::endl;
     }
     for (const auto& pair : options_.spin_options) {
-        std::cout << "option name " << pair.first << " type spin default " << pair.second.value
-                  << " min " << pair.second.min << " max " << pair.second.max << std::endl;
+        std::cout << "option name " << pair.first << " type spin default " << pair.second.value << " min " << pair.second.min
+                  << " max " << pair.second.max << std::endl;
     }
     for (const auto& pair : options_.filename_options) {
         std::cout << "option name " << pair.first << " type filename default " << pair.second.value << std::endl;
@@ -88,23 +89,23 @@ void Interface::set() {
 void Interface::think() {
     root_.init();
 
-    options_.search_limit = 80000;
-    options_.print_interval = INT_MAX;
-    options_.print_policy_num = 800;
-    options_.search_batch_size = 1;
+    options_.search_limit       = 80000;
+    options_.print_interval     = INT_MAX;
+    options_.print_policy_num   = 800;
+    options_.search_batch_size  = 1;
     options_.thread_num_per_gpu = 1;
-    searcher_ = std::make_unique<SearcherForPlay>(options_);
+    searcher_                   = std::make_unique<SearcherForPlay>(options_);
 
     searcher_->think(root_, 1000000);
 }
 
 void Interface::test() {
     SearchOptions search_options;
-    search_options.search_limit = 800;
-    search_options.print_interval = 100000;
+    search_options.search_limit       = 800;
+    search_options.print_interval     = 100000;
     search_options.thread_num_per_gpu = 1;
-    search_options.search_batch_size = 1;
-    search_options.output_log_file = true;
+    search_options.search_batch_size  = 1;
+    search_options.output_log_file    = true;
     NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     nn->setGPU(0);
@@ -124,9 +125,9 @@ void Interface::test() {
             break;
         }
 
-        float finish_score;
-        if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2)
-            || pos.turnNumber() > search_options.draw_turn) {
+        float finish_score = NAN;
+        if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2) ||
+            pos.turnNumber() > search_options.draw_turn) {
             //千日手or持将棋
             game.result = finish_score;
             break;
@@ -137,7 +138,7 @@ void Interface::test() {
         element.move = best_move;
         game.elements.push_back(element);
     }
-    auto end = std::chrono::steady_clock::now();
+    auto end     = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cout << elapsed.count() / pos.turnNumber() << " msec / pos" << std::endl;
 
@@ -147,19 +148,19 @@ void Interface::test() {
 
 void Interface::infiniteTest() {
     //対局の準備
-    options_.search_limit = 400;
-    options_.search_batch_size = 1;
+    options_.search_limit       = 400;
+    options_.search_batch_size  = 1;
     options_.thread_num_per_gpu = 1;
-    options_.random_turn = 100;
-    options_.print_interval = INT_MAX;
-    options_.print_policy_num = 0;
-    searcher_ = std::make_unique<SearcherForPlay>(options_);
+    options_.random_turn        = 100;
+    options_.print_interval     = INT_MAX;
+    options_.print_policy_num   = 0;
+    searcher_                   = std::make_unique<SearcherForPlay>(options_);
 
     for (int64_t i = 0; i < LLONG_MAX; i++) {
         root_.init();
         while (true) {
             root_.print();
-            float score;
+            float score = NAN;
             if (root_.isFinish(score)) {
                 std::cout << "score = " << score << std::endl;
                 break;
@@ -176,20 +177,20 @@ void Interface::battle() {
 
     //手番の入力
     std::cout << "人間の手番(0 or 1): ";
-    int64_t turn;
+    int64_t turn = 0;
     std::cin >> turn;
 
     //対局の準備
-    options_.search_limit = 800;
-    options_.search_batch_size = 1;
-    options_.random_turn = 10;
+    options_.search_limit       = 800;
+    options_.search_batch_size  = 1;
+    options_.random_turn        = 10;
     options_.thread_num_per_gpu = 1;
-    options_.print_interval = INT_MAX;
-    options_.print_policy_num = 800;
-    searcher_ = std::make_unique<SearcherForPlay>(options_);
+    options_.print_interval     = INT_MAX;
+    options_.print_policy_num   = 800;
+    searcher_                   = std::make_unique<SearcherForPlay>(options_);
 
     while (true) {
-        float score;
+        float score = NAN;
         root_.print();
         if (root_.isFinish(score)) {
             std::cout << "score = " << score << std::endl;
@@ -217,19 +218,19 @@ void Interface::battle() {
 
 void Interface::battleVSRandom() {
     //対局の準備
-    options_.search_limit = 800;
-    options_.search_batch_size = 1;
-    options_.random_turn = 10;
+    options_.search_limit       = 800;
+    options_.search_batch_size  = 1;
+    options_.random_turn        = 10;
     options_.thread_num_per_gpu = 1;
-    options_.print_interval = INT_MAX;
-    options_.print_policy_num = 00;
-    searcher_ = std::make_unique<SearcherForPlay>(options_);
+    options_.print_interval     = INT_MAX;
+    options_.print_policy_num   = 00;
+    searcher_                   = std::make_unique<SearcherForPlay>(options_);
 
     for (int64_t i = 0; i < 100; i++) {
         root_.init();
 
         while (true) {
-            float score;
+            float score = NAN;
             root_.print();
             if (root_.isFinish(score)) {
                 std::cout << "score = " << score << std::endl;
@@ -293,7 +294,7 @@ void Interface::outputValue() {
 
     std::uniform_real_distribution<float> dist(0.0, 1.0);
 
-    float score;
+    float score = NAN;
     while (!root_.isFinish(score)) {
         std::vector<float> feature = root_.makeFeature();
         root_.print();
@@ -306,10 +307,10 @@ void Interface::outputValue() {
         }
         policy = softmax(policy);
 
-        uint64_t index = 0;
+        uint64_t index        = 0;
         float probability_sum = 0;
-        float threshold = dist(engine);
-        for (index = 0; index < moves.size(); index++) {
+        float threshold       = dist(engine);
+        for (; index < moves.size(); index++) {
             if ((probability_sum += policy[index]) >= threshold) {
                 break;
             }

@@ -1,5 +1,6 @@
-#include"square.hpp"
+#include "square.hpp"
 
+// clang-format off
 const std::array<Square, 64> SquareList = {
     SQ11, SQ12, SQ13, SQ14, SQ15, SQ16, SQ17, SQ18,
     SQ21, SQ22, SQ23, SQ24, SQ25, SQ26, SQ27, SQ28,
@@ -26,16 +27,17 @@ const int32_t SquareToNum[] = {
 
 const Square InvSquare[] = {
     WALL00, WALL01, WALL02, WALL03, WALL04, WALL05, WALL06, WALL07, WALL08, WALL09,
-    WALL10, SQ88,   SQ87,   SQ86,   SQ85,   SQ84,   SQ83,   SQ82,   SQ81,   WALL19,
-    WALL20, SQ78,   SQ77,   SQ76,   SQ75,   SQ74,   SQ73,   SQ72,   SQ71,   WALL29,
-    WALL30, SQ68,   SQ67,   SQ66,   SQ65,   SQ64,   SQ63,   SQ62,   SQ61,   WALL39,
-    WALL40, SQ58,   SQ57,   SQ56,   SQ55,   SQ54,   SQ53,   SQ52,   SQ51,   WALL49,
-    WALL50, SQ48,   SQ47,   SQ46,   SQ45,   SQ44,   SQ43,   SQ42,   SQ41,   WALL59,
-    WALL60, SQ38,   SQ37,   SQ36,   SQ35,   SQ34,   SQ33,   SQ32,   SQ31,   WALL69,
-    WALL70, SQ28,   SQ27,   SQ26,   SQ25,   SQ24,   SQ23,   SQ22,   SQ21,   WALL79,
-    WALL80, SQ18,   SQ17,   SQ16,   SQ15,   SQ14,   SQ13,   SQ12,   SQ11,   WALL89,
+    WALL10,   SQ88,   SQ87,   SQ86,   SQ85,   SQ84,   SQ83,   SQ82,   SQ81, WALL19,
+    WALL20,   SQ78,   SQ77,   SQ76,   SQ75,   SQ74,   SQ73,   SQ72,   SQ71, WALL29,
+    WALL30,   SQ68,   SQ67,   SQ66,   SQ65,   SQ64,   SQ63,   SQ62,   SQ61, WALL39,
+    WALL40,   SQ58,   SQ57,   SQ56,   SQ55,   SQ54,   SQ53,   SQ52,   SQ51, WALL49,
+    WALL50,   SQ48,   SQ47,   SQ46,   SQ45,   SQ44,   SQ43,   SQ42,   SQ41, WALL59,
+    WALL60,   SQ38,   SQ37,   SQ36,   SQ35,   SQ34,   SQ33,   SQ32,   SQ31, WALL69,
+    WALL70,   SQ28,   SQ27,   SQ26,   SQ25,   SQ24,   SQ23,   SQ22,   SQ21, WALL79,
+    WALL80,   SQ18,   SQ17,   SQ16,   SQ15,   SQ14,   SQ13,   SQ12,   SQ11, WALL89,
     WALL90, WALL91, WALL92, WALL93, WALL94, WALL95, WALL96, WALL97, WALL98, WALL99,
 };
+// clang-format on
 
 std::ostream& operator<<(std::ostream& os, Square sq) {
     os << fileToString[SquareToFile[sq]] << rankToString[SquareToRank[sq]];
@@ -43,8 +45,8 @@ std::ostream& operator<<(std::ostream& os, Square sq) {
 }
 
 int32_t mirrorSqNum(int32_t sq_num) {
-    const int32_t f = sq_num / 9 + 1;
-    const int32_t r = sq_num % 9 + 1;
+    const int32_t f     = sq_num / 9 + 1;
+    const int32_t r     = sq_num % 9 + 1;
     const Square mirror = FRToSquare[File9 - f + 1][r];
     return SquareToNum[mirror];
 }

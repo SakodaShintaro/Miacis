@@ -1,13 +1,13 @@
-#ifndef MIACIS_POSITION_HPP
-#define MIACIS_POSITION_HPP
+#ifndef MIACIS_OTHELLO_POSITION_HPP
+#define MIACIS_OTHELLO_POSITION_HPP
 
-#include"square.hpp"
-#include"piece.hpp"
-#include"move.hpp"
-#include"../types.hpp"
-#include<random>
-#include<cstdint>
-#include<unordered_map>
+#include "../types.hpp"
+#include "move.hpp"
+#include "piece.hpp"
+#include "square.hpp"
+#include <cstdint>
+#include <random>
+#include <unordered_map>
 
 class Position {
 public:
@@ -57,6 +57,7 @@ public:
     //回転、左右反転の8通りに拡張可能
     static constexpr int64_t DATA_AUGMENTATION_PATTERN_NUM = 8;
     static std::string augmentStr(const std::string& str, int64_t augmentation);
+
 private:
     //--------------------
     //    内部メソッド
@@ -98,4 +99,4 @@ private:
     std::vector<int64_t> hash_values_;
 };
 
-#endif //MIACIS_POSITION_HPP
+#endif //MIACIS_OTHELLO_POSITION_HPP
