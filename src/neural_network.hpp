@@ -1,22 +1,22 @@
 ﻿#ifndef MIACIS_NEURAL_NETWORK_HPP
 #define MIACIS_NEURAL_NETWORK_HPP
 
-#include"neural_network_modules.hpp"
-#include"types.hpp"
+#include "neural_network_modules.hpp"
+#include "types.hpp"
 
 //型のエイリアス
-using FloatType = float;
-using PolicyType = std::vector<float>;
+using FloatType         = float;
+using PolicyType        = std::vector<float>;
 using PolicyTeacherType = std::vector<std::pair<int32_t, float>>;
 #ifdef USE_CATEGORICAL
-constexpr int32_t BIN_SIZE = 51;
+constexpr int32_t BIN_SIZE  = 51;
 constexpr float VALUE_WIDTH = (MAX_SCORE - MIN_SCORE) / BIN_SIZE;
-using ValueType = std::array<float, BIN_SIZE>;
-using ValueTeacherType = int64_t;
+using ValueType             = std::array<float, BIN_SIZE>;
+using ValueTeacherType      = int64_t;
 #else
 constexpr int32_t BIN_SIZE = 1;
-using ValueType = float;
-using ValueTeacherType = float;
+using ValueType            = float;
+using ValueTeacherType     = float;
 #endif
 
 //学習データの型
@@ -27,14 +27,10 @@ struct LearningData {
 };
 
 //損失の種類
-enum LossType {
-    POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM
-};
+enum LossType { POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM };
 
 //各損失の名前を示す文字列
-const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{
-    "policy", "value"
-};
+const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{ "policy", "value" };
 
 //#define REPRESENTATION_DROPOUT
 
@@ -90,9 +86,7 @@ TORCH_MODULE(NeuralNetwork);
 
 //Categorical分布に対する操作
 #ifdef USE_CATEGORICAL
-inline int32_t valueToIndex(double value) {
-    return std::min((int32_t)((value - MIN_SCORE) / VALUE_WIDTH), BIN_SIZE - 1);
-}
+inline int32_t valueToIndex(double value) { return std::min((int32_t)((value - MIN_SCORE) / VALUE_WIDTH), BIN_SIZE - 1); }
 
 inline ValueType onehotDist(double value) {
     //valueForBlackのところだけ1.0, 他は0.0とした分布を返す

@@ -1,7 +1,7 @@
 #include "searcher_for_mate.hpp"
 
 SearcherForMate::SearcherForMate(HashTable& hash_table, const SearchOptions& search_options)
-: stop_signal(false), hash_table_(hash_table), search_options_(search_options) {}
+    : stop_signal(false), hash_table_(hash_table), search_options_(search_options) {}
 
 void SearcherForMate::mateSearch(Position pos, int32_t depth_limit) {
     HashEntry& curr_node = hash_table_[hash_table_.root_index];
@@ -15,7 +15,7 @@ void SearcherForMate::mateSearch(Position pos, int32_t depth_limit) {
                 //search_limitだけ足せば必ずこの手が選ばれるようになる
                 //mutexにロックをかけるべきかどうか
                 curr_node.mutex.lock();
-                curr_node.N[i]  += search_options_.search_limit;
+                curr_node.N[i] += search_options_.search_limit;
                 curr_node.sum_N += search_options_.search_limit;
 
                 if (curr_node.child_indices[i] != HashTable::NOT_EXPANDED) {

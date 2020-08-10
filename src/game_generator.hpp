@@ -1,8 +1,8 @@
 ﻿#ifndef MIACIS_GAME_GENERATOR_HPP
 #define MIACIS_GAME_GENERATOR_HPP
 
-#include "replay_buffer.hpp"
 #include "game.hpp"
+#include "replay_buffer.hpp"
 #include "search_options.hpp"
 #include "searcher.hpp"
 #include "searcher_for_mate.hpp"
@@ -34,9 +34,7 @@ public:
     bool stop_signal;
 
 private:
-    enum NoiseMode {
-        DIRICHLET, ONEHOT, NOISE_MODE_SIZE
-    };
+    enum NoiseMode { DIRICHLET, ONEHOT, NOISE_MODE_SIZE };
     //ディリクレ分布に従ったものを返す関数
     static std::vector<FloatType> dirichletDistribution(uint64_t k, FloatType alpha);
 

@@ -1,8 +1,8 @@
-﻿#include"learn.hpp"
-#include"hyperparameter_loader.hpp"
-#include"common.hpp"
-#include<iostream>
-#include<random>
+﻿#include "common.hpp"
+#include "hyperparameter_loader.hpp"
+#include "learn.hpp"
+#include <iostream>
+#include <random>
 
 void supervisedLearn() {
     HyperparameterLoader settings("supervised_learn_settings.txt");
@@ -36,14 +36,16 @@ void supervisedLearn() {
     std::ofstream learn_log("supervised_learn_log.txt");
     dout(std::cout, learn_log) << std::fixed << "time\tepoch\tstep\t";
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        dout(std::cout, learn_log) << LOSS_TYPE_NAME[i] + "_loss" << "\t\n"[i == LOSS_TYPE_NUM - 1];
+        dout(std::cout, learn_log) << LOSS_TYPE_NAME[i] + "_loss"
+                                   << "\t\n"[i == LOSS_TYPE_NUM - 1];
     }
 
     //validation結果のログファイル
     std::ofstream validation_log("supervised_learn_validation_log.txt");
     validation_log << std::fixed << "time\tepoch\tstep\t";
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        validation_log << LOSS_TYPE_NAME[i] + "_loss" << "\t\n"[i == LOSS_TYPE_NUM - 1];
+        validation_log << LOSS_TYPE_NAME[i] + "_loss"
+                       << "\t\n"[i == LOSS_TYPE_NUM - 1];
     }
 
     //評価関数読み込み
@@ -71,7 +73,8 @@ void supervisedLearn() {
         //データをシャッフル
         std::shuffle(train_data.begin(), train_data.end(), engine);
 
-        for (uint64_t step = 0; (step + 1 + (mixup_alpha != 0)) * batch_size <= train_data.size() && global_step < max_step; step++) {
+        for (uint64_t step = 0; (step + 1 + (mixup_alpha != 0)) * batch_size <= train_data.size() && global_step < max_step;
+             step++) {
             //バッチサイズ分データを確保
             std::vector<LearningData> curr_data;
             for (int64_t b = 0; b < batch_size; b++) {
@@ -88,9 +91,10 @@ void supervisedLearn() {
 
             //学習
             optimizer.zero_grad();
-            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = (mixup_alpha == 0 ? neural_network->loss(curr_data) :
-                                                                                neural_network->mixUpLossFinalLayer(curr_data, mixup_alpha));
-            torch::Tensor loss_sum = torch::zeros({batch_size});
+            std::array<torch::Tensor, LOSS_TYPE_NUM> loss =
+                (mixup_alpha == 0 ? neural_network->loss(curr_data)
+                                  : neural_network->mixUpLossFinalLayer(curr_data, mixup_alpha));
+            torch::Tensor loss_sum = torch::zeros({ batch_size });
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 loss_sum += coefficients[i] * loss[i].cpu();
             }
@@ -132,8 +136,8 @@ void supervisedLearn() {
                 }
             } else if (lr_decay_mode == 2) {
                 int64_t curr_step = (step + 1) % lr_decay_period;
-                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr()
-                  = min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / lr_decay_period));
+                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() =
+                    min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / lr_decay_period));
             }
         }
     }

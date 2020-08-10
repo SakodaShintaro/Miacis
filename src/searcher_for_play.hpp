@@ -57,11 +57,11 @@ private:
     std::chrono::steady_clock::time_point start_;
 
     //時間制限(msec),ノード数制限
-    int64_t time_limit_;
-    int64_t node_limit_;
+    int64_t time_limit_{};
+    int64_t node_limit_{};
 
     //次に表示する経過時間
-    int64_t next_print_time_;
+    int64_t next_print_time_{};
 
     //詰み探索エージェント
     SearcherForMate mate_searcher_;

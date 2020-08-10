@@ -3,8 +3,8 @@
 
 #include "neural_network.hpp"
 #include <cstdint>
-#include <string>
 #include <map>
+#include <string>
 
 struct CheckOption {
     explicit CheckOption(bool& v) : value(v) {}
@@ -29,6 +29,7 @@ public:
         constexpr int32_t MAX = 1e9;
         //GPUの数を取得。GPUがない場合もとりあえずここでは1として、内部的にCPUで計算する
         uint64_t gpu = std::max(torch::getNumGPUs(), (uint64_t)1);
+        // clang-format off
         check_options.emplace("USI_Ponder",            CheckOption(USI_Ponder = false));
         check_options.emplace("leave_root",            CheckOption(leave_root = true));
         check_options.emplace("use_fp16",              CheckOption(use_fp16   = true));
@@ -62,6 +63,7 @@ public:
         spin_options.emplace("hold_moves_num",         SpinOption(hold_moves_num           =    32,    1,  593));
         filename_options.emplace("model_name",         FilenameOption(model_name = NeuralNetworkImpl::DEFAULT_MODEL_NAME));
         filename_options.emplace("book_file_name",     FilenameOption(book_file_name       = "book.txt"));
+        // clang-format on
     }
     bool USI_Ponder;
     bool leave_root;
