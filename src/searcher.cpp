@@ -12,7 +12,7 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
     FloatType max_value = INT_MIN;
     const int32_t sum = node.sum_N + node.virtual_sum_N;
     FloatType C_PUCT = search_options_.C_PUCT_x1000 / 1000.0
-                       + std::log((1 + sum + search_options_.C_PUCT_base) / search_options_.C_PUCT_base);
+                       + std::log((1.0 + sum + search_options_.C_PUCT_base) / search_options_.C_PUCT_base);
 
     for (uint64_t i = 0; i < node.moves.size(); i++) {
         FloatType U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
