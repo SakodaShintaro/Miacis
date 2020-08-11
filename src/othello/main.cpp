@@ -1,4 +1,3 @@
-#include "../neural_network.hpp"
 #include "interface.hpp"
 
 int main() {

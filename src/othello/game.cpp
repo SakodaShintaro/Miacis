@@ -1,7 +1,5 @@
 #include "../game.hpp"
 
-namespace sys = std::experimental::filesystem;
-
 //key[value]となっているvalueの部分を探す
 //valueと、valueの右カッコの次のインデックスを返す(連続的に読み込みたい場合に次回読み込み始める場所)
 std::pair<std::string, uint64_t> extractValue(const std::string& source, const std::string& key, int64_t start = 0) {
@@ -106,6 +104,7 @@ std::pair<Game, bool> parseGGF(const std::string& ggf_str) {
 }
 
 std::vector<Game> loadGames(const std::string& path) {
+    namespace sys = std::experimental::filesystem;
     const sys::path dir(path);
     std::vector<Game> games;
 

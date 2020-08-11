@@ -51,4 +51,4 @@ private:
     SearchOptions options_;
 };
 
-#endif
+#endif //MIACIS_OTHELLO_INTERFACE_HPP

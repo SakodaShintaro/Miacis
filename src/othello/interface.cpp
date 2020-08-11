@@ -1,9 +1,6 @@
 ﻿#include "interface.hpp"
 #include "../game.hpp"
 #include "../learn.hpp"
-#include "../neural_network.hpp"
-#include "math.h"
-#include <cmath>
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
@@ -127,7 +124,7 @@ void Interface::test() {
             break;
         }
 
-        float finish_score = NAN;
+        float finish_score{};
         if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2) ||
             pos.turnNumber() > search_options.draw_turn) {
             //千日手or持将棋
@@ -162,7 +159,7 @@ void Interface::infiniteTest() {
         root_.init();
         while (true) {
             root_.print();
-            float score = NAN;
+            float score{};
             if (root_.isFinish(score)) {
                 std::cout << "score = " << score << std::endl;
                 break;
@@ -192,7 +189,7 @@ void Interface::battle() {
     searcher_ = std::make_unique<SearcherForPlay>(options_);
 
     while (true) {
-        float score = NAN;
+        float score{};
         root_.print();
         if (root_.isFinish(score)) {
             std::cout << "score = " << score << std::endl;
@@ -232,7 +229,7 @@ void Interface::battleVSRandom() {
         root_.init();
 
         while (true) {
-            float score = NAN;
+            float score{};
             root_.print();
             if (root_.isFinish(score)) {
                 std::cout << "score = " << score << std::endl;
@@ -296,7 +293,7 @@ void Interface::outputValue() {
 
     std::uniform_real_distribution<float> dist(0.0, 1.0);
 
-    float score = NAN;
+    float score{};
     while (!root_.isFinish(score)) {
         std::vector<float> feature = root_.makeFeature();
         root_.print();
