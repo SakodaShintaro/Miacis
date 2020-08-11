@@ -141,14 +141,14 @@ inline Bitboard bishopControl(const Square sq, const Bitboard& occupied) {
 
 inline Bitboard rookFileControl(const Square sq, const Bitboard& occupied) {
     const auto index = (occupied.board_[Bitboard::part(sq)] >> Slide[sq]) & 0x7f;
-    const File f     = SquareToFile[sq];
+    const File f = SquareToFile[sq];
     return (f <= File7) ? Bitboard(RookFileEffect[SquareToRank[sq]][index] << (9 * (f - File1)), 0)
                         : Bitboard(0, RookFileEffect[SquareToRank[sq]][index] << (9 * (f - File8)));
 }
 
 inline Bitboard rookRankControl(const Square sq, const Bitboard& occupied) {
-    int r          = SquareToRank[sq];
-    uint64_t u     = (occupied.board_[1] << 6 * 9) + (occupied.board_[0] >> 9);
+    int r = SquareToRank[sq];
+    uint64_t u = (occupied.board_[1] << 6 * 9) + (occupied.board_[0] >> 9);
     uint64_t index = PEXT64(u, (uint64_t)(0b1000000001000000001000000001000000001000000001000000001 << (r - Rank1)));
     return RookRankEffect[SquareToFile[sq]][index] << (r - Rank1);
 }

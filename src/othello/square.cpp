@@ -45,8 +45,8 @@ std::ostream& operator<<(std::ostream& os, Square sq) {
 }
 
 int32_t mirrorSqNum(int32_t sq_num) {
-    const int32_t f     = sq_num / 9 + 1;
-    const int32_t r     = sq_num % 9 + 1;
+    const int32_t f = sq_num / 9 + 1;
+    const int32_t r = sq_num % 9 + 1;
     const Square mirror = FRToSquare[File9 - f + 1][r];
     return SquareToNum[mirror];
 }

@@ -1,14 +1,14 @@
 ﻿#ifndef MIACIS_SEARCHER_FOR_PLAY_HPP
 #define MIACIS_SEARCHER_FOR_PLAY_HPP
 
-#include"searcher.hpp"
-#include"neural_network.hpp"
-#include"searcher_for_mate.hpp"
-#include<stack>
-#include<mutex>
+#include "neural_network.hpp"
+#include "searcher.hpp"
+#include "searcher_for_mate.hpp"
+#include <mutex>
+#include <stack>
 
 #ifdef SHOGI
-#include"shogi/book.hpp"
+#include "shogi/book.hpp"
 #endif
 
 class SearcherForPlay {

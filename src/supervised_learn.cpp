@@ -5,6 +5,7 @@
 #include <random>
 
 void supervisedLearn() {
+    // clang-format off
     HyperparameterLoader settings("supervised_learn_settings.txt");
     float learn_rate            = settings.get<float>("learn_rate");
     float min_learn_rate        = settings.get<float>("min_learn_rate");
@@ -21,6 +22,7 @@ void supervisedLearn() {
     int64_t lr_decay_period     = settings.get<int64_t>("lr_decay_period");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
+    // clang-format on
 
     std::array<float, LOSS_TYPE_NUM> coefficients{};
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {

@@ -2,13 +2,13 @@
 
 int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #ifdef USE_CATEGORICAL
-    int32_t best_index                = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
-    FloatType best_value              = expOfValueDist(hash_table_.QfromNextValue(node, best_index));
-    int32_t best_value_index          = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1);
+    int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
+    FloatType best_value = expOfValueDist(hash_table_.QfromNextValue(node, best_index));
+    int32_t best_value_index = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1);
     int32_t reversed_best_value_index = BIN_SIZE - best_value_index;
 #endif
 
-    int32_t max_index   = -1;
+    int32_t max_index = -1;
     FloatType max_value = INT_MIN;
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
@@ -111,8 +111,8 @@ void Searcher::select(Position& pos) {
     }
 
     //expandNode内でこれらの情報は壊れる可能性があるので保存しておく
-    index             = curr_indices.top();
-    int32_t action    = curr_actions.top();
+    index = curr_indices.top();
+    int32_t action = curr_actions.top();
     uint64_t move_num = curr_actions.size();
 
     //今の局面を展開・GPUに評価依頼を投げる
@@ -175,9 +175,9 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
     curr_node.N.shrink_to_fit();
     curr_node.virtual_N.assign(curr_node.moves.size(), 0);
     curr_node.virtual_N.shrink_to_fit();
-    curr_node.sum_N         = 0;
+    curr_node.sum_N = 0;
     curr_node.virtual_sum_N = 0;
-    curr_node.evaled        = false;
+    curr_node.evaled = false;
     curr_node.nn_policy.clear();
     curr_node.value = ValueType{};
 
@@ -234,7 +234,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
 #ifdef USE_CATEGORICAL
         std::reverse(value.begin(), value.end());
 #else
-        value           = MAX_SCORE + MIN_SCORE - value;
+        value = MAX_SCORE + MIN_SCORE - value;
 #endif
         // 探索結果の反映
         HashEntry& node = hash_table_[index];
@@ -250,7 +250,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
 
         //価値の更新
         ValueType curr_v = node.value;
-        FloatType alpha  = 1.0f / (node.sum_N + 1);
+        FloatType alpha = 1.0f / (node.sum_N + 1);
         node.value += alpha * (value - curr_v);
         value = lambda * value + (1.0f - lambda) * curr_v;
 

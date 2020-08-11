@@ -107,18 +107,18 @@ const Square FRToSquare[FileNum][RankNum] = {
 // clang-format on
 
 constexpr int64_t BOARD_WIDTH = 8;
-constexpr int64_t SQUARE_NUM  = 64;
+constexpr int64_t SQUARE_NUM = 64;
 
 enum Dir {
-    H   = 0,
-    U   = -1,     //上
-    D   = 1,      //下
-    R   = -10,    //右
-    L   = 10,     //左
-    RU  = R + U,  //右上
-    RD  = R + D,  //右下
-    LD  = L + D,  //左下
-    LU  = L + U,  //左上
+    H = 0,
+    U = -1,       //上
+    D = 1,        //下
+    R = -10,      //右
+    L = 10,       //左
+    RU = R + U,   //右上
+    RD = R + D,   //右下
+    LD = L + D,   //左下
+    LU = L + U,   //左上
     RUU = RU + U, //右上上
     RDD = RD + D, //右下下
     LDD = LD + D, //左下下

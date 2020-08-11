@@ -83,7 +83,7 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
         neural_network_->policyAndValueBatch(gpu_queues_[thread_id].inputs);
     gpu_mutex.unlock();
     const std::vector<PolicyType>& policies = result.first;
-    const std::vector<ValueType>& values    = result.second;
+    const std::vector<ValueType>& values = result.second;
 
     //各入力が対応する置換表の適切なエントリーに計算結果を書き込んでいく
     for (uint64_t i = 0; i < gpu_queues_[thread_id].hash_tables.size(); i++) {

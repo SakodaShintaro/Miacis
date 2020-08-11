@@ -5,18 +5,18 @@
 #include "types.hpp"
 
 //型のエイリアス
-using FloatType         = float;
-using PolicyType        = std::vector<float>;
+using FloatType = float;
+using PolicyType = std::vector<float>;
 using PolicyTeacherType = std::vector<std::pair<int32_t, float>>;
 #ifdef USE_CATEGORICAL
-constexpr int32_t BIN_SIZE  = 51;
+constexpr int32_t BIN_SIZE = 51;
 constexpr float VALUE_WIDTH = (MAX_SCORE - MIN_SCORE) / BIN_SIZE;
-using ValueType             = std::array<float, BIN_SIZE>;
-using ValueTeacherType      = int64_t;
+using ValueType = std::array<float, BIN_SIZE>;
+using ValueTeacherType = int64_t;
 #else
 constexpr int32_t BIN_SIZE = 1;
-using ValueType            = float;
-using ValueTeacherType     = float;
+using ValueType = float;
+using ValueTeacherType = float;
 #endif
 
 //学習データの型

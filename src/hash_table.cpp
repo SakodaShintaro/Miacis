@@ -3,14 +3,14 @@
 Index HashTable::searchEmptyIndex(const Position& pos) {
     int64_t hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
-    uint64_t i   = key;
+    uint64_t i = key;
     while (true) {
         std::unique_lock<std::mutex> lock(table_[i].mutex);
         if (table_[i].age != age_) {
             //世代が違うならここを上書きして良い
-            table_[i].hash        = hash;
+            table_[i].hash = hash;
             table_[i].turn_number = static_cast<int16_t>(pos.turnNumber());
-            table_[i].age         = age_;
+            table_[i].age = age_;
             used_num_++;
             return i;
         }
@@ -32,7 +32,7 @@ Index HashTable::searchEmptyIndex(const Position& pos) {
 Index HashTable::findSameHashIndex(const Position& pos) {
     int64_t hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
-    uint64_t i   = key;
+    uint64_t i = key;
     while (true) {
         std::unique_lock<std::mutex> lock(table_[i].mutex);
         if (table_[i].age != age_) {

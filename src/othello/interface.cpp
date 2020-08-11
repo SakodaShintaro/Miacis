@@ -7,6 +7,7 @@
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
+    // clang-format off
     command_["printOption"]    = [this] { printOption(); };
     command_["set"]            = [this] { set(); };
     command_["think"]          = [this] { think(); };
@@ -25,6 +26,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["initParams"]      = initParams;
     command_["alphaZero"]       = alphaZero;
     command_["supervisedLearn"] = supervisedLearn;
+    // clang-format on
 }
 
 void Interface::loop() {
@@ -89,23 +91,23 @@ void Interface::set() {
 void Interface::think() {
     root_.init();
 
-    options_.search_limit       = 80000;
-    options_.print_interval     = INT_MAX;
-    options_.print_policy_num   = 800;
-    options_.search_batch_size  = 1;
+    options_.search_limit = 80000;
+    options_.print_interval = INT_MAX;
+    options_.print_policy_num = 800;
+    options_.search_batch_size = 1;
     options_.thread_num_per_gpu = 1;
-    searcher_                   = std::make_unique<SearcherForPlay>(options_);
+    searcher_ = std::make_unique<SearcherForPlay>(options_);
 
     searcher_->think(root_, 1000000);
 }
 
 void Interface::test() {
     SearchOptions search_options;
-    search_options.search_limit       = 800;
-    search_options.print_interval     = 100000;
+    search_options.search_limit = 800;
+    search_options.print_interval = 100000;
     search_options.thread_num_per_gpu = 1;
-    search_options.search_batch_size  = 1;
-    search_options.output_log_file    = true;
+    search_options.search_batch_size = 1;
+    search_options.output_log_file = true;
     NeuralNetwork nn;
     torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     nn->setGPU(0);
@@ -138,7 +140,7 @@ void Interface::test() {
         element.move = best_move;
         game.elements.push_back(element);
     }
-    auto end     = std::chrono::steady_clock::now();
+    auto end = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
     std::cout << elapsed.count() / pos.turnNumber() << " msec / pos" << std::endl;
 
@@ -148,13 +150,13 @@ void Interface::test() {
 
 void Interface::infiniteTest() {
     //対局の準備
-    options_.search_limit       = 400;
-    options_.search_batch_size  = 1;
+    options_.search_limit = 400;
+    options_.search_batch_size = 1;
     options_.thread_num_per_gpu = 1;
-    options_.random_turn        = 100;
-    options_.print_interval     = INT_MAX;
-    options_.print_policy_num   = 0;
-    searcher_                   = std::make_unique<SearcherForPlay>(options_);
+    options_.random_turn = 100;
+    options_.print_interval = INT_MAX;
+    options_.print_policy_num = 0;
+    searcher_ = std::make_unique<SearcherForPlay>(options_);
 
     for (int64_t i = 0; i < LLONG_MAX; i++) {
         root_.init();
@@ -181,13 +183,13 @@ void Interface::battle() {
     std::cin >> turn;
 
     //対局の準備
-    options_.search_limit       = 800;
-    options_.search_batch_size  = 1;
-    options_.random_turn        = 10;
+    options_.search_limit = 800;
+    options_.search_batch_size = 1;
+    options_.random_turn = 10;
     options_.thread_num_per_gpu = 1;
-    options_.print_interval     = INT_MAX;
-    options_.print_policy_num   = 800;
-    searcher_                   = std::make_unique<SearcherForPlay>(options_);
+    options_.print_interval = INT_MAX;
+    options_.print_policy_num = 800;
+    searcher_ = std::make_unique<SearcherForPlay>(options_);
 
     while (true) {
         float score = NAN;
@@ -218,13 +220,13 @@ void Interface::battle() {
 
 void Interface::battleVSRandom() {
     //対局の準備
-    options_.search_limit       = 800;
-    options_.search_batch_size  = 1;
-    options_.random_turn        = 10;
+    options_.search_limit = 800;
+    options_.search_batch_size = 1;
+    options_.random_turn = 10;
     options_.thread_num_per_gpu = 1;
-    options_.print_interval     = INT_MAX;
-    options_.print_policy_num   = 00;
-    searcher_                   = std::make_unique<SearcherForPlay>(options_);
+    options_.print_interval = INT_MAX;
+    options_.print_policy_num = 00;
+    searcher_ = std::make_unique<SearcherForPlay>(options_);
 
     for (int64_t i = 0; i < 100; i++) {
         root_.init();
@@ -307,9 +309,9 @@ void Interface::outputValue() {
         }
         policy = softmax(policy);
 
-        uint64_t index        = 0;
+        uint64_t index = 0;
         float probability_sum = 0;
-        float threshold       = dist(engine);
+        float threshold = dist(engine);
         for (; index < moves.size(); index++) {
             if ((probability_sum += policy[index]) >= threshold) {
                 break;

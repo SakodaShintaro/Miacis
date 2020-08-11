@@ -4,14 +4,14 @@
 
 //ネットワークの設定
 #ifdef SHOGI
-static constexpr int32_t BLOCK_NUM   = 10;
+static constexpr int32_t BLOCK_NUM = 10;
 static constexpr int32_t CHANNEL_NUM = 128;
 #elif OTHELLO
-static constexpr int32_t BLOCK_NUM                = 5;
-static constexpr int32_t CHANNEL_NUM              = 64;
+static constexpr int32_t BLOCK_NUM = 5;
+static constexpr int32_t CHANNEL_NUM = 64;
 #endif
-static constexpr int32_t KERNEL_SIZE      = 3;
-static constexpr int32_t REDUCTION        = 8;
+static constexpr int32_t KERNEL_SIZE = 3;
+static constexpr int32_t REDUCTION = 8;
 static constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
 #ifdef USE_CATEGORICAL
@@ -35,15 +35,15 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
     policy_conv_ = register_module(
         "policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).bias(true)));
     value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
-    value_linear0_       = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
-    value_linear1_       = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
+    value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
+    value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 }
 
 torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    x               = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    x               = state_first_conv_and_norm_->forward(x);
-    x               = activation(x);
+    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+    x = state_first_conv_and_norm_->forward(x);
+    x = activation(x);
 
     for (ResidualBlock& block : state_blocks_) {
         x = block->forward(x);
@@ -61,11 +61,11 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::decode(const torch::T
 
     //value
     torch::Tensor value = value_conv_and_norm_->forward(representation);
-    value               = activation(value);
-    value               = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
-    value               = value_linear0_->forward(value);
-    value               = activation(value);
-    value               = value_linear1_->forward(value);
+    value = activation(value);
+    value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
+    value = value_linear0_->forward(value);
+    value = activation(value);
+    value = value_linear1_->forward(value);
 
 #ifndef USE_CATEGORICAL
 #ifdef USE_SIGMOID
@@ -153,7 +153,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
     }
 
     std::pair<torch::Tensor, torch::Tensor> y = forward(inputs);
-    torch::Tensor logits                      = y.first.view({ -1, POLICY_DIM });
+    torch::Tensor logits = y.first.view({ -1, POLICY_DIM });
 
     torch::Tensor policy_target =
         (fp16_ ? torch::tensor(policy_teachers).to(device_, torch::kHalf) : torch::tensor(policy_teachers).to(device_))
@@ -163,11 +163,11 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vect
 
 #ifdef USE_CATEGORICAL
     torch::Tensor categorical_target = torch::tensor(value_teachers).to(device_);
-    torch::Tensor value_loss         = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
+    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
 #else
     torch::Tensor value_t =
         (fp16_ ? torch::tensor(value_teachers).to(device_, torch::kHalf) : torch::tensor(value_teachers).to(device_));
-    torch::Tensor value      = y.second.view(-1);
+    torch::Tensor value = y.second.view(-1);
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = torch::binary_cross_entropy(value, value_t, {}, torch::Reduction::None);
 #else
@@ -232,7 +232,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::mixUpLoss(const std:
 
     //順伝播
     std::pair<torch::Tensor, torch::Tensor> y = forward(inputs);
-    torch::Tensor logits                      = y.first.view({ -1, POLICY_DIM });
+    torch::Tensor logits = y.first.view({ -1, POLICY_DIM });
 
     //Policyの損失計算
     torch::Tensor policy_target =
@@ -249,7 +249,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::mixUpLoss(const std:
 #else
     torch::Tensor value_t =
         (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) : torch::tensor(value_teacher_dist).to(device_));
-    torch::Tensor value      = y.second.view(-1);
+    torch::Tensor value = y.second.view(-1);
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
 #else
@@ -284,7 +284,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::mixUpLossFinalLayer(
         //ベータ分布はガンマ分布を組み合わせたものなのでガンマ分布からサンプリングすれば良い
         //cf. https://shoichimidorikawa.github.io/Lec/ProbDistr/gammaDist.pdf
         float gamma1 = gamma_dist(engine), gamma2 = gamma_dist(engine);
-        float beta   = gamma1 / (gamma1 + gamma2);
+        float beta = gamma1 / (gamma1 + gamma2);
         betas[i / 2] = beta;
 
         pos.fromStr(data[i].position_str);
@@ -320,11 +320,11 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::mixUpLossFinalLayer(
     //順伝播
     torch::Tensor representation1 = encode(inputs1);
     torch::Tensor representation2 = encode(inputs2);
-    torch::Tensor betas_tensor    = torch::tensor(betas).to(device_).view({ -1, 1, 1, 1 });
+    torch::Tensor betas_tensor = torch::tensor(betas).to(device_).view({ -1, 1, 1, 1 });
 
-    torch::Tensor mixed_representation        = betas_tensor * representation1 + (1 - betas_tensor) * representation2;
+    torch::Tensor mixed_representation = betas_tensor * representation1 + (1 - betas_tensor) * representation2;
     std::pair<torch::Tensor, torch::Tensor> y = decode(mixed_representation);
-    torch::Tensor logits                      = y.first.view({ -1, POLICY_DIM });
+    torch::Tensor logits = y.first.view({ -1, POLICY_DIM });
 
     //Policyの損失計算
     torch::Tensor policy_target =
@@ -341,7 +341,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::mixUpLossFinalLayer(
 #else
     torch::Tensor value_t =
         (fp16_ ? torch::tensor(value_teacher_dist).to(device_, torch::kHalf) : torch::tensor(value_teacher_dist).to(device_));
-    torch::Tensor value      = y.second.view(-1);
+    torch::Tensor value = y.second.view(-1);
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = -value_t * torch::log(value) - (1 - value_t) * torch::log(1 - value);
 #else
@@ -354,6 +354,6 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::mixUpLossFinalLayer(
 
 void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-    fp16_   = fp16;
+    fp16_ = fp16;
     (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
 }

@@ -441,7 +441,7 @@ bool Position::isLegalMove(const Move move) const {
     }
 
     //ピンのチェック
-    bool flag        = true;
+    bool flag = true;
     Bitboard pinners = computePinners();
     pinners.forEach([&](const Square pinner_sq) {
         if ((BETWEEN_BB[pinner_sq][king_sq_[color_]] & SQUARE_BB[move.from()]) //fromがbetween,すなわちピンされている
@@ -861,44 +861,44 @@ Bitboard Position::attackersTo(const Color c, const Square sq, const Bitboard& o
     result |= controlBB(sq, oppositeColor(knight), occupied) & pieces_bb_[knight];
 
     //銀
-    Piece silver            = coloredPiece(c, SILVER);
+    Piece silver = coloredPiece(c, SILVER);
     Bitboard silver_control = controlBB(sq, oppositeColor(silver), occupied);
     result |= silver_control & pieces_bb_[silver];
 
     //金
-    Piece gold            = coloredPiece(c, GOLD);
+    Piece gold = coloredPiece(c, GOLD);
     Bitboard gold_control = controlBB(sq, oppositeColor(gold), occupied);
     result |= gold_control &
               (pieces_bb_[gold] | pieces_bb_[coloredPiece(c, PAWN_PROMOTE)] | pieces_bb_[coloredPiece(c, LANCE_PROMOTE)] |
                pieces_bb_[coloredPiece(c, KNIGHT_PROMOTE)] | pieces_bb_[coloredPiece(c, SILVER_PROMOTE)]);
 
     //角
-    Piece bishop            = coloredPiece(c, BISHOP);
+    Piece bishop = coloredPiece(c, BISHOP);
     Bitboard bishop_control = controlBB(sq, oppositeColor(bishop), occupied);
     result |= bishop_control & pieces_bb_[bishop];
 
     //飛車
-    Piece rook            = coloredPiece(c, ROOK);
+    Piece rook = coloredPiece(c, ROOK);
     Bitboard rook_control = controlBB(sq, oppositeColor(rook), occupied);
     result |= rook_control & pieces_bb_[rook];
 
     //香車(飛車の利きを利用する)
-    Piece lance            = coloredPiece(c, LANCE);
+    Piece lance = coloredPiece(c, LANCE);
     Bitboard lance_control = rook_control & FRONT_BB[~c][SquareToRank[sq]];
     result |= lance_control & pieces_bb_[lance];
 
     //馬(角と金の利きを利用する)
-    Piece horse            = coloredPiece(c, BISHOP_PROMOTE);
+    Piece horse = coloredPiece(c, BISHOP_PROMOTE);
     Bitboard horse_control = bishop_control | gold_control;
     result |= horse_control & pieces_bb_[horse];
 
     //竜(飛車と銀の利きを利用する)
-    Piece dragon            = coloredPiece(c, ROOK_PROMOTE);
+    Piece dragon = coloredPiece(c, ROOK_PROMOTE);
     Bitboard dragon_control = rook_control | silver_control;
     result |= dragon_control & pieces_bb_[dragon];
 
     //玉
-    Piece king            = coloredPiece(c, KING);
+    Piece king = coloredPiece(c, KING);
     Bitboard king_control = silver_control | gold_control;
     result |= king_control & pieces_bb_[king];
 
@@ -1039,7 +1039,7 @@ Move Position::transformValidMove(const Move move) {
 void Position::initHashValue() {
     hash_value_ = 0;
     board_hash_ = 0;
-    hand_hash_  = 0;
+    hand_hash_ = 0;
     for (auto sq : SquareList) {
         board_hash_ ^= HashSeed[board_[sq]][sq];
     }
@@ -1064,15 +1064,15 @@ std::vector<float> Position::makeFeature() const {
         //各マスについてそこにあるなら1,ないなら0とする
         for (Square sq : SquareList) {
             //後手のときは盤面を180度反転させる
-            Piece p                                    = (color_ == BLACK ? board_[sq] : board_[InvSquare[sq]]);
+            Piece p = (color_ == BLACK ? board_[sq] : board_[InvSquare[sq]]);
             features[i * SQUARE_NUM + SquareToNum[sq]] = (t == p ? 1 : 0);
         }
     }
 
     //持ち駒の特徴量:最大枚数で割って正規化する
-    static constexpr std::array<Color, ColorNum> colors[2]          = { { BLACK, WHITE }, { WHITE, BLACK } };
-    static constexpr int32_t HAND_PIECE_NUM                         = 7;
-    static constexpr std::array<Piece, HAND_PIECE_NUM> HAND_PIECES  = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
+    static constexpr std::array<Color, ColorNum> colors[2] = { { BLACK, WHITE }, { WHITE, BLACK } };
+    static constexpr int32_t HAND_PIECE_NUM = 7;
+    static constexpr std::array<Piece, HAND_PIECE_NUM> HAND_PIECES = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
     static constexpr std::array<FloatType, HAND_PIECE_NUM> MAX_NUMS = { 18.0, 4.0, 4.0, 4.0, 4.0, 2.0, 2.0 };
     for (int32_t c : colors[color_]) {
         for (int32_t j = 0; j < HAND_PIECE_NUM; j++) {
@@ -1138,8 +1138,8 @@ bool Position::canWinDeclare() const {
     //   ・後手の場合27点以上の持点がある
     //   ・点数の対象となるのは、宣言側の持駒と敵陣三段目以内に存在する玉を除く宣言側の駒のみである
     //4. 宣言側の敵陣三段目以内の駒は、玉を除いて10枚以上存在する
-    constexpr int64_t SCORE_TABLE[KING]     = { 0, 1, 1, 1, 1, 1, 5, 5 };
-    constexpr int64_t THRESHOLD[ColorNum]   = { 28, 27 };
+    constexpr int64_t SCORE_TABLE[KING] = { 0, 1, 1, 1, 1, 1, 5, 5 };
+    constexpr int64_t THRESHOLD[ColorNum] = { 28, 27 };
     constexpr int64_t LOWER_BOUND[ColorNum] = { Rank1, Rank7 };
     constexpr int64_t UPPER_BOUND[ColorNum] = { Rank3, Rank9 };
     int64_t score = 0, num = 0;
@@ -1171,7 +1171,7 @@ std::string Position::augmentStr(const std::string& str, int64_t augmentation) {
 
         //まず盤面部分とそれ以外の部分に分ける
         uint64_t space_pos = str.find(' ');
-        std::string board  = str.substr(0, space_pos);
+        std::string board = str.substr(0, space_pos);
         std::string others = str.substr(space_pos);
 
         //board部分について'/'で囲まれた各段を反転していく

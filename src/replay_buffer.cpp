@@ -92,7 +92,7 @@ void ReplayBuffer::push(Game& game) {
         priority += -std::log(e.nn_output_value[value_teacher] + 1e-9f);
 #else
 #ifdef USE_SIGMOID
-        constexpr FloatType eps        = 1e-5f;
+        constexpr FloatType eps = 1e-5f;
         priority +=
             -value_teacher * std::log(e.nn_output_value + eps) - (1.0 - value_teacher) * std::log(1 - e.nn_output_value + eps);
 #else
@@ -112,8 +112,8 @@ void ReplayBuffer::push(Game& game) {
 
             //そこのデータを入れ替える
             data_[change_index].position_str = Position::augmentStr(pos.toStr(), j);
-            data_[change_index].policy       = policy_teacher;
-            data_[change_index].value        = value_teacher;
+            data_[change_index].policy = policy_teacher;
+            data_[change_index].value = value_teacher;
 
             //segment_treeのpriorityを更新
             segment_tree_.update(change_index, std::pow(priority * 2, alpha_));

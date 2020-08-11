@@ -1,5 +1,4 @@
 IndentWidth: 4
-AlignConsecutiveAssignments: true
 AlignTrailingComments: true
 ColumnLimit: 130
 AccessModifierOffset: -4

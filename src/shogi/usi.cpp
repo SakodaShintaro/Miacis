@@ -5,6 +5,7 @@
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数
+    // clang-format off
     command_["usi"]        = [this] { usi(); };
     command_["isready"]    = [this] { isready(); };
     command_["setoption"]  = [this] { setoption(); };
@@ -33,6 +34,7 @@ USI::USI() : searcher_(nullptr) {
     command_["makeBook"]          = makeBook;
     command_["searchWithLog"]     = searchWithLog;
     command_["convertModelToCPU"] = convertModelToCPU;
+    // clang-format on
 }
 
 void USI::loop() {
@@ -137,7 +139,7 @@ void USI::position() {
             }
             //inputをMoveに直して局面を動かす
             Move move = stringToMove(input);
-            move      = root_.transformValidMove(move);
+            move = root_.transformValidMove(move);
             root_.doMove(move);
         }
     }
@@ -159,10 +161,10 @@ void USI::go() {
         int64_t btime = stoll(input);
         std::cin >> input; //input == "wtime" となるはず
         std::cin >> input;
-        int64_t wtime         = stoll(input);
-        int64_t time          = (root_.color() == BLACK ? btime : wtime);
+        int64_t wtime = stoll(input);
+        int64_t time = (root_.color() == BLACK ? btime : wtime);
         int64_t remained_turn = (search_options_.draw_turn - root_.turnNumber()) / 2;
-        remained_turn     = (remained_turn + search_options_.remained_turn_divisor - 1) / search_options_.remained_turn_divisor;
+        remained_turn = (remained_turn + search_options_.remained_turn_divisor - 1) / search_options_.remained_turn_divisor;
         int64_t curr_time = (remained_turn == 0 ? 0 : time / remained_turn);
         std::cin >> input; //input == "byoyomi" or "binc"となるはず
         if (input == "byoyomi") {

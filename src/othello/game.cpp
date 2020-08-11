@@ -34,8 +34,8 @@ std::pair<Game, bool> parseGGF(const std::string& ggf_str) {
     //読み込んで比較
     std::string black_rate_str = extractValue(ggf_str, "RB").first;
     std::string white_rate_str = extractValue(ggf_str, "RW").first;
-    double black_rate          = stod(black_rate_str);
-    double white_rate          = stod(white_rate_str);
+    double black_rate = stod(black_rate_str);
+    double white_rate = stod(white_rate_str);
     if (black_rate < RATE_THRESHOLD || white_rate < RATE_THRESHOLD) {
         return std::make_pair(Game(), false);
     }
@@ -48,7 +48,7 @@ std::pair<Game, bool> parseGGF(const std::string& ggf_str) {
 
     //読み込んで比較
     std::pair<std::string, uint64_t> board_value = extractValue(ggf_str, "BO");
-    std::string board_str                        = board_value.first;
+    std::string board_str = board_value.first;
     if (board_str != INITIAL_BOARD_STR) {
         return std::make_pair(Game(), false);
     }
@@ -95,7 +95,7 @@ std::pair<Game, bool> parseGGF(const std::string& ggf_str) {
         game.elements.push_back(element);
 
         pos.doMove(move);
-        key   = (key == "B" ? "W" : "B");
+        key = (key == "B" ? "W" : "B");
         index = move_value.second;
     }
 
@@ -123,7 +123,7 @@ std::vector<Game> loadGames(const std::string& path) {
                 }
                 uint64_t right = buf.find(";)", start_index) + 2;
                 //[left, right)のところが1ゲーム分に相当
-                std::string game_str               = buf.substr(left, right - left);
+                std::string game_str = buf.substr(left, right - left);
                 std::pair<Game, bool> parse_result = parseGGF(game_str);
                 if (parse_result.second) {
                     games.push_back(parse_result.first);

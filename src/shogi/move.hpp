@@ -15,6 +15,7 @@ enum MoveConst {
     //0000 0000 0000 0000 1000 0000 0000 0000 promote
     //0000 0000 1111 1111 0000 0000 0000 0000 subject
     //1111 1111 0000 0000 0000 0000 0000 0000 capture
+    // clang-format off
     MOVE_TO_SHIFT      = 0,
     MOVE_FROM_SHIFT    = 7,
     MOVE_DROP_SHIFT    = 14,
@@ -28,11 +29,12 @@ enum MoveConst {
     MOVE_SUBJECT_MASK  = 0xff << MOVE_SUBJECT_SHIFT,
     MOVE_CAPTURE_MASK  = 0xff << MOVE_CAPTURE_SHIFT,
     MOVE_DECLARE       = -1,
+    // clang-format on
 };
 
 //行動の次元数
 constexpr int64_t POLICY_CHANNEL_NUM = 27;
-constexpr int64_t POLICY_DIM         = SQUARE_NUM * POLICY_CHANNEL_NUM;
+constexpr int64_t POLICY_DIM = SQUARE_NUM * POLICY_CHANNEL_NUM;
 
 class Move {
 public:
@@ -130,8 +132,8 @@ inline Move stringToMove(std::string input) {
         Square to = FRToSquare[input[2] - '0'][input[3] - 'a' + 1];
         return dropMove(to, charToPiece[input[0]]);
     } else { //盤上の駒を動かす手
-        Square from  = FRToSquare[input[0] - '0'][input[1] - 'a' + 1];
-        Square to    = FRToSquare[input[2] - '0'][input[3] - 'a' + 1];
+        Square from = FRToSquare[input[0] - '0'][input[1] - 'a' + 1];
+        Square to = FRToSquare[input[2] - '0'][input[3] - 'a' + 1];
         bool promote = (input.size() == 5 && input[4] == '+');
         return Move(to, from, false, promote, EMPTY, EMPTY);
     }

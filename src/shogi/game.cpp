@@ -31,11 +31,11 @@ std::vector<Game> loadGames(const std::string& path) {
             }
 
             //指し手の情報を取得
-            Square from   = FRToSquare[buf[1] - '0'][buf[2] - '0'];
-            Square to     = FRToSquare[buf[3] - '0'][buf[4] - '0'];
+            Square from = FRToSquare[buf[1] - '0'][buf[2] - '0'];
+            Square to = FRToSquare[buf[3] - '0'][buf[4] - '0'];
             Piece subject = CSAstringToPiece[buf.substr(5, 2)];
             //手番を設定
-            subject     = (pos.color() == BLACK ? toBlack(subject) : toWhite(subject));
+            subject = (pos.color() == BLACK ? toBlack(subject) : toWhite(subject));
             bool isDrop = (from == WALL00);
 
             //CSAのフォーマットから、動くものが成済なのにfromにある駒が不成の場合、成る手
@@ -78,7 +78,7 @@ void cleanGames() {
     for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
         std::ifstream ifs(p->path());
         std::string buf;
-        int32_t move_count   = 0;
+        int32_t move_count = 0;
         bool illegal_summary = false;
         double black_rate = 0, white_rate = 0;
         while (getline(ifs, buf)) {

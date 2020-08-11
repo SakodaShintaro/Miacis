@@ -128,17 +128,17 @@ void Bitboard::init() {
     for (int n : { 0, 1 }) {
         for (auto sq : SquareList) {
             Bitboard& mask = BishopEffectMask[n][sq];
-            mask           = calcBishopEffectMask(sq, n);
+            mask = calcBishopEffectMask(sq, n);
 
             assert(!mask.crossOver());
 
             //全てのBitが立っている場合が最大
-            auto bits     = (int)(mask.pop_count());
+            auto bits = (int)(mask.pop_count());
             const int num = (1u << bits);
             for (int i = 0; i < num; ++i) {
                 //邪魔駒の位置を示すindexであるiからoccupiedへ変換する
                 Bitboard occupied = indexToOccupied(i, bits, mask);
-                uint64_t index    = occupiedToIndex(occupied, BishopEffectMask[n][sq]);
+                uint64_t index = occupiedToIndex(occupied, BishopEffectMask[n][sq]);
 
                 //occupiedを考慮した利きを求める
                 for (auto delta : diagonal_deltas[n]) {
@@ -162,7 +162,7 @@ void Bitboard::init() {
             //iが邪魔駒の配置を表したindex
             //1つシフトすればそのまま2~8段目のマスの邪魔駒を表す
             int occupied = (i << 1);
-            uint64_t bb  = 0;
+            uint64_t bb = 0;
 
             //上に利きを伸ばす
             for (int r = rank - 1; r >= Rank1; --r) {

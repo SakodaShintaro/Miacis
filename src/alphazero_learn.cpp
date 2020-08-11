@@ -3,6 +3,7 @@
 #include "learn.hpp"
 
 void alphaZero() {
+    // clang-format off
     SearchOptions search_options;
     HyperparameterLoader settings("alphazero_settings.txt");
     float learn_rate                  = settings.get<float>("learn_rate");
@@ -45,6 +46,7 @@ void alphaZero() {
     bool Q_search                     = settings.get<bool>("Q_search");
     std::string training_kifu_path    = settings.get<std::string>("training_kifu_path");
     std::string validation_kifu_path  = settings.get<std::string>("validation_kifu_path");
+    // clang-format on
 
     std::array<float, LOSS_TYPE_NUM> coefficients{};
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {

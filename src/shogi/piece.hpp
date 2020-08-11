@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 
+// clang-format off
 enum Piece {
     PROMOTE_BIT = 5,
     BLACK_BIT   = 6,
@@ -65,6 +66,7 @@ enum Piece {
     PieceNum,
     WALL = 1 << (WALL_BIT), //1000 0000
 };
+// clang-format on
 
 extern const ArrayMap<std::string, PieceNum> PieceToStr;
 extern const ArrayMap<std::string, PieceNum> PieceToSfenStr2;
@@ -74,9 +76,9 @@ inline Piece operator++(Piece& p, int) { return p = Piece(p + 1); }
 inline Piece operator|(Piece lhs, Piece rhs) { return Piece(int(lhs) | int(rhs)); }
 inline int operator<<(Piece p, int shift) { return static_cast<int>(p) << shift; }
 
-constexpr int64_t PIECE_KIND_NUM      = 14;
+constexpr int64_t PIECE_KIND_NUM = 14;
 constexpr int64_t HAND_PIECE_KIND_NUM = 7;
-constexpr int64_t INPUT_CHANNEL_NUM   = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2;
+constexpr int64_t INPUT_CHANNEL_NUM = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2;
 
 extern const std::array<Piece, PIECE_KIND_NUM * 2> PieceList;
 extern const std::array<std::array<Piece, 3>, 2> ColoredJumpPieceList;

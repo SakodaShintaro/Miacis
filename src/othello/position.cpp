@@ -108,7 +108,7 @@ void Position::doMove(const Move move) {
 
     for (Dir d : DirList) {
         bool is_there_enemy = false;
-        bool isOK           = false;
+        bool isOK = false;
         for (int32_t sq = move.to() + d; board_[sq] != WALL; sq += d) {
             if (board_[sq] == oppositeColor(p)) {
                 is_there_enemy = true;

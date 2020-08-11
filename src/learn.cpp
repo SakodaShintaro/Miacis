@@ -7,7 +7,7 @@
 #include <sstream>
 
 std::string elapsedTime(const std::chrono::steady_clock::time_point& start) {
-    auto elapsed    = std::chrono::steady_clock::now() - start;
+    auto elapsed = std::chrono::steady_clock::now() - start;
     int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
 
     std::stringstream ss;
@@ -23,7 +23,7 @@ std::string elapsedTime(const std::chrono::steady_clock::time_point& start) {
 }
 
 double elapsedHours(const std::chrono::steady_clock::time_point& start) {
-    auto elapsed    = std::chrono::steady_clock::now() - start;
+    auto elapsed = std::chrono::steady_clock::now() - start;
     int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
     return seconds / 3600.0;
 }
@@ -61,9 +61,9 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
             inputs.insert(inputs.end(), feature.begin(), feature.end());
         }
         std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = nn->policyAndValueBatch(inputs);
-        const std::vector<ValueType>& values                         = y.second;
+        const std::vector<ValueType>& values = y.second;
         for (uint64_t i = 0; i < values.size(); i++) {
-            FloatType e  = expOfValueDist(values[i]);
+            FloatType e = expOfValueDist(values[i]);
             FloatType vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
             losses[VALUE_LOSS_INDEX] += (e - vt) * (e - vt);
         }
@@ -90,8 +90,8 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
     for (const Game& game : games) {
         Position pos;
         for (const OneTurnElement& e : game.elements) {
-            const Move& move         = e.move;
-            uint32_t label           = move.toLabel();
+            const Move& move = e.move;
+            uint32_t label = move.toLabel();
             std::string position_str = pos.toStr();
             for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
                 LearningData datum{};

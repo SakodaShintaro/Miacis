@@ -79,7 +79,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     std::stack<Index> dummy;
     std::stack<int32_t> dummy2;
     hash_table_.root_index = searchers_[0][0].expand(root, dummy, dummy2);
-    HashEntry& curr_node   = hash_table_[hash_table_.root_index];
+    HashEntry& curr_node = hash_table_[hash_table_.root_index];
 
     //合法手が0だったら投了
     if (curr_node.moves.empty()) {
@@ -107,8 +107,8 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
             curr_node.nn_policy[i] = y.first[0][curr_node.moves[i].toLabel()];
         }
         curr_node.nn_policy = softmax(curr_node.nn_policy);
-        curr_node.value     = y.second[0];
-        curr_node.evaled    = true;
+        curr_node.value = y.second[0];
+        curr_node.evaled = true;
     }
 
     if (search_options_.output_log_file) {
@@ -175,7 +175,7 @@ bool SearcherForPlay::shouldStop() {
 
     //時間のチェック
     auto now_time = std::chrono::steady_clock::now();
-    auto elapsed  = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_);
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_);
     if (elapsed.count() >= time_limit_) {
         return true;
     }
@@ -230,7 +230,7 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
         gpu_queue.indices.clear();
 
         hash_table_[hash_table_.root_index].mutex.lock();
-        auto now_time     = std::chrono::steady_clock::now();
+        auto now_time = std::chrono::steady_clock::now();
         auto elapsed_msec = std::chrono::duration_cast<std::chrono::milliseconds>(now_time - start_).count();
         if (elapsed_msec >= next_print_time_) {
             next_print_time_ += next_print_time_;
@@ -268,7 +268,7 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
                 //Policyの大きい順にsearch_option.hold_moves_num個だけ残す
                 std::vector<MoveWithScore> moves_with_score(curr_node.moves.size());
                 for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-                    moves_with_score[j].move  = curr_node.moves[j];
+                    moves_with_score[j].move = curr_node.moves[j];
                     moves_with_score[j].score = y.first[i][curr_node.moves[j].toLabel()];
                 }
 
@@ -287,12 +287,12 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
                 curr_node.virtual_N.shrink_to_fit();
 
                 for (uint64_t j = 0; j < moves_num; j++) {
-                    curr_node.moves[j]     = moves_with_score[j].move;
+                    curr_node.moves[j] = moves_with_score[j].move;
                     curr_node.nn_policy[j] = moves_with_score[j].score;
                 }
                 curr_node.nn_policy = softmax(curr_node.nn_policy);
-                curr_node.value     = y.second[i];
-                curr_node.evaled    = true;
+                curr_node.value = y.second[i];
+                curr_node.evaled = true;
             }
         }
 
@@ -305,7 +305,7 @@ std::vector<Move> SearcherForPlay::getPV() const {
     std::vector<Move> pv;
     for (Index index = hash_table_.root_index; index != HashTable::NOT_EXPANDED && !hash_table_[index].moves.empty();) {
         const std::vector<int32_t>& N = hash_table_[index].N;
-        Index next_index              = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
+        Index next_index = (int32_t)(std::max_element(N.begin(), N.end()) - N.begin());
         pv.push_back(hash_table_[index].moves[next_index]);
         index = hash_table_[index].child_indices[next_index];
     }
@@ -321,7 +321,7 @@ void SearcherForPlay::outputInfo(std::ostream& ost, int64_t gather_num) const {
     const HashEntry& curr_node = hash_table_[hash_table_.root_index];
 
     //最善手（探索回数最大手）の価値を計算
-    int32_t best_index   = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
+    int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
     FloatType best_value = hash_table_.expQfromNext(curr_node, best_index);
 
 #ifdef USE_CATEGORICAL
@@ -347,8 +347,8 @@ void SearcherForPlay::outputInfo(std::ostream& ost, int64_t gather_num) const {
 
     //探索にかかった時間を求める
     auto finish_time = std::chrono::steady_clock::now();
-    auto elapsed     = std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - start_);
-    int64_t ela      = elapsed.count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - start_);
+    int64_t ela = elapsed.count();
 
     //PVを取得
     std::vector<Move> pv = getPV();
@@ -395,11 +395,11 @@ void SearcherForPlay::outputInfo(std::ostream& ost, int64_t gather_num) const {
     //全指し手について情報を集めて価値順にソート
     std::vector<MoveWithInfo> moves_with_info(curr_node.moves.size());
     for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-        moves_with_info[i].move             = curr_node.moves[i];
+        moves_with_info[i].move = curr_node.moves[i];
         moves_with_info[i].nn_output_policy = curr_node.nn_policy[i];
-        moves_with_info[i].N                = curr_node.N[i];
-        moves_with_info[i].Q                = Q[i];
-        moves_with_info[i].softmaxed_Q      = softmaxed_Q[i];
+        moves_with_info[i].N = curr_node.N[i];
+        moves_with_info[i].Q = Q[i];
+        moves_with_info[i].softmaxed_Q = softmaxed_Q[i];
 #ifdef USE_CATEGORICAL
         moves_with_info[i].prob_over_best_Q = 0;
         for (int32_t j = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1); j < BIN_SIZE; j++) {
