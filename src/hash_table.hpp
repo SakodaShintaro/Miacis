@@ -1,5 +1,5 @@
-﻿#ifndef HASH_TABLE_HPP
-#define HASH_TABLE_HPP
+﻿#ifndef MIACIS_HASH_TABLE_HPP
+#define MIACIS_HASH_TABLE_HPP
 
 #include "common.hpp"
 #include "include_switch.hpp"
@@ -40,7 +40,7 @@ struct HashEntry {
     std::mutex mutex;
 
     //局面に対応するハッシュ値
-    int64_t hash;
+    uint64_t hash;
 
     //手数。ハッシュ値だけでは衝突頻度が高いので
     uint16_t turn_number;
@@ -81,7 +81,7 @@ public:
     FloatType expQfromNext(const HashEntry& node, int32_t i) const;
 
     //置換表の利用率を返す関数。USI対応GUIだと表示できるので
-    double getUsageRate() const { return (double)used_num_ / table_.size(); }
+    float getUsageRate() const { return (float)used_num_ / table_.size(); }
 
     //置換表にmargin個以上の空きがあるかどうかを判定する関数
     bool hasEmptyEntries(int64_t margin) { return used_num_ + margin <= table_.size(); }
@@ -109,4 +109,4 @@ private:
     std::vector<HashEntry> table_;
 };
 
-#endif
+#endif //MIACIS_HASH_TABLE_HPP

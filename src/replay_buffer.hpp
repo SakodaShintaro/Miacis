@@ -13,8 +13,7 @@
 
 class ReplayBuffer {
 public:
-    ReplayBuffer(int64_t first_wait, int64_t max_size, int64_t output_interval, double lambda, double alpha,
-                 bool data_augmentation)
+    ReplayBuffer(int64_t first_wait, int64_t max_size, int64_t output_interval, float lambda, float alpha, bool data_augmentation)
         : data_(max_size), segment_tree_(max_size), first_wait_(first_wait), max_size_(max_size), total_num_(0),
           output_interval_(output_interval), lambda_(lambda), alpha_(alpha), data_augmentation_(data_augmentation) {
         //棋譜を保存するディレクトリの削除・作成
@@ -62,10 +61,10 @@ private:
     int64_t output_interval_;
 
     //TD(λ)のパラメータ
-    double lambda_;
+    float lambda_;
 
     //priorityを累乗するパラメータ
-    double alpha_;
+    float alpha_;
 
     //データ拡張をするかどうか
     bool data_augmentation_;

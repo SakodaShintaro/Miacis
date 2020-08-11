@@ -52,7 +52,7 @@ public:
     Move lastMove() const { return (kifu_.empty() ? NULL_MOVE : kifu_.back()); }
     uint32_t turnNumber() const { return turn_number_; }
     Color color() const { return color_; }
-    int64_t hashValue() const { return hash_value_; }
+    uint64_t hashValue() const { return hash_value_; }
 
     //回転、左右反転の8通りに拡張可能
     static constexpr int64_t DATA_AUGMENTATION_PATTERN_NUM = 8;

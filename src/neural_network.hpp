@@ -86,9 +86,9 @@ TORCH_MODULE(NeuralNetwork);
 
 //Categorical分布に対する操作
 #ifdef USE_CATEGORICAL
-inline int32_t valueToIndex(double value) { return std::min((int32_t)((value - MIN_SCORE) / VALUE_WIDTH), BIN_SIZE - 1); }
+inline int32_t valueToIndex(float value) { return std::min((int32_t)((value - MIN_SCORE) / VALUE_WIDTH), BIN_SIZE - 1); }
 
-inline ValueType onehotDist(double value) {
+inline ValueType onehotDist(float value) {
     //valueForBlackのところだけ1.0, 他は0.0とした分布を返す
     ValueType result{};
     result[valueToIndex(value)] = 1.0;

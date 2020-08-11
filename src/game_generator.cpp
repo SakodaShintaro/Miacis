@@ -1,8 +1,6 @@
 ﻿#include "game_generator.hpp"
 #include <thread>
 
-#include "math.h"
-
 void GameGenerator::genGames() {
     //生成スレッドを生成
     std::vector<std::thread> threads;
@@ -235,7 +233,7 @@ void GenerateWorker::select() {
         position_.doMove(result.move);
         game_.elements.push_back(result);
 
-        float score = NAN;
+        float score{};
         if (position_.isFinish(score, false) || position_.turnNumber() > search_options_.draw_turn) {
             //決着したので最終結果を設定
             game_.result = (position_.color() == BLACK ? score : MAX_SCORE + MIN_SCORE - score);

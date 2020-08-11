@@ -1,5 +1,5 @@
-﻿#ifndef ARRAYMAP_HPP
-#define ARRAYMAP_HPP
+﻿#ifndef MIACIS_ARRAYMAP_HPP
+#define MIACIS_ARRAYMAP_HPP
 
 #include <cstdint>
 #include <cstring>
@@ -32,4 +32,4 @@ private:
     Type array_[Size];
 };
 
-#endif //!ARRAYMAP_HPP
+#endif //MIACIS_ARRAYMAP_HPP

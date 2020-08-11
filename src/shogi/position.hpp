@@ -55,7 +55,7 @@ public:
     //getter
     uint32_t turnNumber() const { return turn_number_; }
     Color color() const { return color_; }
-    int64_t hashValue() const { return hash_value_; }
+    uint64_t hashValue() const { return hash_value_; }
     Piece on(const Square sq) const { return board_[sq]; }
     bool isChecked() const { return is_checked_; }
 

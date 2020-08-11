@@ -27,13 +27,13 @@ std::pair<Game, bool> parseGGF(const std::string& ggf_str) {
     //合法性確認
     //(1)レート
     //これを閾値とする
-    constexpr double RATE_THRESHOLD = 2000;
+    constexpr float RATE_THRESHOLD = 2000;
 
     //読み込んで比較
     std::string black_rate_str = extractValue(ggf_str, "RB").first;
     std::string white_rate_str = extractValue(ggf_str, "RW").first;
-    double black_rate = stod(black_rate_str);
-    double white_rate = stod(white_rate_str);
+    float black_rate = stod(black_rate_str);
+    float white_rate = stod(white_rate_str);
     if (black_rate < RATE_THRESHOLD || white_rate < RATE_THRESHOLD) {
         return std::make_pair(Game(), false);
     }

@@ -1,10 +1,8 @@
-﻿#ifndef GAME_HPP
-#define GAME_HPP
+﻿#ifndef MIACIS_GAME_HPP
+#define MIACIS_GAME_HPP
 
 #include "include_switch.hpp"
 #include "neural_network.hpp"
-#include <string>
-#include <vector>
 #ifdef _MSC_VER
 #include <filesystem>
 #elif __GNUC__
@@ -39,4 +37,4 @@ struct Game {
 std::vector<Game> loadGames(const std::string& path);
 void cleanGames();
 
-#endif // !GAME_HPP
+#endif //MIACIS_GAME_HPP

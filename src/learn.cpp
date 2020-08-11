@@ -22,7 +22,7 @@ std::string elapsedTime(const std::chrono::steady_clock::time_point& start) {
     return ss.str();
 }
 
-double elapsedHours(const std::chrono::steady_clock::time_point& start) {
+float elapsedHours(const std::chrono::steady_clock::time_point& start) {
     auto elapsed = std::chrono::steady_clock::now() - start;
     int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
     return seconds / 3600.0;

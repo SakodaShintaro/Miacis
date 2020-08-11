@@ -7,7 +7,7 @@
 
 //経過時間を取得する関数
 std::string elapsedTime(const std::chrono::steady_clock::time_point& start);
-double elapsedHours(const std::chrono::steady_clock::time_point& start);
+float elapsedHours(const std::chrono::steady_clock::time_point& start);
 
 //標準出力とファイルストリームに同時に出力するためのクラス
 //参考)https://aki-yam.hatenablog.com/entry/20080630/1214801872

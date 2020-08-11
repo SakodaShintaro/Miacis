@@ -328,7 +328,7 @@ void SearcherForPlay::outputInfo(std::ostream& ost, int64_t gather_num) const {
     //分布の表示
     //51分割を51行で表示すると見づらいのでいくらか領域をまとめる
     for (int64_t i = 0; i < BIN_SIZE / gather_num; i++) {
-        double p = 0.0;
+        float p = 0.0;
 
         //gather_num分だけ合算する
         for (int64_t j = 0; j < gather_num; j++) {

@@ -6,7 +6,7 @@
 #ifdef SHOGI
 static constexpr int32_t BLOCK_NUM = 10;
 static constexpr int32_t CHANNEL_NUM = 128;
-#elif OTHELLO
+#elif defined(OTHELLO)
 static constexpr int32_t BLOCK_NUM = 5;
 static constexpr int32_t CHANNEL_NUM = 64;
 #endif

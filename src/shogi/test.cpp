@@ -122,7 +122,7 @@ void checkGenSpeed() {
                 std::this_thread::sleep_for(std::chrono::seconds(sec));
                 auto curr_time = std::chrono::steady_clock::now();
                 auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
-                double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
+                float gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
                 // clang-format off
                 std::cout << "thread = " << search_options.thread_num_per_gpu
                           << ",  batch_size = " << std::setw(2) << search_options.search_batch_size
@@ -135,7 +135,7 @@ void checkGenSpeed() {
             }
             ofs << search_options.thread_num_per_gpu << " " << std::setw(2) << search_options.search_batch_size << " "
                 << std::setw(4) << worker_num << " " << std::setw(7) << buffer.totalNum() << " " << std::setw(9) << num * sec
-                << " " << std::setprecision(3) << (double)buffer.totalNum() / (num * sec) << std::endl;
+                << " " << std::setprecision(3) << (float)buffer.totalNum() / (num * sec) << std::endl;
             generator.stop_signal = true;
             t.join();
         }
@@ -218,13 +218,13 @@ void checkSearchSpeed2() {
 
     for (search_options.search_batch_size = 1; search_options.search_batch_size <= 256; search_options.search_batch_size++) {
         Position pos;
-        double sum_init = 0.0, sum_mid = 0.0;
+        float sum_init = 0.0, sum_mid = 0.0;
         for (int64_t _ = 0; _ < trial_num; _++) {
             SearcherForPlay searcher(search_options);
             Move best_move = searcher.think(pos, time_limit);
             const HashTable& hash_table = searcher.hashTable();
             const HashEntry& root_entry = hash_table[hash_table.root_index];
-            double curr_nps = root_entry.sum_N / (time_limit / 1000.0);
+            float curr_nps = root_entry.sum_N / (time_limit / 1000.0);
             std::cout << "s:" << _ << " " << curr_nps << "\t" << best_move << "  \r" << std::flush;
             sum_init += curr_nps;
         }
@@ -235,7 +235,7 @@ void checkSearchSpeed2() {
             Move best_move = searcher.think(pos, time_limit);
             const HashTable& hash_table = searcher.hashTable();
             const HashEntry& root_entry = hash_table[hash_table.root_index];
-            double curr_nps = root_entry.sum_N / (time_limit / 1000.0);
+            float curr_nps = root_entry.sum_N / (time_limit / 1000.0);
             std::cout << "m:" << _ << " " << curr_nps << "\t" << best_move << "  \r" << std::flush;
             sum_mid += curr_nps;
         }
@@ -294,7 +294,7 @@ void checkPredictSpeed() {
 
         std::cout << input.size() << std::endl;
 
-        long double time = 0.0;
+        float time = 0.0;
         for (int64_t i = 0; i < REPEAT_NUM; i++) {
             auto start = std::chrono::steady_clock::now();
             torch::NoGradGuard no_grad_guard;

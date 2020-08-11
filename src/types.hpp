@@ -1,5 +1,5 @@
-﻿#ifndef TYPES_HPP
-#define TYPES_HPP
+﻿#ifndef MIACIS_TYPES_HPP
+#define MIACIS_TYPES_HPP
 
 #include <array>
 
@@ -63,4 +63,4 @@ template<class T, class U, size_t SIZE> inline std::array<T, SIZE> operator*(U l
     return rhs;
 }
 
-#endif // !TYPES_HPP
+#endif //MIACIS_TYPES_HPP

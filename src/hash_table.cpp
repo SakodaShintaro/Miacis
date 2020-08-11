@@ -1,7 +1,7 @@
 ﻿#include "hash_table.hpp"
 
 Index HashTable::searchEmptyIndex(const Position& pos) {
-    int64_t hash = pos.hashValue();
+    uint64_t hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
     while (true) {
@@ -30,7 +30,7 @@ Index HashTable::searchEmptyIndex(const Position& pos) {
 }
 
 Index HashTable::findSameHashIndex(const Position& pos) {
-    int64_t hash = pos.hashValue();
+    uint64_t hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
     while (true) {
