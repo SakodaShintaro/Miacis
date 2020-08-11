@@ -1,5 +1,5 @@
-﻿#ifndef HAND_HPP
-#define HAND_HPP
+﻿#ifndef MIACIS_SHOGI_HAND_HPP
+#define MIACIS_SHOGI_HAND_HPP
 
 #include "piece.hpp"
 
@@ -61,15 +61,14 @@ public:
     Hand() : hand_(0) {}
 
     //持ち駒の数を返す
-    inline int num(Piece p) const { return ((hand_ & PieceToHandMask[kind(p)]) >> PieceToHandShift[kind(p)]); }
+    inline int32_t num(Piece p) const { return ((hand_ & PieceToHandMask[kind(p)]) >> PieceToHandShift[kind(p)]); }
 
-    //capture(Piece型)を受け取って持ち駒を増やす
+    //capture(Piece型)を受け取って持ち駒を増減する
     inline void add(Piece p) { hand_ += 1 << PieceToHandShift[kind(p)]; }
-
     inline void sub(Piece p) { hand_ -= 1 << PieceToHandShift[kind(p)]; }
 
-    //初期化のとき使うかも
-    void set(Piece p, int num) { hand_ += num << PieceToHandShift[kind(p)]; }
+    //初期化のとき使う
+    void set(Piece p, int32_t num) { hand_ += num << PieceToHandShift[kind(p)]; }
 
     //「lhsのどの種類の枚数もrhs以上であり、かつ少なくとも一種類はrhsより多い」かどうかを判定
     bool superior(const Hand rhs) const {
@@ -113,4 +112,4 @@ private:
     uint32_t hand_;
 };
 
-#endif // !HAND_HPP
+#endif //MIACIS_SHOGI_HAND_HPP

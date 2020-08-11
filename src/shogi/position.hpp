@@ -92,8 +92,8 @@ private:
     //    クラス変数
     //------------------
     //ハッシュの各駒・位置に対する決められた値
-    static int64_t HashSeed[PieceNum][SquareNum];
-    static int64_t HandHashSeed[ColorNum][PieceNum][19];
+    static uint64_t HashSeed[PieceNum][SquareNum];
+    static uint64_t HandHashSeed[ColorNum][PieceNum][19];
 
     //------------------------
     //    インスタンス変数

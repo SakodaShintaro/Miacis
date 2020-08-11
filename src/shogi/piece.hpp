@@ -1,5 +1,5 @@
-﻿#ifndef PIECE_HPP
-#define PIECE_HPP
+﻿#ifndef MIACIS_SHOGI_PIECE_HPP
+#define MIACIS_SHOGI_PIECE_HPP
 
 #include "../array_map.hpp"
 #include "../types.hpp"
@@ -84,6 +84,7 @@ extern const std::array<Piece, PIECE_KIND_NUM * 2> PieceList;
 extern const std::array<std::array<Piece, 3>, 2> ColoredJumpPieceList;
 
 inline Piece kind(Piece p) { return static_cast<Piece>(p & PIECE_KIND_MASK); }
+inline Piece kindWithPromotion(Piece p) { return static_cast<Piece>(p & (PROMOTE | PIECE_KIND_MASK)); }
 inline Piece promote(Piece p) { return static_cast<Piece>(p | PROMOTE); }
 inline Color pieceToColor(Piece p) { return (p & BLACK_FLAG ? BLACK : (p & WHITE_FLAG ? WHITE : ColorNum)); }
 inline Piece toBlack(Piece p) { return static_cast<Piece>(p | BLACK_FLAG); }
@@ -108,4 +109,4 @@ inline Piece oppositeColor(Piece p) {
 
 std::ostream& operator<<(std::ostream&, Piece piece);
 
-#endif
+#endif //MIACIS_SHOGI_PIECE_HPP

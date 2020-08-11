@@ -1,7 +1,5 @@
 ﻿#include "../game.hpp"
 
-#include "math.h"
-
 #ifdef _MSC_VER
 namespace sys = std::filesystem;
 #elif __GNUC__
@@ -69,7 +67,7 @@ void cleanGames() {
     std::string path;
     std::cin >> path;
 
-    double rate_threshold = NAN;
+    FloatType rate_threshold{};
     std::cout << "削除するレートの閾値 : ";
     std::cin >> rate_threshold;
     constexpr int32_t move_threshold = 50;
@@ -80,7 +78,7 @@ void cleanGames() {
         std::string buf;
         int32_t move_count = 0;
         bool illegal_summary = false;
-        double black_rate = 0, white_rate = 0;
+        FloatType black_rate = 0, white_rate = 0;
         while (getline(ifs, buf)) {
             //レート読み込み
             if (buf.find("'black_rate") < buf.size()) {

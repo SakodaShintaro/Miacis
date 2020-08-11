@@ -1,5 +1,5 @@
-﻿#ifndef USI_HPP
-#define USI_HPP
+﻿#ifndef MIACIS_SHOGI_USI_HPP
+#define MIACIS_SHOGI_USI_HPP
 
 #include "../search_options.hpp"
 #include "../searcher_for_play.hpp"
@@ -29,4 +29,4 @@ private:
     SearchOptions search_options_;
 };
 
-#endif
+#endif //MIACIS_SHOGI_USI_HPP

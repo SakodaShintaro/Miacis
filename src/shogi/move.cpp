@@ -91,7 +91,7 @@ std::string Move::toPrettyStr() const {
     std::stringstream str;
     Color c = pieceToColor(subject());
     str << (c == BLACK ? "▲" : "△") << fileToString[SquareToFile[to()]] << rankToString[SquareToRank[to()]]
-        << PieceToStr[kind(subject())];
+        << PieceToStr[kindWithPromotion(subject())];
     if (isPromote()) {
         str << "成";
     }

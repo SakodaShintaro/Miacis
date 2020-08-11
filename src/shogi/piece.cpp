@@ -1,5 +1,4 @@
 ﻿#include "piece.hpp"
-#include <array>
 
 // clang-format off
 const ArrayMap<std::string, PieceNum> PieceToStr({

@@ -1,5 +1,5 @@
-#ifndef MIACIS_BOOK_HPP
-#define MIACIS_BOOK_HPP
+#ifndef MIACIS_SHOGI_BOOK_HPP
+#define MIACIS_SHOGI_BOOK_HPP
 
 #include "position.hpp"
 
@@ -41,4 +41,4 @@ private:
     std::unordered_map<std::string, BookEntry> book_;
 };
 
-#endif //MIACIS_BOOK_HPP
+#endif //MIACIS_SHOGI_BOOK_HPP

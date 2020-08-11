@@ -39,6 +39,7 @@ void test() {
         }
 
         pos.doMove(best_move);
+        pos.print();
         OneTurnElement element;
         element.move = best_move;
         game.elements.push_back(element);

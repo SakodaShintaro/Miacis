@@ -1,8 +1,7 @@
-﻿#ifndef SQUARE_HPP
-#define SQUARE_HPP
+﻿#ifndef MIACIS_SHOGI_SQUARE_HPP
+#define MIACIS_SHOGI_SQUARE_HPP
 
 #include "piece.hpp"
-#include <array>
 
 // clang-format off
 enum Square {
@@ -110,7 +109,7 @@ const Square FRToSquare[FileNum][RankNum] = {
 // clang-format on
 
 constexpr int64_t BOARD_WIDTH = 9;
-constexpr int64_t SQUARE_NUM = 81;
+constexpr int64_t SQUARE_NUM = BOARD_WIDTH * BOARD_WIDTH;
 
 enum Dir {
     H = 0,
@@ -128,7 +127,7 @@ enum Dir {
     LUU = LU + U, //左上上
 };
 
-static inline bool isOnBoard(Square pos) {
+inline bool isOnBoard(Square pos) {
     return (Rank1 <= SquareToRank[pos] && SquareToRank[pos] <= Rank9 && File1 <= SquareToFile[pos] && SquareToFile[pos] <= File9);
 }
 
@@ -154,8 +153,8 @@ inline Dir directionAtoB(Square A, Square B) {
     return H;
 }
 
-inline static Square operator+(Square sq, Dir diff) { return (Square)((int32_t)sq + (int32_t)diff); }
-inline static int operator<<(Square sq, int32_t shift) { return (int32_t)sq << shift; }
+inline Square operator+(Square sq, Dir diff) { return (Square)((int32_t)sq + (int32_t)diff); }
+inline int32_t operator<<(Square sq, int32_t shift) { return (int32_t)sq << shift; }
 
 extern const std::array<Square, SQUARE_NUM> SquareList;
 extern const int32_t SquareToNum[];
@@ -166,4 +165,4 @@ extern const ArrayMap<std::string, RankNum> rankToString;
 
 std::ostream& operator<<(std::ostream&, Square sq);
 
-#endif
+#endif //MIACIS_SHOGI_SQUARE_HPP

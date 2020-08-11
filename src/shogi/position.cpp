@@ -1,8 +1,8 @@
 ﻿#include "position.hpp"
 #include "../neural_network.hpp"
 
-int64_t Position::HashSeed[PieceNum][SquareNum];
-int64_t Position::HandHashSeed[ColorNum][PieceNum][19];
+uint64_t Position::HashSeed[PieceNum][SquareNum];
+uint64_t Position::HandHashSeed[ColorNum][PieceNum][19];
 
 Position::Position() { init(); }
 
@@ -99,36 +99,29 @@ void Position::init() {
 
 void Position::print() const {
     //盤上
-    std::printf("９８７６５４３２１\n");
-    std::printf("------------------\n");
-    for (int r = Rank1; r <= Rank9; r++) {
-        for (int f = File9; f >= File1; f--) {
+    std::cout << "９８７６５４３２１" << std::endl;
+    std::cout << "------------------" << std::endl;
+    for (int32_t r = Rank1; r <= Rank9; r++) {
+        for (int32_t f = File9; f >= File1; f--) {
             std::cout << PieceToSfenStr[board_[FRToSquare[f][r]]];
         }
-        printf("|%d\n", r);
+        std::cout << "|" << r << std::endl;
     }
 
-    //先手の持ち駒
-    printf("持ち駒\n");
-    printf("先手:");
+    //持ち駒
+    std::cout << "持ち駒" << std::endl;
+    std::cout << "先手:";
     hand_[BLACK].print();
-
-    //後手の持ち駒
-    printf("後手:");
+    std::cout << "後手:";
     hand_[WHITE].print();
 
-    //手番
-    printf("手番:%s\n", (color_ == BLACK ? "先手" : "後手"));
-
-    //手数
-    printf("手数:%d\n", turn_number_);
-
-    //最後の手
+    //その他
+    std::cout << "手番:" << (color_ == BLACK ? "先手" : "後手") << std::endl;
+    std::cout << "手数:" << turn_number_ << std::endl;
     if (!kifu_.empty()) {
         std::cout << "最後の手:" << lastMove().toPrettyStr() << std::endl;
     }
-
-    printf("ハッシュ値:%llx\n", (unsigned long long)hash_value_);
+    std::cout << "ハッシュ値:" << std::hex << hash_value_ << std::dec << std::endl;
 }
 
 void Position::doMove(const Move move) {
@@ -1040,7 +1033,7 @@ void Position::initHashValue() {
     hash_value_ = 0;
     board_hash_ = 0;
     hand_hash_ = 0;
-    for (auto sq : SquareList) {
+    for (Square sq : SquareList) {
         board_hash_ ^= HashSeed[board_[sq]][sq];
     }
     for (Piece piece = PAWN; piece <= ROOK; piece++) {

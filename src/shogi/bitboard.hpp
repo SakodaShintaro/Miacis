@@ -1,5 +1,5 @@
-﻿#ifndef BITBOARD_HPP
-#define BITBOARD_HPP
+﻿#ifndef MIACIS_SHOGI_BITBOARD_HPP
+#define MIACIS_SHOGI_BITBOARD_HPP
 
 #include "../common.hpp"
 #include "square.hpp"
@@ -103,7 +103,7 @@ extern Bitboard RookRankEffect[FileNum][128];
 
 extern Bitboard KING_CONTROL_BB[SquareNum];
 
-extern int Slide[];
+extern int32_t Slide[];
 
 std::ostream& operator<<(std::ostream& os, const Bitboard& rhs);
 
@@ -214,4 +214,4 @@ inline Bitboard farRank1FromColor(const Color c) { return (c == BLACK ? RANK_BB[
 //手番側から見て奥から2つ目の段を返す(駒打ちの時に利用)
 inline Bitboard farRank2FromColor(const Color c) { return (c == BLACK ? RANK_BB[Rank2] : RANK_BB[Rank8]); }
 
-#endif // !BITBOARD_HPP
+#endif //MIACIS_SHOGI_BITBOARD_HPP

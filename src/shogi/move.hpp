@@ -1,5 +1,5 @@
-﻿#ifndef MOVE_HPP
-#define MOVE_HPP
+﻿#ifndef MIACIS_SHOGI_MOVE_HPP
+#define MIACIS_SHOGI_MOVE_HPP
 
 #include "../types.hpp"
 #include "piece.hpp"
@@ -110,11 +110,11 @@ inline std::ostream& operator<<(std::ostream& os, Move m) {
         return os;
     }
     if (m.isDrop()) {
-        os << PieceToSfenStr[kind(m.subject())][0] << '*' << static_cast<int>(SquareToFile[m.to()])
+        os << PieceToSfenStr[kind(m.subject())][0] << '*' << static_cast<int32_t>(SquareToFile[m.to()])
            << static_cast<char>(SquareToRank[m.to()] + 'a' - 1);
     } else {
-        os << static_cast<int>(SquareToFile[m.from()]) << static_cast<char>(SquareToRank[m.from()] + 'a' - 1)
-           << static_cast<int>(SquareToFile[m.to()]) << static_cast<char>(SquareToRank[m.to()] + 'a' - 1);
+        os << static_cast<int32_t>(SquareToFile[m.from()]) << static_cast<char>(SquareToRank[m.from()] + 'a' - 1)
+           << static_cast<int32_t>(SquareToFile[m.to()]) << static_cast<char>(SquareToRank[m.to()] + 'a' - 1);
         if (m.isPromote()) {
             os << '+';
         }
@@ -139,4 +139,4 @@ inline Move stringToMove(std::string input) {
     }
 }
 
-#endif
+#endif //MIACIS_SHOGI_MOVE_HPP
