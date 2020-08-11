@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <iostream>
 
-int64_t Position::HashSeed[PieceNum][SquareNum];
+uint64_t Position::HashSeed[PieceNum][SquareNum];
 
 Position::Position() { init(); }
 
@@ -17,10 +17,8 @@ void Position::init() {
         board_[sq] = EMPTY;
     }
 
-    //後手の駒
+    //初期駒をセット
     board_[SQ54] = board_[SQ45] = WHITE_PIECE;
-
-    //先手の駒
     board_[SQ44] = board_[SQ55] = BLACK_PIECE;
 
     //手番
@@ -33,34 +31,27 @@ void Position::init() {
     initHashValue();
 
     //履歴系を初期化
-    stack_.clear();
+    board_history_.clear();
     hash_values_.clear();
     kifu_.clear();
 }
 
 void Position::print() const {
-    //盤上
-    std::printf("ABCDEFGH\n");
-    std::printf("--------\n");
-    for (int r = Rank1; r <= Rank8; r++) {
-        for (int f = File8; f >= File1; f--) {
+    std::cout << "ABCDEFGH" << std::endl;
+    std::cout << "--------" << std::endl;
+    for (int32_t r = Rank1; r <= Rank8; r++) {
+        for (int32_t f = File8; f >= File1; f--) {
             std::cout << PieceToSfenStr[board_[FRToSquare[f][r]]];
         }
-        printf("|%d\n", r);
+        std::cout << "|" << r << std::endl;
     }
 
-    //手番
     std::cout << "手番:" << (color_ == BLACK ? "先手" : "後手") << std::endl;
-
-    //手数
-    printf("手数:%d\n", turn_number_);
-
-    //最後の手
+    std::cout << "手数:" << turn_number_ << std::endl;
     if (!kifu_.empty()) {
         std::cout << "最後の手:" << lastMove().toPrettyStr() << std::endl;
     }
-
-    printf("ハッシュ値:%lld\n", static_cast<long long int>(hash_value_));
+    std::cout << "ハッシュ値:" << std::hex << hash_value_ << std::dec << std::endl;
 }
 
 void Position::doMove(const Move move) {
@@ -78,7 +69,7 @@ void Position::doMove(const Move move) {
 
     //現在の状態を残しておく
     //盤面
-    stack_.emplace_back(board_);
+    board_history_.emplace_back(board_);
 
     //ハッシュ値
     hash_values_.push_back(hash_value_);
@@ -136,23 +127,23 @@ void Position::doMove(const Move move) {
     //手番の更新
     color_ = ~color_;
 
-    //1bit目を0にする
+    //1bit目を反転
     hash_value_ ^= 1;
 }
 
 void Position::undo() {
     kifu_.pop_back();
 
-    //手番を戻す(このタイミングでいいかな?)
+    //手番を戻す
     color_ = ~color_;
 
-    //盤の状態はstack_から戻して
+    //盤の状態はboard_history_から戻す
     for (int32_t i = 0; i < SquareNum; i++) {
-        board_[i] = stack_.back()[i];
+        board_[i] = board_history_.back()[i];
     }
-    stack_.pop_back();
+    board_history_.pop_back();
 
-    //ハッシュの更新
+    //ハッシュの巻き戻し
     hash_value_ = hash_values_.back();
     hash_values_.pop_back();
 
@@ -217,7 +208,8 @@ void Position::initHashValue() {
     for (auto sq : SquareList) {
         hash_value_ ^= HashSeed[board_[sq]][sq];
     }
-    hash_value_ &= ~1; //これで1bit目が0になる(先手番を表す)
+    hash_value_ &= ~1;     //これで1bit目が0になる
+    hash_value_ ^= color_; //先手番なら0、後手番なら1にする
 }
 
 std::string Position::toStr() const {
@@ -234,6 +226,7 @@ void Position::fromStr(const std::string& str) {
         board_[SquareList[i]] = (str[i] == 'x' ? BLACK_PIECE : str[i] == 'o' ? WHITE_PIECE : EMPTY);
     }
     color_ = (str.back() == 'b' ? BLACK : WHITE);
+    initHashValue();
 }
 
 bool Position::isFinish(float& score, bool check_repeat) const {
