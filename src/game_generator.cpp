@@ -77,7 +77,8 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
     //順伝播計算
     gpu_mutex.lock();
     torch::NoGradGuard no_grad_guard;
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = neural_network_->policyAndValueBatch(gpu_queues_[thread_id].inputs);
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result =
+        neural_network_->policyAndValueBatch(gpu_queues_[thread_id].inputs);
     gpu_mutex.unlock();
     const std::vector<PolicyType>& policies = result.first;
     const std::vector<ValueType>& values = result.second;
@@ -100,7 +101,7 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
         std::vector<FloatType> noise = (noise_mode_ == DIRICHLET ? dirichletDistribution(curr_node.moves.size(), noise_alpha_)
                                                                  : onehotNoise(curr_node.moves.size()));
         for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-            curr_node.nn_policy[j] = (FloatType) ((1.0 - noise_epsilon_) * curr_node.nn_policy[j] + noise_epsilon_ * noise[j]);
+            curr_node.nn_policy[j] = (FloatType)((1.0 - noise_epsilon_) * curr_node.nn_policy[j] + noise_epsilon_ * noise[j]);
         }
 
         //valueを設定
@@ -113,15 +114,9 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
 
 GenerateWorker::GenerateWorker(const SearchOptions& search_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda,
                                ReplayBuffer& rb)
-: search_options_(search_options),
-  gpu_queue_(gpu_queue),
-  Q_dist_lambda_(Q_dist_lambda),
-  replay_buffer_(rb),
-  hash_table_(search_options.search_limit * 3),
-  searcher_(search_options, hash_table_, gpu_queue),
-  root_raw_value_{},
-  mate_searcher_(hash_table_, search_options)
-{}
+    : search_options_(search_options), gpu_queue_(gpu_queue), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb),
+      hash_table_(search_options.search_limit * 3), searcher_(search_options, hash_table_, gpu_queue), root_raw_value_{},
+      mate_searcher_(hash_table_, search_options) {}
 
 void GenerateWorker::prepareForCurrPos() {
     //古いハッシュを削除
@@ -168,8 +163,9 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
 
     //選択した着手の勝率の算出
     //詰みのときは未展開であることに注意する
-    FloatType best_value = (root_node.child_indices[best_index] == HashTable::NOT_EXPANDED ? MAX_SCORE :
-                            hash_table_.expQfromNext(root_node, best_index));
+    FloatType best_value =
+        (root_node.child_indices[best_index] == HashTable::NOT_EXPANDED ? MAX_SCORE
+                                                                        : hash_table_.expQfromNext(root_node, best_index));
 
     //教師データを作成
     OneTurnElement element;
@@ -193,7 +189,10 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
             //選択回数が0ならMIN_SCORE
             //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
             //その他は普通に計算
-            Q_dist[i] = (N[i] == 0 ? MIN_SCORE : root_node.child_indices[i] == HashTable::NOT_EXPANDED ? MAX_SCORE : hash_table_.expQfromNext(root_node, i));
+            Q_dist[i] =
+                (N[i] == 0 ? MIN_SCORE
+                           : root_node.child_indices[i] == HashTable::NOT_EXPANDED ? MAX_SCORE
+                                                                                   : hash_table_.expQfromNext(root_node, i));
         }
         Q_dist = softmax(Q_dist, search_options_.temperature_x1000 / 1000.0f);
 
@@ -234,10 +233,10 @@ void GenerateWorker::select() {
         position_.doMove(result.move);
         game_.elements.push_back(result);
 
-        float score;
+        float score{};
         if (position_.isFinish(score, false) || position_.turnNumber() > search_options_.draw_turn) {
             //決着したので最終結果を設定
-            game_.result = (position_.color() == BLACK ? score : MAX_SCORE + MIN_SCORE- score);
+            game_.result = (position_.color() == BLACK ? score : MAX_SCORE + MIN_SCORE - score);
 
             //データを送る
             replay_buffer_.push(game_);
@@ -262,9 +261,7 @@ void GenerateWorker::select() {
     }
 }
 
-void GenerateWorker::backup() {
-    searcher_.backupAll();
-}
+void GenerateWorker::backup() { searcher_.backupAll(); }
 
 bool GenerateWorker::shouldStop() {
     //ハッシュテーブルの容量チェック

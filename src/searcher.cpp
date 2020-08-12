@@ -26,15 +26,15 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
                 P += hash_table_[node.child_indices[i]].value[j];
             }
         }
-        FloatType ucb = search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U
-                        + search_options_.P_coeff_x1000 / 1000.0 * P;
+        FloatType ucb =
+            search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U + search_options_.P_coeff_x1000 / 1000.0 * P;
         if (search_options_.Q_coeff_x1000 > 0) {
             ucb += search_options_.Q_coeff_x1000 / 1000.0 * hash_table_.expQfromNext(node, i);
         }
 #else
         FloatType Q = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : hash_table_.QfromNextValue(node, i));
-        FloatType ucb = search_options_.Q_coeff_x1000 / 1000.0 * Q
-                      + search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
+        FloatType ucb =
+            search_options_.Q_coeff_x1000 / 1000.0 * Q + search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
 #endif
 
         if (ucb > max_value) {
@@ -100,10 +100,13 @@ void Searcher::select(Position& pos) {
         std::cout << "curr_indices.empty()" << std::endl;
         pos.print();
         std::cout << pos.toStr() << std::endl;
-        std::cout << "pos.turnNumber() >= search_options_.draw_turn = " <<  (pos.turnNumber() >= search_options_.draw_turn) << std::endl;
+        std::cout << "pos.turnNumber() >= search_options_.draw_turn = " << (pos.turnNumber() >= search_options_.draw_turn)
+                  << std::endl;
         float score;
-        std::cout << "index != hash_table_.root_index && pos.isFinish(score) = " << (index != hash_table_.root_index && pos.isFinish(score)) << std::endl;
-        std::cout << "hash_table_[index].nn_policy.size() != hash_table_[index].moves.size() = " << (hash_table_[index].nn_policy.size() != hash_table_[index].moves.size()) << std::endl;
+        std::cout << "index != hash_table_.root_index && pos.isFinish(score) = "
+                  << (index != hash_table_.root_index && pos.isFinish(score)) << std::endl;
+        std::cout << "hash_table_[index].nn_policy.size() != hash_table_[index].moves.size() = "
+                  << (hash_table_[index].nn_policy.size() != hash_table_[index].moves.size()) << std::endl;
         exit(1);
     }
 

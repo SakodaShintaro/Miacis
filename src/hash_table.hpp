@@ -1,9 +1,9 @@
-﻿#ifndef HASH_TABLE_HPP
-#define HASH_TABLE_HPP
+﻿#ifndef MIACIS_HASH_TABLE_HPP
+#define MIACIS_HASH_TABLE_HPP
 
-#include"neural_network.hpp"
-#include"common.hpp"
-#include"include_switch.hpp"
+#include "common.hpp"
+#include "include_switch.hpp"
+#include "neural_network.hpp"
 
 using Index = int32_t;
 
@@ -40,7 +40,7 @@ struct HashEntry {
     std::mutex mutex;
 
     //局面に対応するハッシュ値
-    int64_t hash;
+    uint64_t hash;
 
     //手数。ハッシュ値だけでは衝突頻度が高いので
     uint16_t turn_number;
@@ -48,23 +48,17 @@ struct HashEntry {
     //置換表のageと照らし合わせて現在の情報かどうかを判断する変数
     uint16_t age;
 
-    HashEntry() :
-        sum_N(0), virtual_sum_N(0), value{},
-        evaled(false), hash(0), turn_number(0), age(0) {}
+    HashEntry() : sum_N(0), virtual_sum_N(0), value{}, evaled(false), hash(0), turn_number(0), age(0) {}
 };
 
 class HashTable {
 public:
-    explicit HashTable(int64_t hash_size) : root_index(HashTable::NOT_EXPANDED), used_num_(0), age_(1),
-                                            table_(1ull << (MSB64(hash_size) + 1)) {}
+    explicit HashTable(int64_t hash_size)
+        : root_index(HashTable::NOT_EXPANDED), used_num_(0), age_(1), table_(1ull << (MSB64(hash_size) + 1)) {}
 
     //取得用のオペレータ
-    HashEntry& operator[](Index i) {
-        return table_[i];
-    }
-    const HashEntry& operator[](Index i) const {
-        return table_[i];
-    }
+    HashEntry& operator[](Index i) { return table_[i]; }
+    const HashEntry& operator[](Index i) const { return table_[i]; }
 
     //未使用のインデックスを探して返す関数(開番地法)
     Index searchEmptyIndex(const Position& pos);
@@ -87,19 +81,13 @@ public:
     FloatType expQfromNext(const HashEntry& node, int32_t i) const;
 
     //置換表の利用率を返す関数。USI対応GUIだと表示できるので
-    double getUsageRate() const {
-        return (double)used_num_ / table_.size();
-    }
+    float getUsageRate() const { return (float)used_num_ / table_.size(); }
 
     //置換表にmargin個以上の空きがあるかどうかを判定する関数
-    bool hasEmptyEntries(int64_t margin) {
-        return used_num_ + margin <= table_.size();
-    }
+    bool hasEmptyEntries(int64_t margin) { return used_num_ + margin <= table_.size(); }
 
     //サイズを返す関数。searchEmptyIndexなどはダメだったときに置換表サイズを返すので、この関数の返り値と比較して適切なものが返ってきたか判定する
-    uint64_t size() {
-        return table_.size();
-    }
+    uint64_t size() { return table_.size(); }
 
     //未展開のノードのインデックス
     static constexpr Index NOT_EXPANDED = -1;
@@ -108,10 +96,8 @@ public:
     Index root_index;
 
 private:
-    //局面のハッシュ値から置換表におけるキーへ変換する。この処理が最適化は不明
-    Index hashToIndex(int64_t hash) {
-        return (Index)(((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (table_.size() - 1));
-    }
+    //局面のハッシュ値から置換表におけるキーへ変換する。この処理が最適かは不明
+    Index hashToIndex(int64_t hash) { return (Index)(((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (table_.size() - 1)); }
 
     //使用されている数
     uint64_t used_num_;
@@ -123,4 +109,4 @@ private:
     std::vector<HashEntry> table_;
 };
 
-#endif
+#endif //MIACIS_HASH_TABLE_HPP

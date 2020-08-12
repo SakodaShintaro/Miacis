@@ -1,19 +1,17 @@
-﻿#ifndef GAME_HPP
-#define GAME_HPP
+﻿#ifndef MIACIS_GAME_HPP
+#define MIACIS_GAME_HPP
 
-#include"include_switch.hpp"
-#include"neural_network.hpp"
-#include<string>
-#include<vector>
+#include "include_switch.hpp"
+#include "neural_network.hpp"
 #ifdef _MSC_VER
-#include<filesystem>
+#include <filesystem>
 #elif __GNUC__
-#include<experimental/filesystem>
+#include <experimental/filesystem>
 #endif
 
 struct OneTurnElement {
     //このターンに選択された指し手
-	Move move;
+    Move move;
 
     //探索した結果として得られた方策分布, 評価値
     //それぞれデータとして小さく済む保存方法にするとPolicyは教師データの型(int32_t, float)のペア, Valueは評価値(float)だけとなる
@@ -28,15 +26,15 @@ struct OneTurnElement {
 struct Game {
     //各ターンの情報
     std::vector<OneTurnElement> elements;
-	
-    //先手側から見た対局結果
-	float result;
 
-	//kifu形式でdir_path以下に保存する関数。基本的に将棋で使うことを想定している
+    //先手側から見た対局結果
+    float result;
+
+    //kifu形式でdir_path以下に保存する関数。基本的に将棋で使うことを想定している
     void writeKifuFile(const std::string& dir_path) const;
 };
 
 std::vector<Game> loadGames(const std::string& path);
 void cleanGames();
 
-#endif // !GAME_HPP
+#endif //MIACIS_GAME_HPP
