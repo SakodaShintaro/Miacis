@@ -1,8 +1,9 @@
-﻿#include"learn.hpp"
-#include"game_generator.hpp"
-#include"hyperparameter_loader.hpp"
+﻿#include "game_generator.hpp"
+#include "hyperparameter_loader.hpp"
+#include "learn.hpp"
 
 void alphaZero() {
+    // clang-format off
     SearchOptions search_options;
     HyperparameterLoader settings("alphazero_settings.txt");
     float learn_rate                  = settings.get<float>("learn_rate");
@@ -45,6 +46,7 @@ void alphaZero() {
     bool Q_search                     = settings.get<bool>("Q_search");
     std::string training_kifu_path    = settings.get<std::string>("training_kifu_path");
     std::string validation_kifu_path  = settings.get<std::string>("validation_kifu_path");
+    // clang-format on
 
     std::array<float, LOSS_TYPE_NUM> coefficients{};
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
@@ -71,13 +73,13 @@ void alphaZero() {
     std::ofstream learn_log("alphazero_log.txt");
     std::ofstream validation_log("alphazero_validation_log.txt");
     dout(std::cout, learn_log) << "time\tstep\tsum_loss";
-    validation_log             << "time\tstep\tsum_loss";
+    validation_log << "time\tstep\tsum_loss";
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         dout(std::cout, learn_log) << "\t" + LOSS_TYPE_NAME[i] + "_loss";
-        validation_log             << "\t" + LOSS_TYPE_NAME[i] + "_loss";
+        validation_log << "\t" + LOSS_TYPE_NAME[i] + "_loss";
     }
     dout(std::cout, learn_log) << std::fixed << std::endl;
-    validation_log             << std::fixed << std::endl;
+    validation_log << std::fixed << std::endl;
 
     //validation用のデータを取得
     std::vector<LearningData> validation_data = loadData(validation_kifu_path, false);
@@ -108,8 +110,8 @@ void alphaZero() {
     for (uint64_t i = 0; i < gpu_num; i++) {
         torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
         neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
-        generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_thread, Q_dist_lambda,
-                noise_mode, noise_epsilon, noise_alpha, replay_buffer, neural_networks[i]);
+        generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_thread, Q_dist_lambda, noise_mode,
+                                                        noise_epsilon, noise_alpha, replay_buffer, neural_networks[i]);
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
     }
 
@@ -121,9 +123,9 @@ void alphaZero() {
 
         //1回目はmakeBatch内で十分棋譜が貯まるまで待ち時間が発生する.その生成速度を計算
         if (step_num == 1) {
-            double gen_speed = first_wait / (elapsedHours(start_time) * 3600);
+            float gen_speed = first_wait / (elapsedHours(start_time) * 3600);
             if (sleep_msec == -1) {
-                sleep_msec = (int64_t) (batch_size * 1000 / (batch_size_per_gen * gen_speed));
+                sleep_msec = (int64_t)(batch_size * 1000 / (batch_size_per_gen * gen_speed));
             }
             std::ofstream ofs("gen_speed.txt");
             dout(std::cout, ofs) << "gen_speed = " << gen_speed << " pos / sec, sleep_msec = " << sleep_msec << std::endl;
@@ -134,9 +136,9 @@ void alphaZero() {
 
         //損失計算
         optimizer.zero_grad();
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = (mixup_alpha == 0 ? learning_model->loss(curr_data) :
-                                                                            learning_model->mixUpLossFinalLayer(curr_data, mixup_alpha));
-        torch::Tensor loss_sum = torch::zeros({batch_size});
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss =
+            (mixup_alpha == 0 ? learning_model->loss(curr_data) : learning_model->mixUpLossFinalLayer(curr_data, mixup_alpha));
+        torch::Tensor loss_sum = torch::zeros({ batch_size });
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             loss_sum += coefficients[i] * loss[i].cpu();
         }
@@ -213,15 +215,13 @@ void alphaZero() {
 
         //学習率の減衰.AlphaZeroを意識して3回まで設定可能
         if (learn_rate_decay_mode == 1) {
-            if (step_num == learn_rate_decay_step1
-                || step_num == learn_rate_decay_step2
-                || step_num == learn_rate_decay_step3) {
+            if (step_num == learn_rate_decay_step1 || step_num == learn_rate_decay_step2 || step_num == learn_rate_decay_step3) {
                 (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
             }
         } else if (learn_rate_decay_mode == 2) {
             int64_t curr_step = step_num % learn_rate_decay_period;
-            (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr()
-                    = min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period));
+            (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() =
+                min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period));
         } else if (learn_rate_decay_mode == 3) {
             if (step_num % learn_rate_decay_period == 0) {
                 (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() *= 0.9;

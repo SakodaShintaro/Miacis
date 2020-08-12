@@ -1,7 +1,7 @@
-﻿#ifndef HAND_HPP
-#define HAND_HPP
+﻿#ifndef MIACIS_SHOGI_HAND_HPP
+#define MIACIS_SHOGI_HAND_HPP
 
-#include"piece.hpp"
+#include "piece.hpp"
 
 enum HandConst {
     //0000 0000 0000 0000 0000 0000 0011 1111 PAWN
@@ -12,6 +12,7 @@ enum HandConst {
     //0000 0001 1000 0000 0000 0000 0000 0000 BISHOP
     //0000 1100 0000 0000 0000 0000 0000 0000 ROOK
 
+    // clang-format off
     HAND_PAWN_SHIFT   = 0,
     HAND_LANCE_SHIFT  = HAND_PAWN_SHIFT + 7,
     HAND_KNIGHT_SHIFT = HAND_LANCE_SHIFT + 4,
@@ -27,8 +28,10 @@ enum HandConst {
     HAND_GOLD_MASK   = 0b111 << HAND_GOLD_SHIFT,
     HAND_BISHOP_MASK = 0b11 << HAND_BISHOP_SHIFT,
     HAND_ROOK_MASK   = 0b11 << HAND_ROOK_SHIFT,
+    // clang-format on
 };
 
+// clang-format off
 static int32_t PieceToHandShift[] = {
     0,
     HAND_PAWN_SHIFT,
@@ -50,6 +53,7 @@ static int32_t PieceToHandMask[] = {
     HAND_BISHOP_MASK,
     HAND_ROOK_MASK,
 };
+// clang-format on
 
 class Hand {
 public:
@@ -57,26 +61,19 @@ public:
     Hand() : hand_(0) {}
 
     //持ち駒の数を返す
-    inline int num(Piece p) const {
-        return ((hand_ & PieceToHandMask[kind(p)]) >> PieceToHandShift[kind(p)]);
-    }
+    inline int32_t num(Piece p) const { return ((hand_ & PieceToHandMask[kind(p)]) >> PieceToHandShift[kind(p)]); }
 
-    //capture(Piece型)を受け取って持ち駒を増やす
-    inline void add(Piece p) {
-        hand_ += 1 << PieceToHandShift[kind(p)];
-    }
+    //capture(Piece型)を受け取って持ち駒を増減する
+    inline void add(Piece p) { hand_ += 1 << PieceToHandShift[kind(p)]; }
+    inline void sub(Piece p) { hand_ -= 1 << PieceToHandShift[kind(p)]; }
 
-    inline void sub(Piece p) {
-        hand_ -= 1 << PieceToHandShift[kind(p)];
-    }
-
-    //初期化のとき使うかも
-    void set(Piece p, int num) { hand_ += num << PieceToHandShift[kind(p)]; }
+    //初期化のとき使う
+    void set(Piece p, int32_t num) { hand_ += num << PieceToHandShift[kind(p)]; }
 
     //「lhsのどの種類の枚数もrhs以上であり、かつ少なくとも一種類はrhsより多い」かどうかを判定
     bool superior(const Hand rhs) const {
         bool over = false;
-        for (Piece p : {PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK}) {
+        for (Piece p : { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK }) {
             if (num(p) < rhs.num(p)) {
                 return false;
             } else if (num(p) > rhs.num(p)) {
@@ -89,7 +86,7 @@ public:
     //superiorの逆
     bool inferior(const Hand rhs) const {
         bool under = false;
-        for (Piece p : {PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK}) {
+        for (Piece p : { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK }) {
             if (num(p) > rhs.num(p)) {
                 return false;
             } else if (num(p) < rhs.num(p)) {
@@ -104,9 +101,10 @@ public:
 
     //表示
     void print() const {
-        for (Piece p = PAWN; p <= ROOK; p++) if (num(p)) {
-            std::cout << PieceToStr[p] << num(p) << " ";
-        }
+        for (Piece p = PAWN; p <= ROOK; p++)
+            if (num(p)) {
+                std::cout << PieceToStr[p] << num(p) << " ";
+            }
         std::cout << std::endl;
     }
 
@@ -114,4 +112,4 @@ private:
     uint32_t hand_;
 };
 
-#endif // !HAND_HPP
+#endif //MIACIS_SHOGI_HAND_HPP

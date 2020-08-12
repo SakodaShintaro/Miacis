@@ -1,0 +1,11 @@
+IndentWidth: 4
+AlignTrailingComments: true
+ColumnLimit: 130
+AccessModifierOffset: -4
+PointerAlignment: Left
+CommentPragmas: '^[^ ]'
+UseTab: Never
+SpaceAfterTemplateKeyword: false
+Cpp11BracedListStyle: false
+AllowShortIfStatementsOnASingleLine: Always
+AllowShortLoopsOnASingleLine: true

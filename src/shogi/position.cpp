@@ -1,12 +1,10 @@
-﻿#include"position.hpp"
-#include"../neural_network.hpp"
+﻿#include "position.hpp"
+#include "../neural_network.hpp"
 
-int64_t Position::HashSeed[PieceNum][SquareNum];
-int64_t Position::HandHashSeed[ColorNum][PieceNum][19];
+uint64_t Position::HashSeed[PieceNum][SquareNum];
+uint64_t Position::HandHashSeed[ColorNum][PieceNum][19];
 
-Position::Position(){
-    init();
-}
+Position::Position() { init(); }
 
 void Position::init() {
     //盤上の初期化
@@ -101,36 +99,29 @@ void Position::init() {
 
 void Position::print() const {
     //盤上
-    std::printf("９８７６５４３２１\n");
-    std::printf("------------------\n");
-    for (int r = Rank1; r <= Rank9; r++) {
-        for (int f = File9; f >= File1; f--) {
+    std::cout << "９８７６５４３２１" << std::endl;
+    std::cout << "------------------" << std::endl;
+    for (int32_t r = Rank1; r <= Rank9; r++) {
+        for (int32_t f = File9; f >= File1; f--) {
             std::cout << PieceToSfenStr[board_[FRToSquare[f][r]]];
         }
-        printf("|%d\n", r);
+        std::cout << "|" << r << std::endl;
     }
 
-    //先手の持ち駒
-    printf("持ち駒\n");
-    printf("先手:");
+    //持ち駒
+    std::cout << "持ち駒" << std::endl;
+    std::cout << "先手:";
     hand_[BLACK].print();
-
-    //後手の持ち駒
-    printf("後手:");
+    std::cout << "後手:";
     hand_[WHITE].print();
 
-    //手番
-    printf("手番:%s\n", (color_ == BLACK ? "先手" : "後手"));
-
-    //手数
-    printf("手数:%d\n", turn_number_);
-
-    //最後の手
+    //その他
+    std::cout << "手番:" << (color_ == BLACK ? "先手" : "後手") << std::endl;
+    std::cout << "手数:" << turn_number_ << std::endl;
     if (!kifu_.empty()) {
         std::cout << "最後の手:" << lastMove().toPrettyStr() << std::endl;
     }
-
-    printf("ハッシュ値:%llx\n", (unsigned long long)hash_value_);
+    std::cout << "ハッシュ値:" << std::hex << hash_value_ << std::dec << std::endl;
 }
 
 void Position::doMove(const Move move) {
@@ -283,9 +274,11 @@ void Position::undo() {
             //取る前の分のハッシュをXOR
             board_hash_ ^= HashSeed[last_move.capture()][last_move.to()];
             //増える前の持ち駒の分
-            hand_hash_ ^= HandHashSeed[color_][last_move.capture() & PIECE_KIND_MASK][hand_[color_].num(kind(last_move.capture()))];
+            hand_hash_ ^=
+                HandHashSeed[color_][last_move.capture() & PIECE_KIND_MASK][hand_[color_].num(kind(last_move.capture()))];
             //増えた後の持ち駒の分XORして消す
-            hand_hash_ ^= HandHashSeed[color_][last_move.capture() & PIECE_KIND_MASK][hand_[color_].num(kind(last_move.capture())) + 1];
+            hand_hash_ ^=
+                HandHashSeed[color_][last_move.capture() & PIECE_KIND_MASK][hand_[color_].num(kind(last_move.capture())) + 1];
         }
 
         //動いた駒をfromに戻す
@@ -298,8 +291,7 @@ void Position::undo() {
         //移動前の分をXOR
         board_hash_ ^= HashSeed[last_move.subject()][last_move.from()];
         //移動後の分をXORして消す
-        if (last_move.isPromote())
-            board_hash_ ^= HashSeed[promote(last_move.subject())][last_move.to()];
+        if (last_move.isPromote()) board_hash_ ^= HashSeed[promote(last_move.subject())][last_move.to()];
         else
             board_hash_ ^= HashSeed[last_move.subject()][last_move.to()];
 
@@ -446,8 +438,9 @@ bool Position::isLegalMove(const Move move) const {
     Bitboard pinners = computePinners();
     pinners.forEach([&](const Square pinner_sq) {
         if ((BETWEEN_BB[pinner_sq][king_sq_[color_]] & SQUARE_BB[move.from()]) //fromがbetween,すなわちピンされている
-            && !((BETWEEN_BB[pinner_sq][king_sq_[color_]] | SQUARE_BB[pinner_sq]) & SQUARE_BB[move.to()]) //toがbetween内及びpinner_sq以外
-            ) {
+            && !((BETWEEN_BB[pinner_sq][king_sq_[color_]] | SQUARE_BB[pinner_sq]) &
+                 SQUARE_BB[move.to()]) //toがbetween内及びpinner_sq以外
+        ) {
             flag = false;
         }
     });
@@ -465,28 +458,16 @@ void Position::fromStr(const std::string& sfen) {
     for (Piece& p : board_) p = WALL;
     for (Square sq : SquareList) board_[sq] = EMPTY;
 
-    //テーブル用意しておいたほうがシュッと書ける
+    //コマごとの分岐を簡単に書くためテーブル用意
     static std::unordered_map<char, Piece> CharToPiece = {
-        { 'P', BLACK_PAWN },
-        { 'L', BLACK_LANCE },
-        { 'N', BLACK_KNIGHT },
-        { 'S', BLACK_SILVER },
-        { 'G', BLACK_GOLD },
-        { 'B', BLACK_BISHOP },
-        { 'R', BLACK_ROOK },
-        { 'K', BLACK_KING },
-        { 'p', WHITE_PAWN },
-        { 'l', WHITE_LANCE },
-        { 'n', WHITE_KNIGHT },
-        { 's', WHITE_SILVER },
-        { 'g', WHITE_GOLD },
-        { 'b', WHITE_BISHOP },
-        { 'r', WHITE_ROOK },
-        { 'k', WHITE_KING },
+        { 'P', BLACK_PAWN }, { 'L', BLACK_LANCE },  { 'N', BLACK_KNIGHT }, { 'S', BLACK_SILVER },
+        { 'G', BLACK_GOLD }, { 'B', BLACK_BISHOP }, { 'R', BLACK_ROOK },   { 'K', BLACK_KING },
+        { 'p', WHITE_PAWN }, { 'l', WHITE_LANCE },  { 'n', WHITE_KNIGHT }, { 's', WHITE_SILVER },
+        { 'g', WHITE_GOLD }, { 'b', WHITE_BISHOP }, { 'r', WHITE_ROOK },   { 'k', WHITE_KING },
     };
 
     //sfen文字列を走査するイテレータ(ダサいやり方な気がするけどパッと思いつくのはこれくらい)
-    uint32_t i;
+    uint32_t i = 0;
 
     //盤上の設定
     int r = Rank1, f = File9;
@@ -506,8 +487,11 @@ void Position::fromStr(const std::string& sfen) {
             board_[FRToSquare[f--][r]] = promote(CharToPiece[sfen[++i]]);
         } else {
             //玉だったらking_sq_を設定
-            if (CharToPiece[sfen[i]] == BLACK_KING) king_sq_[BLACK] = FRToSquare[f][r];
-            else if (CharToPiece[sfen[i]] == WHITE_KING) king_sq_[WHITE] = FRToSquare[f][r];
+            if (CharToPiece[sfen[i]] == BLACK_KING) {
+                king_sq_[BLACK] = FRToSquare[f][r];
+            } else if (CharToPiece[sfen[i]] == WHITE_KING) {
+                king_sq_[WHITE] = FRToSquare[f][r];
+            }
             //文字が示す駒をboard_に設置
             board_[FRToSquare[f--][r]] = CharToPiece[sfen[i]];
         }
@@ -710,9 +694,8 @@ void Position::generateEvasionMoves(std::vector<Move>& move_buf) const {
     //王手してきた駒を取れる駒の候補
     Bitboard removers = attackersTo(color_, checker_sq) & ~pinned_piece & ~SQUARE_BB[king_sq_[color_]];
 
-    removers.forEach([&](Square from) {
-        pushMove(Move(checker_sq, from, false, false, board_[from], board_[checker_sq]), move_buf);
-    });
+    removers.forEach(
+        [&](Square from) { pushMove(Move(checker_sq, from, false, false, board_[from], board_[checker_sq]), move_buf); });
 
     //(c)合駒
     //王手してきた駒と自玉の間を示すBitboard
@@ -722,9 +705,7 @@ void Position::generateEvasionMoves(std::vector<Move>& move_buf) const {
     Bitboard from_bb = occupied_bb_[color_] & ~pinned_piece & ~SQUARE_BB[king_sq_[color_]];
     from_bb.forEach([&](const Square from) {
         Bitboard to_bb = controlBB(from, board_[from], occupied_all_) & between;
-        to_bb.forEach([&](const Square to) {
-            pushMove(Move(to, from, false, false, board_[from], board_[to]), move_buf);
-        });
+        to_bb.forEach([&](const Square to) { pushMove(Move(to, from, false, false, board_[from], board_[to]), move_buf); });
     });
 
     //(c)-2 打つ合
@@ -746,12 +727,9 @@ void Position::generateNormalMoves(std::vector<Move>& move_buf) const {
 
         pinned.forEach([&](const Square from) {
             //pinnerを取る or 間の中で移動するように動ける
-            Bitboard to_bb = controlBB(from, board_[from], occupied_all_)
-                    & (SQUARE_BB[pinner_sq] | BETWEEN_BB[pinner_sq][k_sq]);
+            Bitboard to_bb = controlBB(from, board_[from], occupied_all_) & (SQUARE_BB[pinner_sq] | BETWEEN_BB[pinner_sq][k_sq]);
 
-            to_bb.forEach([&](const Square to) {
-                pushMove(Move(to, from, false, false, board_[from], board_[to]), move_buf);
-            });
+            to_bb.forEach([&](const Square to) { pushMove(Move(to, from, false, false, board_[from], board_[to]), move_buf); });
 
             //使ったマスを記録しておく
             pinned_piece |= SQUARE_BB[from];
@@ -773,9 +751,7 @@ void Position::generateNormalMoves(std::vector<Move>& move_buf) const {
     from_bb.forEach([&](const Square from) {
         //sqにある駒の利き
         Bitboard to_bb = controlBB(from, board_[from], occupied_all_) & ~occupied_bb_[color_];
-        to_bb.forEach([&](const Square to) {
-            pushMove(Move(to, from, false, false, board_[from], board_[to]), move_buf);
-        });
+        to_bb.forEach([&](const Square to) { pushMove(Move(to, from, false, false, board_[from], board_[to]), move_buf); });
     });
 
     //駒を打つ手
@@ -788,15 +764,17 @@ inline bool Position::canPromote(Move move) const {
         || board_[move.from()] & PROMOTE     //すでに成っている駒を動かす手だったらダメ
         || kind(board_[move.from()]) == GOLD //動かす駒が金だったらダメ
         || kind(board_[move.from()]) == KING //動かす駒が玉だったらダメ
-        ) {
+    ) {
         return false;
     }
 
     //位置関係
     if (color_ == BLACK) {
-        return ((Rank1 <= SquareToRank[move.to()] && SquareToRank[move.to()] <= Rank3) || (Rank1 <= SquareToRank[move.from()] && SquareToRank[move.from()] <= Rank3));
+        return ((Rank1 <= SquareToRank[move.to()] && SquareToRank[move.to()] <= Rank3) ||
+                (Rank1 <= SquareToRank[move.from()] && SquareToRank[move.from()] <= Rank3));
     } else {
-        return ((Rank7 <= SquareToRank[move.to()] && SquareToRank[move.to()] <= Rank9) || (Rank7 <= SquareToRank[move.from()] && SquareToRank[move.from()] <= Rank9));
+        return ((Rank7 <= SquareToRank[move.to()] && SquareToRank[move.to()] <= Rank9) ||
+                (Rank7 <= SquareToRank[move.from()] && SquareToRank[move.from()] <= Rank9));
     }
 }
 
@@ -856,18 +834,14 @@ void Position::generateDropMoves(const Bitboard& to_bb, std::vector<Move>& move_
     //その他
     for (Piece p : { SILVER, GOLD, BISHOP, ROOK }) {
         if (hand_[color_].num(p) > 0) {
-            (to_bb).forEach([&](Square to) {
-                move_buf.push_back(dropMove(to, Piece(p | ColorToFlag[color_])));
-            });
+            (to_bb).forEach([&](Square to) { move_buf.push_back(dropMove(to, Piece(p | ColorToFlag[color_]))); });
         }
     }
 }
 
-Bitboard Position::attackersTo(const Color c, const Square sq) const {
-    return attackersTo(c, sq, occupied_all_);
-}
+Bitboard Position::attackersTo(const Color c, const Square sq) const { return attackersTo(c, sq, occupied_all_); }
 
-Bitboard Position::attackersTo(const Color c, const Square sq, const Bitboard & occupied) const {
+Bitboard Position::attackersTo(const Color c, const Square sq, const Bitboard& occupied) const {
     //sqへ利きを持っている駒の位置を示すbitboardを返す
     //sqから相手側の駒として利きを求めてみて、その範囲にc側の駒があるなら利きがある
     Bitboard result(0, 0);
@@ -887,11 +861,9 @@ Bitboard Position::attackersTo(const Color c, const Square sq, const Bitboard & 
     //金
     Piece gold = coloredPiece(c, GOLD);
     Bitboard gold_control = controlBB(sq, oppositeColor(gold), occupied);
-    result |= gold_control & (pieces_bb_[gold]
-        | pieces_bb_[coloredPiece(c, PAWN_PROMOTE)]
-        | pieces_bb_[coloredPiece(c, LANCE_PROMOTE)]
-        | pieces_bb_[coloredPiece(c, KNIGHT_PROMOTE)]
-        | pieces_bb_[coloredPiece(c, SILVER_PROMOTE)]);
+    result |= gold_control &
+              (pieces_bb_[gold] | pieces_bb_[coloredPiece(c, PAWN_PROMOTE)] | pieces_bb_[coloredPiece(c, LANCE_PROMOTE)] |
+               pieces_bb_[coloredPiece(c, KNIGHT_PROMOTE)] | pieces_bb_[coloredPiece(c, SILVER_PROMOTE)]);
 
     //角
     Piece bishop = coloredPiece(c, BISHOP);
@@ -939,8 +911,9 @@ Bitboard Position::computePinners() const {
         //各pinnerの候補についてking_sq_との間を見ていく
         pinner_candidate.forEach([&](const Square jump_piece_sq) {
             Bitboard between = BETWEEN_BB[king_sq_[color_]][jump_piece_sq] & occupied_all_;
-            if (between.pop_count() == 1 && (between & occupied_bb_[color_])) { //betweenに駒が1個だけかつ駒が手番側のものだったらピンされている
-                                                                                //ピンしている駒を記録しておけばピンされた駒は自玉との間でbetween見れば復元できる
+            if (between.pop_count() == 1 &&
+                (between & occupied_bb_[color_])) { //betweenに駒が1個だけかつ駒が手番側のものだったらピンされている
+                //ピンしている駒を記録しておけばピンされた駒は自玉との間でbetween見れば復元できる
                 pinners |= SQUARE_BB[jump_piece_sq];
             }
         });
@@ -980,8 +953,9 @@ inline bool Position::isLastMoveCheck() {
     auto dir = directionAtoB(king_sq_[color_], move.from());
     if (dir == RU || dir == RD || dir == LD || dir == LU) {
         //角の利きで開き王手になっている可能性がある
-        if (kind(move.subject()) != KNIGHT && (directionAtoB(move.from(), move.to()) == directionAtoB(move.to(), king_sq_[color_])
-            || directionAtoB(move.from(), move.to()) == directionAtoB(king_sq_[color_], move.to()))) {
+        if (kind(move.subject()) != KNIGHT &&
+            (directionAtoB(move.from(), move.to()) == directionAtoB(move.to(), king_sq_[color_]) ||
+             directionAtoB(move.from(), move.to()) == directionAtoB(king_sq_[color_], move.to()))) {
             //同じあるいは逆方向だったら関係ない
             return false;
         }
@@ -993,8 +967,9 @@ inline bool Position::isLastMoveCheck() {
         }
     } else if (dir == U || dir == R || dir == D || dir == L) {
         //飛車あるいは香車によって開き王手となっている可能性がある
-        if (kind(move.subject()) != KNIGHT && (directionAtoB(move.from(), move.to()) == directionAtoB(move.to(), king_sq_[color_])
-            || directionAtoB(move.from(), move.to()) == directionAtoB(king_sq_[color_], move.to()))) {
+        if (kind(move.subject()) != KNIGHT &&
+            (directionAtoB(move.from(), move.to()) == directionAtoB(move.to(), king_sq_[color_]) ||
+             directionAtoB(move.from(), move.to()) == directionAtoB(king_sq_[color_], move.to()))) {
             //同じあるいは逆方向だったら関係ない
             return false;
         }
@@ -1026,13 +1001,13 @@ bool Position::isRepeating(float& score) const {
 
         //局面のハッシュ値が一致
         if (hand_hash_ == stack_[index].hand_hash) { //手駒のハッシュ値も一致
-            if ((index == (int32_t) stack_.size() - 4) &&
+            if ((index == (int32_t)stack_.size() - 4) &&
                 (stack_[index].is_checked && stack_[index + 2].is_checked)) { //手番側が連続王手された
                 score = MAX_SCORE;
             } else { //普通の千日手
                 score = (MAX_SCORE + MIN_SCORE) / 2;
             }
-        } else { //局面のハッシュ値だけが一致
+        } else {                                                      //局面のハッシュ値だけが一致
             if (hand_[color_].superior(stack_[index].hand[color_])) { //優等局面
                 score = MAX_SCORE;
             } else if (hand_[color_].inferior(stack_[index].hand[color_])) { //劣等局面
@@ -1050,16 +1025,15 @@ bool Position::isRepeating(float& score) const {
 Move Position::transformValidMove(const Move move) {
     //stringToMoveではどっちの手番かがわからない
     //つまりsubjectが完全には入っていないので手番付きの駒を入れる
-    return (move.isDrop() ?
-            dropMove(move.to(), (color_ == BLACK ? toBlack(move.subject()) : toWhite(move.subject()))) :
-            Move(move.to(), move.from(), false, move.isPromote(), board_[move.from()], board_[move.to()]));
+    return (move.isDrop() ? dropMove(move.to(), (color_ == BLACK ? toBlack(move.subject()) : toWhite(move.subject())))
+                          : Move(move.to(), move.from(), false, move.isPromote(), board_[move.from()], board_[move.to()]));
 }
 
 void Position::initHashValue() {
     hash_value_ = 0;
     board_hash_ = 0;
     hand_hash_ = 0;
-    for (auto sq : SquareList) {
+    for (Square sq : SquareList) {
         board_hash_ ^= HashSeed[board_[sq]][sq];
     }
     for (Piece piece = PAWN; piece <= ROOK; piece++) {
@@ -1073,7 +1047,7 @@ void Position::initHashValue() {
 std::vector<float> Position::makeFeature() const {
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
 
-    uint64_t i;
+    uint64_t i = 0;
 
     //盤上の駒の特徴量
     for (i = 0; i < PieceList.size(); i++) {
@@ -1105,9 +1079,7 @@ std::vector<float> Position::makeFeature() const {
     return features;
 }
 
-bool Position::isLastMoveDropPawn() const {
-    return (lastMove().isDrop() && kind(lastMove().subject()) == PAWN);
-}
+bool Position::isLastMoveDropPawn() const { return (lastMove().isDrop() && kind(lastMove().subject()) == PAWN); }
 
 bool Position::isFinish(float& score, bool check_repeat) {
     //詰みの確認
@@ -1124,7 +1096,7 @@ bool Position::isFinish(float& score, bool check_repeat) {
     }
 
     //宣言勝ち
-    if (canWinDeclare()){
+    if (canWinDeclare()) {
         score = MAX_SCORE;
         return true;
     }
@@ -1143,8 +1115,7 @@ bool Position::canWinDeclare() const {
     //   手番側で考えるのでこれは自明
     //2. 宣言側の玉が敵陣三段目以内に入っている
     Rank rank = SquareToRank[king_sq_[color_]];
-    if ((color_ == BLACK && rank > Rank3)
-     || (color_ == WHITE && rank < Rank7)) {
+    if ((color_ == BLACK && rank > Rank3) || (color_ == WHITE && rank < Rank7)) {
         return false;
     }
 
@@ -1160,10 +1131,10 @@ bool Position::canWinDeclare() const {
     //   ・後手の場合27点以上の持点がある
     //   ・点数の対象となるのは、宣言側の持駒と敵陣三段目以内に存在する玉を除く宣言側の駒のみである
     //4. 宣言側の敵陣三段目以内の駒は、玉を除いて10枚以上存在する
-    constexpr int64_t SCORE_TABLE[KING] = {0, 1, 1, 1, 1, 1, 5, 5};
-    constexpr int64_t THRESHOLD[ColorNum] = {28, 27};
-    constexpr int64_t LOWER_BOUND[ColorNum] = {Rank1, Rank7};
-    constexpr int64_t UPPER_BOUND[ColorNum] = {Rank3, Rank9};
+    constexpr int64_t SCORE_TABLE[KING] = { 0, 1, 1, 1, 1, 1, 5, 5 };
+    constexpr int64_t THRESHOLD[ColorNum] = { 28, 27 };
+    constexpr int64_t LOWER_BOUND[ColorNum] = { Rank1, Rank7 };
+    constexpr int64_t UPPER_BOUND[ColorNum] = { Rank3, Rank9 };
     int64_t score = 0, num = 0;
     for (int64_t r = LOWER_BOUND[color_]; r <= UPPER_BOUND[color_]; r++) {
         for (int64_t f = File1; f <= File9; f++) {

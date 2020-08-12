@@ -1,7 +1,7 @@
-﻿#include"hash_table.hpp"
+﻿#include "hash_table.hpp"
 
 Index HashTable::searchEmptyIndex(const Position& pos) {
-    int64_t hash = pos.hashValue();
+    uint64_t hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
     while (true) {
@@ -30,7 +30,7 @@ Index HashTable::searchEmptyIndex(const Position& pos) {
 }
 
 Index HashTable::findSameHashIndex(const Position& pos) {
-    int64_t hash = pos.hashValue();
+    uint64_t hash = pos.hashValue();
     uint64_t key = hashToIndex(hash);
     uint64_t i = key;
     while (true) {
@@ -60,7 +60,8 @@ void HashTable::saveUsedHash(Position& pos, Index index) {
 
     //再帰的に子ノードを探索していく
     HashEntry& curr_node = table_[index];
-    std::vector<Index>& child_indices = curr_node.child_indices;
+
+    const std::vector<Index>& child_indices = curr_node.child_indices;
     for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
         if (child_indices[i] != NOT_EXPANDED && table_[child_indices[i]].age != age_) {
             pos.doMove(curr_node.moves[i]);

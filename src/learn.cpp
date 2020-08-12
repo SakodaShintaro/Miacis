@@ -1,10 +1,10 @@
-﻿#include"learn.hpp"
-#include"game.hpp"
-#include"hyperparameter_loader.hpp"
-#include"include_switch.hpp"
-#include<sstream>
-#include<iomanip>
-#include<random>
+﻿#include "learn.hpp"
+#include "game.hpp"
+#include "hyperparameter_loader.hpp"
+#include "include_switch.hpp"
+#include <iomanip>
+#include <random>
+#include <sstream>
 
 std::string elapsedTime(const std::chrono::steady_clock::time_point& start) {
     auto elapsed = std::chrono::steady_clock::now() - start;
@@ -17,19 +17,19 @@ std::string elapsedTime(const std::chrono::steady_clock::time_point& start) {
     seconds %= 60;
     int64_t hours = minutes / 60;
     minutes %= 60;
-    ss << std::setfill('0') << std::setw(3) << hours << ":"
-       << std::setfill('0') << std::setw(2) << minutes << ":"
+    ss << std::setfill('0') << std::setw(3) << hours << ":" << std::setfill('0') << std::setw(2) << minutes << ":"
        << std::setfill('0') << std::setw(2) << seconds;
     return ss.str();
 }
 
-double elapsedHours(const std::chrono::steady_clock::time_point& start) {
+float elapsedHours(const std::chrono::steady_clock::time_point& start) {
     auto elapsed = std::chrono::steady_clock::now() - start;
     int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
     return seconds / 3600.0;
 }
 
-std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<LearningData>& validation_data, uint64_t batch_size) {
+std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<LearningData>& validation_data,
+                                            uint64_t batch_size) {
     uint64_t index = 0;
     std::array<float, LOSS_TYPE_NUM> losses{};
     torch::NoGradGuard no_grad_guard;
@@ -99,7 +99,7 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
 #ifdef USE_CATEGORICAL
                 datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
 #else
-                datum.value = (float) (pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
+                datum.value = (float)(pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
 #endif
                 datum.position_str = Position::augmentStr(position_str, i);
                 data_buffer.push_back(datum);

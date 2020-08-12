@@ -1,6 +1,6 @@
-﻿#include"piece.hpp"
-#include<array>
+﻿#include "piece.hpp"
 
+// clang-format off
 const ArrayMap<std::string, PieceNum> PieceToStr({
     { PAWN,   "歩" },
     { LANCE,  "香" },
@@ -165,6 +165,7 @@ const std::array<std::array<Piece, 3>, 2> ColoredJumpPieceList {{
     { BLACK_LANCE, BLACK_BISHOP, BLACK_ROOK },
     { WHITE_LANCE, WHITE_BISHOP, WHITE_ROOK }
 }};
+// clang-format off
 
 std::ostream& operator<<(std::ostream& os, const Piece piece) {
     os << PieceToStr[piece];
