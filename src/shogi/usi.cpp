@@ -1,39 +1,40 @@
-﻿#include"usi.hpp"
-#include"test.hpp"
-#include"../neural_network.hpp"
-#include"../learn.hpp"
-#include"../game.hpp"
+﻿#include "usi.hpp"
+#include "../game.hpp"
+#include "../learn.hpp"
+#include "test.hpp"
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数
-    command_["usi"]        = std::bind(&USI::usi,        this);
-    command_["isready"]    = std::bind(&USI::isready,    this);
-    command_["setoption"]  = std::bind(&USI::setoption,  this);
-    command_["usinewgame"] = std::bind(&USI::usinewgame, this);
-    command_["position"]   = std::bind(&USI::position,   this);
-    command_["go"]         = std::bind(&USI::go,         this);
-    command_["stop"]       = std::bind(&USI::stop,       this);
-    command_["quit"]       = std::bind(&USI::quit,       this);
-    command_["gameover"]   = std::bind(&USI::gameover,   this);
+    // clang-format off
+    command_["usi"]        = [this] { usi(); };
+    command_["isready"]    = [this] { isready(); };
+    command_["setoption"]  = [this] { setoption(); };
+    command_["usinewgame"] = [this] { usinewgame(); };
+    command_["position"]   = [this] { position(); };
+    command_["go"]         = [this] { go(); };
+    command_["stop"]       = [this] { stop(); };
+    command_["quit"]       = [this] { quit(); };
+    command_["gameover"]   = [this] { gameover(); };
 
     //メンバ関数以外
-    command_["initParams"]         = initParams;
-    command_["cleanGames"]         = cleanGames;
-    command_["supervisedLearn"]    = supervisedLearn;
-    command_["alphaZero"]          = alphaZero;
-    command_["test"]               = test;
-    command_["infiniteTest"]       = infiniteTest;
-    command_["checkSearchSpeed"]   = checkSearchSpeed;
-    command_["checkSearchSpeed2"]  = checkSearchSpeed2;
-    command_["checkGenSpeed"]      = checkGenSpeed;
-    command_["checkPredictSpeed"]  = checkPredictSpeed;
-    command_["checkVal"]           = checkVal;
-    command_["checkDoAndUndo"]     = checkDoAndUndo;
-    command_["checkMirror"]        = checkMirror;
-    command_["checkBook"]          = checkBook;
-    command_["makeBook"]           = makeBook;
-    command_["searchWithLog"]      = searchWithLog;
-    command_["convertModelToCPU"]  = convertModelToCPU;
+    command_["initParams"]        = initParams;
+    command_["cleanGames"]        = cleanGames;
+    command_["supervisedLearn"]   = supervisedLearn;
+    command_["alphaZero"]         = alphaZero;
+    command_["test"]              = test;
+    command_["infiniteTest"]      = infiniteTest;
+    command_["checkSearchSpeed"]  = checkSearchSpeed;
+    command_["checkSearchSpeed2"] = checkSearchSpeed2;
+    command_["checkGenSpeed"]     = checkGenSpeed;
+    command_["checkPredictSpeed"] = checkPredictSpeed;
+    command_["checkVal"]          = checkVal;
+    command_["checkDoAndUndo"]    = checkDoAndUndo;
+    command_["checkMirror"]       = checkMirror;
+    command_["checkBook"]         = checkBook;
+    command_["makeBook"]          = makeBook;
+    command_["searchWithLog"]     = searchWithLog;
+    command_["convertModelToCPU"] = convertModelToCPU;
+    // clang-format on
 }
 
 void USI::loop() {
@@ -60,8 +61,8 @@ void USI::usi() {
         std::cout << "option name " << pair.first << " type check default " << std::boolalpha << pair.second.value << std::endl;
     }
     for (const auto& pair : search_options_.spin_options) {
-        std::cout << "option name " << pair.first << " type spin default " << pair.second.value
-                  << " min " << pair.second.min << " max " << pair.second.max << std::endl;
+        std::cout << "option name " << pair.first << " type spin default " << pair.second.value << " min " << pair.second.min
+                  << " max " << pair.second.max << std::endl;
     }
     for (const auto& pair : search_options_.filename_options) {
         std::cout << "option name " << pair.first << " type filename default " << pair.second.value << std::endl;
@@ -105,8 +106,7 @@ void USI::setoption() {
     }
 }
 
-void USI::usinewgame() {
-}
+void USI::usinewgame() {}
 
 void USI::position() {
     //Ponderが走っているかもしれないので一度止める
@@ -131,7 +131,7 @@ void USI::position() {
     root_.init();
     root_.fromStr(sfen);
 
-    std::cin >> input;  //input == "moves" or "go"となる
+    std::cin >> input; //input == "moves" or "go"となる
     if (input != "go") {
         while (std::cin >> input) {
             if (input == "go") {
@@ -150,13 +150,12 @@ void USI::position() {
 void USI::go() {
     searcher_->stop_signal = false;
 
-    int64_t time_limit;
+    int64_t time_limit = 0;
     std::string input;
     std::cin >> input;
     if (input == "ponder") {
         //ponderの処理
         //指し手を指定してのponderは行わないのでここには来ない
-        assert(false);
     } else if (input == "btime") {
         std::cin >> input;
         int64_t btime = stoll(input);
@@ -188,7 +187,9 @@ void USI::go() {
         search_options_.random_turn = 0;
     } else if (input == "mate") {
         //詰み探索(未実装)
-        assert(false);
+        std::cout << "詰み探索は未実装" << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+        std::exit(1);
     }
 
     //思考開始
@@ -196,7 +197,8 @@ void USI::go() {
     //Ponderオンの場合、一度与えられた持ち時間でbestmoveを弾き出したあと無限の持ち時間で現局面についてPonderを行う
     //予想手を決めなくとも置換表を埋めていくだけで強くなるはず
     thread_ = std::thread([this, time_limit]() {
-        Move best_move = (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - search_options_.byoyomi_margin));
+        Move best_move =
+            (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - search_options_.byoyomi_margin));
         std::cout << "bestmove " << best_move << std::endl;
         if (search_options_.USI_Ponder && best_move != NULL_MOVE) {
             root_.doMove(best_move);
@@ -223,12 +225,5 @@ void USI::gameover() {
     stop();
     std::string input;
     std::cin >> input;
-    if (input == "win") {
-        //勝ち
-    } else if (input == "lose") {
-        //負け
-    } else if (input == "draw") {
-        //引き分け
-        return;
-    }
+    //"win" or "lose" or "draw" が来るらしいが、特にするべきことが見当たらない
 }

@@ -22,7 +22,8 @@ parser.add_argument("--Threads", type=int, default=4)
 parser.add_argument("--game_num", type=int, default=500)
 parser.add_argument("--init_model_step", type=int, default=0)
 parser.add_argument("--option", type=str, default=None)
-parser.add_argument("--parameters", type=(lambda x:list(map(int, x.split()))))
+parser.add_argument("--parameters", type=(lambda x: list(map(int, x.split()))))
+parser.add_argument("--Suisho", action="store_true")
 args = parser.parse_args()
 
 # 対局数(先後行うので偶数でなければならない)
@@ -56,7 +57,10 @@ server.engines[1].set_engine_options({"USI_Ponder": "false",
                                       "NetworkDelay": 0,
                                       "NetworkDelay2": 0
                                       })
-server.engines[1].connect(script_dir + "/../../YaneuraOu/bin/YaneuraOu-by-gcc")
+if args.Suisho:
+    server.engines[1].connect(script_dir + "/../../Suisho/bin/YaneuraOu-by-gcc")
+else:
+    server.engines[1].connect(script_dir + "/../../YaneuraOu/bin/YaneuraOu-by-gcc")
 
 # カレントディレクトリ内にある{prefix}_{step}.modelを評価する
 curr_path = os.getcwd()

@@ -1,4 +1,4 @@
-﻿#include"bitboard.hpp"
+﻿#include "bitboard.hpp"
 
 Bitboard BOARD_BB;
 Bitboard SQUARE_BB[SquareNum];
@@ -21,6 +21,7 @@ Bitboard RookRankEffect[FileNum][128];
 
 Bitboard KING_CONTROL_BB[SquareNum];
 
+// clang-format off
 int32_t Slide[] = {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     -1,  1,  1,  1,  1,  1,  1,  1,  1,  1, -1,
@@ -34,8 +35,9 @@ int32_t Slide[] = {
     -1, 10, 10, 10, 10, 10, 10, 10, 10, 10, -1,
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 };
+// clang-format on
 
-std::ostream& operator << (std::ostream& os, const Bitboard& rhs) {
+std::ostream& operator<<(std::ostream& os, const Bitboard& rhs) {
     for (int r = Rank1; r <= Rank9; ++r) {
         for (int f = File9; f >= File1; --f) {
             Bitboard target = rhs & SQUARE_BB[FRToSquare[f][r]];
@@ -89,9 +91,8 @@ void Bitboard::init() {
     }
 
     //4.飛び利き
-    auto indexToOccupied = [](const int index, const int bits, const Bitboard& mask_) {
-        auto mask = mask_;
-        auto result = Bitboard(0, 0);
+    auto indexToOccupied = [](const int index, const int bits, Bitboard mask) {
+        Bitboard result = Bitboard(0, 0);
         for (int i = 0; i < bits; ++i) {
             const Square sq = mask.pop();
             if (index & (1u << i)) {
@@ -104,10 +105,7 @@ void Bitboard::init() {
     //角の利きのために用意しておく
     //n = 0が右上・左下
     //n = 1が左上・右下
-    static const Dir diagonal_deltas[2][2] = {
-        { RU, LD },
-        { RD, LU }
-    };
+    static const Dir diagonal_deltas[2][2] = { { RU, LD }, { RD, LU } };
 
     auto calcBishopEffectMask = [](Square sq, int n) {
         auto result = Bitboard(0, 0);
@@ -127,9 +125,9 @@ void Bitboard::init() {
     };
 
     //角の利きを初期化
-    for (int n : {0, 1}) {
+    for (int n : { 0, 1 }) {
         for (auto sq : SquareList) {
-            auto& mask = BishopEffectMask[n][sq];
+            Bitboard& mask = BishopEffectMask[n][sq];
             mask = calcBishopEffectMask(sq, n);
 
             assert(!mask.crossOver());
@@ -165,7 +163,7 @@ void Bitboard::init() {
             //1つシフトすればそのまま2~8段目のマスの邪魔駒を表す
             int occupied = (i << 1);
             uint64_t bb = 0;
-            
+
             //上に利きを伸ばす
             for (int r = rank - 1; r >= Rank1; --r) {
                 bb |= (1ULL << SquareToNum[FRToSquare[File1][r]]);

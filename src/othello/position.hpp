@@ -1,13 +1,13 @@
-#ifndef MIACIS_POSITION_HPP
-#define MIACIS_POSITION_HPP
+#ifndef MIACIS_OTHELLO_POSITION_HPP
+#define MIACIS_OTHELLO_POSITION_HPP
 
-#include"square.hpp"
-#include"piece.hpp"
-#include"move.hpp"
-#include"../types.hpp"
-#include<random>
-#include<cstdint>
-#include<unordered_map>
+#include "../types.hpp"
+#include "move.hpp"
+#include "piece.hpp"
+#include "square.hpp"
+#include <cstdint>
+#include <random>
+#include <unordered_map>
 
 class Position {
 public:
@@ -52,11 +52,12 @@ public:
     Move lastMove() const { return (kifu_.empty() ? NULL_MOVE : kifu_.back()); }
     uint32_t turnNumber() const { return turn_number_; }
     Color color() const { return color_; }
-    int64_t hashValue() const { return hash_value_; }
+    uint64_t hashValue() const { return hash_value_; }
 
     //回転、左右反転の8通りに拡張可能
     static constexpr int64_t DATA_AUGMENTATION_PATTERN_NUM = 8;
     static std::string augmentStr(const std::string& str, int64_t augmentation);
+
 private:
     //--------------------
     //    内部メソッド
@@ -71,7 +72,7 @@ private:
     //    クラス変数
     //------------------
     //ハッシュの各駒・位置に対する決められた値
-    static int64_t HashSeed[PieceNum][SquareNum];
+    static uint64_t HashSeed[PieceNum][SquareNum];
 
     //------------------------
     //    インスタンス変数
@@ -83,7 +84,7 @@ private:
     std::array<Piece, SquareNum> board_;
 
     //盤面の履歴をスタックで管理
-    std::vector<std::array<Piece, SquareNum>> stack_;
+    std::vector<std::array<Piece, SquareNum>> board_history_;
 
     //手数
     uint32_t turn_number_;
@@ -92,10 +93,10 @@ private:
     std::vector<Move> kifu_;
 
     //現局面のハッシュ値
-    int64_t hash_value_;
+    uint64_t hash_value_;
 
     //ハッシュ値の履歴
-    std::vector<int64_t> hash_values_;
+    std::vector<uint64_t> hash_values_;
 };
 
-#endif //MIACIS_POSITION_HPP
+#endif //MIACIS_OTHELLO_POSITION_HPP
