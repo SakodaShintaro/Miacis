@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import japanize_matplotlib
 import argparse
+import pandas as pd
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-prefix", type=str, required=True)
+parser.add_argument("--method", type=(lambda x: x.split()),
+                    default=["mcts_net", "proposed_model", "simple_mlp", "stacked_lstm"])
 args = parser.parse_args()
 
-M = 10
 PLOT_NUM = 20
 
 
@@ -19,36 +20,47 @@ def transform(arr):
     return arr.mean(1)
 
 
+data_dict = dict()
+
+# まずデータを取得しつつ各損失単体をプロット
+for prefix in args.method:
+    data_dict[prefix] = dict()
+    for loss_name in ["train", "valid"]:
+        df = pd.read_csv(f"./{prefix}_{loss_name}_log.txt", delimiter="\t")
+
+        data_dict[prefix][loss_name] = df
+
+        step = df["step"].to_numpy()
+        if loss_name == "train":
+            step = transform(step)
+
+        for i in range(len(df.columns) - 3):
+            loss = df[f"loss_{i + 1}"].to_numpy()
+            if loss_name == "train":
+                loss = transform(loss)
+            plt.plot(step, loss)
+            plt.text(step[-1], loss[-1], f"{i + 1}回探索後", color=plt.get_cmap("tab10")(i))
+        plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.15))
+        plt.xlabel("学習ステップ数")
+        plt.ylabel("Policy損失")
+        plt.savefig(f"{prefix}_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
+        plt.clf()
+
+# 全体をまとめてプロット
 for loss_name in ["train", "valid"]:
-    f = open(f"./{args.prefix}_{loss_name}_log.txt")
-
-    step = list()
-    losses = None
-
-    # データ読み込み
-    for line in f:
-        elements = line.strip().split()
-        if elements[0] == "time":
-            # ラベルの量によってMなどを調整
-            M = len(elements) - 3
-            losses = [list() for _ in range(M)]
-            continue
-        step.append(int(elements[2]))
-        for i in range(M):
-            losses[i].append(float(elements[3 + i]))
-
-    if loss_name == "train":
-        # 数が多いので適当な間隔で平均を取る
-        step = transform(step)
-
-        for i in range(M):
-            losses[i] = transform(losses[i])
-
-    for i in range(M):
-        plt.plot(step, losses[i])
-        plt.text(step[-1], losses[i][-1], f"{i + 1}回探索後", color=plt.get_cmap("tab10")(i))
-    plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.15))
+    for i, prefix in enumerate(args.method):
+        df = data_dict[prefix][loss_name]
+        step = df["step"].to_numpy()
+        if loss_name == "train":
+            step = transform(step)
+        last_index = len(df.columns) - 4
+        loss = df[f"loss_{last_index + 1}"].to_numpy()
+        if loss_name == "train":
+            loss = transform(loss)
+        plt.plot(step, loss)
+        plt.text(step[-1], loss[-1], f"{prefix}({last_index + 1}回探索)", color=plt.get_cmap("tab10")(i))
+    plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.5))
     plt.xlabel("学習ステップ数")
     plt.ylabel("Policy損失")
-    plt.savefig(f"{args.prefix}_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
+    plt.savefig(f"all_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
     plt.clf()
