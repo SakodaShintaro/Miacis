@@ -34,13 +34,16 @@ for prefix in args.method:
         if loss_name == "train":
             step = transform(step)
 
-        for i in range(len(df.columns) - 3):
+        loss_num = len(df.columns) - 3
+        for i in range(loss_num):
             loss = df[f"loss_{i + 1}"].to_numpy()
             if loss_name == "train":
                 loss = transform(loss)
-            plt.plot(step, loss)
-            plt.text(step[-1], loss[-1], f"{i + 1}回探索後", color=plt.get_cmap("tab10")(i))
-        plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.15))
+            color = [0.0, 0.5, i / loss_num]
+            plt.plot(step, loss, color=color, label=f"{i + 1}回探索後")
+            # plt.text(step[-1], loss[-1], f"{i + 1}回探索後", color=color)
+        plt.legend()
+        # plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.15))
         plt.xlabel("学習ステップ数")
         plt.ylabel("Policy損失")
         plt.savefig(f"{prefix}_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
@@ -63,4 +66,30 @@ for loss_name in ["train", "valid"]:
     plt.xlabel("学習ステップ数")
     plt.ylabel("Policy損失")
     plt.savefig(f"all_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
+    plt.clf()
+
+
+def time_str2time_int(time_str):
+    h, m, s = time_str.split(':')
+    return int(h) + int(m) / 60 + int(s) / 3600
+
+
+for loss_name in ["train", "valid"]:
+    for i, prefix in enumerate(args.method):
+        df = data_dict[prefix][loss_name]
+        time = df["time"].to_numpy()
+        time = [time_str2time_int(v) for v in time]
+        if loss_name == "train":
+            time = transform(time)
+        last_index = len(df.columns) - 4
+        loss = df[f"loss_{last_index + 1}"].to_numpy()
+        if loss_name == "train":
+            loss = transform(loss)
+        plt.plot(time, loss, label=f"{prefix}({last_index + 1}回探索)")
+        # plt.text(time[-1], loss[-1], f"{prefix}({last_index + 1}回探索)", color=plt.get_cmap("tab10")(i))
+    # plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.5))
+    plt.legend()
+    plt.xlabel("学習時間(h)")
+    plt.ylabel("Policy損失")
+    plt.savefig(f"all_time_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
     plt.clf()
