@@ -65,7 +65,7 @@ std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& 
     std::vector<torch::Tensor> loss(1);
     torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
     torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-    loss[0] = (-policy_teacher * clipped).sum().view({ 1 });
+    loss[0] = (-policy_teacher * clipped).sum(1).mean().view({ 1 });
 
     return loss;
 }
