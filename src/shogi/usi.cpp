@@ -1,9 +1,10 @@
-#include"usi.hpp"
-#include"test.hpp"
-#include"../learn.hpp"
-#include"../game.hpp"
-#include"../search_nn/models.hpp"
-#include"../search_nn/learn_search_nn.hpp"
+#include "usi.hpp"
+#include "../game.hpp"
+#include "../learn.hpp"
+#include "../search_nn/learn_search_nn.hpp"
+#include "../search_nn/models.hpp"
+#include "../search_nn/simple_MLP/learn_simple_mlp.hpp"
+#include "test.hpp"
 
 USI::USI() : searcher_(nullptr) {
     //メンバ関数
@@ -40,6 +41,7 @@ USI::USI() : searcher_(nullptr) {
     command_["learnProposedModel"] = [](){ learnSearchNN<ProposedModel>("proposed_model"); };
     command_["learnStackedLSTM"]   = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
     command_["learnSimpleMLP"]     = [](){ learnSearchNN<SimpleMLP>("simple_mlp"); };
+    command_["pretrain"]           = pretrainSimpleMLP;
     // clang-format on
 }
 

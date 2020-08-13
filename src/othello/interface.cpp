@@ -29,6 +29,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["initParams"]        = initParams;
     command_["supervisedLearn"]   = supervisedLearn;
     command_["alphaZero"]         = alphaZero;
+    command_["pretrain"]          = pretrainSimpleMLP;
     // clang-format on
 }
 

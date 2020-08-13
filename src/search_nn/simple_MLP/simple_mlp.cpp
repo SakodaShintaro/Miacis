@@ -39,23 +39,29 @@ Move SimpleMLPImpl::think(Position& root, int64_t time_limit) {
 }
 
 std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& data) {
-    //現状バッチサイズは1のみに対応
-    assert(data.size() == 1);
+    const uint64_t batch_size = data.size();
+    std::vector<float> inputs;
+    std::vector<float> policy_teachers(POLICY_DIM * batch_size, 0.0);
 
-    //局面を構築して推論
-    Position root;
-    root.fromStr(data.front().position_str);
-    torch::Tensor policy_logit = inferPolicy(root);
+    Position pos;
+    for (uint64_t i = 0; i < batch_size; i++) {
+        pos.fromStr(data[i].position_str);
+        torch::Tensor policy_logit = inferPolicy(pos);
 
-    //policyの教師信号
-    std::vector<float> policy_teachers(POLICY_DIM, 0.0);
-    for (const std::pair<int32_t, float>& e : data.front().policy) {
-        policy_teachers[e.first] = e.second;
+        //入力
+        std::vector<float> curr_feature = pos.makeFeature();
+        inputs.insert(inputs.end(), curr_feature.begin(), curr_feature.end());
+
+        //policyの教師信号
+        for (const std::pair<int32_t, float>& e : data[i].policy) {
+            policy_teachers[i * POLICY_DIM + e.first] = e.second;
+        }
     }
 
+    torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
+    torch::Tensor policy_logit = forward(x);
     torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
 
-    //損失を計算
     std::vector<torch::Tensor> loss(1);
     torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
     torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
@@ -67,14 +73,18 @@ std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& 
 torch::Tensor SimpleMLPImpl::inferPolicy(const Position& pos) {
     std::vector<FloatType> inputs = pos.makeFeature();
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    x = encoder_->forward(x);
-    x = x.view({ -1, HIDDEN_DIM });
-    return policy_->forward(x);
+    return forward(x);
 }
 
 void SimpleMLPImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
     (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
+}
+
+torch::Tensor SimpleMLPImpl::forward(const torch::Tensor& x) {
+    torch::Tensor y = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+    y = encoder_->forward(y);
+    y = y.view({ -1, HIDDEN_DIM });
+    return policy_->forward(y);
 }

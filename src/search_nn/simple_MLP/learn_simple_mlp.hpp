@@ -1,0 +1,6 @@
+#ifndef MIACIS_LEARN_SIMPLE_MLP_HPP
+#define MIACIS_LEARN_SIMPLE_MLP_HPP
+
+void pretrainSimpleMLP();
+
+#endif //MIACIS_LEARN_SIMPLE_MLP_HPP

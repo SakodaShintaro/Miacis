@@ -22,6 +22,9 @@ public:
     static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
 
 private:
+    //入力として局面の特徴量を並べたvectorを受け取ってPolicyとValueに対応するTensorを返す関数
+    torch::Tensor forward(const torch::Tensor& x);
+
     //評価パラメータを読み書きするファイルのprefix
     static const std::string MODEL_PREFIX;
 

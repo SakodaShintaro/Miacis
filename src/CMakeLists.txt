@@ -20,17 +20,18 @@ set(SRCS hash_table.cpp
          alphazero_learn.cpp
          searcher.cpp
          searcher_for_play.cpp
-         searcher_for_mate.cpp
-         hyperparameter_loader.cpp
-         segment_tree.cpp
-         common.cpp
-         search_nn/mcts_net/mcts_net.cpp
-         search_nn/mcts_net/hash_table_for_mcts_net.cpp
-         search_nn/proposed_model/proposed_model.cpp
-         search_nn/stacked_lstm/stacked_lstm.cpp
-         search_nn/state_encoder.cpp
-         search_nn/simple_MLP/simple_mlp.cpp
-         search_nn/muzero/muzero.cpp search_nn/muzero/muzero.hpp
+        searcher_for_mate.cpp
+        hyperparameter_loader.cpp
+        segment_tree.cpp
+        common.cpp
+        search_nn/mcts_net/mcts_net.cpp
+        search_nn/mcts_net/hash_table_for_mcts_net.cpp
+        search_nn/proposed_model/proposed_model.cpp
+        search_nn/stacked_lstm/stacked_lstm.cpp
+        search_nn/state_encoder.cpp
+        search_nn/simple_MLP/simple_mlp.cpp
+        search_nn/muzero/muzero.cpp
+        search_nn/simple_MLP/learn_simple_mlp.cpp
         )
 
 #将棋用のバイナリをコンパイルするのに必要なソース
