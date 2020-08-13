@@ -1,8 +1,8 @@
-﻿#include"test.hpp"
-#include"../game_generator.hpp"
-#include"../searcher_for_play.hpp"
-#include"../learn.hpp"
-#include"book.hpp"
+﻿#include "test.hpp"
+#include "../game_generator.hpp"
+#include "../searcher_for_play.hpp"
+#include "book.hpp"
+#include <cmath>
 
 void test() {
     SearchOptions search_options;
@@ -30,15 +30,16 @@ void test() {
             break;
         }
 
-        float finish_score;
-        if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2)
-            || pos.turnNumber() > search_options.draw_turn) {
+        float finish_score = NAN;
+        if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2) ||
+            pos.turnNumber() > search_options.draw_turn) {
             //千日手or持将棋
             game.result = finish_score;
             break;
         }
 
         pos.doMove(best_move);
+        pos.print();
         OneTurnElement element;
         element.move = best_move;
         game.elements.push_back(element);
@@ -71,7 +72,7 @@ void infiniteTest() {
 
             pos.doMove(best_move);
             //pos.print();
-            float finish_score;
+            float finish_score = NAN;
             if (pos.isFinish(finish_score)) {
                 break;
             }
@@ -97,7 +98,7 @@ void checkGenSpeed() {
     nn->setGPU(0, search_options.use_fp16);
     nn->eval();
 
-    int64_t total_worker_num;
+    int64_t total_worker_num = 0;
     std::cout << "total_worker_num(デフォルトは128): ";
     std::cin >> total_worker_num;
 
@@ -114,13 +115,15 @@ void checkGenSpeed() {
         for (search_options.search_batch_size = 1; search_options.search_batch_size <= 4; search_options.search_batch_size *= 2) {
             ReplayBuffer buffer(0, buffer_size, 1, 1.0, 1.0, false);
             auto start = std::chrono::steady_clock::now();
-            GameGenerator generator(search_options, worker_num, Q_dist_lambda, noise_mode, noise_epsilon, noise_alpha, buffer, nn);
+            GameGenerator generator(search_options, worker_num, Q_dist_lambda, noise_mode, noise_epsilon, noise_alpha, buffer,
+                                    nn);
             std::thread t(&GameGenerator::genGames, &generator);
             for (int64_t i = 0; i < num; i++) {
                 std::this_thread::sleep_for(std::chrono::seconds(sec));
                 auto curr_time = std::chrono::steady_clock::now();
                 auto ela = std::chrono::duration_cast<std::chrono::milliseconds>(curr_time - start);
-                double gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
+                float gen_speed_per_sec = (buffer.totalNum() * 1000.0) / ela.count();
+                // clang-format off
                 std::cout << "thread = " << search_options.thread_num_per_gpu
                           << ",  batch_size = " << std::setw(2) << search_options.search_batch_size
                           << ",  worker = " << std::setw(3) << worker_num
@@ -128,13 +131,11 @@ void checkGenSpeed() {
                           << ",  min = " << std::setw(4) << ela.count() / 60000
                           << ",  speed = " << std::setprecision(3) << gen_speed_per_sec << " pos / sec"
                           << std::endl;
+                // clang-format on
             }
-            ofs << search_options.thread_num_per_gpu << " "
-                << std::setw(2) << search_options.search_batch_size << " "
-                << std::setw(4) << worker_num << " "
-                << std::setw(7) << buffer.totalNum() << " "
-                << std::setw(9) << num * sec << " "
-                << std::setprecision(3) << (double) buffer.totalNum() / (num * sec) << std::endl;
+            ofs << search_options.thread_num_per_gpu << " " << std::setw(2) << search_options.search_batch_size << " "
+                << std::setw(4) << worker_num << " " << std::setw(7) << buffer.totalNum() << " " << std::setw(9) << num * sec
+                << " " << std::setprecision(3) << (float)buffer.totalNum() / (num * sec) << std::endl;
             generator.stop_signal = true;
             t.join();
         }
@@ -217,13 +218,13 @@ void checkSearchSpeed2() {
 
     for (search_options.search_batch_size = 1; search_options.search_batch_size <= 256; search_options.search_batch_size++) {
         Position pos;
-        double sum_init = 0.0, sum_mid = 0.0;
+        float sum_init = 0.0, sum_mid = 0.0;
         for (int64_t _ = 0; _ < trial_num; _++) {
             SearcherForPlay searcher(search_options);
             Move best_move = searcher.think(pos, time_limit);
             const HashTable& hash_table = searcher.hashTable();
             const HashEntry& root_entry = hash_table[hash_table.root_index];
-            double curr_nps = root_entry.sum_N / (time_limit / 1000.0);
+            float curr_nps = root_entry.sum_N / (time_limit / 1000.0);
             std::cout << "s:" << _ << " " << curr_nps << "\t" << best_move << "  \r" << std::flush;
             sum_init += curr_nps;
         }
@@ -234,7 +235,7 @@ void checkSearchSpeed2() {
             Move best_move = searcher.think(pos, time_limit);
             const HashTable& hash_table = searcher.hashTable();
             const HashEntry& root_entry = hash_table[hash_table.root_index];
-            double curr_nps = root_entry.sum_N / (time_limit / 1000.0);
+            float curr_nps = root_entry.sum_N / (time_limit / 1000.0);
             std::cout << "m:" << _ << " " << curr_nps << "\t" << best_move << "  \r" << std::flush;
             sum_mid += curr_nps;
         }
@@ -293,7 +294,7 @@ void checkPredictSpeed() {
 
         std::cout << input.size() << std::endl;
 
-        long double time = 0.0;
+        float time = 0.0;
         for (int64_t i = 0; i < REPEAT_NUM; i++) {
             auto start = std::chrono::steady_clock::now();
             torch::NoGradGuard no_grad_guard;
@@ -303,7 +304,8 @@ void checkPredictSpeed() {
             time += elapsed.count();
         }
 
-        std::cout << "batch_size = " << std::setw(5) << batch_size << ", " << time / REPEAT_NUM << " microsec / batch" << std::endl;
+        std::cout << "batch_size = " << std::setw(5) << batch_size << ", " << time / REPEAT_NUM << " microsec / batch"
+                  << std::endl;
     }
 }
 
@@ -340,7 +342,7 @@ void checkSegmentTree() {
 void checkDoAndUndo() {
     for (int64_t i = 0; i < 1000000000000; i++) {
         Position pos;
-        float score;
+        float score = NAN;
         while (!pos.isFinish(score)) {
             std::vector<Move> moves = pos.generateAllMoves();
             std::uniform_int_distribution<int64_t> dist(0, moves.size() - 1);
@@ -362,7 +364,7 @@ void checkDoAndUndo() {
 void checkMirror() {
     for (int64_t i = 0; i < 1; i++) {
         Position pos;
-        float score;
+        float score = NAN;
         while (!pos.isFinish(score)) {
             std::vector<Move> moves = pos.generateAllMoves();
             std::uniform_int_distribution<int64_t> dist(0, moves.size() - 1);
@@ -390,7 +392,7 @@ void checkBook() {
     YaneBook book;
     book.open("./standard_book.db");
     Position pos;
-    float score;
+    float score = NAN;
     while (!pos.isFinish(score)) {
         pos.print();
         if (book.hasEntry(pos)) {
@@ -407,7 +409,7 @@ void checkBook() {
 }
 
 void makeBook() {
-    int64_t search_num, think_sec;
+    int64_t search_num = 0, think_sec = 0;
     std::cout << "定跡に追加するノード数: ";
     std::cin >> search_num;
     std::cout << "一局面の思考時間(秒): ";
@@ -444,7 +446,7 @@ void searchWithLog() {
             }
 
             pos.doMove(best_move);
-            float finish_score;
+            float finish_score = NAN;
             if (pos.isFinish(finish_score)) {
                 break;
             }

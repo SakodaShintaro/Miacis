@@ -1,5 +1,5 @@
-﻿#ifndef TEST_HPP
-#define TEST_HPP
+﻿#ifndef MIACIS_SHOGI_TEST_HPP
+#define MIACIS_SHOGI_TEST_HPP
 
 void test();
 void infiniteTest();
@@ -16,4 +16,4 @@ void makeBook();
 void searchWithLog();
 void convertModelToCPU();
 
-#endif // !TEST_HPP
+#endif //MIACIS_SHOGI_TEST_HPP

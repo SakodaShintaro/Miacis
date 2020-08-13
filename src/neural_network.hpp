@@ -1,8 +1,8 @@
 ﻿#ifndef MIACIS_NEURAL_NETWORK_HPP
 #define MIACIS_NEURAL_NETWORK_HPP
 
-#include"neural_network_modules.hpp"
-#include"types.hpp"
+#include "neural_network_modules.hpp"
+#include "types.hpp"
 
 //型のエイリアス
 using FloatType = float;
@@ -27,14 +27,10 @@ struct LearningData {
 };
 
 //損失の種類
-enum LossType {
-    POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM
-};
+enum LossType { POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM };
 
 //各損失の名前を示す文字列
-const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{
-    "policy", "value"
-};
+const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{ "policy", "value" };
 
 //#define REPRESENTATION_DROPOUT
 
@@ -90,11 +86,9 @@ TORCH_MODULE(NeuralNetwork);
 
 //Categorical分布に対する操作
 #ifdef USE_CATEGORICAL
-inline int32_t valueToIndex(double value) {
-    return std::min((int32_t)((value - MIN_SCORE) / VALUE_WIDTH), BIN_SIZE - 1);
-}
+inline int32_t valueToIndex(float value) { return std::min((int32_t)((value - MIN_SCORE) / VALUE_WIDTH), BIN_SIZE - 1); }
 
-inline ValueType onehotDist(double value) {
+inline ValueType onehotDist(float value) {
     //valueForBlackのところだけ1.0, 他は0.0とした分布を返す
     ValueType result{};
     result[valueToIndex(value)] = 1.0;

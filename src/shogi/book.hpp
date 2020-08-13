@@ -1,5 +1,5 @@
-#ifndef MIACIS_BOOK_HPP
-#define MIACIS_BOOK_HPP
+#ifndef MIACIS_SHOGI_BOOK_HPP
+#define MIACIS_SHOGI_BOOK_HPP
 
 #include "position.hpp"
 
@@ -16,6 +16,7 @@ public:
     void open(const std::string& file_name);
     bool hasEntry(const Position& pos);
     Move pickOne(const Position& pos, float temperature);
+
 private:
     std::unordered_map<std::string, std::vector<YaneBookEntry>> book_;
 };
@@ -34,9 +35,10 @@ public:
     void updateOne(int64_t think_sec);
     bool hasEntry(const Position& pos);
     Move pickOne(const Position& pos, float temperature);
+
 private:
     static std::string removeTurnNumber(const std::string& sfen);
     std::unordered_map<std::string, BookEntry> book_;
 };
 
-#endif //MIACIS_BOOK_HPP
+#endif //MIACIS_SHOGI_BOOK_HPP

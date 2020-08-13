@@ -1,10 +1,10 @@
 ﻿#ifndef MIACIS_SEARCHER_HPP
 #define MIACIS_SEARCHER_HPP
 
-#include"hash_table.hpp"
-#include"search_options.hpp"
-#include<chrono>
-#include<stack>
+#include "hash_table.hpp"
+#include "search_options.hpp"
+#include <chrono>
+#include <stack>
 
 //GPUに対する評価要求を溜めるキュー
 //hash_tableのindexに相当する入力inputを計算して適切な場所に書き込むことを要求する
@@ -24,7 +24,7 @@ struct BackupQueue {
 class Searcher {
 public:
     explicit Searcher(const SearchOptions& search_options, HashTable& hash_table, GPUQueue& gpu_queue)
-            : hash_table_(hash_table), search_options_(search_options), gpu_queue_(gpu_queue) {}
+        : hash_table_(hash_table), search_options_(search_options), gpu_queue_(gpu_queue) {}
 
     //再帰しない探索関数
     void select(Position& pos);
@@ -35,7 +35,10 @@ public:
     //バックアップ
     void backupAll();
 
-    void clearBackupQueue() { backup_queue_.indices.clear(); backup_queue_.actions.clear(); }
+    void clearBackupQueue() {
+        backup_queue_.indices.clear();
+        backup_queue_.actions.clear();
+    }
 
 private:
     //今のノードから遷移するべきノードを選択する関数

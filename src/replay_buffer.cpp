@@ -1,9 +1,9 @@
-﻿#include"replay_buffer.hpp"
-#include"include_switch.hpp"
-#include"common.hpp"
-#include<thread>
-#include<iomanip>
-#include<random>
+﻿#include "replay_buffer.hpp"
+#include "common.hpp"
+#include "include_switch.hpp"
+#include <iomanip>
+#include <random>
+#include <thread>
 
 const std::string ReplayBuffer::KIFU_SAVE_DIR = "./learn_kifu/";
 
@@ -37,7 +37,7 @@ std::vector<LearningData> ReplayBuffer::makeBatch(int64_t batch_size) {
     return data;
 }
 
-void ReplayBuffer::push(Game &game) {
+void ReplayBuffer::push(Game& game) {
     mutex_.lock();
 
     Position pos;
@@ -93,7 +93,8 @@ void ReplayBuffer::push(Game &game) {
 #else
 #ifdef USE_SIGMOID
         constexpr FloatType eps = 1e-5f;
-        priority += -value_teacher * std::log(e.nn_output_value + eps) - (1.0 - value_teacher) * std::log(1 - e.nn_output_value + eps);
+        priority +=
+            -value_teacher * std::log(e.nn_output_value + eps) - (1.0 - value_teacher) * std::log(1 - e.nn_output_value + eps);
 #else
         priority += std::pow(e.nn_output_value - value_teacher, 2.0f);
 #endif

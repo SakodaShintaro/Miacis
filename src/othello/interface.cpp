@@ -1,29 +1,29 @@
-﻿#include"interface.hpp"
-#include"../neural_network.hpp"
-#include"../learn.hpp"
-#include"../game.hpp"
+﻿#include "interface.hpp"
+#include "../game.hpp"
+#include "../learn.hpp"
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
-    command_["printOption"]    = std::bind(&Interface::printOption,    this);
-    command_["set"]            = std::bind(&Interface::set,            this);
-    command_["think"]          = std::bind(&Interface::think,          this);
-    command_["test"]           = std::bind(&Interface::test,           this);
-    command_["infiniteTest"]   = std::bind(&Interface::infiniteTest,   this);
-    command_["battle"]         = std::bind(&Interface::battle,         this);
-    command_["battleVSRandom"] = std::bind(&Interface::battleVSRandom, this);
-    command_["outputValue"]    = std::bind(&Interface::outputValue,    this);
-    command_["init"]           = std::bind(&Interface::init,           this);
-    command_["play"]           = std::bind(&Interface::play,           this);
-    command_["go"]             = std::bind(&Interface::go,             this);
-    command_["stop"]           = std::bind(&Interface::stop,           this);
-    command_["quit"]           = std::bind(&Interface::quit,           this);
+    // clang-format off
+    command_["printOption"]    = [this] { printOption(); };
+    command_["set"]            = [this] { set(); };
+    command_["think"]          = [this] { think(); };
+    command_["test"]           = [this] { test(); };
+    command_["infiniteTest"]   = [this] { infiniteTest(); };
+    command_["battle"]         = [this] { battle(); };
+    command_["battleVSRandom"] = [this] { battleVSRandom(); };
+    command_["outputValue"]    = [this] { outputValue(); };
+    command_["init"]           = [this] { init(); };
+    command_["play"]           = [this] { play(); };
+    command_["go"]             = [this] { go(); };
+    command_["stop"]           = [this] { stop(); };
+    command_["quit"]           = [this] { quit(); };
 
     //メンバ関数以外
-    command_["initParams"]         = initParams;
-    command_["alphaZero"]          = alphaZero;
-    command_["supervisedLearn"]    = supervisedLearn;
-    command_["testLoadGame"]       = [this](){ std::string path; std::cin>>path; loadGames(path); };
+    command_["initParams"]      = initParams;
+    command_["alphaZero"]       = alphaZero;
+    command_["supervisedLearn"] = supervisedLearn;
+    // clang-format on
 }
 
 void Interface::loop() {
@@ -50,8 +50,8 @@ void Interface::printOption() {
         std::cout << "option name " << pair.first << " type check default " << std::boolalpha << pair.second.value << std::endl;
     }
     for (const auto& pair : options_.spin_options) {
-        std::cout << "option name " << pair.first << " type spin default " << pair.second.value
-                  << " min " << pair.second.min << " max " << pair.second.max << std::endl;
+        std::cout << "option name " << pair.first << " type spin default " << pair.second.value << " min " << pair.second.min
+                  << " max " << pair.second.max << std::endl;
     }
     for (const auto& pair : options_.filename_options) {
         std::cout << "option name " << pair.first << " type filename default " << pair.second.value << std::endl;
@@ -124,9 +124,9 @@ void Interface::test() {
             break;
         }
 
-        float finish_score;
-        if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2)
-            || pos.turnNumber() > search_options.draw_turn) {
+        float finish_score{};
+        if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2) ||
+            pos.turnNumber() > search_options.draw_turn) {
             //千日手or持将棋
             game.result = finish_score;
             break;
@@ -159,7 +159,7 @@ void Interface::infiniteTest() {
         root_.init();
         while (true) {
             root_.print();
-            float score;
+            float score{};
             if (root_.isFinish(score)) {
                 std::cout << "score = " << score << std::endl;
                 break;
@@ -176,7 +176,7 @@ void Interface::battle() {
 
     //手番の入力
     std::cout << "人間の手番(0 or 1): ";
-    int64_t turn;
+    int64_t turn = 0;
     std::cin >> turn;
 
     //対局の準備
@@ -189,7 +189,7 @@ void Interface::battle() {
     searcher_ = std::make_unique<SearcherForPlay>(options_);
 
     while (true) {
-        float score;
+        float score{};
         root_.print();
         if (root_.isFinish(score)) {
             std::cout << "score = " << score << std::endl;
@@ -229,7 +229,7 @@ void Interface::battleVSRandom() {
         root_.init();
 
         while (true) {
-            float score;
+            float score{};
             root_.print();
             if (root_.isFinish(score)) {
                 std::cout << "score = " << score << std::endl;
@@ -293,7 +293,7 @@ void Interface::outputValue() {
 
     std::uniform_real_distribution<float> dist(0.0, 1.0);
 
-    float score;
+    float score{};
     while (!root_.isFinish(score)) {
         std::vector<float> feature = root_.makeFeature();
         root_.print();
@@ -309,7 +309,7 @@ void Interface::outputValue() {
         uint64_t index = 0;
         float probability_sum = 0;
         float threshold = dist(engine);
-        for (index = 0; index < moves.size(); index++) {
+        for (; index < moves.size(); index++) {
             if ((probability_sum += policy[index]) >= threshold) {
                 break;
             }

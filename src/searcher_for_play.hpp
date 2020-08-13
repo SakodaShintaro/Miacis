@@ -1,14 +1,14 @@
 ﻿#ifndef MIACIS_SEARCHER_FOR_PLAY_HPP
 #define MIACIS_SEARCHER_FOR_PLAY_HPP
 
-#include"searcher.hpp"
-#include"neural_network.hpp"
-#include"searcher_for_mate.hpp"
-#include<stack>
-#include<mutex>
+#include "neural_network.hpp"
+#include "searcher.hpp"
+#include "searcher_for_mate.hpp"
+#include <mutex>
+#include <stack>
 
 #ifdef SHOGI
-#include"shogi/book.hpp"
+#include "shogi/book.hpp"
 #endif
 
 class SearcherForPlay {
@@ -57,11 +57,11 @@ private:
     std::chrono::steady_clock::time_point start_;
 
     //時間制限(msec),ノード数制限
-    int64_t time_limit_;
-    int64_t node_limit_;
+    int64_t time_limit_{};
+    int64_t node_limit_{};
 
     //次に表示する経過時間
-    int64_t next_print_time_;
+    int64_t next_print_time_{};
 
     //詰み探索エージェント
     SearcherForMate mate_searcher_;

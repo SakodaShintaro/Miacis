@@ -12,20 +12,10 @@ std::vector<Game> loadGames(const std::string& path) {
     for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
         //対応関係をunordered_mapで引けるようにしておく
         static std::unordered_map<std::string, Piece> CSAstringToPiece = {
-                { "FU", PAWN },
-                { "KY", LANCE },
-                { "KE", KNIGHT },
-                { "GI", SILVER },
-                { "KI", GOLD },
-                { "KA", BISHOP },
-                { "HI", ROOK },
-                { "OU", KING },
-                { "TO", PAWN_PROMOTE },
-                { "NY", LANCE_PROMOTE },
-                { "NK", KNIGHT_PROMOTE },
-                { "NG", SILVER_PROMOTE },
-                { "UM", BISHOP_PROMOTE },
-                { "RY", ROOK_PROMOTE },
+            { "FU", PAWN },           { "KY", LANCE },         { "KE", KNIGHT },         { "GI", SILVER },
+            { "KI", GOLD },           { "KA", BISHOP },        { "HI", ROOK },           { "OU", KING },
+            { "TO", PAWN_PROMOTE },   { "NY", LANCE_PROMOTE }, { "NK", KNIGHT_PROMOTE }, { "NG", SILVER_PROMOTE },
+            { "UM", BISHOP_PROMOTE }, { "RY", ROOK_PROMOTE },
         };
 
         Position pos;
@@ -49,7 +39,7 @@ std::vector<Game> loadGames(const std::string& path) {
             //CSAのフォーマットから、動くものが成済なのにfromにある駒が不成の場合、成る手
             bool isPromote = ((subject & PROMOTE) && !(pos.on(from) & PROMOTE));
             if (isPromote) {
-                subject = (Piece) (subject & ~PROMOTE);
+                subject = (Piece)(subject & ~PROMOTE);
             }
 
             //Moveを生成し、Positionの情報を使って完全なものとする
@@ -77,7 +67,7 @@ void cleanGames() {
     std::string path;
     std::cin >> path;
 
-    double rate_threshold;
+    FloatType rate_threshold{};
     std::cout << "削除するレートの閾値 : ";
     std::cin >> rate_threshold;
     constexpr int32_t move_threshold = 50;
@@ -88,7 +78,7 @@ void cleanGames() {
         std::string buf;
         int32_t move_count = 0;
         bool illegal_summary = false;
-        double black_rate = 0, white_rate = 0;
+        FloatType black_rate = 0, white_rate = 0;
         while (getline(ifs, buf)) {
             //レート読み込み
             if (buf.find("'black_rate") < buf.size()) {
@@ -150,7 +140,7 @@ void Game::writeKifuFile(const std::string& dir_path) const {
         File to_file = SquareToFile[m.to()];
         Rank to_rank = SquareToRank[m.to()];
         ofs << fileToString[to_file] << rankToString[to_rank];
-        Piece subject = (Piece) (m.subject() & (PROMOTE | PIECE_KIND_MASK));
+        Piece subject = (Piece)(m.subject() & (PROMOTE | PIECE_KIND_MASK));
         ofs << PieceToStr[subject];
         if (m.isDrop()) {
             ofs << "打" << std::endl;

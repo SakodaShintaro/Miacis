@@ -20,6 +20,7 @@ public:
     float operator[](uint64_t i);
 
     void print() const;
+
 private:
     //最下段,要素の数:2のべき乗
     uint64_t n_;
