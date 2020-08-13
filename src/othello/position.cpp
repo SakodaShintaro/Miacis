@@ -153,7 +153,7 @@ void Position::undo() {
 
 bool Position::isLegalMove(const Move move) const {
     if (move == NULL_MOVE) {
-        auto moves = generateAllMoves();
+        std::vector<Move> moves = generateAllMoves();
         return (moves.size() == 1 && moves[0] == NULL_MOVE);
     }
 
@@ -205,7 +205,7 @@ std::vector<Move> Position::generateAllMoves() const {
 
 void Position::initHashValue() {
     hash_value_ = 0;
-    for (auto sq : SquareList) {
+    for (Square sq : SquareList) {
         hash_value_ ^= HashSeed[board_[sq]][sq];
     }
     hash_value_ &= ~1;     //これで1bit目が0になる
