@@ -50,14 +50,14 @@ std::ostream& operator<<(std::ostream& os, const Bitboard& rhs) {
 
 void Bitboard::init() {
     //1.SQUARE_BB
-    for (auto sq : SquareList) {
+    for (Square sq : SquareList) {
         SQUARE_BB[sq] = Bitboard(sq);
         BOARD_BB |= SQUARE_BB[sq];
     }
 
     //2.FILE_BB,RANK_BB
-    for (int f = File1; f <= File9; ++f) {
-        for (int r = Rank1; r <= Rank9; ++r) {
+    for (int32_t f = File1; f <= File9; ++f) {
+        for (int32_t r = Rank1; r <= Rank9; ++r) {
             FILE_BB[f] |= SQUARE_BB[FRToSquare[f][r]];
             RANK_BB[r] |= SQUARE_BB[FRToSquare[f][r]];
         }
@@ -67,11 +67,11 @@ void Bitboard::init() {
     PROMOTION_ZONE_BB[BLACK] = RANK_BB[Rank1] | RANK_BB[Rank2] | RANK_BB[Rank3];
     PROMOTION_ZONE_BB[WHITE] = RANK_BB[Rank7] | RANK_BB[Rank8] | RANK_BB[Rank9];
 
-    for (int rank = Rank1; rank <= Rank9; ++rank) {
-        for (int black_front = rank - 1; black_front >= Rank1; --black_front) {
+    for (int32_t rank = Rank1; rank <= Rank9; ++rank) {
+        for (int32_t black_front = rank - 1; black_front >= Rank1; --black_front) {
             FRONT_BB[BLACK][rank] |= RANK_BB[black_front];
         }
-        for (int white_front = rank + 1; white_front <= Rank9; ++white_front) {
+        for (int32_t white_front = rank + 1; white_front <= Rank9; ++white_front) {
             FRONT_BB[WHITE][rank] |= RANK_BB[white_front];
         }
     }
@@ -79,7 +79,7 @@ void Bitboard::init() {
     //BETWEEN_BB
     for (Square sq1 : SquareList) {
         for (Square sq2 : SquareList) {
-            auto dir = directionAtoB(sq1, sq2);
+            Dir dir = directionAtoB(sq1, sq2);
             if (dir == H) {
                 continue;
             }
@@ -91,9 +91,9 @@ void Bitboard::init() {
     }
 
     //4.飛び利き
-    auto indexToOccupied = [](const int index, const int bits, Bitboard mask) {
+    auto indexToOccupied = [](const int32_t index, const int32_t bits, Bitboard mask) {
         Bitboard result = Bitboard(0, 0);
-        for (int i = 0; i < bits; ++i) {
+        for (int32_t i = 0; i < bits; ++i) {
             const Square sq = mask.pop();
             if (index & (1u << i)) {
                 result |= SQUARE_BB[sq];
@@ -107,10 +107,10 @@ void Bitboard::init() {
     //n = 1が左上・右下
     static const Dir diagonal_deltas[2][2] = { { RU, LD }, { RD, LU } };
 
-    auto calcBishopEffectMask = [](Square sq, int n) {
-        auto result = Bitboard(0, 0);
+    auto calcBishopEffectMask = [](Square sq, int32_t n) {
+        Bitboard result = Bitboard(0, 0);
 
-        for (auto delta : diagonal_deltas[n]) {
+        for (Dir delta : diagonal_deltas[n]) {
             for (Square to = sq + delta; isOnBoard(to); to = to + delta) {
                 result |= SQUARE_BB[to];
             }
@@ -125,23 +125,23 @@ void Bitboard::init() {
     };
 
     //角の利きを初期化
-    for (int n : { 0, 1 }) {
-        for (auto sq : SquareList) {
+    for (int32_t n : { 0, 1 }) {
+        for (Square sq : SquareList) {
             Bitboard& mask = BishopEffectMask[n][sq];
             mask = calcBishopEffectMask(sq, n);
 
             assert(!mask.crossOver());
 
             //全てのBitが立っている場合が最大
-            auto bits = (int)(mask.pop_count());
-            const int num = (1u << bits);
-            for (int i = 0; i < num; ++i) {
+            int32_t bits = (int32_t)(mask.pop_count());
+            const int32_t num = (1u << bits);
+            for (int32_t i = 0; i < num; ++i) {
                 //邪魔駒の位置を示すindexであるiからoccupiedへ変換する
                 Bitboard occupied = indexToOccupied(i, bits, mask);
                 uint64_t index = occupiedToIndex(occupied, BishopEffectMask[n][sq]);
 
                 //occupiedを考慮した利きを求める
-                for (auto delta : diagonal_deltas[n]) {
+                for (Dir delta : diagonal_deltas[n]) {
                     for (Square to = sq + delta; isOnBoard(to); to = to + delta) {
                         BishopEffect[n][sq][index] |= SQUARE_BB[to];
 
@@ -156,16 +156,16 @@ void Bitboard::init() {
     }
 
     //飛車の縦方向
-    for (int rank = Rank1; rank <= Rank9; ++rank) {
-        const int num1s = 7;
+    for (int32_t rank = Rank1; rank <= Rank9; ++rank) {
+        const int32_t num1s = 7;
         for (uint64_t i = 0; i < (1u << num1s); ++i) {
             //iが邪魔駒の配置を表したindex
             //1つシフトすればそのまま2~8段目のマスの邪魔駒を表す
-            int occupied = (i << 1);
+            int32_t occupied = (i << 1);
             uint64_t bb = 0;
 
             //上に利きを伸ばす
-            for (int r = rank - 1; r >= Rank1; --r) {
+            for (int32_t r = rank - 1; r >= Rank1; --r) {
                 bb |= (1ULL << SquareToNum[FRToSquare[File1][r]]);
                 //邪魔駒があったらそこまで
                 if (occupied & (1 << (r - Rank1))) {
@@ -174,7 +174,7 @@ void Bitboard::init() {
             }
 
             //下に利きを伸ばす
-            for (int r = rank + 1; r <= Rank9; ++r) {
+            for (int32_t r = rank + 1; r <= Rank9; ++r) {
                 bb |= (1LL << SquareToNum[FRToSquare[File1][r]]);
                 //邪魔駒があったらそこまで
                 if (occupied & (1 << (r - Rank1))) {
@@ -186,18 +186,18 @@ void Bitboard::init() {
     }
 
     //飛車の横方向
-    for (int file = File1; file <= File9; ++file) {
-        const int num1s = 7;
-        for (int i = 0; i < (1 << num1s); ++i) {
-            int j = i << 1;
+    for (int32_t file = File1; file <= File9; ++file) {
+        const int32_t num1s = 7;
+        for (int32_t i = 0; i < (1 << num1s); ++i) {
+            int32_t j = i << 1;
             Bitboard bb(0, 0);
-            for (int f = file - 1; f >= File1; --f) {
+            for (int32_t f = file - 1; f >= File1; --f) {
                 bb |= SQUARE_BB[FRToSquare[f][Rank1]];
                 if (j & (1 << (f - File1))) {
                     break;
                 }
             }
-            for (int f = file + 1; f <= File9; ++f) {
+            for (int32_t f = file + 1; f <= File9; ++f) {
                 bb |= SQUARE_BB[FRToSquare[f][Rank1]];
                 if (j & (1u << (f - File1))) {
                     break;
@@ -208,7 +208,7 @@ void Bitboard::init() {
     }
 
     //5.近接駒の利き
-    for (auto sq : SquareList) {
+    for (Square sq : SquareList) {
         //歩
         if (isOnBoard(sq + U)) {
             PAWN_CONTROL_BB[BLACK][sq] |= SQUARE_BB[sq + U];

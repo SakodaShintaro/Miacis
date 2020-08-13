@@ -84,12 +84,12 @@ template<class T> inline std::vector<T> softmax(std::vector<T> x, T temperature 
     T max_value = *std::max_element(x.begin(), x.end());
 
     T exp_sum = 0.0;
-    for (auto& p : x) {
+    for (T& p : x) {
         p = (T)std::exp((p - max_value) / temperature);
         exp_sum += p;
     }
     assert(exp_sum != 0);
-    for (auto& p : x) {
+    for (T& p : x) {
         p /= exp_sum;
     }
 
