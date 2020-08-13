@@ -1,8 +1,8 @@
 #ifndef MIACIS_MCTS_NET_HPP
 #define MIACIS_MCTS_NET_HPP
 
-#include "hash_table_for_mcts_net.hpp"
 #include "../state_encoder.hpp"
+#include "hash_table_for_mcts_net.hpp"
 
 class MCTSNetImpl : public torch::nn::Module {
 public:

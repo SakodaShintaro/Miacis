@@ -9,7 +9,8 @@ static constexpr int32_t NUM_LAYERS = 1;
 const std::string ProposedModelImpl::MODEL_PREFIX = "proposed_model";
 const std::string ProposedModelImpl::DEFAULT_MODEL_NAME = ProposedModelImpl::MODEL_PREFIX + ".model";
 
-ProposedModelImpl::ProposedModelImpl(SearchOptions search_options) : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
+ProposedModelImpl::ProposedModelImpl(SearchOptions search_options)
+    : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
     encoder_ = register_module("encoder_", StateEncoder());
 
     torch::nn::LSTMOptions option(HIDDEN_DIM, HIDDEN_SIZE);
@@ -43,11 +44,11 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
 
     for (int64_t m = 0; m < search_options_.search_limit; m++) {
         //今までの探索から現時点での結論を推論
-        auto[readout_policy, readout_value] = readoutPolicy(embed_vector);
+        auto [readout_policy, readout_value] = readoutPolicy(embed_vector);
         outputs_.push_back(readout_policy);
 
         //LSTMでの探索を実行
-        auto[simulation_policy, simulation_value] = simulationPolicy(embed_vector);
+        auto [simulation_policy, simulation_value] = simulationPolicy(embed_vector);
 
         //Policyからサンプリングして行動決定(undoを含む)
         std::vector<Move> moves = root.generateAllMoves();
@@ -116,7 +117,7 @@ std::tuple<torch::Tensor, torch::Tensor> ProposedModelImpl::simulationPolicy(con
 
     //出力はoutput, (h_n, c_n)
     //outputのshapeは(seq_len, batch, num_directions * hidden_size)
-    auto[output, h_and_c] = simulation_lstm_->forward(x, std::make_tuple(simulation_h_, simulation_c_));
+    auto [output, h_and_c] = simulation_lstm_->forward(x, std::make_tuple(simulation_h_, simulation_c_));
     std::tie(simulation_h_, simulation_c_) = h_and_c;
 
     torch::Tensor policy = simulation_policy_head_->forward(output);
@@ -133,7 +134,7 @@ std::tuple<torch::Tensor, torch::Tensor> ProposedModelImpl::readoutPolicy(const 
 
     //出力はoutput, (h_n, c_n)
     //outputのshapeは(seq_len, batch, num_directions * hidden_size)
-    auto[output, h_and_c] = readout_lstm_->forward(x, std::make_tuple(readout_h_, readout_c_));
+    auto [output, h_and_c] = readout_lstm_->forward(x, std::make_tuple(readout_h_, readout_c_));
     std::tie(readout_h_, readout_c_) = h_and_c;
 
     torch::Tensor policy = readout_policy_head_->forward(output);
@@ -193,7 +194,7 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
 
     std::vector<torch::Tensor> loss;
     for (int64_t m = 1; m <= M; m++) {
-        loss.push_back(l[m].view({1}));
+        loss.push_back(l[m].view({ 1 }));
     }
 
     return loss;

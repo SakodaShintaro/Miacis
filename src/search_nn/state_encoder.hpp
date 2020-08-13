@@ -1,15 +1,16 @@
 #ifndef MIACIS_STATE_ENCODER_HPP
 #define MIACIS_STATE_ENCODER_HPP
 
-#include"../search_options.hpp"
-#include"../include_switch.hpp"
-#include<torch/torch.h>
+#include "../include_switch.hpp"
+#include "../search_options.hpp"
+#include <torch/torch.h>
 
 class StateEncoderImpl : public torch::nn::Module {
 public:
-    StateEncoderImpl(int64_t input_channel_num = INPUT_CHANNEL_NUM);
+    explicit StateEncoderImpl(int64_t input_channel_num = INPUT_CHANNEL_NUM);
     torch::Tensor forward(const torch::Tensor& x);
     static constexpr int32_t LAST_CHANNEL_NUM = 32;
+
 private:
     Conv2DwithBatchNorm first_conv_{ nullptr };
     std::vector<ResidualBlock> blocks_;

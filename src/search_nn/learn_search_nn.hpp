@@ -1,13 +1,14 @@
 #ifndef MIACIS_LEARN_SEARCH_NN_HPP
 #define MIACIS_LEARN_SEARCH_NN_HPP
 
-#include"../learn.hpp"
-#include"../hyperparameter_loader.hpp"
-#include"../common.hpp"
-#include<iostream>
-#include<random>
+#include "../common.hpp"
+#include "../hyperparameter_loader.hpp"
+#include "../learn.hpp"
+#include <iostream>
+#include <random>
 
 template<class T> void learnSearchNN(const std::string& model_name) {
+    // clang-format off
     SearchOptions options;
     HyperparameterLoader settings("learn_search_nn_settings.txt");
     float learn_rate            = settings.get<float>("learn_rate");
@@ -26,6 +27,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     int64_t lr_decay_period     = settings.get<int64_t>("lr_decay_period");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
+    // clang-format on
 
     //データを取得
     std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation);
@@ -81,9 +83,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             global_step++;
 
             //表示
-            dout(std::cout, train_log) << elapsedTime(start_time) << "\t"
-                                       << epoch << "\t"
-                                       << global_step;
+            dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
             for (const torch::Tensor& t : loss) {
                 dout(std::cout, train_log) << "\t" << t.item<float>();
             }
@@ -106,9 +106,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                 model->train();
 
                 //表示
-                dout(std::cout, valid_log) << elapsedTime(start_time) << "\t"
-                                           << epoch << "\t"
-                                           << global_step;
+                dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
                 for (float v : valid_loss_sum) {
                     dout(std::cout, valid_log) << "\t" << v;
                 }
@@ -125,8 +123,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                 }
             } else if (lr_decay_mode == 2) {
                 int64_t curr_step = (step + 1) % lr_decay_period;
-                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr()
-                        = min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / lr_decay_period));
+                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() =
+                    min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / lr_decay_period));
             }
         }
     }

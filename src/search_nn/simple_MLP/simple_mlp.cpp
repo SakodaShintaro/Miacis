@@ -7,7 +7,8 @@ static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderIm
 const std::string SimpleMLPImpl::MODEL_PREFIX = "simple_mlp";
 const std::string SimpleMLPImpl::DEFAULT_MODEL_NAME = SimpleMLPImpl::MODEL_PREFIX + ".model";
 
-SimpleMLPImpl::SimpleMLPImpl(SearchOptions search_options) : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
+SimpleMLPImpl::SimpleMLPImpl(SearchOptions search_options)
+    : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
     encoder_ = register_module("encoder_", StateEncoder());
     policy_ = register_module("policy_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
 }

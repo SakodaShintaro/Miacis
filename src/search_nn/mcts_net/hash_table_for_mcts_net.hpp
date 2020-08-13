@@ -1,9 +1,9 @@
 ﻿#ifndef HASH_FOR_MCTS_NET_TABLE_HPP
 #define HASH_FOR_MCTS_NET_TABLE_HPP
 
-#include"../../common.hpp"
-#include"../../include_switch.hpp"
-#include<torch/torch.h>
+#include "../../common.hpp"
+#include "../../include_switch.hpp"
+#include <torch/torch.h>
 
 using Index = int32_t;
 
@@ -23,16 +23,12 @@ struct HashEntryForMCTSNet {
 
 class HashTableForMCTSNet {
 public:
-    explicit HashTableForMCTSNet(int64_t hash_size) : root_index(HashTableForMCTSNet::NOT_EXPANDED), used_num_(0), age_(1),
-                                            table_(1ull << (MSB64(hash_size) + 1)) {}
+    explicit HashTableForMCTSNet(int64_t hash_size)
+        : root_index(HashTableForMCTSNet::NOT_EXPANDED), used_num_(0), age_(1), table_(1ull << (MSB64(hash_size) + 1)) {}
 
     //取得用のオペレータ
-    HashEntryForMCTSNet& operator[](Index i) {
-        return table_[i];
-    }
-    const HashEntryForMCTSNet& operator[](Index i) const {
-        return table_[i];
-    }
+    HashEntryForMCTSNet& operator[](Index i) { return table_[i]; }
+    const HashEntryForMCTSNet& operator[](Index i) const { return table_[i]; }
 
     //未使用のインデックスを探して返す関数(開番地法)
     Index searchEmptyIndex(const Position& pos);
@@ -44,9 +40,7 @@ public:
     void deleteOldHash();
 
     //サイズを返す関数。searchEmptyIndexなどはダメだったときに置換表サイズを返すので、この関数の返り値と比較して適切なものが返ってきたか判定する
-    uint64_t size() {
-        return table_.size();
-    }
+    uint64_t size() { return table_.size(); }
 
     //未展開のノードのインデックス
     static constexpr Index NOT_EXPANDED = -1;
@@ -56,9 +50,7 @@ public:
 
 private:
     //局面のハッシュ値から置換表におけるキーへ変換する。この処理が最適かは不明
-    Index hashToIndex(int64_t hash) {
-        return (Index)(((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (table_.size() - 1));
-    }
+    Index hashToIndex(int64_t hash) { return (Index)(((hash & 0xffffffff) ^ ((hash >> 32) & 0xffffffff)) & (table_.size() - 1)); }
 
     //使用されている数
     uint64_t used_num_;

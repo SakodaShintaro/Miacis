@@ -8,7 +8,8 @@ static constexpr int64_t ACTION_FEATURE_CHANNEL_NUM = 10;
 const std::string MuZeroImpl::MODEL_PREFIX = "muzero";
 const std::string MuZeroImpl::DEFAULT_MODEL_NAME = MuZeroImpl::MODEL_PREFIX + ".model";
 
-MuZeroImpl::MuZeroImpl(SearchOptions search_options) : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
+MuZeroImpl::MuZeroImpl(SearchOptions search_options)
+    : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
     encoder_ = register_module("encoder_", StateEncoder());
     policy_ = register_module("policy_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
     value_ = register_module("value_", torch::nn::Linear(HIDDEN_DIM, 1));
@@ -75,20 +76,20 @@ std::vector<torch::Tensor> MuZeroImpl::loss(const std::vector<LearningData>& dat
 torch::Tensor MuZeroImpl::encodeAction(Move move) {
 #ifdef SHOGI
     static const ArrayMap<int32_t, PieceNum> PieceToNum({
-        { BLACK_PAWN,    0 },
-        { BLACK_LANCE,   1 },
-        { BLACK_KNIGHT,  2 },
-        { BLACK_SILVER,  3 },
-        { BLACK_GOLD,    4 },
-        { BLACK_BISHOP,  5 },
-        { BLACK_ROOK,    6 },
-        { BLACK_KING,    7 },
-        { BLACK_PAWN_PROMOTE,   8 },
-        { BLACK_LANCE_PROMOTE,  9 },
+        { BLACK_PAWN, 0 },
+        { BLACK_LANCE, 1 },
+        { BLACK_KNIGHT, 2 },
+        { BLACK_SILVER, 3 },
+        { BLACK_GOLD, 4 },
+        { BLACK_BISHOP, 5 },
+        { BLACK_ROOK, 6 },
+        { BLACK_KING, 7 },
+        { BLACK_PAWN_PROMOTE, 8 },
+        { BLACK_LANCE_PROMOTE, 9 },
         { BLACK_KNIGHT_PROMOTE, 10 },
         { BLACK_SILVER_PROMOTE, 11 },
         { BLACK_BISHOP_PROMOTE, 12 },
-        { BLACK_ROOK_PROMOTE,   13 },
+        { BLACK_ROOK_PROMOTE, 13 },
     });
 
     //各moveにつき9×9×MOVE_FEATURE_CHANNEL_NUMの特徴マップを得る
@@ -125,8 +126,8 @@ torch::Tensor MuZeroImpl::encodeAction(Move move) {
         move_features[(4 + PieceToNum[p]) * SQUARE_NUM + SquareToNum[sq]] = 1;
     }
 
-    torch::Tensor move_features_tensor = (fp16_ ? torch::tensor(move_features).to(device_, torch::kHalf):
-                                                  torch::tensor(move_features).to(device_));
+    torch::Tensor move_features_tensor =
+        (fp16_ ? torch::tensor(move_features).to(device_, torch::kHalf) : torch::tensor(move_features).to(device_));
     move_features_tensor = move_features_tensor.view({ -1, ACTION_FEATURE_CHANNEL_NUM, 9, 9 });
     return move_features_tensor;
 #elif OTHELLO
@@ -150,8 +151,9 @@ torch::Tensor MuZeroImpl::inferPolicy(const Position& pos) {
     return policy_->forward(x);
 }
 
-torch::Tensor MuZeroImpl::predictTransition(const torch::Tensor& state_representations, const torch::Tensor& move_representations) {
-    torch::Tensor x = torch::cat({state_representations, move_representations}, 1);
+torch::Tensor MuZeroImpl::predictTransition(const torch::Tensor& state_representations,
+                                            const torch::Tensor& move_representations) {
+    torch::Tensor x = torch::cat({ state_representations, move_representations }, 1);
     x = env_model_->forward(x);
 #ifdef SHOGI
     //手番が変わることを考慮して180度ひっくり返す

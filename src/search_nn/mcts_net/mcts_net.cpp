@@ -4,11 +4,13 @@
 const std::string MCTSNetImpl::MODEL_PREFIX = "mcts_net";
 const std::string MCTSNetImpl::DEFAULT_MODEL_NAME = MCTSNetImpl::MODEL_PREFIX + ".model";
 
-MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options) : search_options_(search_options),
-                                                                hash_table_(std::min(search_options.USI_Hash * 1024 * 1024 / 10000, search_options.search_limit * 10)),
-                                                                device_(torch::kCUDA), fp16_(false) {
+MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
+    : search_options_(search_options),
+      hash_table_(std::min(search_options.USI_Hash * 1024 * 1024 / 10000, search_options.search_limit * 10)),
+      device_(torch::kCUDA), fp16_(false) {
     constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
-    simulation_policy_ = register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
+    simulation_policy_ =
+        register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
     encoder_ = register_module("encoder_", StateEncoder());
 
     backup_update_ = register_module("backup_update_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
@@ -17,9 +19,7 @@ MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options) : search_options_(
     readout_policy_ = register_module("readout_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
 }
 
-torch::Tensor MCTSNetImpl::simulationPolicy(const torch::Tensor& h) {
-    return simulation_policy_->forward(h);
-}
+torch::Tensor MCTSNetImpl::simulationPolicy(const torch::Tensor& h) { return simulation_policy_->forward(h); }
 
 torch::Tensor MCTSNetImpl::embed(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
@@ -35,9 +35,7 @@ torch::Tensor MCTSNetImpl::backup(const torch::Tensor& h1, const torch::Tensor& 
     return h1 + gate * backup_update_->forward(cat_h);
 }
 
-torch::Tensor MCTSNetImpl::readoutPolicy(const torch::Tensor& h) {
-    return readout_policy_->forward(h);
-}
+torch::Tensor MCTSNetImpl::readoutPolicy(const torch::Tensor& h) { return readout_policy_->forward(h); }
 
 Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_learn) {
     //思考を行う
@@ -64,7 +62,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
         }
         while (true) {
             Index index = hash_table_.findSameHashIndex(root);
-            FloatType score;
+            FloatType score{};
             if (index == (Index)hash_table_.size() || root.isFinish(score)) {
                 //未展開のノードだったら次にここを評価
                 break;
@@ -196,7 +194,7 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     std::vector<torch::Tensor> loss;
     for (int64_t m = 1; m <= M; m++) {
         //loss.push_back(probs_[m - 1] * R[m]);
-        loss.push_back(l[m].view({1}));
+        loss.push_back(l[m].view({ 1 }));
     }
 
     return loss;
