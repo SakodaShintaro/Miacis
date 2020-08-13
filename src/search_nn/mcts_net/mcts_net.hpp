@@ -22,6 +22,9 @@ public:
     static std::string modelPrefix() { return MODEL_PREFIX; }
     static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
 
+    //embed network
+    StateEncoder encoder{ nullptr };
+
 private:
     //評価パラメータを読み書きするファイルのprefix
     static const std::string MODEL_PREFIX;
@@ -44,9 +47,6 @@ private:
     //使用するニューラルネットワーク
     //simulation policy network
     torch::nn::Linear simulation_policy_{ nullptr };
-
-    //embed network
-    StateEncoder encoder_{ nullptr };
 
     //backup network
     torch::nn::Linear backup_update_{ nullptr };

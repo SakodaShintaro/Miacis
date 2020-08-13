@@ -11,7 +11,7 @@ const std::string ProposedModelImpl::DEFAULT_MODEL_NAME = ProposedModelImpl::MOD
 
 ProposedModelImpl::ProposedModelImpl(SearchOptions search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
-    encoder_ = register_module("encoder_", StateEncoder());
+    encoder = register_module("encoder", StateEncoder());
 
     torch::nn::LSTMOptions option(HIDDEN_DIM, HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
@@ -104,7 +104,7 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
 torch::Tensor ProposedModelImpl::embed(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    x = encoder_->forward(x);
+    x = encoder->forward(x);
     x = x.view({ 1, -1, HIDDEN_DIM });
     return x;
 }

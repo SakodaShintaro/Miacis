@@ -10,7 +10,7 @@ const std::string MuZeroImpl::DEFAULT_MODEL_NAME = MuZeroImpl::MODEL_PREFIX + ".
 
 MuZeroImpl::MuZeroImpl(SearchOptions search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
-    encoder_ = register_module("encoder_", StateEncoder());
+    encoder = register_module("encoder", StateEncoder());
     policy_ = register_module("policy_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
     value_ = register_module("value_", torch::nn::Linear(HIDDEN_DIM, 1));
     env_model_ = register_module("env_model_", StateEncoder(StateEncoderImpl::LAST_CHANNEL_NUM + ACTION_FEATURE_CHANNEL_NUM));
@@ -138,7 +138,7 @@ torch::Tensor MuZeroImpl::encodeAction(Move move) {
 torch::Tensor MuZeroImpl::embed(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    x = encoder_->forward(x);
+    x = encoder->forward(x);
     return x;
 }
 
@@ -146,7 +146,7 @@ torch::Tensor MuZeroImpl::inferPolicy(const Position& pos) {
     std::vector<FloatType> inputs = pos.makeFeature();
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    x = encoder_->forward(x);
+    x = encoder->forward(x);
     x = x.view({ -1, HIDDEN_DIM });
     return policy_->forward(x);
 }

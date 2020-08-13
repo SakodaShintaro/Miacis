@@ -9,7 +9,7 @@ const std::string SimpleMLPImpl::DEFAULT_MODEL_NAME = SimpleMLPImpl::MODEL_PREFI
 
 SimpleMLPImpl::SimpleMLPImpl(SearchOptions search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
-    encoder_ = register_module("encoder_", StateEncoder());
+    encoder = register_module("encoder", StateEncoder());
     policy_ = register_module("policy_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
 }
 
@@ -84,7 +84,7 @@ void SimpleMLPImpl::setGPU(int16_t gpu_id, bool fp16) {
 
 torch::Tensor SimpleMLPImpl::forward(const torch::Tensor& x) {
     torch::Tensor y = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    y = encoder_->forward(y);
+    y = encoder->forward(y);
     y = y.view({ -1, HIDDEN_DIM });
     return policy_->forward(y);
 }

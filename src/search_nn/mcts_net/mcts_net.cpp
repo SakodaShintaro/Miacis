@@ -11,7 +11,7 @@ MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
     constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
     simulation_policy_ =
         register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
-    encoder_ = register_module("encoder_", StateEncoder());
+    encoder = register_module("encoder", StateEncoder());
 
     backup_update_ = register_module("backup_update_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
     backup_gate_ = register_module("backup_gate_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
@@ -24,7 +24,7 @@ torch::Tensor MCTSNetImpl::simulationPolicy(const torch::Tensor& h) { return sim
 torch::Tensor MCTSNetImpl::embed(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    x = encoder_->forward(x);
+    x = encoder->forward(x);
     x = torch::flatten(x, 1);
     return x;
 }

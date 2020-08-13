@@ -21,6 +21,11 @@ public:
     static std::string modelPrefix() { return MODEL_PREFIX; }
     static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
 
+    //---------------
+    //    Encoder
+    //---------------
+    StateEncoder encoder{ nullptr };
+
 private:
     //評価パラメータを読み書きするファイルのprefix
     static const std::string MODEL_PREFIX;
@@ -35,11 +40,6 @@ private:
 
     //探索に関するオプション
     SearchOptions search_options_;
-
-    //---------------
-    //    Encoder
-    //---------------
-    StateEncoder encoder_{ nullptr };
 
     //-------------------------
     //    Simulation Policy

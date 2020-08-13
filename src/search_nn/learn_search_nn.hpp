@@ -27,6 +27,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     int64_t lr_decay_period     = settings.get<int64_t>("lr_decay_period");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
+    std::string encoder_path    = settings.get<std::string>("encoder_path");
     // clang-format on
 
     //データを取得
@@ -46,6 +47,9 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     //モデル作成
     T model(options);
     model->setGPU(0);
+
+    //encoderを既存のパラメータから読み込み
+    torch::load(model->encoder, encoder_path);
 
     //学習前のパラメータを出力
     torch::save(model, model->modelPrefix() + "_before_learn.model");
