@@ -70,16 +70,13 @@ void alphaZero() {
     }
 
     //ログファイルの設定
-    std::ofstream learn_log("alphazero_log.txt");
-    std::ofstream validation_log("alphazero_validation_log.txt");
-    dout(std::cout, learn_log) << "time\tstep\tsum_loss";
-    validation_log << "time\tstep\tsum_loss";
+    std::ofstream train_log("alphazero_train_log.txt");
+    std::ofstream valid_log("alphazero_valid_log.txt");
+    tout(std::cout, train_log, valid_log) << "time\tstep\tsum_loss";
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        dout(std::cout, learn_log) << "\t" + LOSS_TYPE_NAME[i] + "_loss";
-        validation_log << "\t" + LOSS_TYPE_NAME[i] + "_loss";
+        tout(std::cout, train_log, valid_log) << "\t" + LOSS_TYPE_NAME[i] + "_loss";
     }
-    dout(std::cout, learn_log) << std::fixed << std::endl;
-    validation_log << std::fixed << std::endl;
+    tout(std::cout, train_log, valid_log) << std::fixed << std::endl;
 
     //validation用のデータを取得
     std::vector<LearningData> validation_data = loadData(validation_kifu_path, false);
@@ -165,11 +162,11 @@ void alphaZero() {
         optimizer.step();
 
         //表示
-        dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << loss_sum.item<float>() << "\t";
+        dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << loss_sum.item<float>() << "\t";
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
+            dout(std::cout, train_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
         }
-        dout(std::cout, learn_log) << std::flush;
+        dout(std::cout, train_log) << std::flush;
 
         //一定間隔でActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
@@ -206,11 +203,11 @@ void alphaZero() {
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 valid_loss_sum += coefficients[i] * valid_loss[i];
             }
-            dout(std::cout, validation_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << valid_loss_sum << "\t";
+            dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << step_num << "\t" << valid_loss_sum << "\t";
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, validation_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
+                dout(std::cout, valid_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
             }
-            dout(std::cout, validation_log) << std::flush;
+            dout(std::cout, valid_log) << std::flush;
         }
 
         //学習率の減衰.AlphaZeroを意識して3回まで設定可能
