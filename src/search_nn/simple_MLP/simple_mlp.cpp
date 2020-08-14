@@ -43,12 +43,10 @@ std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& 
     std::vector<float> inputs;
     std::vector<float> policy_teachers(POLICY_DIM * batch_size, 0.0);
 
-    Position pos;
+    static Position pos;
     for (uint64_t i = 0; i < batch_size; i++) {
-        pos.fromStr(data[i].position_str);
-        torch::Tensor policy_logit = inferPolicy(pos);
-
         //入力
+        pos.fromStr(data[i].position_str);
         std::vector<float> curr_feature = pos.makeFeature();
         inputs.insert(inputs.end(), curr_feature.begin(), curr_feature.end());
 
