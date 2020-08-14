@@ -115,7 +115,7 @@ void pretrainSimpleMLP() {
             }
             if (global_step % save_interval == 0) {
                 //学習中のパラメータを書き出す
-                torch::save(model, model->modelPrefix() + "_" + std::to_string(global_step) + ".model");
+                torch::save(model, "pretrain_" + std::to_string(global_step) + ".model");
                 torch::save(model->encoder, "encoder" + std::to_string(global_step) + ".model");
             }
 
@@ -130,6 +130,9 @@ void pretrainSimpleMLP() {
             }
         }
     }
+
+    torch::save(model, "pretrain.model");
+    torch::save(model->encoder, "encoder.model");
 
     std::cout << "finish learnSearchNN" << std::endl;
 }
