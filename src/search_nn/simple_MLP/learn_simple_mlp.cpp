@@ -91,10 +91,14 @@ void pretrainSimpleMLP() {
                 model->eval();
                 torch::NoGradGuard no_grad_guard;
                 std::vector<float> valid_loss_sum(loss.size(), 0);
-                for (const LearningData& datum : valid_data) {
-                    std::vector<torch::Tensor> valid_loss = model->loss({ datum });
-                    for (uint64_t i = 0; i < valid_loss_sum.size(); i++) {
-                        valid_loss_sum[i] += valid_loss[i].item<float>();
+                for (uint64_t i = 0; i < valid_data.size();) {
+                    std::vector<LearningData> curr_valid_data;
+                    while (curr_valid_data.size() < (uint64_t)batch_size) {
+                        curr_valid_data.push_back(valid_data[i++]);
+                    }
+                    std::vector<torch::Tensor> valid_loss = model->loss(curr_valid_data);
+                    for (uint64_t j = 0; j < valid_loss_sum.size(); j++) {
+                        valid_loss_sum[j] += valid_loss[j].item<float>();
                     }
                 }
                 for (float& v : valid_loss_sum) {
