@@ -5,7 +5,6 @@
 #include "types.hpp"
 
 //型のエイリアス
-using FloatType = float;
 using PolicyType = std::vector<float>;
 using PolicyTeacherType = std::vector<std::pair<int32_t, float>>;
 #ifdef USE_CATEGORICAL

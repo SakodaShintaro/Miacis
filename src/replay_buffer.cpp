@@ -58,7 +58,7 @@ void ReplayBuffer::push(Game& game) {
     }
 
     //先手から見た勝率,分布.指数移動平均で動かしていく.最初は結果によって初期化
-    FloatType win_rate_for_black = game.result;
+    float win_rate_for_black = game.result;
 
     for (int32_t i = (int32_t)game.elements.size() - 1; i >= 0; i--) {
         //i番目の指し手を教師とするのは1手戻した局面
@@ -67,11 +67,11 @@ void ReplayBuffer::push(Game& game) {
         OneTurnElement& e = game.elements[i];
 
         //探索結果を先手から見た値に変換
-        FloatType curr_win_rate = (pos.color() == BLACK ? e.score : MAX_SCORE + MIN_SCORE - e.score);
+        float curr_win_rate = (pos.color() == BLACK ? e.score : MAX_SCORE + MIN_SCORE - e.score);
         //混合
         win_rate_for_black = lambda_ * win_rate_for_black + (1.0 - lambda_) * curr_win_rate;
 
-        FloatType teacher_signal = (pos.color() == BLACK ? win_rate_for_black : MAX_SCORE + MIN_SCORE - win_rate_for_black);
+        float teacher_signal = (pos.color() == BLACK ? win_rate_for_black : MAX_SCORE + MIN_SCORE - win_rate_for_black);
 
 #ifdef USE_CATEGORICAL
         ValueTeacherType value_teacher = valueToIndex(teacher_signal);
@@ -80,10 +80,10 @@ void ReplayBuffer::push(Game& game) {
 #endif
 
         //priorityを計算
-        FloatType priority = 0.0f;
+        float priority = 0.0f;
 
         //Policy損失
-        for (const std::pair<int32_t, FloatType>& p : e.policy_teacher) {
+        for (const std::pair<int32_t, float>& p : e.policy_teacher) {
             priority += -p.second * std::log(e.nn_output_policy[p.first] + 1e-9f);
         }
 
@@ -92,7 +92,7 @@ void ReplayBuffer::push(Game& game) {
         priority += -std::log(e.nn_output_value[value_teacher] + 1e-9f);
 #else
 #ifdef USE_SIGMOID
-        constexpr FloatType eps = 1e-5f;
+        constexpr float eps = 1e-5f;
         priority +=
             -value_teacher * std::log(e.nn_output_value + eps) - (1.0 - value_teacher) * std::log(1 - e.nn_output_value + eps);
 #else

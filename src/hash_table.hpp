@@ -28,7 +28,7 @@ struct HashEntry {
     std::vector<int32_t> virtual_N;
 
     //ニューラルネットワークの出力方策
-    std::vector<FloatType> nn_policy;
+    std::vector<float> nn_policy;
 
     //価値。漸進的に更新され、常にこのノードを根とする部分木内の価値の平均となる
     ValueType value;
@@ -78,7 +78,7 @@ public:
 
     //node局面におけるi番目の指し手の行動価値(期待値)を返す関数
     //Scalarのときは実数をそのまま返し、Categoricalのときはその期待値を返す
-    FloatType expQfromNext(const HashEntry& node, int32_t i) const;
+    float expQfromNext(const HashEntry& node, int32_t i) const;
 
     //置換表の利用率を返す関数。USI対応GUIだと表示できるので
     float getUsageRate() const { return (float)used_num_ / table_.size(); }

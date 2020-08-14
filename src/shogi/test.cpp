@@ -90,10 +90,10 @@ void checkGenSpeed() {
     search_options.draw_turn = 320;
     search_options.random_turn = 320;
     search_options.temperature_x1000 = 10;
-    constexpr FloatType Q_dist_lambda = 1.0;
+    constexpr float Q_dist_lambda = 1.0;
     constexpr int64_t noise_mode = 0;
-    constexpr FloatType noise_epsilon = 0.25;
-    constexpr FloatType noise_alpha = 0.15;
+    constexpr float noise_epsilon = 0.25;
+    constexpr float noise_alpha = 0.15;
 
     nn->setGPU(0, search_options.use_fp16);
     nn->eval();

@@ -67,7 +67,7 @@ void cleanGames() {
     std::string path;
     std::cin >> path;
 
-    FloatType rate_threshold{};
+    float rate_threshold{};
     std::cout << "削除するレートの閾値 : ";
     std::cin >> rate_threshold;
     constexpr int32_t move_threshold = 50;
@@ -78,7 +78,7 @@ void cleanGames() {
         std::string buf;
         int32_t move_count = 0;
         bool illegal_summary = false;
-        FloatType black_rate = 0, white_rate = 0;
+        float black_rate = 0, white_rate = 0;
         while (getline(ifs, buf)) {
             //レート読み込み
             if (buf.find("'black_rate") < buf.size()) {
