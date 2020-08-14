@@ -51,12 +51,12 @@ void GameGenerator::genSlave(int64_t thread_id) {
     }
 }
 
-std::vector<FloatType> GameGenerator::dirichletDistribution(uint64_t k, FloatType alpha) {
-    std::gamma_distribution<FloatType> gamma(alpha, 1.0);
-    std::vector<FloatType> dirichlet(k);
+std::vector<float> GameGenerator::dirichletDistribution(uint64_t k, float alpha) {
+    std::gamma_distribution<float> gamma(alpha, 1.0);
+    std::vector<float> dirichlet(k);
 
     //kが小さく、不運が重なるとsum = 0となり0除算が発生してしまうことがあるので小さい値で初期化
-    FloatType sum = 1e-6;
+    float sum = 1e-6;
     for (uint64_t i = 0; i < k; i++) {
         sum += (dirichlet[i] = gamma(engine));
     }
@@ -66,9 +66,9 @@ std::vector<FloatType> GameGenerator::dirichletDistribution(uint64_t k, FloatTyp
     return dirichlet;
 }
 
-std::vector<FloatType> GameGenerator::onehotNoise(uint64_t k) {
+std::vector<float> GameGenerator::onehotNoise(uint64_t k) {
     std::uniform_int_distribution<uint64_t> dist(0, k - 1);
-    std::vector<FloatType> onehot(k, 0.0);
+    std::vector<float> onehot(k, 0.0);
     onehot[dist(engine)] = 1.0;
     return onehot;
 }
@@ -98,10 +98,10 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
         curr_node.nn_policy = softmax(legal_moves_policy);
 
         //policyにディリクレノイズを付与
-        std::vector<FloatType> noise = (noise_mode_ == DIRICHLET ? dirichletDistribution(curr_node.moves.size(), noise_alpha_)
-                                                                 : onehotNoise(curr_node.moves.size()));
+        std::vector<float> noise = (noise_mode_ == DIRICHLET ? dirichletDistribution(curr_node.moves.size(), noise_alpha_)
+                                                             : onehotNoise(curr_node.moves.size()));
         for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-            curr_node.nn_policy[j] = (FloatType)((1.0 - noise_epsilon_) * curr_node.nn_policy[j] + noise_epsilon_ * noise[j]);
+            curr_node.nn_policy[j] = (float)((1.0 - noise_epsilon_) * curr_node.nn_policy[j] + noise_epsilon_ * noise[j]);
         }
 
         //valueを設定
@@ -112,8 +112,7 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
     }
 }
 
-GenerateWorker::GenerateWorker(const SearchOptions& search_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda,
-                               ReplayBuffer& rb)
+GenerateWorker::GenerateWorker(const SearchOptions& search_options, GPUQueue& gpu_queue, float Q_dist_lambda, ReplayBuffer& rb)
     : search_options_(search_options), gpu_queue_(gpu_queue), Q_dist_lambda_(Q_dist_lambda), replay_buffer_(rb),
       hash_table_(search_options.search_limit * 3), searcher_(search_options, hash_table_, gpu_queue), root_raw_value_{},
       mate_searcher_(hash_table_, search_options) {}
@@ -131,7 +130,7 @@ void GenerateWorker::prepareForCurrPos() {
     HashEntry& node = hash_table_[hash_table_.root_index];
     if (node.evaled && (node.moves.size() != node.nn_policy.size())) {
         //GPUへの計算要求を追加
-        std::vector<FloatType> this_feature = position_.makeFeature();
+        std::vector<float> this_feature = position_.makeFeature();
         gpu_queue_.inputs.insert(gpu_queue_.inputs.end(), this_feature.begin(), this_feature.end());
         gpu_queue_.hash_tables.emplace_back(hash_table_);
         gpu_queue_.indices.push_back(hash_table_.root_index);
@@ -163,7 +162,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
 
     //選択した着手の勝率の算出
     //詰みのときは未展開であることに注意する
-    FloatType best_value =
+    float best_value =
         (root_node.child_indices[best_index] == HashTable::NOT_EXPANDED ? MAX_SCORE
                                                                         : hash_table_.expQfromNext(root_node, best_index));
 
@@ -177,14 +176,14 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
     if (position_.turnNumber() <= search_options_.random_turn) {
         //分布に従ってランダムに行動選択
         //探索回数を正規化した分布
-        std::vector<FloatType> N_dist(root_node.moves.size());
+        std::vector<float> N_dist(root_node.moves.size());
 
         //行動価値のsoftmaxを取った分布
-        std::vector<FloatType> Q_dist(root_node.moves.size());
+        std::vector<float> Q_dist(root_node.moves.size());
 
         for (uint64_t i = 0; i < root_node.moves.size(); i++) {
             //探索回数を正規化
-            N_dist[i] = (FloatType)N[i] / root_node.sum_N;
+            N_dist[i] = (float)N[i] / root_node.sum_N;
 
             //選択回数が0ならMIN_SCORE
             //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE

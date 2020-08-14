@@ -16,7 +16,7 @@ struct OneTurnElement {
     //探索した結果として得られた方策分布, 評価値
     //それぞれデータとして小さく済む保存方法にするとPolicyは教師データの型(int32_t, float)のペア, Valueは評価値(float)だけとなる
     PolicyTeacherType policy_teacher;
-    FloatType score;
+    float score;
 
     //探索以前のニューラルネットワークの出力。PERへ最初にデータを入れる際、priorityを計算するのに必要
     PolicyType nn_output_policy;

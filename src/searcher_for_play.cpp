@@ -5,7 +5,7 @@
 struct MoveWithScore {
 public:
     Move move;
-    FloatType score;
+    float score;
     bool operator<(const MoveWithScore& rhs) const { return score < rhs.score; }
     bool operator>(const MoveWithScore& rhs) const { return score > rhs.score; }
 };
@@ -94,7 +94,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     //GPUで計算
     if (curr_node.nn_policy.size() != curr_node.moves.size()) {
         if (gpu_queues_[0][0].inputs.empty()) {
-            std::vector<FloatType> feature = root.makeFeature();
+            std::vector<float> feature = root.makeFeature();
             gpu_queues_[0][0].inputs.insert(gpu_queues_[0][0].inputs.begin(), feature.begin(), feature.end());
         }
         torch::NoGradGuard no_grad_guard;
@@ -144,16 +144,16 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
 
     //行動選択
     if (root.turnNumber() <= search_options_.random_turn) {
-        std::vector<FloatType> distribution(curr_node.moves.size());
+        std::vector<float> distribution(curr_node.moves.size());
         if (search_options_.temperature_x1000 == 0) {
             //探索回数を正規化した分布に従って行動選択
             for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-                distribution[i] = (FloatType)curr_node.N[i] / curr_node.sum_N;
+                distribution[i] = (float)curr_node.N[i] / curr_node.sum_N;
                 assert(0.0 <= distribution[i] && distribution[i] <= 1.0);
             }
         } else {
             //価値のソフトマックス分布に従って行動選択
-            std::vector<FloatType> Q(curr_node.moves.size());
+            std::vector<float> Q(curr_node.moves.size());
             for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
                 Q[i] = hash_table_.expQfromNext(curr_node, i);
             }
@@ -322,7 +322,7 @@ void SearcherForPlay::outputInfo(std::ostream& ost, int64_t gather_num) const {
 
     //最善手（探索回数最大手）の価値を計算
     int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
-    FloatType best_value = hash_table_.expQfromNext(curr_node, best_index);
+    float best_value = hash_table_.expQfromNext(curr_node, best_index);
 
 #ifdef USE_CATEGORICAL
     //分布の表示
@@ -374,19 +374,19 @@ void SearcherForPlay::outputInfo(std::ostream& ost, int64_t gather_num) const {
     }
 
     //まず各指し手の価値を取得
-    std::vector<FloatType> Q(curr_node.moves.size());
+    std::vector<float> Q(curr_node.moves.size());
     for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
         Q[i] = hash_table_.expQfromNext(curr_node, i);
     }
-    std::vector<FloatType> softmaxed_Q = softmax(Q, std::max(search_options_.temperature_x1000, (int64_t)1) / 1000.f);
+    std::vector<float> softmaxed_Q = softmax(Q, std::max(search_options_.temperature_x1000, (int64_t)1) / 1000.f);
 
     //ソートするために構造体を準備
     struct MoveWithInfo {
         Move move;
         int32_t N;
-        FloatType nn_output_policy, Q, softmaxed_Q;
+        float nn_output_policy, Q, softmaxed_Q;
 #ifdef USE_CATEGORICAL
-        FloatType prob_over_best_Q;
+        float prob_over_best_Q;
 #endif
         bool operator<(const MoveWithInfo& rhs) const { return Q < rhs.Q; }
         bool operator>(const MoveWithInfo& rhs) const { return Q > rhs.Q; }

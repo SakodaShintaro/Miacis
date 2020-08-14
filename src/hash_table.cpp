@@ -112,7 +112,7 @@ ValueType HashTable::QfromNextValue(const HashEntry& node, int32_t i) const {
 #endif
 }
 
-FloatType HashTable::expQfromNext(const HashEntry& node, int32_t i) const {
+float HashTable::expQfromNext(const HashEntry& node, int32_t i) const {
 #ifdef USE_CATEGORICAL
     return expOfValueDist(QfromNextValue(node, i));
 #else

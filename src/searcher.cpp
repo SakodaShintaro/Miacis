@@ -3,21 +3,21 @@
 int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #ifdef USE_CATEGORICAL
     int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
-    FloatType best_value = expOfValueDist(hash_table_.QfromNextValue(node, best_index));
+    float best_value = expOfValueDist(hash_table_.QfromNextValue(node, best_index));
     int32_t best_value_index = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1);
     int32_t reversed_best_value_index = BIN_SIZE - best_value_index;
 #endif
 
     int32_t max_index = -1;
-    FloatType max_value = INT_MIN;
+    float max_value = INT_MIN;
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
     for (uint64_t i = 0; i < node.moves.size(); i++) {
-        FloatType U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
+        float U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
         assert(U >= 0.0);
 
 #ifdef USE_CATEGORICAL
-        FloatType P = 0.0;
+        float P = 0.0;
         if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
             P = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : 1);
         } else {
@@ -26,15 +26,13 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
                 P += hash_table_[node.child_indices[i]].value[j];
             }
         }
-        FloatType ucb =
-            search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U + search_options_.P_coeff_x1000 / 1000.0 * P;
+        float ucb = search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U + search_options_.P_coeff_x1000 / 1000.0 * P;
         if (search_options_.Q_coeff_x1000 > 0) {
             ucb += search_options_.Q_coeff_x1000 / 1000.0 * hash_table_.expQfromNext(node, i);
         }
 #else
-        FloatType Q = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : hash_table_.QfromNextValue(node, i));
-        FloatType ucb =
-            search_options_.Q_coeff_x1000 / 1000.0 * Q + search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
+        float Q = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : hash_table_.QfromNextValue(node, i));
+        float ucb = search_options_.Q_coeff_x1000 / 1000.0 * Q + search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U;
 #endif
 
         if (ucb > max_value) {
@@ -197,7 +195,7 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
         curr_node.mutex.unlock();
 
         //GPUへの計算要求を追加
-        std::vector<FloatType> this_feature = pos.makeFeature();
+        std::vector<float> this_feature = pos.makeFeature();
         gpu_queue_.inputs.insert(gpu_queue_.inputs.end(), this_feature.begin(), this_feature.end());
         gpu_queue_.hash_tables.emplace_back(hash_table_);
         gpu_queue_.indices.push_back(index);
@@ -220,7 +218,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
     hash_table_[leaf].mutex.unlock();
 
     //毎回計算するのは無駄だけど仕方ないか
-    FloatType lambda = search_options_.UCT_lambda_x1000 / 1000.0;
+    float lambda = search_options_.UCT_lambda_x1000 / 1000.0;
 
     //バックアップ
     while (!actions.empty()) {
@@ -250,7 +248,7 @@ void Searcher::backup(std::stack<int32_t>& indices, std::stack<int32_t>& actions
 
         //価値の更新
         ValueType curr_v = node.value;
-        FloatType alpha = 1.0f / (node.sum_N + 1);
+        float alpha = 1.0f / (node.sum_N + 1);
         node.value += alpha * (value - curr_v);
         value = lambda * value + (1.0f - lambda) * curr_v;
 

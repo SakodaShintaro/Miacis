@@ -132,7 +132,7 @@ NeuralNetworkImpl::policyAndValueBatch(const std::vector<float>& inputs) {
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::loss(const std::vector<LearningData>& data) {
     static Position pos;
-    std::vector<FloatType> inputs;
+    std::vector<float> inputs;
     std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
     std::vector<ValueTeacherType> value_teachers;
 
@@ -188,7 +188,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::mixUpLoss(const std:
     uint64_t actual_batch_size = data.size() / 2;
 
     constexpr int64_t INPUT_DIM = BOARD_WIDTH * BOARD_WIDTH * INPUT_CHANNEL_NUM;
-    std::vector<FloatType> inputs(actual_batch_size * INPUT_DIM);
+    std::vector<float> inputs(actual_batch_size * INPUT_DIM);
     std::vector<float> policy_teacher_dist(actual_batch_size * POLICY_DIM, 0.0);
     std::vector<float> value_teacher_dist(actual_batch_size * BIN_SIZE, 0.0);
 
@@ -271,9 +271,9 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> NeuralNetworkImpl::mixUpLossFinalLayer(
     uint64_t actual_batch_size = data.size() / 2;
 
     constexpr int64_t INPUT_DIM = BOARD_WIDTH * BOARD_WIDTH * INPUT_CHANNEL_NUM;
-    std::vector<FloatType> inputs1(actual_batch_size * INPUT_DIM);
-    std::vector<FloatType> inputs2(actual_batch_size * INPUT_DIM);
-    std::vector<FloatType> betas(actual_batch_size);
+    std::vector<float> inputs1(actual_batch_size * INPUT_DIM);
+    std::vector<float> inputs2(actual_batch_size * INPUT_DIM);
+    std::vector<float> betas(actual_batch_size);
     std::vector<float> policy_teacher_dist(actual_batch_size * POLICY_DIM, 0.0);
     std::vector<float> value_teacher_dist(actual_batch_size * BIN_SIZE, 0.0);
 

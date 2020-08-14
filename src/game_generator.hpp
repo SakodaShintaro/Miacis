@@ -15,8 +15,8 @@
 //一つのGPUに対して割り当てられる
 class GameGenerator {
 public:
-    GameGenerator(const SearchOptions& search_options, int64_t worker_num, FloatType Q_dist_lambda, int64_t noise_mode,
-                  FloatType noise_epsilon, FloatType noise_alpha, ReplayBuffer& rb, NeuralNetwork nn)
+    GameGenerator(const SearchOptions& search_options, int64_t worker_num, float Q_dist_lambda, int64_t noise_mode,
+                  float noise_epsilon, float noise_alpha, ReplayBuffer& rb, NeuralNetwork nn)
         : stop_signal(false), search_options_(search_options), worker_num_(worker_num), Q_dist_lambda_(Q_dist_lambda),
           noise_mode_(noise_mode), noise_epsilon_(noise_epsilon), noise_alpha_(noise_alpha), replay_buffer_(rb),
           neural_network_(std::move(nn)), gpu_queues_(search_options_.thread_num_per_gpu) {
@@ -36,10 +36,10 @@ public:
 private:
     enum NoiseMode { DIRICHLET, ONEHOT, NOISE_MODE_SIZE };
     //ディリクレ分布に従ったものを返す関数
-    static std::vector<FloatType> dirichletDistribution(uint64_t k, FloatType alpha);
+    static std::vector<float> dirichletDistribution(uint64_t k, float alpha);
 
     //onehotベクトルとしてのノイズを返す関数
-    static std::vector<FloatType> onehotNoise(uint64_t k);
+    static std::vector<float> onehotNoise(uint64_t k);
 
     //gpu_queue_に溜まっている入力を処理する関数
     void evalWithGPU(int64_t thread_id);
@@ -55,16 +55,16 @@ private:
 
     //探索結果の分布として価値のsoftmax分布を混ぜる割合([0,1])
     //0で探索回数を正規化した分布(AlphaZeroと同じ), 1で完全に価値のsoftmax分布
-    const FloatType Q_dist_lambda_;
+    const float Q_dist_lambda_;
 
     //ノイズモード
     const int64_t noise_mode_;
 
     //ノイズを混合する割合
-    const FloatType noise_epsilon_;
+    const float noise_epsilon_;
 
     //ディリクレノイズ時のalpha
-    const FloatType noise_alpha_;
+    const float noise_alpha_;
 
     //データを送るReplayBufferへの参照
     ReplayBuffer& replay_buffer_;
@@ -79,7 +79,7 @@ private:
 //一つのGPUに対して複数生成されるWorker
 class GenerateWorker {
 public:
-    GenerateWorker(const SearchOptions& search_options, GPUQueue& gpu_queue, FloatType Q_dist_lambda, ReplayBuffer& rb);
+    GenerateWorker(const SearchOptions& search_options, GPUQueue& gpu_queue, float Q_dist_lambda, ReplayBuffer& rb);
 
     //現在のposition_に対して探索する準備を行う関数。ルート局面の展開や数手の詰み探索など
     void prepareForCurrPos();
@@ -105,7 +105,7 @@ private:
 
     //探索結果の分布として価値のsoftmax分布を混ぜる割合([0,1])
     //0で探索回数を正規化した分布(AlphaZeroと同じ), 1で完全に価値のsoftmax分布
-    const FloatType Q_dist_lambda_;
+    const float Q_dist_lambda_;
 
     //データを送るReplayBufferへの参照
     ReplayBuffer& replay_buffer_;

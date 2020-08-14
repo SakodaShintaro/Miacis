@@ -1066,7 +1066,7 @@ std::vector<float> Position::makeFeature() const {
     static constexpr std::array<Color, ColorNum> colors[2] = { { BLACK, WHITE }, { WHITE, BLACK } };
     static constexpr int32_t HAND_PIECE_NUM = 7;
     static constexpr std::array<Piece, HAND_PIECE_NUM> HAND_PIECES = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
-    static constexpr std::array<FloatType, HAND_PIECE_NUM> MAX_NUMS = { 18.0, 4.0, 4.0, 4.0, 4.0, 2.0, 2.0 };
+    static constexpr std::array<float, HAND_PIECE_NUM> MAX_NUMS = { 18.0, 4.0, 4.0, 4.0, 4.0, 2.0, 2.0 };
     for (int32_t c : colors[color_]) {
         for (int32_t j = 0; j < HAND_PIECE_NUM; j++) {
             for (Square sq : SquareList) {

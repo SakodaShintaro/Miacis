@@ -129,9 +129,9 @@ void Book::updateOne(int64_t think_sec) {
         int64_t max_index = -1;
         float max_value = -1;
         for (uint64_t i = 0; i < book_entry.moves.size(); i++) {
-            FloatType U = std::sqrt(sum + 1) / (book_entry.select_num[i] + 1);
-            FloatType ucb = search_options.Q_coeff_x1000 / 1000.0 * book_entry.values[i] +
-                            search_options.C_PUCT_x1000 / 1000.0 * book_entry.policies[i] * U;
+            float U = std::sqrt(sum + 1) / (book_entry.select_num[i] + 1);
+            float ucb = search_options.Q_coeff_x1000 / 1000.0 * book_entry.values[i] +
+                        search_options.C_PUCT_x1000 / 1000.0 * book_entry.policies[i] * U;
             if (ucb > max_value) {
                 max_index = i;
                 max_value = ucb;
@@ -188,7 +188,7 @@ void Book::updateOne(int64_t think_sec) {
             }
 
             //この手の価値を更新
-            FloatType alpha = 1.0f / (++book_entry.select_num[i]);
+            float alpha = 1.0f / (++book_entry.select_num[i]);
             book_entry.values[i] += alpha * (value - book_entry.values[i]);
             break;
         }

@@ -54,7 +54,7 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
 
 #ifdef USE_CATEGORICAL
         //categoricalモデルのときは冗長だがもう一度順伝播を行って損失を手動で計算
-        std::vector<FloatType> inputs;
+        std::vector<float> inputs;
         for (const LearningData& datum : curr_data) {
             pos.fromStr(datum.position_str);
             std::vector<float> feature = pos.makeFeature();
@@ -63,8 +63,8 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
         std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = nn->policyAndValueBatch(inputs);
         const std::vector<ValueType>& values = y.second;
         for (uint64_t i = 0; i < values.size(); i++) {
-            FloatType e = expOfValueDist(values[i]);
-            FloatType vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
+            float e = expOfValueDist(values[i]);
+            float vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
             losses[VALUE_LOSS_INDEX] += (e - vt) * (e - vt);
         }
 #else
