@@ -35,19 +35,12 @@ void supervisedLearn() {
     std::cout << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size() << std::endl;
 
     //学習推移のログファイル
-    std::ofstream learn_log("supervised_learn_log.txt");
-    dout(std::cout, learn_log) << std::fixed << "time\tepoch\tstep\t";
+    std::ofstream train_log("supervised_train_log.txt");
+    std::ofstream valid_log("supervised_valid_log.txt");
+    tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\t";
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        dout(std::cout, learn_log) << LOSS_TYPE_NAME[i] + "_loss"
-                                   << "\t\n"[i == LOSS_TYPE_NUM - 1];
-    }
-
-    //validation結果のログファイル
-    std::ofstream validation_log("supervised_learn_validation_log.txt");
-    validation_log << std::fixed << "time\tepoch\tstep\t";
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        validation_log << LOSS_TYPE_NAME[i] + "_loss"
-                       << "\t\n"[i == LOSS_TYPE_NUM - 1];
+        tout(std::cout, train_log, valid_log) << LOSS_TYPE_NAME[i] + "_loss"
+                                              << "\t\n"[i == LOSS_TYPE_NUM - 1];
     }
 
     //評価関数読み込み
@@ -105,11 +98,11 @@ void supervisedLearn() {
             global_step++;
 
             //表示
-            dout(std::cout, learn_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
+            dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, learn_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
+                dout(std::cout, train_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
             }
-            dout(std::cout, learn_log) << std::flush;
+            dout(std::cout, train_log) << std::flush;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
@@ -122,11 +115,11 @@ void supervisedLearn() {
                 }
 
                 //表示
-                dout(std::cout, validation_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
+                dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
                 for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                    dout(std::cout, validation_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
+                    dout(std::cout, valid_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
                 }
-                dout(std::cout, validation_log) << std::flush;
+                dout(std::cout, valid_log) << std::flush;
 
                 //学習中のパラメータを書き出す
                 torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");
