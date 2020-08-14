@@ -38,7 +38,7 @@ for dir_name in args.dirs:
     data = [list() for _ in range(ELEMENT_NUM)]
 
     # まず損失のデータを取得する
-    loss_file_name = dir_name + "/alphazero_validation_log.txt"
+    loss_file_name = dir_name + "/alphazero_valid_log.txt"
     if not os.path.exists(loss_file_name):
         print("There is not a such file : ", loss_file_name)
         break
