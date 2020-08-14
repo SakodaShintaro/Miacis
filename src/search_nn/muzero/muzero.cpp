@@ -143,7 +143,7 @@ torch::Tensor MuZeroImpl::embed(const std::vector<float>& inputs) {
 }
 
 torch::Tensor MuZeroImpl::inferPolicy(const Position& pos) {
-    std::vector<FloatType> inputs = pos.makeFeature();
+    std::vector<float> inputs = pos.makeFeature();
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     x = encoder->forward(x);

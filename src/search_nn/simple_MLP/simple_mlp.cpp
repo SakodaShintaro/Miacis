@@ -69,7 +69,7 @@ std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& 
 }
 
 torch::Tensor SimpleMLPImpl::inferPolicy(const Position& pos) {
-    std::vector<FloatType> inputs = pos.makeFeature();
+    std::vector<float> inputs = pos.makeFeature();
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     return forward(x);
 }

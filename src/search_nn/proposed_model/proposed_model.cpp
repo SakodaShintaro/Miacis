@@ -56,12 +56,12 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
             //深さが1以上のときは1手戻るという選択肢を先頭に加える
             moves.insert(moves.begin(), NULL_MOVE);
         }
-        std::vector<FloatType> logits(moves.size());
+        std::vector<float> logits(moves.size());
         for (uint64_t i = 0; i < moves.size(); i++) {
             logits[i] = (depth > 0 && i == 0 ? simulation_policy[0][0][POLICY_DIM].item<float>()
                                              : simulation_policy[0][0][moves[i].toLabel()].item<float>());
         }
-        std::vector<FloatType> softmaxed = softmax(logits, 1.0f);
+        std::vector<float> softmaxed = softmax(logits, 1.0f);
         int64_t move_index = randomChoose(softmaxed);
 
         //盤面を遷移
