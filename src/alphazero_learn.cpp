@@ -69,6 +69,10 @@ void alphaZero() {
         replay_buffer.fillByKifu(training_kifu_path);
     }
 
+    //validation用のデータを取得
+    std::vector<LearningData> validation_data = loadData(validation_kifu_path, false);
+    std::cout << "validation_data.size() = " << validation_data.size() << std::endl;
+
     //ログファイルの設定
     std::ofstream train_log("alphazero_train_log.txt");
     std::ofstream valid_log("alphazero_valid_log.txt");
@@ -77,10 +81,6 @@ void alphaZero() {
         tout(std::cout, train_log, valid_log) << "\t" + LOSS_TYPE_NAME[i] + "_loss";
     }
     tout(std::cout, train_log, valid_log) << std::fixed << std::endl;
-
-    //validation用のデータを取得
-    std::vector<LearningData> validation_data = loadData(validation_kifu_path, false);
-    std::cout << "validation_data.size() = " << validation_data.size() << std::endl;
 
     //学習に使うネットワークの生成
     NeuralNetwork learning_model;
