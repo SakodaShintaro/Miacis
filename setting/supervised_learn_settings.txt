@@ -15,4 +15,3 @@ lr_decay_step2      300000
 lr_decay_period     20000
 train_kifu_path     /root/training_kifu
 valid_kifu_path     /root/validation_kifu
-encoder_path        encoder.model
