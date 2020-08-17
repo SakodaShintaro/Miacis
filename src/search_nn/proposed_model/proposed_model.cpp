@@ -104,7 +104,13 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
 torch::Tensor ProposedModelImpl::embed(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    x = encoder->forward(x);
+    if (freeze_encoder_) {
+        encoder->eval();
+        torch::NoGradGuard no_grad_guard;
+        x = encoder(x);
+    } else {
+        x = encoder->forward(x);
+    }
     x = x.view({ 1, -1, HIDDEN_DIM });
     return x;
 }
@@ -143,9 +149,12 @@ std::tuple<torch::Tensor, torch::Tensor> ProposedModelImpl::readoutPolicy(const 
     return std::make_tuple(policy, value);
 }
 
-std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningData>& data) {
+std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningData>& data, bool freeze_encoder) {
     //現状バッチサイズは1のみに対応
     assert(data.size() == 1);
+
+    //設定を内部の変数に格納
+    freeze_encoder_ = freeze_encoder;
 
     Position root;
     root.fromStr(data.front().position_str);

@@ -12,7 +12,7 @@ public:
     Move think(Position& root, int64_t time_limit);
 
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
-    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
+    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool freeze_encoder);
 
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
@@ -65,6 +65,9 @@ private:
     //デバイスとfp16化
     torch::Device device_;
     bool fp16_;
+
+    //エンコーダを固定して学習するかどうか
+    bool freeze_encoder_;
 };
 TORCH_MODULE(ProposedModel);
 

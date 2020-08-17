@@ -16,6 +16,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     float momentum              = settings.get<float>("momentum");
     float weight_decay          = settings.get<float>("weight_decay");
     bool data_augmentation      = settings.get<bool>("data_augmentation");
+    bool freeze_encoder         = settings.get<bool>("freeze_encoder");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     options.search_limit        = settings.get<int64_t>("search_limit");
     int64_t max_step            = settings.get<int64_t>("max_step");
@@ -80,7 +81,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
 
             //学習
             optimizer.zero_grad();
-            std::vector<torch::Tensor> loss = model->loss(curr_data);
+            std::vector<torch::Tensor> loss = model->loss(curr_data, freeze_encoder);
             torch::Tensor loss_sum = torch::cat(loss).sum();
             loss_sum.mean().backward();
             optimizer.step();
@@ -99,7 +100,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                 torch::NoGradGuard no_grad_guard;
                 std::vector<float> valid_loss_sum(loss.size(), 0);
                 for (const LearningData& datum : valid_data) {
-                    std::vector<torch::Tensor> valid_loss = model->loss({ datum });
+                    std::vector<torch::Tensor> valid_loss = model->loss({ datum }, true);
                     for (uint64_t i = 0; i < valid_loss_sum.size(); i++) {
                         valid_loss_sum[i] += valid_loss[i].item<float>();
                     }

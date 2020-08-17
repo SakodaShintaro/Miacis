@@ -40,7 +40,6 @@ USI::USI() : searcher_(nullptr) {
     command_["learnMCTSNet"]       = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
     command_["learnProposedModel"] = [](){ learnSearchNN<ProposedModel>("proposed_model"); };
     command_["learnStackedLSTM"]   = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
-    command_["learnSimpleMLP"]     = [](){ learnSearchNN<SimpleMLP>("simple_mlp"); };
     command_["pretrain"]           = pretrainSimpleMLP;
     // clang-format on
 }

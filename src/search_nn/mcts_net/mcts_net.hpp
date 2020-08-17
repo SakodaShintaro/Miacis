@@ -13,7 +13,7 @@ public:
     Move think(Position& root, int64_t time_limit, bool save_info_to_learn = false);
 
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
-    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
+    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool freeze_encoder);
 
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
@@ -62,6 +62,9 @@ private:
     //学習で使うために探索中に保存しておく値
     std::vector<torch::Tensor> root_h_;
     std::vector<torch::Tensor> probs_;
+
+    //エンコーダを固定して学習するかどうか
+    bool freeze_encoder_;
 };
 TORCH_MODULE(MCTSNet);
 

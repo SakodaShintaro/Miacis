@@ -3,6 +3,7 @@ min_learn_rate      0.0000005
 momentum            0.9
 weight_decay        0.0
 data_augmentation   1
+freeze_encoder      1
 batch_size          1
 search_limit        10
 max_step            3000000
