@@ -88,11 +88,13 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             global_step++;
 
             //表示
-            dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
-            for (const torch::Tensor& t : loss) {
-                dout(std::cout, train_log) << "\t" << t.item<float>();
+            if (global_step % 100 == 0) {
+                dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
+                for (const torch::Tensor& t : loss) {
+                    dout(std::cout, train_log) << "\t" << t.item<float>();
+                }
+                dout(std::cout, train_log) << "\r" << std::flush;
             }
-            dout(std::cout, train_log) << "\r" << std::flush;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
