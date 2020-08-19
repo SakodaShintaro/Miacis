@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <bitset>
 #include <iostream>
+#include <queue>
 
 namespace Go {
 
@@ -136,7 +137,7 @@ bool Position::isLegalMove(const Move move) const {
     }
 
     //打った先に石がなく、打って自殺になっていなければ良い
-    return !(board_[move.to()] != EMPTY || !isLiving(move.to(), std::vector<bool>(SQUARE_NUM, false), (Piece)color_));
+    return board_[move.to()] == EMPTY && isLiving(move.to(), (Piece)color_);
 }
 
 void Position::initHashSeed() {
@@ -189,23 +190,34 @@ void Position::fromStr(const std::string& str) {
 }
 
 bool Position::isFinish(float& score, bool check_repeat) const {
-    //ゲームが終了するのは
-    //(1)盤面が埋まっている場合
-    //(2)盤面は埋まっていないが、どちらのプレイヤーも置くところがない場合
-    //   これは2回連続パスが続くことで判定できる
+    //ゲームが終了するのは2回連続パスが続いた場合
+    if (kifu_.size() >= 2 && kifu_[kifu_.size() - 1] == NULL_MOVE && kifu_[kifu_.size() - 2] == NULL_MOVE) {
+        //結果を設定する
+        //Tromp-Taylorルール(https://senseis.xmp.net/?TrompTaylorRules)に従う
+        std::array<int32_t, 2> count = { 0, 0 };
+        for (int32_t sq = 0; sq < SQUARE_NUM; sq++) {
+            if (board_[sq] == EMPTY) {
+                //dfsして到達可能な石を見る
+                bool reach_black = canReach(sq, EMPTY, BLACK_PIECE);
+                bool reach_white = canReach(sq, EMPTY, WHITE_PIECE);
+                if (reach_black && !reach_white) {
+                    count[BLACK]++;
+                } else if (!reach_black && reach_white) {
+                    count[WHITE]++;
+                }
+            } else {
+                count[board_[sq]]++;
+            }
+        }
 
-    //空マスも含めて石の数を数えていく
-    std::array<int64_t, PieceNum> piece_num{};
-    for (Square sq = 0; sq < SQUARE_NUM; sq++) {
-        piece_num[board_[sq]]++;
+        int32_t own = count[color_];
+        int32_t opp = count[~color_];
+
+        score = (own > opp ? MAX_SCORE : own < opp ? MIN_SCORE : (MAX_SCORE + MIN_SCORE) / 2);
+        return true;
+    } else {
+        return false;
     }
-    assert(piece_num[WALL] == 0);
-
-    score = (piece_num[color_] == piece_num[~color_] ? (MAX_SCORE + MIN_SCORE) / 2
-                                                     : piece_num[color_] > piece_num[~color_] ? MAX_SCORE : MIN_SCORE);
-
-    return (piece_num[EMPTY] == 0) ||
-           (kifu_.size() >= 2 && kifu_[kifu_.size() - 1] == NULL_MOVE && kifu_[kifu_.size() - 2] == NULL_MOVE);
 }
 
 std::vector<float> Position::makeFeature() const {
@@ -287,52 +299,54 @@ std::string Position::augmentStrMirror(const std::string& str, int64_t augmentat
     }
 }
 
-bool Position::isLiving(Square sq, std::vector<bool> visit, Piece piece) const {
+bool Position::isLiving(Square sq, Piece piece) const {
     //pieceのプレイヤーから見てここにある石、あるいはこの空マスに石を置いた場合にその石が死んでいないか判定
     //合法手の確認としてconst化で使いたい場合があるので、sqの位置にある石自体は問わない(置く前に判定を入れたいということ)
+    return canReach(sq, piece, EMPTY);
+}
 
-    //まず訪問フラグを立てる
-    visit[sq] = true;
+bool Position::canReach(Square start, Piece node, Piece target) const {
+    //start位置自体がnodeであるかどうかは問わないことにする
 
-    //まず段と筋に分解
-    int32_t x = sq % BOARD_WIDTH;
-    int32_t y = sq / BOARD_WIDTH;
-
-    //上下左右に
-    // (1)空マスがあれば生きている
+    //移動方向に関する定数
     static constexpr int32_t DIR_NUM = 4;
     static constexpr int32_t dx[DIR_NUM] = { 0, 1, 0, -1 };
     static constexpr int32_t dy[DIR_NUM] = { 1, 0, -1, 0 };
-    for (int32_t i = 0; i < DIR_NUM; i++) {
-        int32_t nx = x + dx[i];
-        int32_t ny = y + dy[i];
-        if (nx < 0 || BOARD_WIDTH <= nx || ny < 0 || BOARD_WIDTH <= ny) {
-            continue;
-        }
 
-        if (board_[xy2square(nx, ny)] == EMPTY) {
-            return true;
-        }
-    }
+    //訪問フラグ
+    std::vector<bool> visit(SQUARE_NUM, false);
+    visit[start] = true;
 
-    // (2)同じ色の石があればそこからまた再判定を入れる
-    for (int32_t i = 0; i < DIR_NUM; i++) {
-        int32_t nx = x + dx[i];
-        int32_t ny = y + dy[i];
-        if (nx < 0 || BOARD_WIDTH <= nx || ny < 0 || BOARD_WIDTH <= ny) {
-            continue;
-        }
+    //とりあえずqueueで。stackの方が良いという可能性ある？
+    std::queue<Square> q;
+    q.push(start);
 
-        Square nsq = xy2square(nx, ny);
-        if (board_[nsq] == piece && !visit[nsq]) {
-            bool adj = isLiving(nsq, visit, WALL);
-            if (adj) {
+    //探索
+    while (!q.empty()) {
+        Square sq = q.front();
+        q.pop();
+
+        //まず段と筋に分解
+        int32_t x = sq % BOARD_WIDTH;
+        int32_t y = sq / BOARD_WIDTH;
+
+        //周囲4方向を見てtargetがあればそこで終了,nodeがあればそこへ遷移
+        for (int32_t i = 0; i < DIR_NUM; i++) {
+            int32_t nx = x + dx[i];
+            int32_t ny = y + dy[i];
+            if (nx < 0 || BOARD_WIDTH <= nx || ny < 0 || BOARD_WIDTH <= ny) {
+                continue;
+            }
+
+            Square nsq = xy2square(nx, ny);
+            if (board_[nsq] == target) {
                 return true;
+            } else if (board_[nsq] == node && !visit[nsq]) {
+                q.push(nsq);
+                visit[nsq] = true;
             }
         }
     }
-
-    return false;
 }
 
 } // namespace Go

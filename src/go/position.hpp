@@ -71,7 +71,10 @@ private:
     static std::string augmentStrMirror(const std::string& str, int64_t augmentation);
 
     //ある位置にある石が取られる状態かどうか判定する関数
-    bool isLiving(Square sq, std::vector<bool> visit, Piece piece = EMPTY) const;
+    bool isLiving(Square sq, Piece piece) const;
+
+    //startマスからnode種類のマスだけを通ってtargetへ到達することができるかどうかを判定する関数
+    bool canReach(Square start, Piece node, Piece target) const;
 
     //------------------
     //    クラス変数
