@@ -20,14 +20,13 @@ public:
 
     //コンストラクタ
     Move() = default;
-    explicit Move(int32_t x) : move(x) {}
     explicit Move(Square to) : move(to) {}
     Move(Square to, Color c) : move(c == BLACK ? to : to | (1 << TURN_BIT)) {}
 
     //見やすい日本語での表示
     std::string toPrettyStr() const {
         std::stringstream str;
-        str << to();
+        str << squareToString(to());
         return str.str();
     }
 
@@ -41,7 +40,7 @@ public:
 
     //ラベル系
     //行動から教師ラベルへと変換する関数
-    int32_t toLabel() const { return (move == 0 ? SQUARE_NUM : SquareToNum[to()]); }
+    int32_t toLabel() const { return to(); }
     //ラベルをデータ拡張に対応させる関数
     static uint32_t augmentLabel(uint32_t label, int64_t augmentation) {
         if (label == SQUARE_NUM) {
@@ -94,7 +93,7 @@ private:
 };
 
 //比較用
-const Move NULL_MOVE(0);
+const Move NULL_MOVE(SQUARE_NUM);
 
 //ストリームに対して出力するオーバーロード
 inline std::ostream& operator<<(std::ostream& os, Move m) {

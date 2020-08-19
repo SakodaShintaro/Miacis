@@ -74,7 +74,7 @@ private:
     //    クラス変数
     //------------------
     //ハッシュの各駒・位置に対する決められた値
-    static uint64_t HashSeed[PieceNum][SquareNum];
+    static uint64_t HashSeed[PieceNum][SQUARE_NUM];
 
     //------------------------
     //    インスタンス変数
@@ -83,10 +83,10 @@ private:
     Color color_;
 
     //盤面
-    std::array<Piece, SquareNum> board_;
+    std::array<Piece, SQUARE_NUM> board_;
 
     //盤面の履歴をスタックで管理
-    std::vector<std::array<Piece, SquareNum>> board_history_;
+    std::vector<std::array<Piece, SQUARE_NUM>> board_history_;
 
     //手数
     uint32_t turn_number_;

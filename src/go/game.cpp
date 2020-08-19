@@ -160,9 +160,7 @@ void Game::writeKifuFile(const std::string& dir_path) const {
     for (uint64_t i = 0; i < elements.size(); i++) {
         Move m = elements[i].move;
         ofs << i + 1 << " ";
-        int32_t to_file = m.to() % BOARD_WIDTH;
-        int32_t to_rank = m.to() / BOARD_WIDTH;
-        ofs << fileToString(to_file) << rankToString[to_rank];
+        ofs << squareToString(m.to());
         ofs << "**対局 評価値 " << (m.color() == BLACK ? elements[i].score : -elements[i].score) * 5000 << std::endl;
 
         pos.doMove(m);

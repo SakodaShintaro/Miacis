@@ -1,27 +1,19 @@
 #include "position.hpp"
 #include <algorithm>
 #include <bitset>
-#include <cstdio>
 #include <iostream>
 
 namespace Go {
 
-uint64_t Position::HashSeed[PieceNum][SquareNum];
+uint64_t Position::HashSeed[PieceNum][SQUARE_NUM];
 
 Position::Position() { init(); }
 
 void Position::init() {
     //盤上の初期化
-    for (int32_t i = 0; i < SquareNum; i++) {
-        board_[i] = WALL;
+    for (int32_t i = 0; i < SQUARE_NUM; i++) {
+        board_[i] = EMPTY;
     }
-    for (Square sq : SquareList) {
-        board_[sq] = EMPTY;
-    }
-
-    //初期駒をセット
-    board_[SQ54] = board_[SQ45] = WHITE_PIECE;
-    board_[SQ44] = board_[SQ55] = BLACK_PIECE;
 
     //手番
     color_ = BLACK;
@@ -123,7 +115,7 @@ void Position::undo() {
     color_ = ~color_;
 
     //盤の状態はboard_history_から戻す
-    for (int32_t i = 0; i < SquareNum; i++) {
+    for (int32_t i = 0; i < SQUARE_NUM; i++) {
         board_[i] = board_history_.back()[i];
     }
     board_history_.pop_back();
@@ -157,7 +149,7 @@ bool Position::isLegalMove(const Move move) const {
 void Position::initHashSeed() {
     std::mt19937_64 rnd(5981793);
     for (int32_t piece = BLACK_PIECE; piece <= WHITE_PIECE; piece++) {
-        for (Square sq : SquareList) {
+        for (Square sq = 0; sq < SQUARE_NUM; sq++) {
             HashSeed[piece][sq] = rnd();
         }
     }
@@ -165,7 +157,7 @@ void Position::initHashSeed() {
 
 std::vector<Move> Position::generateAllMoves() const {
     std::vector<Move> moves;
-    for (Square sq : SquareList) {
+    for (Square sq = 0; sq < SQUARE_NUM; sq++) {
         Move move(sq, color_);
         if (isLegalMove(move)) {
             moves.push_back(move);
@@ -179,7 +171,7 @@ std::vector<Move> Position::generateAllMoves() const {
 
 void Position::initHashValue() {
     hash_value_ = 0;
-    for (Square sq : SquareList) {
+    for (Square sq = 0; sq < SQUARE_NUM; sq++) {
         hash_value_ ^= HashSeed[board_[sq]][sq];
     }
     hash_value_ &= ~1;     //これで1bit目が0になる
@@ -188,7 +180,7 @@ void Position::initHashValue() {
 
 std::string Position::toStr() const {
     std::string str;
-    for (Square sq : SquareList) {
+    for (Square sq = 0; sq < SQUARE_NUM; sq++) {
         str += PieceToSfenStr[board_[sq]];
     }
     str += (color_ == BLACK ? 'b' : 'w');
@@ -197,7 +189,7 @@ std::string Position::toStr() const {
 
 void Position::fromStr(const std::string& str) {
     for (uint64_t i = 0; i < SQUARE_NUM; i++) {
-        board_[SquareList[i]] = (str[i] == 'x' ? BLACK_PIECE : str[i] == 'o' ? WHITE_PIECE : EMPTY);
+        board_[i] = (str[i] == 'x' ? BLACK_PIECE : str[i] == 'o' ? WHITE_PIECE : EMPTY);
     }
     color_ = (str.back() == 'b' ? BLACK : WHITE);
     initHashValue();
@@ -211,7 +203,7 @@ bool Position::isFinish(float& score, bool check_repeat) const {
 
     //空マスも含めて石の数を数えていく
     std::array<int64_t, PieceNum> piece_num{};
-    for (Square sq : SquareList) {
+    for (Square sq = 0; sq < SQUARE_NUM; sq++) {
         piece_num[board_[sq]]++;
     }
     assert(piece_num[WALL] == 0);
@@ -235,8 +227,8 @@ std::vector<float> Position::makeFeature() const {
     //盤上の駒の特徴量
     for (uint64_t i = 0; i < ColorNum; i++) {
         //各マスについて注目している駒がそこにあるなら1,ないなら0とする
-        for (Square sq : SquareList) {
-            features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[sq] == TARGET_PIECE[color_][i] ? 1 : 0);
+        for (Square sq = 0; sq < SQUARE_NUM; sq++) {
+            features[i * SQUARE_NUM + sq] = (board_[sq] == TARGET_PIECE[color_][i] ? 1 : 0);
         }
     }
 
