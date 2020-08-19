@@ -11,6 +11,11 @@
 #elif defined(OTHELLO)
 #include "othello/position.hpp"
 
+//囲碁をコンパイルする場合
+#elif defined(GO)
+#include "go/position.hpp"
+using namespace Go;
+
 #endif
 
 #endif //MIACIS_INCLUDE_SWITCH_HPP

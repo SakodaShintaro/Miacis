@@ -9,6 +9,9 @@ static constexpr int32_t CHANNEL_NUM = 128;
 #elif defined(OTHELLO)
 static constexpr int32_t BLOCK_NUM = 5;
 static constexpr int32_t CHANNEL_NUM = 64;
+#elif defined(GO)
+static constexpr int32_t BLOCK_NUM = 5;
+static constexpr int32_t CHANNEL_NUM = 64;
 #endif
 static constexpr int32_t KERNEL_SIZE = 3;
 static constexpr int32_t REDUCTION = 8;

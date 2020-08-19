@@ -36,36 +36,50 @@ set(SHOGI_SRCS shogi/main.cpp
                shogi/square.cpp
                shogi/usi.cpp
                shogi/game.cpp
-               shogi/book.cpp)
+        shogi/book.cpp)
 
 #オセロ用のバイナリをコンパイルするのに必要なソース
 set(OTHELLO_SRCS othello/main.cpp
-                 othello/position.cpp
-                 othello/square.cpp
-                 othello/piece.cpp
-                 othello/interface.cpp
-                 othello/game.cpp)
+        othello/position.cpp
+        othello/square.cpp
+        othello/piece.cpp
+        othello/interface.cpp
+        othello/game.cpp)
 
-add_executable(Miacis_shogi_scalar      ${SRCS} ${SHOGI_SRCS})
+#囲碁用のバイナリをコンパイルするのに必要なソース
+set(GO_SRCS go/main.cpp
+        go/position.cpp
+        go/square.cpp
+        go/piece.cpp
+        go/interface.cpp
+        go/game.cpp)
+
+add_executable(Miacis_shogi_scalar ${SRCS} ${SHOGI_SRCS})
 add_executable(Miacis_shogi_categorical ${SRCS} ${SHOGI_SRCS})
-target_compile_definitions(Miacis_shogi_scalar      PUBLIC SHOGI)
+target_compile_definitions(Miacis_shogi_scalar PUBLIC SHOGI)
 target_compile_definitions(Miacis_shogi_categorical PUBLIC SHOGI)
 target_compile_definitions(Miacis_shogi_categorical PUBLIC USE_CATEGORICAL)
 
-add_executable(Miacis_othello_scalar      ${SRCS} ${OTHELLO_SRCS})
+add_executable(Miacis_othello_scalar ${SRCS} ${OTHELLO_SRCS})
 add_executable(Miacis_othello_categorical ${SRCS} ${OTHELLO_SRCS})
-target_compile_definitions(Miacis_othello_scalar      PUBLIC OTHELLO)
+target_compile_definitions(Miacis_othello_scalar PUBLIC OTHELLO)
 target_compile_definitions(Miacis_othello_categorical PUBLIC OTHELLO)
 target_compile_definitions(Miacis_othello_categorical PUBLIC USE_CATEGORICAL)
 
+add_executable(Miacis_go_categorical ${SRCS} ${GO_SRCS})
+target_compile_definitions(Miacis_go_categorical PUBLIC GO)
+target_compile_definitions(Miacis_go_categorical PUBLIC USE_CATEGORICAL)
+
 if (MSVC)
-    target_link_libraries(Miacis_shogi_scalar        "${TORCH_LIBRARIES}")
-    target_link_libraries(Miacis_shogi_categorical   "${TORCH_LIBRARIES}")
-    target_link_libraries(Miacis_othello_scalar      "${TORCH_LIBRARIES}")
+    target_link_libraries(Miacis_shogi_scalar "${TORCH_LIBRARIES}")
+    target_link_libraries(Miacis_shogi_categorical "${TORCH_LIBRARIES}")
+    target_link_libraries(Miacis_othello_scalar "${TORCH_LIBRARIES}")
     target_link_libraries(Miacis_othello_categorical "${TORCH_LIBRARIES}")
-else()
-    target_link_libraries(Miacis_shogi_scalar        pthread stdc++fs "${TORCH_LIBRARIES}")
-    target_link_libraries(Miacis_shogi_categorical   pthread stdc++fs "${TORCH_LIBRARIES}")
+    target_link_libraries(Miacis_go_categorical "${TORCH_LIBRARIES}")
+else ()
+    target_link_libraries(Miacis_shogi_scalar pthread stdc++fs "${TORCH_LIBRARIES}")
+    target_link_libraries(Miacis_shogi_categorical pthread stdc++fs "${TORCH_LIBRARIES}")
     target_link_libraries(Miacis_othello_scalar      pthread stdc++fs "${TORCH_LIBRARIES}")
     target_link_libraries(Miacis_othello_categorical pthread stdc++fs "${TORCH_LIBRARIES}")
+    target_link_libraries(Miacis_go_categorical pthread stdc++fs "${TORCH_LIBRARIES}")
 endif()
