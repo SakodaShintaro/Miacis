@@ -6,10 +6,12 @@
 //将棋をコンパイルする場合
 #ifdef SHOGI
 #include "shogi/position.hpp"
+using namespace Shogi;
 
 //オセロをコンパイルする場合
 #elif defined(OTHELLO)
 #include "othello/position.hpp"
+using namespace Othello;
 
 //囲碁をコンパイルする場合
 #elif defined(GO)

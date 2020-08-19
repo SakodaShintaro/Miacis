@@ -1,9 +1,11 @@
-﻿#ifndef POSITION_HPP
-#define POSITION_HPP
+﻿#ifndef MIACIS_SHOGI_POSITION_HPP
+#define MIACIS_SHOGI_POSITION_HPP
 
 #include "bitboard.hpp"
 #include "hand.hpp"
 #include "move.hpp"
+
+namespace Shogi {
 
 class Position {
 public:
@@ -144,4 +146,6 @@ private:
     Bitboard pieces_bb_[PieceNum];
 };
 
-#endif
+} // namespace Shogi
+
+#endif //MIACIS_SHOGI_POSITION_HPP

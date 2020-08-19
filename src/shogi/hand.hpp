@@ -3,6 +3,8 @@
 
 #include "piece.hpp"
 
+namespace Shogi {
+
 enum HandConst {
     //0000 0000 0000 0000 0000 0000 0011 1111 PAWN
     //0000 0000 0000 0000 0000 0011 1000 0000 LANCE
@@ -111,5 +113,7 @@ public:
 private:
     uint32_t hand_;
 };
+
+} // namespace Shogi
 
 #endif //MIACIS_SHOGI_HAND_HPP

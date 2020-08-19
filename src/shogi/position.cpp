@@ -1,6 +1,8 @@
 ﻿#include "position.hpp"
 #include "../neural_network.hpp"
 
+namespace Shogi {
+
 uint64_t Position::HashSeed[PieceNum][SquareNum];
 uint64_t Position::HandHashSeed[ColorNum][PieceNum][19];
 
@@ -1196,3 +1198,5 @@ std::string Position::augmentStr(const std::string& str, int64_t augmentation) {
         exit(1);
     }
 }
+
+} // namespace Shogi

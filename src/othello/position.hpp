@@ -9,6 +9,8 @@
 #include <random>
 #include <unordered_map>
 
+namespace Othello {
+
 class Position {
 public:
     //コンストラクタ
@@ -98,5 +100,7 @@ private:
     //ハッシュ値の履歴
     std::vector<uint64_t> hash_values_;
 };
+
+} // namespace Othello
 
 #endif //MIACIS_OTHELLO_POSITION_HPP

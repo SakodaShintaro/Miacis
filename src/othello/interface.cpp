@@ -2,6 +2,8 @@
 #include "../game.hpp"
 #include "../learn.hpp"
 
+namespace Othello {
+
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
     // clang-format off
@@ -337,3 +339,5 @@ void Interface::outputValue() {
     ofs << -1 << std::endl;
     std::cout << "finish outputValue" << std::endl;
 }
+
+} // namespace Othello

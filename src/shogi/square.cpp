@@ -1,5 +1,7 @@
 ﻿#include "square.hpp"
 
+namespace Shogi {
+
 // clang-format off
 const std::array<Square, SQUARE_NUM> SquareList = {
     SQ11, SQ12, SQ13, SQ14, SQ15, SQ16, SQ17, SQ18, SQ19,
@@ -70,3 +72,5 @@ std::ostream& operator<<(std::ostream& os, Square sq) {
     os << SquareToFile[sq] << SquareToRank[sq];
     return os;
 }
+
+} // namespace Shogi

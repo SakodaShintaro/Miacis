@@ -28,14 +28,14 @@ set(SRCS hash_table.cpp
 
 #将棋用のバイナリをコンパイルするのに必要なソース
 set(SHOGI_SRCS shogi/main.cpp
-               shogi/test.cpp
-               shogi/bitboard.cpp
-               shogi/move.cpp
-               shogi/piece.cpp
-               shogi/position.cpp
-               shogi/square.cpp
-               shogi/usi.cpp
-               shogi/game.cpp
+        shogi/test.cpp
+        shogi/bitboard.cpp
+        shogi/move.cpp
+        shogi/piece.cpp
+        shogi/position.cpp
+        shogi/square.cpp
+        shogi/interface.cpp
+        shogi/game.cpp
         shogi/book.cpp)
 
 #オセロ用のバイナリをコンパイルするのに必要なソース
