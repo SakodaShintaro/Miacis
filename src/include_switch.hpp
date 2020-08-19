@@ -11,6 +11,7 @@ using namespace Shogi;
 //オセロをコンパイルする場合
 #elif defined(OTHELLO)
 #include "othello/position.hpp"
+using namespace Othello;
 
 #endif
 

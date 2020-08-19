@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <iostream>
 
+namespace Othello {
+
 uint64_t Position::HashSeed[PieceNum][SquareNum];
 
 Position::Position() { init(); }
@@ -327,3 +329,5 @@ std::string Position::augmentStrMirror(const std::string& str, int64_t augmentat
         exit(1);
     }
 }
+
+} // namespace Othello
