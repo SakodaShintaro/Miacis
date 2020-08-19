@@ -2,7 +2,6 @@
 #include "../game_generator.hpp"
 #include "../searcher_for_play.hpp"
 #include "book.hpp"
-#include <cmath>
 
 namespace Shogi {
 
@@ -32,7 +31,7 @@ void test() {
             break;
         }
 
-        float finish_score = NAN;
+        float finish_score{};
         if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2) ||
             pos.turnNumber() > search_options.draw_turn) {
             //千日手or持将棋
@@ -74,7 +73,7 @@ void infiniteTest() {
 
             pos.doMove(best_move);
             //pos.print();
-            float finish_score = NAN;
+            float finish_score{};
             if (pos.isFinish(finish_score)) {
                 break;
             }
@@ -344,7 +343,7 @@ void checkSegmentTree() {
 void checkDoAndUndo() {
     for (int64_t i = 0; i < 1000000000000; i++) {
         Position pos;
-        float score = NAN;
+        float score{};
         while (!pos.isFinish(score)) {
             std::vector<Move> moves = pos.generateAllMoves();
             std::uniform_int_distribution<int64_t> dist(0, moves.size() - 1);
@@ -366,7 +365,7 @@ void checkDoAndUndo() {
 void checkMirror() {
     for (int64_t i = 0; i < 1; i++) {
         Position pos;
-        float score = NAN;
+        float score{};
         while (!pos.isFinish(score)) {
             std::vector<Move> moves = pos.generateAllMoves();
             std::uniform_int_distribution<int64_t> dist(0, moves.size() - 1);
@@ -394,7 +393,7 @@ void checkBook() {
     YaneBook book;
     book.open("./standard_book.db");
     Position pos;
-    float score = NAN;
+    float score{};
     while (!pos.isFinish(score)) {
         pos.print();
         if (book.hasEntry(pos)) {
@@ -448,7 +447,7 @@ void searchWithLog() {
             }
 
             pos.doMove(best_move);
-            float finish_score = NAN;
+            float finish_score{};
             if (pos.isFinish(finish_score)) {
                 break;
             }

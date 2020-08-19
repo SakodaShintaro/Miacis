@@ -1,7 +1,6 @@
 #include "position.hpp"
 #include <algorithm>
 #include <bitset>
-#include <cstdio>
 #include <iostream>
 
 namespace Othello {

@@ -1,5 +1,4 @@
 ﻿#include "searcher_for_play.hpp"
-#include <cmath>
 #include <thread>
 
 struct MoveWithScore {
@@ -49,7 +48,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     start_ = std::chrono::steady_clock::now();
 
 #ifdef SHOGI
-    float score = NAN;
+    float score{};
     if (!root.isRepeating(score) && search_options_.use_book && book_.hasEntry(root)) {
         return book_.pickOne(root, search_options_.book_temperature_x1000);
     }
