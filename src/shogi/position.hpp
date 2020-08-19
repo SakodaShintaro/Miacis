@@ -1,5 +1,5 @@
-﻿#ifndef POSITION_HPP
-#define POSITION_HPP
+﻿#ifndef MIACIS_SHOGI_POSITION_HPP
+#define MIACIS_SHOGI_POSITION_HPP
 
 #include "bitboard.hpp"
 #include "hand.hpp"
@@ -148,4 +148,4 @@ private:
 
 } // namespace Shogi
 
-#endif
+#endif //MIACIS_SHOGI_POSITION_HPP
