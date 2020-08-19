@@ -31,8 +31,9 @@ void Position::init() {
 }
 
 void Position::print() const {
+    //Iは使わないのでi >= 7のときは+1する
     for (int64_t i = 0; i < BOARD_WIDTH; i++) {
-        std::cout << (char)('A' + i);
+        std::cout << (char)('A' + i + (i >= 7));
     }
     std::cout << std::endl;
     for (int64_t i = 0; i < BOARD_WIDTH; i++) {
@@ -135,15 +136,7 @@ bool Position::isLegalMove(const Move move) const {
     }
 
     //打った先に石がなく、打って自殺になっていなければ良い
-
-    //打った先の確認
-    if (board_[move.to()] != EMPTY) {
-        return false;
-    }
-
-    //自殺判定はまたいつか
-    assert(false);
-    return true;
+    return !(board_[move.to()] != EMPTY || !isLiving(move.to(), std::vector<bool>(SQUARE_NUM, false), (Piece)color_));
 }
 
 void Position::initHashSeed() {
@@ -292,6 +285,54 @@ std::string Position::augmentStrMirror(const std::string& str, int64_t augmentat
         std::cout << "in augmentStrMirror, augmentation = " << augmentation << std::endl;
         exit(1);
     }
+}
+
+bool Position::isLiving(Square sq, std::vector<bool> visit, Piece piece) const {
+    //pieceのプレイヤーから見てここにある石、あるいはこの空マスに石を置いた場合にその石が死んでいないか判定
+    //合法手の確認としてconst化で使いたい場合があるので、sqの位置にある石自体は問わない(置く前に判定を入れたいということ)
+
+    //まず訪問フラグを立てる
+    visit[sq] = true;
+
+    //まず段と筋に分解
+    int32_t x = sq % BOARD_WIDTH;
+    int32_t y = sq / BOARD_WIDTH;
+
+    //上下左右に
+    // (1)空マスがあれば生きている
+    static constexpr int32_t DIR_NUM = 4;
+    static constexpr int32_t dx[DIR_NUM] = { 0, 1, 0, -1 };
+    static constexpr int32_t dy[DIR_NUM] = { 1, 0, -1, 0 };
+    for (int32_t i = 0; i < DIR_NUM; i++) {
+        int32_t nx = x + dx[i];
+        int32_t ny = y + dy[i];
+        if (nx < 0 || BOARD_WIDTH <= nx || ny < 0 || BOARD_WIDTH <= ny) {
+            continue;
+        }
+
+        if (board_[xy2square(nx, ny)] == EMPTY) {
+            return true;
+        }
+    }
+
+    // (2)同じ色の石があればそこからまた再判定を入れる
+    for (int32_t i = 0; i < DIR_NUM; i++) {
+        int32_t nx = x + dx[i];
+        int32_t ny = y + dy[i];
+        if (nx < 0 || BOARD_WIDTH <= nx || ny < 0 || BOARD_WIDTH <= ny) {
+            continue;
+        }
+
+        Square nsq = xy2square(nx, ny);
+        if (board_[nsq] == piece && !visit[nsq]) {
+            bool adj = isLiving(nsq, visit, WALL);
+            if (adj) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 } // namespace Go

@@ -70,6 +70,9 @@ private:
     static std::string augmentStrRotate(const std::string& str, int64_t augmentation);
     static std::string augmentStrMirror(const std::string& str, int64_t augmentation);
 
+    //ある位置にある石が取られる状態かどうか判定する関数
+    bool isLiving(Square sq, std::vector<bool> visit, Piece piece = EMPTY) const;
+
     //------------------
     //    クラス変数
     //------------------
