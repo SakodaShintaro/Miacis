@@ -5,6 +5,8 @@
 #include "hand.hpp"
 #include "move.hpp"
 
+namespace Shogi {
+
 class Position {
 public:
     //コンストラクタ
@@ -143,5 +145,7 @@ private:
     Bitboard occupied_bb_[ColorNum];
     Bitboard pieces_bb_[PieceNum];
 };
+
+} // namespace Shogi
 
 #endif

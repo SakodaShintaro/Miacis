@@ -8,6 +8,8 @@
 #include <sstream>
 #include <unordered_map>
 
+namespace Shogi {
+
 enum MoveConst {
     //0000 0000 0000 0000 0000 0000 0111 1111 to
     //0000 0000 0000 0000 0011 1111 1000 0000 from
@@ -138,5 +140,7 @@ inline Move stringToMove(std::string input) {
         return Move(to, from, false, promote, EMPTY, EMPTY);
     }
 }
+
+} // namespace Shogi
 
 #endif //MIACIS_SHOGI_MOVE_HPP

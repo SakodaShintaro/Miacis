@@ -1,5 +1,7 @@
 ﻿#include "bitboard.hpp"
 
+namespace Shogi {
+
 Bitboard BOARD_BB;
 Bitboard SQUARE_BB[SquareNum];
 Bitboard FILE_BB[FileNum];
@@ -286,3 +288,5 @@ Bitboard::Bitboard(Square sq) {
         board_[1] = 1ULL << (SquareToNum[sq] - SquareToNum[SQ81]);
     }
 }
+
+} // namespace Shogi

@@ -4,6 +4,8 @@
 #include "book.hpp"
 #include <cmath>
 
+namespace Shogi {
+
 void test() {
     SearchOptions search_options;
     search_options.search_limit = 800;
@@ -463,3 +465,5 @@ void convertModelToCPU() {
     torch::save(nn, NeuralNetworkImpl::MODEL_PREFIX + "_cpu.model");
     std::cout << "finish convertModelToCPU" << std::endl;
 }
+
+} // namespace Shogi

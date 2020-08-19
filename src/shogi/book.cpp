@@ -2,6 +2,8 @@
 #include "../searcher_for_play.hpp"
 #include <climits>
 
+namespace Shogi {
+
 void YaneBook::open(const std::string& file_name) {
     std::ifstream ifs(file_name);
     std::string input;
@@ -218,3 +220,5 @@ Move Book::pickOne(const Position& pos, float temperature) {
 std::string Book::removeTurnNumber(const std::string& sfen) {
     return sfen.substr(0, sfen.rfind(' ')); //最後の手数部分を消去する
 }
+
+} // namespace Shogi

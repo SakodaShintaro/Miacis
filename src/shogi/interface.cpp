@@ -3,6 +3,8 @@
 #include "../learn.hpp"
 #include "test.hpp"
 
+namespace Shogi {
+
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
     // clang-format off
@@ -227,3 +229,5 @@ void Interface::gameover() {
     std::cin >> input;
     //"win" or "lose" or "draw" が来るらしいが、特にするべきことが見当たらない
 }
+
+} // namespace Shogi

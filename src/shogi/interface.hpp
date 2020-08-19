@@ -7,6 +7,8 @@
 #include <functional>
 #include <thread>
 
+namespace Shogi {
+
 //USIプロトコルに従うインターフェース
 class Interface {
 public:
@@ -29,5 +31,7 @@ private:
     std::thread thread_;
     SearchOptions search_options_;
 };
+
+} // namespace Shogi
 
 #endif //MIACIS_SHOGI_INTERFACE_HPP
