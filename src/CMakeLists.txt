@@ -34,8 +34,8 @@ set(SHOGI_SRCS shogi/main.cpp
                shogi/piece.cpp
                shogi/position.cpp
                shogi/square.cpp
-               shogi/usi.cpp
-               shogi/game.cpp
+        shogi/interface.cpp
+        shogi/game.cpp
                shogi/book.cpp)
 
 #オセロ用のバイナリをコンパイルするのに必要なソース

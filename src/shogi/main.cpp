@@ -1,4 +1,4 @@
-﻿#include "usi.hpp"
+﻿#include "interface.hpp"
 
 int main() {
     std::cout << (torch::cuda::is_available() ? "CUDA is available." : "CUDA is not available.") << std::endl;
@@ -7,6 +7,6 @@ int main() {
 
     Bitboard::init();
 
-    USI usi;
+    Interface usi;
     usi.loop();
 }
