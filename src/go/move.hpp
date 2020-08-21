@@ -117,6 +117,11 @@ inline Move stringToMove(std::string input) {
         return NULL_MOVE;
     }
 
+    //'I'は遣わず一つずつズレるのでここでズラす
+    if (x > 'I') {
+        x--;
+    }
+
     if ('A' <= x && x < 'A' + BOARD_WIDTH) {
         Square to = xy2square(x - 'A', y - '1');
         return Move(to);

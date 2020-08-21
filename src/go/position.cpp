@@ -32,6 +32,12 @@ void Position::init() {
 }
 
 void Position::print() const {
+    std::vector<Move> moves = generateAllMoves();
+    std::vector<bool> legal_sq(SQUARE_NUM, false);
+    for (Move m : moves) {
+        legal_sq[m.to()] = true;
+    }
+
     //Iは使わないのでi >= 7のときは+1する
     for (int64_t i = 0; i < BOARD_WIDTH; i++) {
         std::cout << (char)('A' + i + (i >= 8));
@@ -45,6 +51,12 @@ void Position::print() const {
     for (int32_t y = 0; y < BOARD_WIDTH; y++) {
         for (int32_t x = 0; x < BOARD_WIDTH; x++) {
             std::cout << PieceToSfenStr[board_[xy2square(x, y)]];
+        }
+        std::cout << "|" << y + 1;
+
+        std::cout << "     ";
+        for (int32_t x = 0; x < BOARD_WIDTH; x++) {
+            std::cout << legal_sq[xy2square(x, y)];
         }
         std::cout << "|" << y + 1 << std::endl;
     }
@@ -354,6 +366,8 @@ bool Position::canReach(Square start, Piece node, Piece target) const {
             }
         }
     }
+
+    return false;
 }
 
 void Position::removeDeadStones(Square start) {
