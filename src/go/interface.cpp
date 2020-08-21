@@ -102,8 +102,9 @@ void Interface::think() {
 
 void Interface::test() {
     SearchOptions search_options;
-    search_options.search_limit = 800;
+    search_options.search_limit = 2;
     search_options.print_interval = 100000;
+    search_options.print_policy_num = 5;
     search_options.thread_num_per_gpu = 1;
     search_options.search_batch_size = 1;
     search_options.output_log_file = true;
@@ -120,6 +121,23 @@ void Interface::test() {
     while (true) {
         Move best_move = searcher.think(pos, LLONG_MAX);
 
+        pos.print();
+        std::vector<Move> moves = pos.generateAllMoves();
+        std::vector<bool> ok(SQUARE_NUM, false);
+        for (Move m : moves) {
+            ok[m.to()] = true;
+            if (!pos.isLegalMove(m)) {
+                std::cout << m.toPrettyStr() << std::endl;
+                std::exit(1);
+            }
+        }
+        for (int32_t y = 0; y < BOARD_WIDTH; y++) {
+            for (int32_t x = 0; x < BOARD_WIDTH; x++) {
+                std::cout << ok[xy2square(x, y)];
+            }
+            std::cout << std::endl;
+        }
+
         if (best_move == NULL_MOVE) {
             //投了
             game.result = (pos.color() == BLACK ? MIN_SCORE : MAX_SCORE);
@@ -129,7 +147,6 @@ void Interface::test() {
         float finish_score{};
         if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2) ||
             pos.turnNumber() > search_options.draw_turn) {
-            //千日手or持将棋
             game.result = finish_score;
             break;
         }

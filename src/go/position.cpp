@@ -101,7 +101,19 @@ void Position::doMove(const Move move) {
     //ハッシュ値を変更
     hash_value_ ^= HashSeed[p][move.to()];
 
-    //ここで相手の石が取れる場合がある。結構その処理が面倒そう？
+    //隣接4方向について相手の石が取れる可能性がある
+    for (int32_t i = 0; i < DIR_NUM; i++) {
+        int32_t nx = (move.to() % BOARD_WIDTH) + dx[i];
+        int32_t ny = (move.to() / BOARD_WIDTH) + dy[i];
+        if (nx < 0 || BOARD_WIDTH <= nx || ny < 0 || BOARD_WIDTH <= ny) {
+            continue;
+        }
+        Square nsq = xy2square(nx, ny);
+        if (board_[nsq] == oppositeColor(p) && !isLiving(nsq, oppositeColor(p))) {
+            //死んでいるので取り除く
+            removeDeadStones(nsq);
+        }
+    }
 
     //手番の更新
     color_ = ~color_;
@@ -308,11 +320,6 @@ bool Position::isLiving(Square sq, Piece piece) const {
 bool Position::canReach(Square start, Piece node, Piece target) const {
     //start位置自体がnodeであるかどうかは問わないことにする
 
-    //移動方向に関する定数
-    static constexpr int32_t DIR_NUM = 4;
-    static constexpr int32_t dx[DIR_NUM] = { 0, 1, 0, -1 };
-    static constexpr int32_t dy[DIR_NUM] = { 1, 0, -1, 0 };
-
     //訪問フラグ
     std::vector<bool> visit(SQUARE_NUM, false);
     visit[start] = true;
@@ -342,6 +349,45 @@ bool Position::canReach(Square start, Piece node, Piece target) const {
             if (board_[nsq] == target) {
                 return true;
             } else if (board_[nsq] == node && !visit[nsq]) {
+                q.push(nsq);
+                visit[nsq] = true;
+            }
+        }
+    }
+}
+
+void Position::removeDeadStones(Square start) {
+    //訪問フラグ
+    std::vector<bool> visit(SQUARE_NUM, false);
+    visit[start] = true;
+
+    //とりあえずqueueで。stackの方が良いという可能性ある？
+    std::queue<Square> q;
+    q.push(start);
+
+    Piece target = board_[start];
+
+    //探索
+    while (!q.empty()) {
+        Square sq = q.front();
+        q.pop();
+
+        board_[sq] = EMPTY;
+
+        //まず段と筋に分解
+        int32_t x = sq % BOARD_WIDTH;
+        int32_t y = sq / BOARD_WIDTH;
+
+        //周囲4方向を見てtargetがあればそこで終了,nodeがあればそこへ遷移
+        for (int32_t i = 0; i < DIR_NUM; i++) {
+            int32_t nx = x + dx[i];
+            int32_t ny = y + dy[i];
+            if (nx < 0 || BOARD_WIDTH <= nx || ny < 0 || BOARD_WIDTH <= ny) {
+                continue;
+            }
+
+            Square nsq = xy2square(nx, ny);
+            if (board_[nsq] == target) {
                 q.push(nsq);
                 visit[nsq] = true;
             }

@@ -76,6 +76,9 @@ private:
     //startマスからnode種類のマスだけを通ってtargetへ到達することができるかどうかを判定する関数
     bool canReach(Square start, Piece node, Piece target) const;
 
+    //死んだ石を取り除く関数
+    void removeDeadStones(Square start);
+
     //------------------
     //    クラス変数
     //------------------

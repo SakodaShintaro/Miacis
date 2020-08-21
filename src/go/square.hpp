@@ -30,6 +30,11 @@ inline Square operator+(Square sq, Dir diff) {
 
 extern const Dir DirList[8];
 
+//隣接4方向
+static constexpr int32_t DIR_NUM = 4;
+static constexpr int32_t dx[DIR_NUM] = { 0, 1, 0, -1 };
+static constexpr int32_t dy[DIR_NUM] = { 1, 0, -1, 0 };
+
 std::string squareToString(Square sq);
 
 } // namespace Go

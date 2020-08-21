@@ -118,10 +118,10 @@ inline Move stringToMove(std::string input) {
     }
 
     if ('A' <= x && x < 'A' + BOARD_WIDTH) {
-        Square to = xy2square(x - 'A', y - '0');
+        Square to = xy2square(x - 'A', y - '1');
         return Move(to);
     } else if ('a' <= x && x < 'a' + BOARD_WIDTH) {
-        Square to = xy2square(x - 'A', y - '0');
+        Square to = xy2square(x - 'A', y - '1');
         return Move(to);
     } else {
         return NULL_MOVE;
