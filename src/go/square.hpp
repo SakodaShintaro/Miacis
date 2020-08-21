@@ -30,9 +30,6 @@ inline Square operator+(Square sq, Dir diff) {
 
 extern const Dir DirList[8];
 
-inline std::string fileToString(int32_t file) { return { (char)('H' - (BOARD_WIDTH - file)) }; }
-inline std::string rankToString(int32_t rank) { return { std::to_string(BOARD_WIDTH - rank) }; }
-
 std::string squareToString(Square sq);
 
 } // namespace Go

@@ -10,7 +10,7 @@ const Dir DirList[8] = {
 
 std::string squareToString(Square sq) {
     std::stringstream ss;
-    ss << fileToString(sq % BOARD_WIDTH) << rankToString(sq / BOARD_WIDTH);
+    ss << (char)('A' + sq % BOARD_WIDTH) << 1 + sq / BOARD_WIDTH;
     return ss.str();
 }
 

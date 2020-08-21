@@ -24,11 +24,7 @@ public:
     Move(Square to, Color c) : move(c == BLACK ? to : to | (1 << TURN_BIT)) {}
 
     //見やすい日本語での表示
-    std::string toPrettyStr() const {
-        std::stringstream str;
-        str << squareToString(to());
-        return str.str();
-    }
+    std::string toPrettyStr() const { return squareToString(to()); }
 
     //要素を取り出す関数ら
     inline Square to() const { return Square(move & ~(1 << TURN_BIT)); }
@@ -100,7 +96,7 @@ inline std::ostream& operator<<(std::ostream& os, Move m) {
     if (m == NULL_MOVE) {
         os << "PA";
     } else {
-        os << fileToString(m.to() % BOARD_WIDTH) << m.to() / BOARD_WIDTH;
+        os << m.toPrettyStr();
     }
     return os;
 }

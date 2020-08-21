@@ -34,7 +34,7 @@ void Position::init() {
 void Position::print() const {
     //Iは使わないのでi >= 7のときは+1する
     for (int64_t i = 0; i < BOARD_WIDTH; i++) {
-        std::cout << (char)('A' + i + (i >= 7));
+        std::cout << (char)('A' + i + (i >= 8));
     }
     std::cout << std::endl;
     for (int64_t i = 0; i < BOARD_WIDTH; i++) {
@@ -42,11 +42,11 @@ void Position::print() const {
     }
     std::cout << std::endl;
 
-    for (int32_t r = 0; r < BOARD_WIDTH; r++) {
-        for (int32_t f = BOARD_WIDTH - 1; f > 0; f--) {
-            std::cout << PieceToSfenStr[board_[xy2square(f, r)]];
+    for (int32_t y = 0; y < BOARD_WIDTH; y++) {
+        for (int32_t x = 0; x < BOARD_WIDTH; x++) {
+            std::cout << PieceToSfenStr[board_[xy2square(x, y)]];
         }
-        std::cout << "|" << r << std::endl;
+        std::cout << "|" << y + 1 << std::endl;
     }
 
     std::cout << "手番:" << (color_ == BLACK ? "先手" : "後手") << std::endl;
