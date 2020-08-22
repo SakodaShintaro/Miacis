@@ -70,14 +70,14 @@ private:
     static std::string augmentStrRotate(const std::string& str, int64_t augmentation);
     static std::string augmentStrMirror(const std::string& str, int64_t augmentation);
 
-    //ある位置にある石が取られる状態かどうか判定する関数
-    bool isLiving(Square sq, Piece piece) const;
+    //startマスから上下左右にある同じ色の石だけを通ってtargetへ到達できるか調べる関数
+    static bool canReach(Square start, Piece target, const std::array<Piece, SQUARE_NUM>& board);
 
-    //startマスからnode種類のマスだけを通ってtargetへ到達することができるかどうかを判定する関数
-    bool canReach(Square start, Piece node, Piece target) const;
+    //startにある石が生きているかどうか判定する関数
+    static bool isLiving(Square start, const std::array<Piece, SQUARE_NUM>& board);
 
     //死んだ石を取り除く関数
-    void removeDeadStones(Square start);
+    static void removeDeadStones(Square start, std::array<Piece, SQUARE_NUM>& board);
 
     //------------------
     //    クラス変数

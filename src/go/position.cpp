@@ -121,9 +121,9 @@ void Position::doMove(const Move move) {
             continue;
         }
         Square nsq = xy2square(nx, ny);
-        if (board_[nsq] == oppositeColor(p) && !isLiving(nsq, oppositeColor(p))) {
+        if (board_[nsq] == oppositeColor(p) && !isLiving(nsq, board_)) {
             //死んでいるので取り除く
-            removeDeadStones(nsq);
+            removeDeadStones(nsq, board_);
         }
     }
 
@@ -160,8 +160,48 @@ bool Position::isLegalMove(const Move move) const {
         return (moves.size() == 1 && moves[0] == NULL_MOVE);
     }
 
-    //打った先に石がなく、打って自殺になっていなければ良い
-    return board_[move.to()] == EMPTY && isLiving(move.to(), (Piece)color_);
+    //まず打った先にすでに石があったら非合法
+    if (board_[move.to()] != EMPTY) {
+        return false;
+    }
+
+    //動かしてみる(board_自体はconstなので仕方なくコピーする)
+    std::array<Piece, SQUARE_NUM> board = board_;
+    Piece p = board[move.to()] = (Piece)color_;
+
+    //石を取ってみる
+    //隣接4方向について相手の石が取れる可能性がある
+    bool capture = false;
+    for (int32_t i = 0; i < DIR_NUM; i++) {
+        int32_t nx = (move.to() % BOARD_WIDTH) + dx[i];
+        int32_t ny = (move.to() / BOARD_WIDTH) + dy[i];
+        if (nx < 0 || BOARD_WIDTH <= nx || ny < 0 || BOARD_WIDTH <= ny) {
+            continue;
+        }
+        Square nsq = xy2square(nx, ny);
+        Piece np = board[nsq];
+        Piece cp = oppositeColor(p);
+        if (board[nsq] == oppositeColor(p) && !isLiving(nsq, board)) {
+            //死んでいるので取り除く
+            removeDeadStones(nsq, board);
+
+            capture = true;
+        }
+    }
+
+    //すでに囲まれているなら非合法だか、石を取れる場合はそうではない
+    if (!isLiving(move.to(), board) && !capture) {
+        return false;
+    }
+
+    //以前と同じ盤面になっていたら不正
+    for (const std::array<Piece, SQUARE_NUM>& b : board_history_) {
+        if (board == b) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void Position::initHashSeed() {
@@ -222,8 +262,8 @@ bool Position::isFinish(float& score, bool check_repeat) const {
         for (int32_t sq = 0; sq < SQUARE_NUM; sq++) {
             if (board_[sq] == EMPTY) {
                 //dfsして到達可能な石を見る
-                bool reach_black = canReach(sq, EMPTY, BLACK_PIECE);
-                bool reach_white = canReach(sq, EMPTY, WHITE_PIECE);
+                bool reach_black = canReach(sq, BLACK_PIECE, board_);
+                bool reach_white = canReach(sq, WHITE_PIECE, board_);
                 if (reach_black && !reach_white) {
                     count[BLACK]++;
                 } else if (!reach_black && reach_white) {
@@ -323,15 +363,7 @@ std::string Position::augmentStrMirror(const std::string& str, int64_t augmentat
     }
 }
 
-bool Position::isLiving(Square sq, Piece piece) const {
-    //pieceのプレイヤーから見てここにある石、あるいはこの空マスに石を置いた場合にその石が死んでいないか判定
-    //合法手の確認としてconst化で使いたい場合があるので、sqの位置にある石自体は問わない(置く前に判定を入れたいということ)
-    return canReach(sq, piece, EMPTY);
-}
-
-bool Position::canReach(Square start, Piece node, Piece target) const {
-    //start位置自体がnodeであるかどうかは問わないことにする
-
+bool Position::canReach(Square start, Piece target, const std::array<Piece, SQUARE_NUM>& board) {
     //訪問フラグ
     std::vector<bool> visit(SQUARE_NUM, false);
     visit[start] = true;
@@ -339,6 +371,8 @@ bool Position::canReach(Square start, Piece node, Piece target) const {
     //とりあえずqueueで。stackの方が良いという可能性ある？
     std::queue<Square> q;
     q.push(start);
+
+    Piece root = board[start];
 
     //探索
     while (!q.empty()) {
@@ -358,9 +392,9 @@ bool Position::canReach(Square start, Piece node, Piece target) const {
             }
 
             Square nsq = xy2square(nx, ny);
-            if (board_[nsq] == target) {
+            if (board[nsq] == target) {
                 return true;
-            } else if (board_[nsq] == node && !visit[nsq]) {
+            } else if (board[nsq] == root && !visit[nsq]) {
                 q.push(nsq);
                 visit[nsq] = true;
             }
@@ -370,7 +404,12 @@ bool Position::canReach(Square start, Piece node, Piece target) const {
     return false;
 }
 
-void Position::removeDeadStones(Square start) {
+bool Position::isLiving(Square start, const std::array<Piece, SQUARE_NUM>& board) {
+    //空マスに到達できれば生きているということ
+    return canReach(start, EMPTY, board);
+}
+
+void Position::removeDeadStones(Square start, std::array<Piece, SQUARE_NUM>& board) {
     //訪問フラグ
     std::vector<bool> visit(SQUARE_NUM, false);
     visit[start] = true;
@@ -379,14 +418,14 @@ void Position::removeDeadStones(Square start) {
     std::queue<Square> q;
     q.push(start);
 
-    Piece target = board_[start];
+    Piece target = board[start];
 
     //探索
     while (!q.empty()) {
         Square sq = q.front();
         q.pop();
 
-        board_[sq] = EMPTY;
+        board[sq] = EMPTY;
 
         //まず段と筋に分解
         int32_t x = sq % BOARD_WIDTH;
@@ -401,7 +440,7 @@ void Position::removeDeadStones(Square start) {
             }
 
             Square nsq = xy2square(nx, ny);
-            if (board_[nsq] == target) {
+            if (board[nsq] == target) {
                 q.push(nsq);
                 visit[nsq] = true;
             }
