@@ -39,16 +39,20 @@ void Position::print() const {
     }
 
     //Iは使わないのでi >= 7のときは+1する
+    std::cout << "  ";
     for (int64_t i = 0; i < BOARD_WIDTH; i++) {
         std::cout << (char)('A' + i + (i >= 8));
     }
     std::cout << std::endl;
+    std::cout << "  ";
     for (int64_t i = 0; i < BOARD_WIDTH; i++) {
         std::cout << '-';
     }
     std::cout << std::endl;
 
     for (int32_t y = 0; y < BOARD_WIDTH; y++) {
+        std::cout << y + 1 << "|";
+
         for (int32_t x = 0; x < BOARD_WIDTH; x++) {
             std::cout << PieceToSfenStr[board_[xy2square(x, y)]];
         }
@@ -60,6 +64,16 @@ void Position::print() const {
         }
         std::cout << "|" << y + 1 << std::endl;
     }
+    std::cout << "  ";
+    for (int64_t i = 0; i < BOARD_WIDTH; i++) {
+        std::cout << '-';
+    }
+    std::cout << std::endl;
+    std::cout << "  ";
+    for (int64_t i = 0; i < BOARD_WIDTH; i++) {
+        std::cout << (char)('A' + i + (i >= 8));
+    }
+    std::cout << std::endl;
 
     std::cout << "手番:" << (color_ == BLACK ? "先手" : "後手") << std::endl;
     std::cout << "手数:" << turn_number_ << std::endl;
@@ -156,8 +170,7 @@ void Position::undo() {
 
 bool Position::isLegalMove(const Move move) const {
     if (move == NULL_MOVE) {
-        std::vector<Move> moves = generateAllMoves();
-        return (moves.size() == 1 && moves[0] == NULL_MOVE);
+        return true;
     }
 
     //まず打った先にすでに石があったら非合法
@@ -221,9 +234,7 @@ std::vector<Move> Position::generateAllMoves() const {
             moves.push_back(move);
         }
     }
-    if (moves.empty()) {
-        moves.push_back(NULL_MOVE);
-    }
+    moves.push_back(NULL_MOVE);
     return moves;
 }
 
