@@ -38,7 +38,7 @@ void Position::print() const {
         legal_sq[m.to()] = true;
     }
 
-    //Iは使わないのでi >= 7のときは+1する
+    //Iは使わないのでi >= 8のときは+1する
     std::cout << "  ";
     for (int64_t i = 0; i < BOARD_WIDTH; i++) {
         std::cout << (char)('A' + i + (i >= 8));
@@ -192,8 +192,6 @@ bool Position::isLegalMove(const Move move) const {
             continue;
         }
         Square nsq = xy2square(nx, ny);
-        Piece np = board[nsq];
-        Piece cp = oppositeColor(p);
         if (board[nsq] == oppositeColor(p) && !isLiving(nsq, board)) {
             //死んでいるので取り除く
             removeDeadStones(nsq, board);
