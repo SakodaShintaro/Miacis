@@ -34,9 +34,6 @@ public:
     //盤面を初期状態に戻す関数
     void init();
 
-    //標準入力から行動を一つ受け取り、盤面を更新する関数
-    void play();
-
     //Policyに従って対局し、Valueのログを残していく関数
     void outputValue();
 
@@ -44,6 +41,17 @@ public:
     void go();
     void stop();
     void quit();
+
+    //Go Text Protocolのコマンド
+    void name();
+    void version();
+    void protocol_version();
+    void list_commands();
+    void komi();
+    void boardsize();
+    void clear_board();
+    void genmove();
+    void play();
 
 private:
     std::unordered_map<std::string, std::function<void()>> command_;

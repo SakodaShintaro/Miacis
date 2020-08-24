@@ -16,10 +16,20 @@ Interface::Interface() : searcher_(nullptr) {
     command_["battleVSRandom"] = [this] { battleVSRandom(); };
     command_["outputValue"]    = [this] { outputValue(); };
     command_["init"]           = [this] { init(); };
-    command_["play"]           = [this] { play(); };
     command_["go"]             = [this] { go(); };
     command_["stop"]           = [this] { stop(); };
     command_["quit"]           = [this] { quit(); };
+
+    //Go Text Protocol
+    command_["name"]             = [this] { name(); };
+    command_["version"]          = [this] { version(); };
+    command_["protocol_version"] = [this] { protocol_version(); };
+    command_["list_commands"]    = [this] { list_commands(); };
+    command_["komi"]             = [this] { komi(); };
+    command_["boardsize"]        = [this] { boardsize(); };
+    command_["clear_board"]      = [this] { clear_board(); };
+    command_["genmove"]          = [this] { genmove(); };
+    command_["play"]             = [this] { play(); };
 
     //メンバ関数以外
     command_["initParams"]      = initParams;
@@ -30,7 +40,9 @@ Interface::Interface() : searcher_(nullptr) {
 
 void Interface::loop() {
     std::string input;
+    std::ofstream ofs("log.txt");
     while (std::cin >> input) {
+        ofs << input << std::endl;
         if (command_.count(input)) {
             command_[input]();
         } else {
@@ -276,13 +288,6 @@ void Interface::init() {
     searcher_ = std::make_unique<SearcherForPlay>(options_);
 }
 
-void Interface::play() {
-    std::string input;
-    std::cin >> input;
-    Move move = stringToMove(input);
-    root_.doMove(move);
-}
-
 void Interface::go() {
     Move best_move = searcher_->think(root_, options_.byoyomi_margin);
     std::cout << "best_move " << best_move << std::endl;
@@ -300,6 +305,7 @@ void Interface::stop() {
 
 void Interface::quit() {
     stop();
+    std::cout << "=" << std::endl << std::endl;
     exit(0);
 }
 
@@ -355,6 +361,53 @@ void Interface::outputValue() {
     std::cout << score << std::endl;
     ofs << -1 << std::endl;
     std::cout << "finish outputValue" << std::endl;
+}
+
+void Interface::name() { std::cout << "=Miacis" << std::endl << std::endl; }
+
+void Interface::version() { std::cout << "=0.1" << std::endl << std::endl; }
+
+void Interface::protocol_version() { std::cout << "=2" << std::endl << std::endl; }
+
+void Interface::list_commands() { std::cout << "=None" << std::endl << std::endl; }
+
+void Interface::komi() {
+    float komi{};
+    std::cin >> komi;
+    std::cout << "=" << std::endl << std::endl;
+}
+
+void Interface::boardsize() {
+    int32_t board_size{};
+    std::cin >> board_size;
+    std::cout << (board_size != BOARD_WIDTH ? "?" : "=") << std::endl << std::endl;
+}
+
+void Interface::clear_board() {
+    root_.init();
+
+    //対局の準備
+    searcher_ = std::make_unique<SearcherForPlay>(options_);
+
+    std::cout << "=" << std::endl << std::endl;
+}
+
+void Interface::genmove() {
+    char turn{};
+    std::cin >> turn;
+
+    Move best_move = searcher_->think(root_, 1000);
+    std::cout << "=" << best_move << std::endl << std::endl;
+    root_.doMove(best_move);
+}
+
+void Interface::play() {
+    char turn{};
+    std::string move_str;
+    std::cin >> turn >> move_str;
+    Move move = stringToMove(move_str);
+    root_.doMove(move);
+    std::cout << "=" << std::endl << std::endl;
 }
 
 } // namespace Go
