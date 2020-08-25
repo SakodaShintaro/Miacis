@@ -7,6 +7,8 @@
 #include <iostream>
 #include <sstream>
 
+namespace Othello {
+
 //行動の次元数
 //1ch目は普通の行動,2ch目はパス専用
 constexpr int64_t POLICY_CHANNEL_NUM = 2;
@@ -130,5 +132,7 @@ inline Move stringToMove(std::string input) {
         return NULL_MOVE;
     }
 }
+
+} // namespace Othello
 
 #endif //MIACIS_OTHELLO_MOVE_HPP

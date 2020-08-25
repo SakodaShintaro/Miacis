@@ -3,6 +3,8 @@
 
 #include "piece.hpp"
 
+namespace Othello {
+
 // clang-format off
 enum Square {
     WALL00, WALL01, WALL02, WALL03, WALL04, WALL05, WALL06, WALL07, WALL08, WALL09,
@@ -95,5 +97,7 @@ extern const ArrayMap<std::string, FileNum> fileToString;
 extern const ArrayMap<std::string, RankNum> rankToString;
 
 std::ostream& operator<<(std::ostream&, Square sq);
+
+} // namespace Othello
 
 #endif //MIACIS_OTHELLO_SQUARE_HPP

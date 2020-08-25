@@ -1,6 +1,8 @@
 ﻿#include "move.hpp"
 #include "position.hpp"
 
+namespace Shogi {
+
 uint32_t Move::toLabel() const {
     Color c = pieceToColor(subject());
 
@@ -105,3 +107,5 @@ std::string Move::toPrettyStr() const {
     //    }
     return str.str();
 }
+
+} // namespace Shogi

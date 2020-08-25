@@ -7,6 +7,8 @@
 #include <functional>
 #include <thread>
 
+namespace Othello {
+
 class Interface {
 public:
     Interface();
@@ -53,5 +55,7 @@ private:
     std::thread thread_;
     SearchOptions options_;
 };
+
+} // namespace Othello
 
 #endif //MIACIS_OTHELLO_INTERFACE_HPP

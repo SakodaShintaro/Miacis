@@ -5,6 +5,8 @@
 #include "../search_nn/models.hpp"
 #include "../search_nn/simple_MLP/learn_simple_mlp.hpp"
 
+namespace Othello {
+
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
     // clang-format off
@@ -366,3 +368,5 @@ template<class T> void Interface::testSearchNN() {
         root_.print();
     }
 }
+
+} // namespace Othello

@@ -1,4 +1,4 @@
-#include "usi.hpp"
+#include "interface.hpp"
 #include "../game.hpp"
 #include "../learn.hpp"
 #include "../search_nn/learn_search_nn.hpp"
@@ -6,7 +6,9 @@
 #include "../search_nn/simple_MLP/learn_simple_mlp.hpp"
 #include "test.hpp"
 
-USI::USI() : searcher_(nullptr) {
+namespace Shogi {
+
+Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
     // clang-format off
     command_["usi"]        = [this] { usi(); };
@@ -44,7 +46,7 @@ USI::USI() : searcher_(nullptr) {
     // clang-format on
 }
 
-void USI::loop() {
+void Interface::loop() {
     std::string input;
     while (std::cin >> input) {
         if (command_.count(input)) {
@@ -56,7 +58,7 @@ void USI::loop() {
     quit();
 }
 
-void USI::usi() {
+void Interface::usi() {
 #ifdef USE_CATEGORICAL
     std::cout << "id name Miacis_categorical" << std::endl;
 #else
@@ -78,12 +80,12 @@ void USI::usi() {
     printf("usiok\n");
 }
 
-void USI::isready() {
+void Interface::isready() {
     searcher_ = std::make_unique<SearcherForPlay>(search_options_);
     printf("readyok\n");
 }
 
-void USI::setoption() {
+void Interface::setoption() {
     std::string input;
     std::cin >> input;
     assert(input == "name");
@@ -113,9 +115,9 @@ void USI::setoption() {
     }
 }
 
-void USI::usinewgame() {}
+void Interface::usinewgame() {}
 
-void USI::position() {
+void Interface::position() {
     //Ponderが走っているかもしれないので一度止める
     //root_をthinkに参照で与えているのでposition構築前に止める必要がある
     //値渡しにすれば大丈夫だろうけど、別に棋力的に大差はないだろう
@@ -154,7 +156,7 @@ void USI::position() {
     go();
 }
 
-void USI::go() {
+void Interface::go() {
     searcher_->stop_signal = false;
 
     int64_t time_limit = 0;
@@ -214,7 +216,7 @@ void USI::go() {
     });
 }
 
-void USI::stop() {
+void Interface::stop() {
     if (searcher_ != nullptr) {
         searcher_->stop_signal = true;
     }
@@ -223,14 +225,16 @@ void USI::stop() {
     }
 }
 
-void USI::quit() {
+void Interface::quit() {
     stop();
     exit(0);
 }
 
-void USI::gameover() {
+void Interface::gameover() {
     stop();
     std::string input;
     std::cin >> input;
     //"win" or "lose" or "draw" が来るらしいが、特にするべきことが見当たらない
 }
+
+} // namespace Shogi

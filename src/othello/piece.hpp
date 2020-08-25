@@ -8,6 +8,8 @@
 #include <iostream>
 #include <string>
 
+namespace Othello {
+
 enum Piece : int32_t { BLACK_PIECE, WHITE_PIECE, EMPTY, WALL, PieceNum };
 
 extern const ArrayMap<std::string, PieceNum> PieceToStr;
@@ -23,4 +25,7 @@ constexpr int64_t INPUT_CHANNEL_NUM = 2;
 inline Piece oppositeColor(Piece p) { return (p == BLACK_PIECE ? WHITE_PIECE : BLACK_PIECE); }
 
 std::ostream& operator<<(std::ostream&, Piece piece);
+
+} // namespace Othello
+
 #endif //MIACIS_OTHELLO_PIECE_HPP

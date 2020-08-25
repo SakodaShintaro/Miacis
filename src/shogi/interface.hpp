@@ -1,5 +1,5 @@
-﻿#ifndef MIACIS_SHOGI_USI_HPP
-#define MIACIS_SHOGI_USI_HPP
+﻿#ifndef MIACIS_SHOGI_INTERFACE_HPP
+#define MIACIS_SHOGI_INTERFACE_HPP
 
 #include "../search_options.hpp"
 #include "../searcher_for_play.hpp"
@@ -7,9 +7,12 @@
 #include <functional>
 #include <thread>
 
-class USI {
+namespace Shogi {
+
+//USIプロトコルに従うインターフェース
+class Interface {
 public:
-    USI();
+    Interface();
     void loop();
     void usi();
     void isready();
@@ -29,4 +32,6 @@ private:
     SearchOptions search_options_;
 };
 
-#endif //MIACIS_SHOGI_USI_HPP
+} // namespace Shogi
+
+#endif //MIACIS_SHOGI_INTERFACE_HPP
