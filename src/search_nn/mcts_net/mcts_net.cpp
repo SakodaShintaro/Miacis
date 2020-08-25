@@ -237,7 +237,7 @@ std::vector<torch::Tensor> MCTSNetImpl::validationLoss(const std::vector<Learnin
 
     //各探索後の損失を計算
     std::vector<torch::Tensor> loss;
-    for (int64_t m = 0; m <= M; m++) {
+    for (int64_t m = 0; m < M; m++) {
         torch::Tensor policy_logit = readoutPolicy(root_h_[m]);
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
