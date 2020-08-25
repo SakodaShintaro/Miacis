@@ -40,8 +40,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     std::ofstream train_log(model_name + "_train_log.txt");
     std::ofstream valid_log(model_name + "_valid_log.txt");
     tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep";
-    for (int64_t i = 0; i < options.search_limit; i++) {
-        tout(std::cout, train_log, valid_log) << "\tloss_" << i + 1;
+    for (int64_t i = 0; i <= options.search_limit; i++) {
+        tout(std::cout, train_log, valid_log) << "\tloss_" << i;
     }
     tout(std::cout, train_log, valid_log) << std::endl;
 
@@ -102,7 +102,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                 torch::NoGradGuard no_grad_guard;
                 std::vector<float> valid_loss_sum(loss.size(), 0);
                 for (const LearningData& datum : valid_data) {
-                    std::vector<torch::Tensor> valid_loss = model->loss({ datum }, true);
+                    std::vector<torch::Tensor> valid_loss = model->validationLoss({ datum });
                     for (uint64_t i = 0; i < valid_loss_sum.size(); i++) {
                         valid_loss_sum[i] += valid_loss[i].item<float>();
                     }

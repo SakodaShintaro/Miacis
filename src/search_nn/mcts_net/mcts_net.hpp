@@ -14,6 +14,7 @@ public:
 
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
     std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool freeze_encoder);
+    std::vector<torch::Tensor> validationLoss(const std::vector<LearningData>& data);
 
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);

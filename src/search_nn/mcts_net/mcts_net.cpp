@@ -55,8 +55,14 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
     }
     HashEntryForMCTSNet& root_entry = hash_table_[hash_table_.root_index];
     root_entry.embedding_vector = embed(root.makeFeature()).cpu();
+    root_h_.push_back(root_entry.embedding_vector.to(device_));
 
-    for (int64_t m = 0; m < search_options_.search_limit; m++) {
+    //0回目
+    if (save_info_to_learn) {
+        probs_.push_back(torch::ones({ 1 }).to(device_));
+    }
+
+    for (int64_t m = 1; m <= search_options_.search_limit; m++) {
         //1回探索する
 
         //到達したノードの履歴
@@ -160,38 +166,35 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
 
     assert(root_h_.size() == probs_.size());
 
-    const int64_t M = root_h_.size();
+    const int64_t M = root_h_.size() - 1;
 
-    std::vector<float> policy_teachers(POLICY_DIM, 0.0);
     //policyの教師信号
+    std::vector<float> policy_teachers(POLICY_DIM, 0.0);
     for (const std::pair<int32_t, float>& e : data.front().policy) {
         policy_teachers[e.first] = e.second;
     }
-
     torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
 
     //各探索後の損失を計算
     std::vector<torch::Tensor> l(M + 1);
-    l[0] = torch::zeros({ 1 });
-    std::cout << std::fixed;
-    for (int64_t m = 0; m < M; m++) {
+    for (int64_t m = 0; m <= M; m++) {
         torch::Tensor policy_logit = readoutPolicy(root_h_[m]);
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-        l[m + 1] = (-policy_teacher * clipped).sum();
+        l[m] = (-policy_teacher * clipped).sum();
     }
 
     //損失の差分を計算
     std::vector<torch::Tensor> r(M + 1);
-    for (int64_t m = 0; m < M; m++) {
-        r[m + 1] = -(l[m + 1] - l[m]);
+    for (int64_t m = 1; m <= M; m++) {
+        r[m] = l[m - 1] - l[m];
     }
 
     //重み付き累積和
     constexpr float gamma = 1.0;
     std::vector<torch::Tensor> R(M + 1);
     for (int64_t m = 1; m <= M; m++) {
-        R[m] = torch::zeros({ 1 });
+        R[m] = torch::zeros({ 1 }).to(device_);
         for (int64_t m2 = m; m2 <= M; m2++) {
             R[m] += std::pow(gamma, m2 - m) * r[m2];
         }
@@ -201,9 +204,45 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     }
 
     std::vector<torch::Tensor> loss;
+    loss.push_back(l[M].view({ 1 }));
     for (int64_t m = 1; m <= M; m++) {
-        //loss.push_back(probs_[m - 1] * R[m]);
-        loss.push_back(l[m].view({ 1 }));
+        loss.push_back(-probs_[m] * R[m]);
+    }
+
+    return loss;
+}
+
+std::vector<torch::Tensor> MCTSNetImpl::validationLoss(const std::vector<LearningData>& data) {
+    //現状バッチサイズは1のみに対応
+    assert(data.size() == 1);
+
+    Position root;
+    root.fromStr(data.front().position_str);
+
+    //探索を行い、途中のルート埋め込みベクトル,各探索の確率等を保存しておく
+    root_h_.clear();
+    probs_.clear();
+    think(root, INT_MAX, true);
+
+    assert(root_h_.size() == probs_.size());
+
+    const int64_t M = root_h_.size();
+
+    //policyの教師信号を構成
+    std::vector<float> policy_teachers(POLICY_DIM, 0.0);
+    for (const std::pair<int32_t, float>& e : data.front().policy) {
+        policy_teachers[e.first] = e.second;
+    }
+    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
+
+    //各探索後の損失を計算
+    std::vector<torch::Tensor> loss;
+    for (int64_t m = 0; m <= M; m++) {
+        torch::Tensor policy_logit = readoutPolicy(root_h_[m]);
+        torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
+        torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
+        torch::Tensor curr_loss = (-policy_teacher * clipped).sum().view({ 1 });
+        loss.push_back(curr_loss);
     }
 
     return loss;
