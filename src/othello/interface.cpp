@@ -3,6 +3,7 @@
 #include "../learn.hpp"
 #include "../neural_network.hpp"
 #include "../search_nn/models.hpp"
+#include "../search_nn/simple_MLP/learn_simple_mlp.hpp"
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
