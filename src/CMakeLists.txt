@@ -11,15 +11,15 @@ find_package(Torch REQUIRED)
 
 #各ゲームで共通する部分のソース
 set(SRCS hash_table.cpp
-         replay_buffer.cpp
-         game_generator.cpp
-         neural_network.cpp
-         neural_network_modules.cpp
-         supervised_learn.cpp
-         learn.cpp
-         alphazero_learn.cpp
-         searcher.cpp
-         searcher_for_play.cpp
+        replay_buffer.cpp
+        game_generator.cpp
+        neural_network.cpp
+        neural_network_modules.cpp
+        supervised_learn.cpp
+        learn.cpp
+        alphazero_learn.cpp
+        searcher.cpp
+        searcher_for_play.cpp
         searcher_for_mate.cpp
         hyperparameter_loader.cpp
         segment_tree.cpp
@@ -32,7 +32,7 @@ set(SRCS hash_table.cpp
         search_nn/simple_MLP/simple_mlp.cpp
         search_nn/muzero/muzero.cpp
         search_nn/simple_MLP/learn_simple_mlp.cpp
-        )
+        search_nn/common.cpp search_nn/common.hpp)
 
 #将棋用のバイナリをコンパイルするのに必要なソース
 set(SHOGI_SRCS shogi/main.cpp
@@ -60,9 +60,9 @@ target_compile_definitions(Miacis_shogi_scalar      PUBLIC SHOGI)
 target_compile_definitions(Miacis_shogi_categorical PUBLIC SHOGI)
 target_compile_definitions(Miacis_shogi_categorical PUBLIC USE_CATEGORICAL)
 
-add_executable(Miacis_othello_scalar      ${SRCS} ${OTHELLO_SRCS})
-add_executable(Miacis_othello_categorical ${SRCS} ${OTHELLO_SRCS} search_nn/models.hpp)
-target_compile_definitions(Miacis_othello_scalar      PUBLIC OTHELLO)
+add_executable(Miacis_othello_scalar ${SRCS} ${OTHELLO_SRCS})
+add_executable(Miacis_othello_categorical ${SRCS} ${OTHELLO_SRCS})
+target_compile_definitions(Miacis_othello_scalar PUBLIC OTHELLO)
 target_compile_definitions(Miacis_othello_categorical PUBLIC OTHELLO)
 target_compile_definitions(Miacis_othello_categorical PUBLIC USE_CATEGORICAL)
 

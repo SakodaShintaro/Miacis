@@ -1,4 +1,5 @@
 #include "mcts_net.hpp"
+#include "../common.hpp"
 #include <stack>
 
 const std::string MCTSNetImpl::MODEL_PREFIX = "mcts_net";
@@ -169,11 +170,7 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     const int64_t M = root_h_.size() - 1;
 
     //policyの教師信号
-    std::vector<float> policy_teachers(POLICY_DIM, 0.0);
-    for (const std::pair<int32_t, float>& e : data.front().policy) {
-        policy_teachers[e.first] = e.second;
-    }
-    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
+    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
 
     //各探索後の損失を計算
     std::vector<torch::Tensor> l(M + 1);
@@ -228,12 +225,8 @@ std::vector<torch::Tensor> MCTSNetImpl::validationLoss(const std::vector<Learnin
 
     const int64_t M = root_h_.size();
 
-    //policyの教師信号を構成
-    std::vector<float> policy_teachers(POLICY_DIM, 0.0);
-    for (const std::pair<int32_t, float>& e : data.front().policy) {
-        policy_teachers[e.first] = e.second;
-    }
-    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
+    //policyの教師信号
+    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
 
     //各探索後の損失を計算
     std::vector<torch::Tensor> loss;

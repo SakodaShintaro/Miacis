@@ -1,5 +1,6 @@
 #include "proposed_model.hpp"
 #include "../../common.hpp"
+#include "../common.hpp"
 
 //ネットワークの設定
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
@@ -165,12 +166,7 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     const int64_t M = outputs_.size();
 
     //policyの教師信号
-    std::vector<float> policy_teachers(POLICY_DIM, 0.0);
-    for (const std::pair<int32_t, float>& e : data.front().policy) {
-        policy_teachers[e.first] = e.second;
-    }
-
-    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
+    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
 
     //各探索後の損失を計算
     std::vector<torch::Tensor> l(M + 1);
