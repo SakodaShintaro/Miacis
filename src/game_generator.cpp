@@ -193,7 +193,7 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
                            : root_node.child_indices[i] == HashTable::NOT_EXPANDED ? MAX_SCORE
                                                                                    : hash_table_.expQfromNext(root_node, i));
         }
-        Q_dist = softmax(Q_dist, search_options_.temperature_x1000 / 1000.0f);
+        Q_dist = softmax(Q_dist, std::max(search_options_.temperature_x1000 / 1000.0f, 1e-4f));
 
         //教師分布のセット
         //(1)どちらの分布を使うべきか
