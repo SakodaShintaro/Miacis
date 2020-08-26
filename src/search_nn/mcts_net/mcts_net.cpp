@@ -22,20 +22,6 @@ MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
 
 torch::Tensor MCTSNetImpl::simulationPolicy(const torch::Tensor& h) { return simulation_policy_->forward(h); }
 
-torch::Tensor MCTSNetImpl::embed(const std::vector<float>& inputs) {
-    torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    if (freeze_encoder_) {
-        encoder->eval();
-        torch::NoGradGuard no_grad_guard;
-        x = encoder(x);
-    } else {
-        x = encoder->forward(x);
-    }
-    x = torch::flatten(x, 1);
-    return x;
-}
-
 torch::Tensor MCTSNetImpl::backup(const torch::Tensor& h1, const torch::Tensor& h2) {
     torch::Tensor cat_h = torch::cat({ h1, h2 }, 1);
     torch::Tensor gate = torch::sigmoid(backup_gate_->forward(cat_h));
@@ -55,7 +41,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
         hash_table_.root_index = hash_table_.searchEmptyIndex(root);
     }
     HashEntryForMCTSNet& root_entry = hash_table_[hash_table_.root_index];
-    root_entry.embedding_vector = embed(root.makeFeature()).cpu();
+    root_entry.embedding_vector = encoder->embed(root.makeFeature(), device_, fp16_, freeze_encoder_).cpu();
     root_h_.push_back(root_entry.embedding_vector.to(device_));
 
     //0回目
@@ -105,7 +91,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
         //(2)評価
         std::vector<float> feature = root.makeFeature();
         Index index = hash_table_.searchEmptyIndex(root);
-        torch::Tensor h = embed(feature);
+        torch::Tensor h = encoder->embed(feature, device_, fp16_, freeze_encoder_);
         hash_table_[index].embedding_vector = h.cpu();
 
         //(3)バックアップ

@@ -91,15 +91,7 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
 }
 
 torch::Tensor StackedLSTMImpl::embed(const std::vector<float>& inputs) {
-    torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    if (freeze_encoder_) {
-        encoder->eval();
-        torch::NoGradGuard no_grad_guard;
-        x = encoder(x);
-    } else {
-        x = encoder->forward(x);
-    }
+    torch::Tensor x = encoder->embed(inputs, device_, fp16_, freeze_encoder_);
     x = x.view({ 1, -1, HIDDEN_DIM });
     return x;
 }

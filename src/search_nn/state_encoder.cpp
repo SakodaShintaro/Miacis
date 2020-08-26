@@ -22,3 +22,17 @@ torch::Tensor StateEncoderImpl::forward(const torch::Tensor& x) {
     y = last_conv_->forward(y);
     return y;
 }
+
+torch::Tensor StateEncoderImpl::embed(const std::vector<float>& inputs, torch::Device device, bool fp16, bool freeze) {
+    torch::Tensor x = (fp16 ? torch::tensor(inputs).to(device, torch::kHalf) : torch::tensor(inputs).to(device));
+    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+    if (freeze) {
+        eval();
+        torch::NoGradGuard no_grad_guard;
+        x = forward(x);
+    } else {
+        x = forward(x);
+    }
+    x = torch::flatten(x, 1);
+    return x;
+}

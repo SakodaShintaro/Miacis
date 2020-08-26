@@ -35,7 +35,6 @@ private:
 
     //各部分の推論
     torch::Tensor simulationPolicy(const torch::Tensor& h);
-    torch::Tensor embed(const std::vector<float>& inputs);
     torch::Tensor backup(const torch::Tensor& h1, const torch::Tensor& h2);
     torch::Tensor readoutPolicy(const torch::Tensor& h);
 
