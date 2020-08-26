@@ -36,8 +36,8 @@ private:
 
     //各部分の推論
     torch::Tensor embed(const std::vector<float>& inputs);
-    std::tuple<torch::Tensor, torch::Tensor> simulationPolicy(const torch::Tensor& x);
-    std::tuple<torch::Tensor, torch::Tensor> readoutPolicy(const torch::Tensor& x);
+    torch::Tensor simulationPolicy(const torch::Tensor& x);
+    torch::Tensor readoutPolicy(const torch::Tensor& x);
 
     //探索に関するオプション
     SearchOptions search_options_;

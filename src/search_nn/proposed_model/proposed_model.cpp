@@ -45,11 +45,11 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
 
     for (int64_t m = 0; m < search_options_.search_limit; m++) {
         //今までの探索から現時点での結論を推論
-        auto [readout_policy, readout_value] = readoutPolicy(embed_vector);
+        torch::Tensor readout_policy = readoutPolicy(embed_vector);
         outputs_.push_back(readout_policy);
 
         //LSTMでの探索を実行
-        auto [simulation_policy, simulation_value] = simulationPolicy(embed_vector);
+        torch::Tensor simulation_policy = simulationPolicy(embed_vector);
 
         //Policyからサンプリングして行動決定(undoを含む)
         std::vector<Move> moves = root.generateAllMoves();
@@ -116,7 +116,7 @@ torch::Tensor ProposedModelImpl::embed(const std::vector<float>& inputs) {
     return x;
 }
 
-std::tuple<torch::Tensor, torch::Tensor> ProposedModelImpl::simulationPolicy(const torch::Tensor& x) {
+torch::Tensor ProposedModelImpl::simulationPolicy(const torch::Tensor& x) {
     //lstmは入力(input, (h_0, c_0))
     //inputのshapeは(seq_len, batch, input_size)
     //h_0, c_0は任意の引数で、状態を初期化できる
@@ -128,12 +128,11 @@ std::tuple<torch::Tensor, torch::Tensor> ProposedModelImpl::simulationPolicy(con
     std::tie(simulation_h_, simulation_c_) = h_and_c;
 
     torch::Tensor policy = simulation_policy_head_->forward(output);
-    torch::Tensor value = simulation_value_head_->forward(output);
 
-    return std::make_tuple(policy, value);
+    return policy;
 }
 
-std::tuple<torch::Tensor, torch::Tensor> ProposedModelImpl::readoutPolicy(const torch::Tensor& x) {
+torch::Tensor ProposedModelImpl::readoutPolicy(const torch::Tensor& x) {
     //lstmは入力(input, (h_0, c_0))
     //inputのshapeは(seq_len, batch, input_size)
     //h_0, c_0は任意の引数で、状態を初期化できる
@@ -145,9 +144,8 @@ std::tuple<torch::Tensor, torch::Tensor> ProposedModelImpl::readoutPolicy(const 
     std::tie(readout_h_, readout_c_) = h_and_c;
 
     torch::Tensor policy = readout_policy_head_->forward(output);
-    torch::Tensor value = readout_value_head_->forward(output);
 
-    return std::make_tuple(policy, value);
+    return policy;
 }
 
 std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningData>& data, bool freeze_encoder) {
