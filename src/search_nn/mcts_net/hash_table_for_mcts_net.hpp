@@ -1,5 +1,5 @@
-﻿#ifndef HASH_FOR_MCTS_NET_TABLE_HPP
-#define HASH_FOR_MCTS_NET_TABLE_HPP
+﻿#ifndef MIACIS_SEARCH_NN_HASH_TABLE_FOR_MCTS_NET_HPP
+#define MIACIS_SEARCH_NN_HASH_TABLE_FOR_MCTS_NET_HPP
 
 #include "../../common.hpp"
 #include "../../include_switch.hpp"

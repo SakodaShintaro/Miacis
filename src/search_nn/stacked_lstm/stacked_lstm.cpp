@@ -11,17 +11,20 @@ static constexpr int32_t NUM_LAYERS = 1;
 const std::string StackedLSTMImpl::MODEL_PREFIX = "stacked_lstm";
 const std::string StackedLSTMImpl::DEFAULT_MODEL_NAME = StackedLSTMImpl::MODEL_PREFIX + ".model";
 
-StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options) : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
+StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options)
+    : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
     encoder = register_module("encoder", StateEncoder());
 
     using torch::nn::LSTM;
     using torch::nn::LSTMOptions;
-    env_model_lstm_ = register_module("env_model_lstm_", LSTM(LSTMOptions(ABSTRACT_ACTION_DIM, HIDDEN_DIM).num_layers(NUM_LAYERS)));
+    env_model_lstm_ =
+        register_module("env_model_lstm_", LSTM(LSTMOptions(ABSTRACT_ACTION_DIM, HIDDEN_DIM).num_layers(NUM_LAYERS)));
 
     LSTMOptions option(HIDDEN_DIM, LSTM_HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
     simulation_lstm_ = register_module("simulation_lstm_", LSTM(option));
-    simulation_policy_head_ = register_module("simulation_policy_head_", torch::nn::Linear(LSTM_HIDDEN_SIZE, ABSTRACT_ACTION_DIM));
+    simulation_policy_head_ =
+        register_module("simulation_policy_head_", torch::nn::Linear(LSTM_HIDDEN_SIZE, ABSTRACT_ACTION_DIM));
     readout_lstm_ = register_module("readout_lstm_", LSTM(option));
     readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(LSTM_HIDDEN_SIZE, POLICY_DIM));
 }
@@ -56,7 +59,7 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
         torch::Tensor abstract_action = simulationPolicy(embed_vector);
 
         //環境モデルに入力して次状態を予測
-        auto[output, h_and_c] = env_model_lstm_->forward(abstract_action, std::make_tuple(env_model_h_, env_model_c_));
+        auto [output, h_and_c] = env_model_lstm_->forward(abstract_action, std::make_tuple(env_model_h_, env_model_c_));
         std::tie(env_model_h_, env_model_c_) = h_and_c;
 
         //埋め込みベクトルを更新
@@ -109,7 +112,7 @@ torch::Tensor StackedLSTMImpl::simulationPolicy(const torch::Tensor& x) {
 
     //出力はoutput, (h_n, c_n)
     //outputのshapeは(seq_len, batch, num_directions * hidden_size)
-    auto[output, h_and_c] = simulation_lstm_->forward(x, std::make_tuple(simulation_h_, simulation_c_));
+    auto [output, h_and_c] = simulation_lstm_->forward(x, std::make_tuple(simulation_h_, simulation_c_));
     std::tie(simulation_h_, simulation_c_) = h_and_c;
 
     return simulation_policy_head_->forward(output);
@@ -123,7 +126,7 @@ torch::Tensor StackedLSTMImpl::readoutPolicy(const torch::Tensor& x) {
 
     //出力はoutput, (h_n, c_n)
     //outputのshapeは(seq_len, batch, num_directions * hidden_size)
-    auto[output, h_and_c] = readout_lstm_->forward(x, std::make_tuple(readout_h_, readout_c_));
+    auto [output, h_and_c] = readout_lstm_->forward(x, std::make_tuple(readout_h_, readout_c_));
     std::tie(readout_h_, readout_c_) = h_and_c;
 
     return readout_policy_head_->forward(output);
@@ -178,7 +181,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
 
     std::vector<torch::Tensor> loss;
     for (int64_t m = 1; m <= M; m++) {
-        loss.push_back(l[m].view({1}));
+        loss.push_back(l[m].view({ 1 }));
     }
 
     return loss;
