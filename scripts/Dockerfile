@@ -19,14 +19,14 @@ RUN set -x && \
     echo "export LANG='ja_JP.UTF-8'" >> ~/.bashrc && \
     : "Miacisの取得" && \
     cd ~ && \
-    git clone -b libtorch_1.5.0 https://github.com/SakodaShintaro/Miacis && \
+    git clone https://github.com/SakodaShintaro/Miacis && \
     : "libtorchの取得" && \
     ./Miacis/scripts/download_libtorch.sh && \
     : "ビルド更新スクリプトの準備" && \
     mkdir Miacis/src/cmake-build-release && \
     cd Miacis/src/cmake-build-release && \
     echo "git fetch" > update.sh && \
-    echo "git reset --hard origin/libtorch_1.5.0" >> update.sh && \
+    echo "git reset --hard origin/master" >> update.sh && \
     echo "cmake -DCMAKE_BUILD_TYPE=Release .." >> update.sh && \
     echo "make -j8" >> update.sh && \
     chmod +x update.sh && \
