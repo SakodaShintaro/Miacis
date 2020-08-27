@@ -44,6 +44,7 @@ void pretrainSimpleMLP() {
     //学習前のパラメータを出力
     torch::save(model, model->modelPrefix() + "_before_pretrain.model");
     torch::save(model->encoder, "encoder_before_pretrain.model");
+    torch::save(model->policy_head, "policy_head_before_pretrain.model");
 
     //optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
@@ -116,7 +117,8 @@ void pretrainSimpleMLP() {
             if (global_step % save_interval == 0) {
                 //学習中のパラメータを書き出す
                 torch::save(model, "pretrain_" + std::to_string(global_step) + ".model");
-                torch::save(model->encoder, "encoder" + std::to_string(global_step) + ".model");
+                torch::save(model->encoder, "encoder_" + std::to_string(global_step) + ".model");
+                torch::save(model->policy_head, "policy_head_" + std::to_string(global_step) + ".model");
             }
 
             if (lr_decay_mode == 1) {
@@ -133,6 +135,7 @@ void pretrainSimpleMLP() {
 
     torch::save(model, "pretrain.model");
     torch::save(model->encoder, "encoder.model");
+    torch::save(model->policy_head, "policy_head.model");
 
     std::cout << "finish learnSearchNN" << std::endl;
 }

@@ -21,10 +21,11 @@ public:
     static std::string modelPrefix() { return MODEL_PREFIX; }
     static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
 
-    //---------------
-    //    Encoder
-    //---------------
+    //Encoder
     StateEncoder encoder{ nullptr };
+
+    //Decoder
+    torch::nn::Linear policy_head{ nullptr };
 
 private:
     //入力として局面の特徴量を並べたvectorを受け取ってPolicyとValueに対応するTensorを返す関数
@@ -41,11 +42,6 @@ private:
 
     //探索に関するオプション
     SearchOptions search_options_;
-
-    //---------------
-    //    Decoder
-    //---------------
-    torch::nn::Linear policy_{ nullptr };
 
     //デバイスとfp16化
     torch::Device device_;

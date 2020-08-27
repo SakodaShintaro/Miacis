@@ -10,7 +10,7 @@ const std::string SimpleMLPImpl::DEFAULT_MODEL_NAME = SimpleMLPImpl::MODEL_PREFI
 SimpleMLPImpl::SimpleMLPImpl(SearchOptions search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
     encoder = register_module("encoder", StateEncoder());
-    policy_ = register_module("policy_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
+    policy_head = register_module("policy_head", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
 }
 
 Move SimpleMLPImpl::think(Position& root, int64_t time_limit) {
@@ -84,5 +84,5 @@ torch::Tensor SimpleMLPImpl::forward(const torch::Tensor& x) {
     torch::Tensor y = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     y = encoder->forward(y);
     y = y.view({ -1, HIDDEN_DIM });
-    return policy_->forward(y);
+    return policy_head->forward(y);
 }
