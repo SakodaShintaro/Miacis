@@ -12,7 +12,7 @@ const std::string ProposedModelImpl::DEFAULT_MODEL_NAME = ProposedModelImpl::MOD
 
 ProposedModelImpl::ProposedModelImpl(SearchOptions search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
-    encoder = register_module("encoder", StateEncoder());
+    encoder_ = register_module("encoder_", StateEncoder());
 
     torch::nn::LSTMOptions option(HIDDEN_DIM, HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
@@ -103,7 +103,7 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
 }
 
 torch::Tensor ProposedModelImpl::embed(const std::vector<float>& inputs) {
-    torch::Tensor x = encoder->embed(inputs, device_, fp16_, freeze_encoder_);
+    torch::Tensor x = encoder_->embed(inputs, device_, fp16_, freeze_encoder_);
     x = x.view({ 1, -1, HIDDEN_DIM });
     return x;
 }
@@ -199,4 +199,8 @@ void ProposedModelImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
     (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
+}
+
+void ProposedModelImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
+    torch::load(encoder_, encoder_path);
 }

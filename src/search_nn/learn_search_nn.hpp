@@ -11,24 +11,25 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     // clang-format off
     SearchOptions options;
     HyperparameterLoader settings("learn_search_nn_settings.txt");
-    float learn_rate            = settings.get<float>("learn_rate");
-    float min_learn_rate        = settings.get<float>("min_learn_rate");
-    float momentum              = settings.get<float>("momentum");
-    float weight_decay          = settings.get<float>("weight_decay");
-    bool data_augmentation      = settings.get<bool>("data_augmentation");
-    bool freeze_encoder         = settings.get<bool>("freeze_encoder");
-    int64_t batch_size          = settings.get<int64_t>("batch_size");
-    options.search_limit        = settings.get<int64_t>("search_limit");
-    int64_t max_step            = settings.get<int64_t>("max_step");
-    int64_t validation_interval = settings.get<int64_t>("validation_interval");
-    int64_t save_interval       = settings.get<int64_t>("save_interval");
-    int64_t lr_decay_mode       = settings.get<int64_t>("lr_decay_mode");
-    int64_t lr_decay_step1      = settings.get<int64_t>("lr_decay_step1");
-    int64_t lr_decay_step2      = settings.get<int64_t>("lr_decay_step2");
-    int64_t lr_decay_period     = settings.get<int64_t>("lr_decay_period");
-    std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
-    std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
-    std::string encoder_path    = settings.get<std::string>("encoder_path");
+    float learn_rate             = settings.get<float>("learn_rate");
+    float min_learn_rate         = settings.get<float>("min_learn_rate");
+    float momentum               = settings.get<float>("momentum");
+    float weight_decay           = settings.get<float>("weight_decay");
+    bool data_augmentation       = settings.get<bool>("data_augmentation");
+    bool freeze_encoder          = settings.get<bool>("freeze_encoder");
+    int64_t batch_size           = settings.get<int64_t>("batch_size");
+    options.search_limit         = settings.get<int64_t>("search_limit");
+    int64_t max_step             = settings.get<int64_t>("max_step");
+    int64_t validation_interval  = settings.get<int64_t>("validation_interval");
+    int64_t save_interval        = settings.get<int64_t>("save_interval");
+    int64_t lr_decay_mode        = settings.get<int64_t>("lr_decay_mode");
+    int64_t lr_decay_step1       = settings.get<int64_t>("lr_decay_step1");
+    int64_t lr_decay_step2       = settings.get<int64_t>("lr_decay_step2");
+    int64_t lr_decay_period      = settings.get<int64_t>("lr_decay_period");
+    std::string train_kifu_path  = settings.get<std::string>("train_kifu_path");
+    std::string valid_kifu_path  = settings.get<std::string>("valid_kifu_path");
+    std::string encoder_path     = settings.get<std::string>("encoder_path");
+    std::string policy_head_path = settings.get<std::string>("policy_head_path");
     // clang-format on
 
     //データを取得
@@ -50,7 +51,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     model->setGPU(0);
 
     //encoderを既存のパラメータから読み込み
-    torch::load(model->encoder, encoder_path);
+    model->loadPretrain(encoder_path, policy_head_path);
 
     //学習前のパラメータを出力
     torch::save(model, model->modelPrefix() + "_before_learn.model");

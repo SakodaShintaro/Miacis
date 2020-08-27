@@ -12,7 +12,7 @@ MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
     constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
     simulation_policy_ =
         register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
-    encoder = register_module("encoder", StateEncoder());
+    encoder_ = register_module("encoder_", StateEncoder());
 
     backup_update_ = register_module("backup_update_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
     backup_gate_ = register_module("backup_gate_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
@@ -41,7 +41,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
         hash_table_.root_index = hash_table_.searchEmptyIndex(root);
     }
     HashEntryForMCTSNet& root_entry = hash_table_[hash_table_.root_index];
-    root_entry.embedding_vector = encoder->embed(root.makeFeature(), device_, fp16_, freeze_encoder_).cpu();
+    root_entry.embedding_vector = encoder_->embed(root.makeFeature(), device_, fp16_, freeze_encoder_).cpu();
     root_h_.push_back(root_entry.embedding_vector.to(device_));
 
     //0回目
@@ -91,7 +91,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
         //(2)評価
         std::vector<float> feature = root.makeFeature();
         Index index = hash_table_.searchEmptyIndex(root);
-        torch::Tensor h = encoder->embed(feature, device_, fp16_, freeze_encoder_);
+        torch::Tensor h = encoder_->embed(feature, device_, fp16_, freeze_encoder_);
         hash_table_[index].embedding_vector = h.cpu();
 
         //(3)バックアップ
@@ -231,4 +231,10 @@ void MCTSNetImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
     (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
+}
+
+void MCTSNetImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
+    torch::load(encoder_, encoder_path);
+    torch::load(simulation_policy_, policy_head_path);
+    torch::load(readout_policy_, policy_head_path);
 }

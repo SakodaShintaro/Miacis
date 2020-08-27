@@ -18,14 +18,12 @@ public:
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
 
+    //事前学習したモデルを読み込む関数
+    void loadPretrain(const std::string& encoder_path, const std::string& policy_head_path);
+
     //インタンスから下のクラス変数を参照するための関数
     static std::string modelPrefix() { return MODEL_PREFIX; }
     static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
-
-    //---------------
-    //    Encoder
-    //---------------
-    StateEncoder encoder{ nullptr };
 
 private:
     //評価パラメータを読み書きするファイルのprefix
@@ -41,6 +39,11 @@ private:
 
     //探索に関するオプション
     SearchOptions search_options_;
+
+    //---------------
+    //    Encoder
+    //---------------
+    StateEncoder encoder_{ nullptr };
 
     //-------------------------
     //    Environment Model

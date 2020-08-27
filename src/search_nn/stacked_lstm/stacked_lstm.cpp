@@ -13,7 +13,7 @@ const std::string StackedLSTMImpl::DEFAULT_MODEL_NAME = StackedLSTMImpl::MODEL_P
 
 StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
-    encoder = register_module("encoder", StateEncoder());
+    encoder_ = register_module("encoder_", StateEncoder());
 
     using torch::nn::LSTM;
     using torch::nn::LSTMOptions;
@@ -91,7 +91,7 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
 }
 
 torch::Tensor StackedLSTMImpl::embed(const std::vector<float>& inputs) {
-    torch::Tensor x = encoder->embed(inputs, device_, fp16_, freeze_encoder_);
+    torch::Tensor x = encoder_->embed(inputs, device_, fp16_, freeze_encoder_);
     x = x.view({ 1, -1, HIDDEN_DIM });
     return x;
 }
@@ -183,4 +183,8 @@ void StackedLSTMImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
     (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
+}
+
+void StackedLSTMImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
+    torch::load(encoder_, encoder_path);
 }
