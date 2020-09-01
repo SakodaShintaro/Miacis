@@ -207,8 +207,16 @@ void Interface::go() {
     //Ponderオンの場合、一度与えられた持ち時間でbestmoveを弾き出したあと無限の持ち時間で現局面についてPonderを行う
     //予想手を決めなくとも置換表を埋めていくだけで強くなるはず
     thread_ = std::thread([this, time_limit]() {
-        Move best_move =
-            (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - search_options_.byoyomi_margin));
+        Move best_move;
+        if (search_options_.use_mcts_net) {
+            MCTSNet mcts_net(search_options_);
+            std::cout << search_options_.search_limit << std::endl;
+            torch::load(mcts_net, mcts_net->defaultModelName());
+            best_move = mcts_net->think(root_, LLONG_MAX, false);
+        } else {
+            best_move =
+                (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - search_options_.byoyomi_margin));
+        }
         std::cout << "bestmove " << best_move << std::endl;
         if (search_options_.USI_Ponder && best_move != NULL_MOVE) {
             root_.doMove(best_move);
