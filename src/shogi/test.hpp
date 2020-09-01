@@ -17,6 +17,7 @@ void checkBook();
 void makeBook();
 void searchWithLog();
 void convertModelToCPU();
+void testMCTSNet();
 
 } // namespace Shogi
 

@@ -1,4 +1,4 @@
-#include "interface.hpp"
+﻿#include "interface.hpp"
 #include "../game.hpp"
 #include "../learn.hpp"
 #include "../search_nn/learn_search_nn.hpp"
@@ -43,6 +43,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["learnProposedModel"] = [](){ learnSearchNN<ProposedModel>("proposed_model"); };
     command_["learnStackedLSTM"]   = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
     command_["pretrain"]           = pretrainSimpleMLP;
+    command_["testMCTSNet"]        = testMCTSNet;
     // clang-format on
 }
 

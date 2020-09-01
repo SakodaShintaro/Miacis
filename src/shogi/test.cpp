@@ -1,5 +1,6 @@
 ﻿#include "test.hpp"
 #include "../game_generator.hpp"
+#include "../search_nn/models.hpp"
 #include "../searcher_for_play.hpp"
 #include "book.hpp"
 
@@ -463,6 +464,22 @@ void convertModelToCPU() {
     nn->to(torch::kCPU);
     torch::save(nn, NeuralNetworkImpl::MODEL_PREFIX + "_cpu.model");
     std::cout << "finish convertModelToCPU" << std::endl;
+}
+
+void testMCTSNet() {
+    SearchOptions options;
+    options.search_limit = 10;
+    MCTSNet model(options);
+    torch::load(model, model->defaultModelName());
+
+    Position pos;
+    float score{};
+    while (!pos.isFinish(score)) {
+        pos.print();
+        Move move = model->think(pos, 1000, false);
+        std::cout << "move = " << move.toPrettyStr() << std::endl;
+        pos.doMove(move);
+    }
 }
 
 } // namespace Shogi
