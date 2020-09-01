@@ -33,6 +33,11 @@ torch::Tensor MCTSNetImpl::readoutPolicy(const torch::Tensor& h) { return readou
 Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_learn) {
     //思考を行う
     //時間制限、あるいはノード数制限に基づいて何回やるかを決める
+    //合法手が0だったら投了
+    float score{};
+    if (root.isFinish(score) && score == MIN_SCORE) {
+        return NULL_MOVE;
+    }
 
     //ルートノードについての設定
     hash_table_.deleteOldHash();
