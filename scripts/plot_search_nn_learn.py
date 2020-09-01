@@ -36,11 +36,11 @@ for prefix in args.method:
 
         loss_num = len(df.columns) - 3
         for i in range(loss_num):
-            loss = df[f"loss_{i + 1}"].to_numpy()
+            loss = df[f"loss_{i}"].to_numpy()
             if loss_name == "train":
                 loss = transform(loss)
             color = [0.0, 0.5, i / loss_num]
-            plt.plot(step, loss, color=color, label=f"{i + 1}回探索後")
+            plt.plot(step, loss, color=color, label=f"{i}回探索後")
             # plt.text(step[-1], loss[-1], f"{i + 1}回探索後", color=color)
         plt.legend()
         # plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.15))
@@ -57,11 +57,11 @@ for loss_name in ["train", "valid"]:
         if loss_name == "train":
             step = transform(step)
         last_index = len(df.columns) - 4
-        loss = df[f"loss_{last_index + 1}"].to_numpy()
+        loss = df[f"loss_{last_index}"].to_numpy()
         if loss_name == "train":
             loss = transform(loss)
         plt.plot(step, loss)
-        plt.text(step[-1], loss[-1], f"{prefix}({last_index + 1}回探索)", color=plt.get_cmap("tab10")(i))
+        plt.text(step[-1], loss[-1], f"{prefix}({last_index}回探索)", color=plt.get_cmap("tab10")(i))
     plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.5))
     plt.xlabel("学習ステップ数")
     plt.ylabel("Policy損失")
@@ -82,10 +82,10 @@ for loss_name in ["train", "valid"]:
         if loss_name == "train":
             time = transform(time)
         last_index = len(df.columns) - 4
-        loss = df[f"loss_{last_index + 1}"].to_numpy()
+        loss = df[f"loss_{last_index}"].to_numpy()
         if loss_name == "train":
             loss = transform(loss)
-        plt.plot(time, loss, label=f"{prefix}({last_index + 1}回探索)")
+        plt.plot(time, loss, label=f"{prefix}({last_index}回探索)")
         # plt.text(time[-1], loss[-1], f"{prefix}({last_index + 1}回探索)", color=plt.get_cmap("tab10")(i))
     # plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.5))
     plt.legend()
