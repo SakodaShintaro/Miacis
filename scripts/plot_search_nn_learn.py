@@ -49,6 +49,15 @@ for prefix in args.method:
         plt.savefig(f"{prefix}_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
         plt.clf()
 
+        # 最終損失だけをプロット
+        x = [i for i in range(loss_num)]
+        y = [df[f"loss_{i}"].to_numpy()[-1] for i in range(loss_num)]
+        plt.plot(x, y, marker=".")
+        plt.xlabel("探索回数")
+        plt.ylabel("Policy損失")
+        plt.savefig(f"{prefix}_{loss_name}_final.png", bbox_inches="tight", pad_inches=0.05)
+        plt.clf()
+
 # 全体をまとめてプロット
 for loss_name in ["train", "valid"]:
     for i, prefix in enumerate(args.method):
