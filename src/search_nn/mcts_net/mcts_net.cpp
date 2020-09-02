@@ -181,14 +181,10 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     //重み付き累積和
     constexpr float gamma = 1.0;
     std::vector<torch::Tensor> R(M + 1);
-    for (int64_t m = 1; m <= M; m++) {
-        R[m] = torch::zeros({ 1 }).to(device_);
-        for (int64_t m2 = m; m2 <= M; m2++) {
-            R[m] += std::pow(gamma, m2 - m) * r[m2];
-        }
-
-        //この値は勾配を切る
-        R[m] = R[m].detach().to(device_);
+    R[M] = r[M].detach().to(device_);
+    for (int64_t m = M - 1; m >= 1; m--) {
+        //逆順に求めていくことでO(M)
+        R[m] = (r[m] + gamma * R[m + 1]).detach().to(device_);
     }
 
     std::vector<torch::Tensor> loss;
