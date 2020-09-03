@@ -5,6 +5,8 @@
 const std::string MCTSNetImpl::MODEL_PREFIX = "mcts_net";
 const std::string MCTSNetImpl::DEFAULT_MODEL_NAME = MCTSNetImpl::MODEL_PREFIX + ".model";
 
+static constexpr float LOG_SOFTMAX_THRESHOLD = -15;
+
 MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
     : search_options_(search_options),
       hash_table_(std::min(search_options.USI_Hash * 1024 * 1024 / 10000, search_options.search_limit * 10)),
@@ -84,7 +86,8 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
                 root.doMove(moves[move_id]);
                 if (save_info_to_learn) {
                     torch::Tensor log_policy = torch::log_softmax(policy_logit, 1);
-                    log_probs_[m] += log_policy[0][moves[move_id].toLabel()];
+                    torch::Tensor clipped = torch::clamp_min(log_policy, LOG_SOFTMAX_THRESHOLD);
+                    log_probs_[m] += clipped[0][moves[move_id].toLabel()];
                 }
             }
         }
@@ -196,7 +199,7 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     for (int64_t m = 0; m <= M; m++) {
         torch::Tensor policy_logit = readout_policy_->forward(root_h_[m]);
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
-        torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
+        torch::Tensor clipped = torch::clamp_min(log_softmax, LOG_SOFTMAX_THRESHOLD);
         l[m] = (-policy_teacher * clipped).sum();
     }
 
@@ -248,7 +251,7 @@ std::vector<torch::Tensor> MCTSNetImpl::validationLoss(const std::vector<Learnin
     for (int64_t m = 0; m < M; m++) {
         torch::Tensor policy_logit = readout_policy_->forward(root_h_[m]);
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
-        torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
+        torch::Tensor clipped = torch::clamp_min(log_softmax, LOG_SOFTMAX_THRESHOLD);
         torch::Tensor curr_loss = (-policy_teacher * clipped).sum().view({ 1 });
         loss.push_back(curr_loss);
     }
