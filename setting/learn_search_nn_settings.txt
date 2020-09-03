@@ -16,3 +16,4 @@ lr_decay_period     100000
 train_kifu_path     /root/training_kifu
 valid_kifu_path     /root/validation_kifu_small
 encoder_path        encoder.model
+policy_head_path    policy_head.model
