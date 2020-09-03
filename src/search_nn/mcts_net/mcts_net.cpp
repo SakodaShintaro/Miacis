@@ -266,7 +266,13 @@ void MCTSNetImpl::setGPU(int16_t gpu_id, bool fp16) {
 }
 
 void MCTSNetImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
-    torch::load(encoder_, encoder_path);
-    torch::load(simulation_policy_, policy_head_path);
-    torch::load(readout_policy_, policy_head_path);
+    std::ifstream encoder_file(encoder_path);
+    if (encoder_file.is_open()) {
+        torch::load(encoder_, encoder_path);
+    }
+    std::ifstream policy_head_file(policy_head_path);
+    if (policy_head_file.is_open()) {
+        torch::load(simulation_policy_, policy_head_path);
+        torch::load(readout_policy_, policy_head_path);
+    }
 }
