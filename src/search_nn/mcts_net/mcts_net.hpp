@@ -34,9 +34,7 @@ private:
     static const std::string DEFAULT_MODEL_NAME;
 
     //各部分の推論
-    torch::Tensor simulationPolicy(const torch::Tensor& h);
     torch::Tensor backup(const torch::Tensor& h1, const torch::Tensor& h2);
-    torch::Tensor readoutPolicy(const torch::Tensor& h);
 
     //探索に関するオプション
     SearchOptions search_options_;

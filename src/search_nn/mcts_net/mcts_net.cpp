@@ -20,15 +20,11 @@ MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
     readout_policy_ = register_module("readout_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
 }
 
-torch::Tensor MCTSNetImpl::simulationPolicy(const torch::Tensor& h) { return simulation_policy_->forward(h); }
-
 torch::Tensor MCTSNetImpl::backup(const torch::Tensor& h1, const torch::Tensor& h2) {
     torch::Tensor cat_h = torch::cat({ h1, h2 }, 1);
     torch::Tensor gate = torch::sigmoid(backup_gate_->forward(cat_h));
     return h1 + gate * backup_update_->forward(cat_h);
 }
-
-torch::Tensor MCTSNetImpl::readoutPolicy(const torch::Tensor& h) { return readout_policy_->forward(h); }
 
 Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_learn) {
     //思考を行う
@@ -75,7 +71,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
 
                 const HashEntryForMCTSNet& entry = hash_table_[index];
                 torch::Tensor h = entry.embedding_vector.to(device_);
-                torch::Tensor policy_logit = simulationPolicy(h);
+                torch::Tensor policy_logit = simulation_policy_->forward(h);
 
                 //合法手だけマスクをかける
                 std::vector<Move> moves = root.generateAllMoves();
@@ -120,7 +116,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
     //最終的な行動決定
     //Readout Networkにより最終決定
     torch::Tensor h = root_entry.embedding_vector.to(device_);
-    torch::Tensor policy_logit = readoutPolicy(h);
+    torch::Tensor policy_logit = readout_policy_->forward(h);
 
     //合法手だけマスクをかける
     std::vector<Move> moves = root.generateAllMoves();
@@ -166,7 +162,7 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     //各探索後の損失を計算
     std::vector<torch::Tensor> l(M + 1);
     for (int64_t m = 0; m <= M; m++) {
-        torch::Tensor policy_logit = readoutPolicy(root_h_[m]);
+        torch::Tensor policy_logit = readout_policy_->forward(root_h_[m]);
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
         l[m] = (-policy_teacher * clipped).sum();
@@ -218,7 +214,7 @@ std::vector<torch::Tensor> MCTSNetImpl::validationLoss(const std::vector<Learnin
     //各探索後の損失を計算
     std::vector<torch::Tensor> loss;
     for (int64_t m = 0; m < M; m++) {
-        torch::Tensor policy_logit = readoutPolicy(root_h_[m]);
+        torch::Tensor policy_logit = readout_policy_->forward(root_h_[m]);
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
         torch::Tensor curr_loss = (-policy_teacher * clipped).sum().view({ 1 });
