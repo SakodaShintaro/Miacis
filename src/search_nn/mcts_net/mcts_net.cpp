@@ -125,7 +125,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
         logits.push_back(policy_logit[0][move.toLabel()].item<float>());
     }
 
-    if (search_options_.search_limit > 0) {
+    if (search_options_.search_limit > 0 && search_options_.print_policy_num > 0) {
         torch::Tensor policy_logit0 = readout_policy_->forward(root_h_.front());
         std::vector<float> logits0;
         for (const Move& move : moves) {
@@ -150,7 +150,8 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
         std::sort(move_with_info.begin(), move_with_info.end());
 
         std::cout << std::fixed;
-        for (const MoveWithInfo& m : move_with_info) {
+        for (uint64_t i = std::max((int64_t)0, (int64_t)moves.size() - search_options_.print_policy_num); i < moves.size(); i++) {
+            const MoveWithInfo& m = move_with_info[i];
             std::cout << "info string " << m.policy0 << "       " << m.policy << "       " << m.move.toPrettyStr() << std::endl;
         }
         std::cout << "info string 探索前Policy   " << search_options_.search_limit << "回探索後Policy" << std::endl;
