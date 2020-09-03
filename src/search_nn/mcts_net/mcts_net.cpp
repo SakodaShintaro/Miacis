@@ -125,6 +125,37 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
         logits.push_back(policy_logit[0][move.toLabel()].item<float>());
     }
 
+    if (search_options_.search_limit > 0) {
+        torch::Tensor policy_logit0 = readout_policy_->forward(root_h_.front());
+        std::vector<float> logits0;
+        for (const Move& move : moves) {
+            logits0.push_back(policy_logit0[0][move.toLabel()].item<float>());
+        }
+
+        std::vector<float> masked_policy = softmax(logits, 1.0f);
+        std::vector<float> masked_policy0 = softmax(logits0, 1.0f);
+
+        struct MoveWithInfo {
+            Move move;
+            float policy, policy0;
+            bool operator<(const MoveWithInfo& rhs) const { return (policy - policy0) < (rhs.policy - rhs.policy0); }
+        };
+
+        std::vector<MoveWithInfo> move_with_info(moves.size());
+        for (uint64_t i = 0; i < moves.size(); i++) {
+            move_with_info[i].move = moves[i];
+            move_with_info[i].policy0 = masked_policy0[i];
+            move_with_info[i].policy = masked_policy[i];
+        }
+        std::sort(move_with_info.begin(), move_with_info.end());
+
+        std::cout << std::fixed;
+        for (const MoveWithInfo& m : move_with_info) {
+            std::cout << "info string " << m.policy0 << "       " << m.policy << "       " << m.move.toPrettyStr() << std::endl;
+        }
+        std::cout << "info string 探索前Policy   " << search_options_.search_limit << "回探索後Policy" << std::endl;
+    }
+
     if (root.turnNumber() <= search_options_.random_turn) {
         //Softmaxの確率に従って選択
         std::vector<float> masked_policy = softmax(logits, 1.0f);
