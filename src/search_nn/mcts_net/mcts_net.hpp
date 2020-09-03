@@ -62,7 +62,7 @@ private:
 
     //学習で使うために探索中に保存しておく値
     std::vector<torch::Tensor> root_h_;
-    std::vector<torch::Tensor> probs_;
+    std::vector<torch::Tensor> log_probs_;
 
     //エンコーダを固定して学習するかどうか
     bool freeze_encoder_;

@@ -47,7 +47,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
 
     //0回目
     if (save_info_to_learn) {
-        probs_.push_back(torch::ones({ 1 }).to(device_));
+        log_probs_.push_back(torch::zeros({ 1 }).to(device_));
     }
 
     for (int64_t m = 1; m <= search_options_.search_limit; m++) {
@@ -58,7 +58,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
 
         //(1)選択
         if (save_info_to_learn) {
-            probs_.push_back(torch::ones({ 1 }).to(device_));
+            log_probs_.push_back(torch::zeros({ 1 }).to(device_));
         }
         while (true) {
             Index index = hash_table_.findSameHashIndex(root);
@@ -83,8 +83,8 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
                 int32_t move_id = randomChoose(masked_policy);
                 root.doMove(moves[move_id]);
                 if (save_info_to_learn) {
-                    torch::Tensor policy = torch::softmax(policy_logit, 1);
-                    probs_[m] *= policy[0][moves[move_id].toLabel()];
+                    torch::Tensor log_policy = torch::log_softmax(policy_logit, 1);
+                    log_probs_[m] += log_policy[0][moves[move_id].toLabel()];
                 }
             }
         }
@@ -181,10 +181,10 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
 
     //探索を行い、途中のルート埋め込みベクトル,各探索の確率等を保存しておく
     root_h_.clear();
-    probs_.clear();
+    log_probs_.clear();
     think(root, INT_MAX, true);
 
-    assert(root_h_.size() == probs_.size());
+    assert(root_h_.size() == log_probs_.size());
 
     const int64_t M = root_h_.size() - 1;
 
@@ -218,7 +218,7 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     std::vector<torch::Tensor> loss;
     loss.push_back(l[M].view({ 1 }));
     for (int64_t m = 1; m <= M; m++) {
-        loss.push_back(-probs_[m] * R[m]);
+        loss.push_back(-log_probs_[m] * R[m]);
     }
 
     return loss;
@@ -233,10 +233,10 @@ std::vector<torch::Tensor> MCTSNetImpl::validationLoss(const std::vector<Learnin
 
     //探索を行い、途中のルート埋め込みベクトル,各探索の確率等を保存しておく
     root_h_.clear();
-    probs_.clear();
+    log_probs_.clear();
     think(root, INT_MAX, true);
 
-    assert(root_h_.size() == probs_.size());
+    assert(root_h_.size() == log_probs_.size());
 
     const int64_t M = root_h_.size();
 
