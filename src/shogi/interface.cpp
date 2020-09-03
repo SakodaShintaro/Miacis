@@ -210,7 +210,6 @@ void Interface::go() {
         Move best_move;
         if (search_options_.use_mcts_net) {
             MCTSNet mcts_net(search_options_);
-            std::cout << search_options_.search_limit << std::endl;
             torch::load(mcts_net, mcts_net->defaultModelName());
             best_move = mcts_net->think(root_, LLONG_MAX, false);
         } else {
