@@ -225,6 +225,40 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     return loss;
 }
 
+std::vector<torch::Tensor> MCTSNetImpl::loss2(const std::vector<LearningData>& data, bool freeze_encoder, float gamma) {
+    //現状バッチサイズは1のみに対応
+    assert(data.size() == 1);
+
+    //設定を内部の変数に格納
+    freeze_encoder_ = freeze_encoder;
+
+    Position root;
+    root.fromStr(data.front().position_str);
+
+    //探索を行い、途中のルート埋め込みベクトル,各探索の確率等を保存しておく
+    root_h_.clear();
+    log_probs_.clear();
+    think(root, INT_MAX, true);
+
+    assert(root_h_.size() == log_probs_.size());
+
+    const int64_t M = root_h_.size() - 1;
+
+    //policyの教師信号
+    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
+
+    //各探索後の損失を計算
+    std::vector<torch::Tensor> loss(M + 1);
+    for (int64_t m = 0; m <= M; m++) {
+        torch::Tensor policy_logit = readout_policy_->forward(root_h_[m]);
+        torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
+        torch::Tensor clipped = torch::clamp_min(log_softmax, LOG_SOFTMAX_THRESHOLD);
+        loss[m] = (-policy_teacher * clipped).sum().view({ 1 });
+    }
+
+    return loss;
+}
+
 std::vector<torch::Tensor> MCTSNetImpl::validationLoss(const std::vector<LearningData>& data) {
     //現状バッチサイズは1のみに対応
     assert(data.size() == 1);
