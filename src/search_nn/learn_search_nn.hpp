@@ -15,6 +15,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     float min_learn_rate         = settings.get<float>("min_learn_rate");
     float momentum               = settings.get<float>("momentum");
     float weight_decay           = settings.get<float>("weight_decay");
+    float gamma                  = settings.get<float>("gamma");
     bool data_augmentation       = settings.get<bool>("data_augmentation");
     bool freeze_encoder          = settings.get<bool>("freeze_encoder");
     int64_t batch_size           = settings.get<int64_t>("batch_size");
@@ -82,7 +83,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
 
             //学習
             optimizer.zero_grad();
-            std::vector<torch::Tensor> loss = model->loss(curr_data, freeze_encoder);
+            std::vector<torch::Tensor> loss = model->loss(curr_data, freeze_encoder, gamma);
             torch::Tensor loss_sum = torch::cat(loss).sum();
             loss_sum.mean().backward();
             optimizer.step();

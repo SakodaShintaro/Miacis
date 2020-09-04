@@ -171,7 +171,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
     }
 }
 
-std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& data, bool freeze_encoder) {
+std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& data, bool freeze_encoder, float gamma) {
     //現状バッチサイズは1のみに対応
     assert(data.size() == 1);
 
@@ -209,7 +209,6 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     }
 
     //重み付き累積和
-    constexpr float gamma = 1.0;
     std::vector<torch::Tensor> R(M + 1);
     R[M] = r[M].detach().to(device_);
     for (int64_t m = M - 1; m >= 1; m--) {
