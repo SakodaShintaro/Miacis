@@ -10,7 +10,7 @@ static const float LOG_SOFTMAX_THRESHOLD = std::log(1.0 / POLICY_DIM);
 MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
     : search_options_(search_options),
       hash_table_(std::min(search_options.USI_Hash * 1024 * 1024 / 10000, search_options.search_limit * 10)),
-      device_(torch::kCUDA), fp16_(false) {
+      device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
     constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
     simulation_policy_ =
         register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
