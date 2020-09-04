@@ -141,4 +141,45 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     std::cout << "finish learnSearchNN" << std::endl;
 }
 
+template<class T> void validSearchNN(const std::string& model_name) {
+    SearchOptions options;
+    options.search_limit = 10;
+
+    //データを取得
+    std::string valid_kifu_path;
+    std::cout << "validation_kifu_path: ";
+    std::cin >> valid_kifu_path;
+    std::vector<LearningData> valid_data = loadData(valid_kifu_path, false);
+    std::cout << "valid_data_size = " << valid_data.size() << std::endl;
+
+    //モデル作成
+    T model(options);
+    model->setGPU(0);
+    torch::load(model, model->defaultModelName());
+    model->eval();
+    torch::NoGradGuard no_grad_guard;
+
+    //validation_lossを計算
+    std::vector<float> valid_loss_sum(options.search_limit + 1, 0);
+    for (uint64_t i = 0; i < valid_data.size(); i++) {
+        const LearningData& datum = valid_data[i];
+        std::vector<torch::Tensor> valid_loss = model->validationLoss({ datum });
+        for (uint64_t j = 0; j < valid_loss_sum.size(); j++) {
+            valid_loss_sum[j] += valid_loss[j].item<float>();
+        }
+        std::cout << "finish " << std::setw(4) << i + 1 << " / " << valid_data.size() << "\r";
+    }
+    for (float& v : valid_loss_sum) {
+        v /= valid_data.size();
+    }
+
+    //表示
+    for (float v : valid_loss_sum) {
+        std::cout << v << "\t";
+    }
+    std::cout << std::endl;
+
+    std::cout << "finish validSearchNN" << std::endl;
+}
+
 #endif //MIACIS_LEARN_SEARCH_NN_HPP
