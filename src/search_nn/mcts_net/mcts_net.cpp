@@ -64,7 +64,6 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
         }
         while (true) {
             Index index = hash_table_.findSameHashIndex(root);
-            float score{};
             if (index == (Index)hash_table_.size() || root.isFinish(score)) {
                 //未展開のノードだったら次にここを評価
                 break;
