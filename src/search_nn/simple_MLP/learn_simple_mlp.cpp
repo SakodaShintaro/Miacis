@@ -41,11 +41,6 @@ void pretrainSimpleMLP() {
     SimpleMLP model;
     model->setGPU(0);
 
-    //学習前のパラメータを出力
-    torch::save(model, model->modelPrefix() + "_before_pretrain.model");
-    torch::save(model->encoder, "encoder_before_pretrain.model");
-    torch::save(model->policy_head, "policy_head_before_pretrain.model");
-
     //optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
     sgd_option.momentum(momentum);
