@@ -211,6 +211,8 @@ void Interface::go() {
         if (search_options_.use_mcts_net) {
             MCTSNet mcts_net(search_options_);
             torch::load(mcts_net, mcts_net->defaultModelName());
+            mcts_net->eval();
+            torch::NoGradGuard no_grad_guard;
             best_move = mcts_net->think(root_, LLONG_MAX, false);
         } else {
             best_move =
