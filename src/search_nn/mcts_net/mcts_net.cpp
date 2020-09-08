@@ -259,6 +259,191 @@ std::vector<torch::Tensor> MCTSNetImpl::loss2(const std::vector<LearningData>& d
     return loss;
 }
 
+std::vector<torch::Tensor> MCTSNetImpl::lossBatch(const std::vector<LearningData>& data, bool freeze_encoder, float gamma) {
+    //設定を内部の変数に格納
+    freeze_encoder_ = freeze_encoder;
+
+    //バッチサイズを取得しておく
+    const uint64_t batch_size = data.size();
+
+    //探索回数
+    const int64_t M = search_options_.search_limit;
+
+    //置換表を準備
+    std::vector<HashTableForMCTSNet> hash_tables(batch_size, HashTableForMCTSNet(M * 10));
+
+    //盤面を復元
+    std::vector<float> root_features;
+    std::vector<Position> positions(batch_size);
+    for (uint64_t i = 0; i < batch_size; i++) {
+        positions[i].fromStr(data[i].position_str);
+        hash_tables[i].root_index = hash_tables[i].findSameHashIndex(positions[i]);
+        if (hash_tables[i].root_index == (Index)hash_tables[i].size()) {
+            hash_tables[i].root_index = hash_tables[i].searchEmptyIndex(positions[i]);
+        }
+
+        std::vector<float> f = positions[i].makeFeature();
+        root_features.insert(root_features.end(), f.begin(), f.end());
+    }
+
+    //GPUで計算
+    torch::Tensor root_embed = encoder_->embed(root_features, device_, fp16_, freeze_encoder_).cpu();
+
+    //探索中に情報を落としておかなきゃいけないもの
+    std::vector<std::vector<torch::Tensor>> root_hs(batch_size), log_probs(batch_size);
+
+    //0回目の情報
+    for (uint64_t i = 0; i < batch_size; i++) {
+        hash_tables[i][hash_tables[i].root_index].embedding_vector = root_embed[i];
+        root_hs[i].push_back(hash_tables[i][hash_tables[i].root_index].embedding_vector.to(device_));
+        log_probs[i].push_back(torch::zeros({ 1 }).to(device_));
+    }
+
+    //探索の履歴
+    std::vector<std::stack<Index>> indices(batch_size);
+
+    //規定回数探索
+    for (int64_t m = 1; m <= M; m++) {
+        //log_probの領域を確保
+        for (uint64_t i = 0; i < batch_size; i++) {
+            log_probs[i].push_back(torch::zeros({ 1 }).to(device_));
+        }
+
+        //(1)select
+        while (true) {
+            //今回の評価要求
+            std::vector<torch::Tensor> embedding_vectors;
+            std::vector<uint64_t> ids;
+
+            //評価要求を貯める
+            for (uint64_t i = 0; i < batch_size; i++) {
+                //各局面でselectをしていく
+                Position& pos = positions[i];
+
+                Index index = hash_tables[i].findSameHashIndex(pos);
+                float score{};
+                if (index == (Index)hash_tables[i].size() || pos.isFinish(score)) {
+                    //リーフノードまで達しているのでスキップ
+                    continue;
+                }
+
+                indices[i].push(index);
+
+                const HashEntryForMCTSNet& entry = hash_tables[i][index];
+                torch::Tensor h = entry.embedding_vector.to(device_);
+
+                //評価要求に貯める
+                embedding_vectors.push_back(h);
+                ids.push_back(i);
+            }
+
+            //全ての局面がリーフノードに達していたら終わり
+            if (embedding_vectors.empty()) {
+                break;
+            }
+
+            //GPUで計算
+            torch::Tensor h = torch::stack(embedding_vectors);
+            torch::Tensor policy_logit = simulation_policy_->forward(h);
+            torch::Tensor log_policy = torch::log_softmax(policy_logit, 1);
+            torch::Tensor clipped_log_policy = torch::clamp_min(log_policy, LOG_SOFTMAX_THRESHOLD);
+
+            //計算結果を反映
+            for (uint64_t j = 0; j < ids.size(); j++) {
+                uint64_t i = ids[j];
+
+                //合法手だけマスクをかける
+                std::vector<Move> moves = positions[i].generateAllMoves();
+                std::vector<float> logits;
+                for (const Move& move : moves) {
+                    logits.push_back(policy_logit[j][move.toLabel()].item<float>());
+                }
+                std::vector<float> masked_policy = softmax(logits, 1.0f);
+                int32_t move_id = randomChoose(masked_policy);
+                positions[i].doMove(moves[move_id]);
+                log_probs[i][m] += clipped_log_policy[j][moves[move_id].toLabel()];
+            }
+        }
+
+        //(2)評価
+        std::vector<float> features;
+        for (uint64_t i = 0; i < batch_size; i++) {
+            std::vector<float> f = positions[i].makeFeature();
+            features.insert(features.end(), f.begin(), f.end());
+        }
+        torch::Tensor h = encoder_->embed(features, device_, fp16_, freeze_encoder_);
+        for (uint64_t i = 0; i < batch_size; i++) {
+            std::vector<float> f = positions[i].makeFeature();
+            features.insert(features.end(), f.begin(), f.end());
+            Index index = hash_tables[i].searchEmptyIndex(positions[i]);
+            hash_tables[i][index].embedding_vector = h[i].cpu();
+        }
+
+        //(3)バックアップ
+        while (true) {
+            std::vector<torch::Tensor> left, right;
+            std::vector<uint64_t> ids;
+            std::vector<Index> update_indices;
+
+            for (uint64_t i = 0; i < batch_size; i++) {
+                if (indices[i].empty()) {
+                    //もうbackupは終わった
+                    continue;
+                }
+
+                Index top = indices[i].top();
+                indices[i].pop();
+                update_indices.push_back(top);
+                left.push_back(hash_tables[i][top].embedding_vector.to(device_));
+                right.push_back(h[i]);
+                ids.push_back(i);
+            }
+
+            if (ids.empty()) {
+                break;
+            }
+
+            //GPUで計算
+            torch::Tensor h1 = torch::stack(left);           //[backup中のもの, HIDDEN_DIM]
+            torch::Tensor h2 = torch::stack(right);          //[backup中のもの, HIDDEN_DIM]
+            torch::Tensor cat_h = torch::cat({ h1, h2 }, 1); //[backup中のもの, HIDDEN_DIM * 2]
+            torch::Tensor gate = torch::sigmoid(backup_gate_->forward(cat_h));
+            torch::Tensor backup = h1 + gate * backup_update_->forward(cat_h);
+
+            for (uint64_t j = 0; j < ids.size(); j++) {
+                uint64_t i = ids[j];
+                hash_tables[i][update_indices[j]].embedding_vector = backup[j];
+                positions[i].undo();
+            }
+        }
+
+        for (uint64_t i = 0; i < batch_size; i++) {
+            //ルートノードの現状態を保存しておく
+            root_hs[i].push_back(hash_tables[i][hash_tables[i].root_index].embedding_vector.to(device_));
+        }
+    }
+
+    //policyの教師信号 [batch_size, POLICY_DIM]
+    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
+
+    std::vector<torch::Tensor> result(batch_size);
+    for (uint64_t i = 0; i < batch_size; i++) {
+        result[i] = torch::stack(root_hs[i]);
+    }
+    torch::Tensor root_h = torch::stack(result, 1); //[M + 1, batch_size, HIDDEN_DIM]
+
+    //各探索後の損失を計算
+    std::vector<torch::Tensor> loss(M + 1);
+    for (int64_t m = 0; m <= M; m++) {
+        torch::Tensor policy_logit = readout_policy_->forward(root_h[m]);
+        torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
+        torch::Tensor clipped = torch::clamp_min(log_softmax, LOG_SOFTMAX_THRESHOLD);
+        loss[m] = (-policy_teacher * clipped).sum(1).mean(0).view({ 1 });
+    }
+
+    return loss;
+}
+
 std::vector<torch::Tensor> MCTSNetImpl::validationLoss(const std::vector<LearningData>& data) {
     //現状バッチサイズは1のみに対応
     assert(data.size() == 1);
