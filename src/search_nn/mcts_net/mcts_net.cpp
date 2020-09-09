@@ -439,12 +439,24 @@ std::vector<torch::Tensor> MCTSNetImpl::lossBatch(const std::vector<LearningData
 
     //各探索後の損失を計算
     std::vector<torch::Tensor> loss(M + 1);
+
+    //エントロピー正則化
+    torch::Tensor entropy;
+
+    //各探索での損失を求める1
     for (int64_t m = 0; m <= M; m++) {
         torch::Tensor policy_logit = readout_policy_->forward(root_h[m]);
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, LOG_SOFTMAX_THRESHOLD);
         loss[m] = (-policy_teacher * clipped).sum(1).mean(0).view({ 1 });
+
+        //探索なしの直接推論についてエントロピーも求めておく
+        if (m == 0) {
+            entropy = (torch::softmax(policy_logit, 1) * clipped).sum(1).mean(0).view({ 1 });
+        }
     }
+
+    loss.push_back(entropy);
 
     return loss;
 }

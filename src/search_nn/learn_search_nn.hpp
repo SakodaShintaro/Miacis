@@ -16,6 +16,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     float momentum               = settings.get<float>("momentum");
     float weight_decay           = settings.get<float>("weight_decay");
     float gamma                  = settings.get<float>("gamma");
+    float entropy_coeff          = settings.get<float>("entropy_coeff");
     bool data_augmentation       = settings.get<bool>("data_augmentation");
     bool freeze_encoder          = settings.get<bool>("freeze_encoder");
     options.use_readout_only     = settings.get<bool>("use_readout_only");
@@ -85,10 +86,6 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             //学習
             optimizer.zero_grad();
             std::vector<torch::Tensor> loss = model->lossBatch(curr_data, freeze_encoder, gamma);
-            torch::Tensor loss_sum = torch::cat(loss).sum();
-            loss_sum.mean().backward();
-            optimizer.step();
-            global_step++;
 
             //表示
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
@@ -98,6 +95,13 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                 }
                 dout(std::cout, train_log) << "\r" << std::flush;
             }
+
+            //勾配計算
+            loss.back() *= entropy_coeff;
+            torch::Tensor loss_sum = torch::cat(loss).sum();
+            loss_sum.mean().backward();
+            optimizer.step();
+            global_step++;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
