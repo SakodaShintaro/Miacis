@@ -18,6 +18,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     float gamma                  = settings.get<float>("gamma");
     bool data_augmentation       = settings.get<bool>("data_augmentation");
     bool freeze_encoder          = settings.get<bool>("freeze_encoder");
+    options.use_readout_only     = settings.get<bool>("use_readout_only");
     int64_t batch_size           = settings.get<int64_t>("batch_size");
     options.search_limit         = settings.get<int64_t>("search_limit");
     int64_t max_step             = settings.get<int64_t>("max_step");
