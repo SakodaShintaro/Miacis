@@ -14,6 +14,7 @@ void pretrainSimpleMLP() {
     float min_learn_rate        = settings.get<float>("min_learn_rate");
     float momentum              = settings.get<float>("momentum");
     float weight_decay          = settings.get<float>("weight_decay");
+    float entropy_coeff         = settings.get<float>("entropy_coeff");
     bool data_augmentation      = settings.get<bool>("data_augmentation");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
@@ -35,7 +36,7 @@ void pretrainSimpleMLP() {
     //学習推移のログファイル
     std::ofstream train_log("pretrain_train_log.txt");
     std::ofstream valid_log("pretrain_valid_log.txt");
-    tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tloss" << std::endl;
+    tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tloss\tentropy" << std::endl;
 
     //モデル作成
     SimpleMLP model;
@@ -68,10 +69,6 @@ void pretrainSimpleMLP() {
             //学習
             optimizer.zero_grad();
             std::vector<torch::Tensor> loss = model->loss(curr_data);
-            torch::Tensor loss_sum = torch::cat(loss).sum();
-            loss_sum.mean().backward();
-            optimizer.step();
-            global_step++;
 
             //表示
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
@@ -81,6 +78,13 @@ void pretrainSimpleMLP() {
                 }
                 dout(std::cout, train_log) << "\r" << std::flush;
             }
+
+            //勾配を求めてパラメータ更新
+            loss.back() *= entropy_coeff;
+            torch::Tensor loss_sum = torch::cat(loss).sum();
+            loss_sum.mean().backward();
+            optimizer.step();
+            global_step++;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算

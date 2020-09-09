@@ -60,10 +60,16 @@ std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& 
     torch::Tensor policy_logit = forward(x);
     torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
 
-    std::vector<torch::Tensor> loss(1);
+    std::vector<torch::Tensor> loss;
+
+    //教師との交差エントロピー
     torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
     torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-    loss[0] = (-policy_teacher * clipped).sum(1).mean().view({ 1 });
+    loss.push_back((-policy_teacher * clipped).sum(1).mean().view({ 1 }));
+
+    //エントロピー正則化
+    torch::Tensor softmax_p = torch::softmax(policy_logit, 1);
+    loss.push_back((softmax_p * clipped).sum(1).mean().view({ 1 }));
 
     return loss;
 }

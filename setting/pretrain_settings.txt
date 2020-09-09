@@ -2,6 +2,7 @@ learn_rate          0.025
 min_learn_rate      0.0025
 momentum            0.9
 weight_decay        0.0
+entropy_coeff       0.0
 data_augmentation   1
 batch_size          512
 max_step            2000000
