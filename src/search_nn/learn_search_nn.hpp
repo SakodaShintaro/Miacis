@@ -91,7 +91,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             global_step++;
 
             //表示
-            if (global_step % 100 == 0) {
+            if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
                 dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
                 for (const torch::Tensor& t : loss) {
                     dout(std::cout, train_log) << "\t" << t.item<float>();
