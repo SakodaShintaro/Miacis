@@ -381,6 +381,8 @@ std::vector<torch::Tensor> MCTSNetImpl::lossBatch(const std::vector<LearningData
             hash_tables[i][index].embedding_vector = h[i].cpu();
         }
 
+        std::vector<Index> next_indices(batch_size, -1);
+
         //(3)バックアップ
         while (true) {
             std::vector<torch::Tensor> left, right;
@@ -397,7 +399,7 @@ std::vector<torch::Tensor> MCTSNetImpl::lossBatch(const std::vector<LearningData
                 indices[i].pop();
                 update_indices.push_back(top);
                 left.push_back(hash_tables[i][top].embedding_vector.to(device_));
-                right.push_back(h[i]);
+                right.push_back(next_indices[i] == -1 ? h[i] : hash_tables[i][next_indices[i]].embedding_vector.to(device_));
                 ids.push_back(i);
             }
 
@@ -414,7 +416,8 @@ std::vector<torch::Tensor> MCTSNetImpl::lossBatch(const std::vector<LearningData
 
             for (uint64_t j = 0; j < ids.size(); j++) {
                 uint64_t i = ids[j];
-                h[i] = hash_tables[i][update_indices[j]].embedding_vector = backup[j];
+                hash_tables[i][update_indices[j]].embedding_vector = backup[j];
+                next_indices[i] = update_indices[j];
                 positions[i].undo();
             }
         }
