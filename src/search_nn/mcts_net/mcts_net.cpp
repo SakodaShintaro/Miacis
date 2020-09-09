@@ -414,7 +414,7 @@ std::vector<torch::Tensor> MCTSNetImpl::lossBatch(const std::vector<LearningData
 
             for (uint64_t j = 0; j < ids.size(); j++) {
                 uint64_t i = ids[j];
-                hash_tables[i][update_indices[j]].embedding_vector = backup[j];
+                h[i] = hash_tables[i][update_indices[j]].embedding_vector = backup[j];
                 positions[i].undo();
             }
         }
