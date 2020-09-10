@@ -10,7 +10,7 @@ static const float LOG_SOFTMAX_THRESHOLD = std::log(1.0 / POLICY_DIM);
 MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
     : search_options_(search_options),
       hash_table_(std::min(search_options.USI_Hash * 1024 * 1024 / 10000, search_options.search_limit * 10)),
-      device_(torch::kCUDA), fp16_(false), freeze_encoder_(true), use_policy_gradient_(false) {
+      device_(torch::kCUDA), fp16_(false), freeze_encoder_(true), gamma_(1.0) {
     constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
     simulation_policy_ =
         register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
@@ -172,10 +172,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
     }
 }
 
-std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& data, bool freeze_encoder, float gamma) {
-    //設定を内部の変数に格納
-    freeze_encoder_ = freeze_encoder;
-
+std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
     //バッチサイズを取得しておく
     const uint64_t batch_size = data.size();
 
@@ -367,7 +364,7 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     }
 
     //方策勾配法による勾配計算を行わないならここでそのままlossを返す
-    if (!use_policy_gradient_) {
+    if (!use_policy_gradient) {
         loss.push_back(entropy);
         return loss;
     }
@@ -383,7 +380,7 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     R[M] = r[M].detach().to(device_);
     for (int64_t m = M - 1; m >= 1; m--) {
         //逆順に求めていくことでO(M)
-        R[m] = (r[m] + gamma * R[m + 1]).detach().to(device_);
+        R[m] = (r[m] + gamma_ * R[m + 1]).detach().to(device_);
     }
 
     //Rを擬似報酬として方策勾配法を適用
@@ -412,4 +409,9 @@ void MCTSNetImpl::loadPretrain(const std::string& encoder_path, const std::strin
         torch::load(simulation_policy_, policy_head_path);
         torch::load(readout_policy_, policy_head_path);
     }
+}
+
+void MCTSNetImpl::setOption(bool freeze_encoder, float gamma) {
+    freeze_encoder_ = freeze_encoder;
+    gamma_ = gamma;
 }

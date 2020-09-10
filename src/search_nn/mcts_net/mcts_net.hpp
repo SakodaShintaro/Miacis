@@ -13,7 +13,7 @@ public:
     Move think(Position& root, int64_t time_limit, bool save_info_to_learn = false);
 
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
-    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool freeze_encoder, float gamma);
+    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool use_policy_gradient);
 
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
@@ -24,6 +24,9 @@ public:
     //インタンスから下のクラス変数を参照するための関数
     static std::string modelPrefix() { return MODEL_PREFIX; }
     static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
+
+    //学習の設定を定める関数
+    void setOption(bool freeze_encoder, float gamma);
 
 private:
     //評価パラメータを読み書きするファイルのprefix
@@ -66,8 +69,8 @@ private:
     //エンコーダを固定して学習するかどうか
     bool freeze_encoder_;
 
-    //方策勾配法を用いた学習を行うかどうか
-    bool use_policy_gradient_;
+    //方策勾配法におけるハイパーパラメータ
+    float gamma_;
 };
 TORCH_MODULE(MCTSNet);
 
