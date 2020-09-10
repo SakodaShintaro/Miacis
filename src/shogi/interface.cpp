@@ -214,7 +214,7 @@ void Interface::go() {
             torch::load(mcts_net, mcts_net->defaultModelName());
             mcts_net->eval();
             torch::NoGradGuard no_grad_guard;
-            best_move = mcts_net->think(root_, LLONG_MAX, false);
+            best_move = mcts_net->think(root_, LLONG_MAX);
         } else {
             best_move =
                 (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - search_options_.byoyomi_margin));

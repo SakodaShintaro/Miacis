@@ -28,7 +28,7 @@ torch::Tensor MCTSNetImpl::backup(const torch::Tensor& h1, const torch::Tensor& 
     return h1 + gate * backup_update_->forward(cat_h);
 }
 
-Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_learn) {
+Move MCTSNetImpl::think(Position& root, int64_t time_limit) {
     //思考を行う
     //時間制限、あるいはノード数制限に基づいて何回やるかを決める
     //合法手が0だったら投了
@@ -45,12 +45,8 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
     }
     HashEntryForMCTSNet& root_entry = hash_table_[hash_table_.root_index];
     root_entry.embedding_vector = encoder_->embed(root.makeFeature(), device_, fp16_, freeze_encoder_).cpu();
-    root_h_.push_back(root_entry.embedding_vector.to(device_));
-
-    //0回目
-    if (save_info_to_learn) {
-        log_probs_.push_back(torch::zeros({ 1 }).to(device_));
-    }
+    std::vector<torch::Tensor> root_hs;
+    root_hs.push_back(root_entry.embedding_vector.to(device_));
 
     for (int64_t m = 1; m <= search_options_.search_limit; m++) {
         //1回探索する
@@ -59,9 +55,6 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
         std::stack<Index> indices;
 
         //(1)選択
-        if (save_info_to_learn) {
-            log_probs_.push_back(torch::zeros({ 1 }).to(device_));
-        }
         while (true) {
             Index index = hash_table_.findSameHashIndex(root);
             if (index == (Index)hash_table_.size() || root.isFinish(score)) {
@@ -84,11 +77,6 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
                 std::vector<float> masked_policy = softmax(logits, 1.0f);
                 int32_t move_id = randomChoose(masked_policy);
                 root.doMove(moves[move_id]);
-                if (save_info_to_learn) {
-                    torch::Tensor log_policy = torch::log_softmax(policy_logit, 1);
-                    torch::Tensor clipped = torch::clamp_min(log_policy, LOG_SOFTMAX_THRESHOLD);
-                    log_probs_[m] += clipped[0][moves[move_id].toLabel()];
-                }
             }
         }
 
@@ -110,10 +98,8 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
             root.undo();
         }
 
-        if (save_info_to_learn) {
-            //ルートノードの現状態を保存しておく
-            root_h_.push_back(hash_table_[hash_table_.root_index].embedding_vector.to(device_));
-        }
+        //ルートノードの現状態を保存しておく
+        root_hs.push_back(hash_table_[hash_table_.root_index].embedding_vector.to(device_));
     }
 
     //最終的な行動決定
@@ -129,7 +115,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit, bool save_info_to_le
     }
 
     if (search_options_.search_limit > 0 && search_options_.print_policy_num > 0) {
-        torch::Tensor policy_logit0 = readout_policy_->forward(root_h_.front());
+        torch::Tensor policy_logit0 = readout_policy_->forward(root_hs.front());
         std::vector<float> logits0;
         for (const Move& move : moves) {
             logits0.push_back(policy_logit0[0][move.toLabel()].item<float>());
@@ -387,7 +373,7 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     std::vector<torch::Tensor> l;
     l.push_back(l[M].view({ 1 }));
     for (int64_t m = 1; m <= M; m++) {
-        l.push_back(torch::clamp(-log_probs_[m] * R[m], LOG_SOFTMAX_THRESHOLD, -LOG_SOFTMAX_THRESHOLD));
+        //l.push_back(torch::clamp(-log_probs[m] * R[m], LOG_SOFTMAX_THRESHOLD, -LOG_SOFTMAX_THRESHOLD));
     }
     l.push_back(entropy);
     return l;

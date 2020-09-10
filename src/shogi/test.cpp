@@ -476,7 +476,7 @@ void testMCTSNet() {
     float score{};
     while (!pos.isFinish(score)) {
         pos.print();
-        Move move = model->think(pos, 1000, false);
+        Move move = model->think(pos, 1000);
         std::cout << "move = " << move.toPrettyStr() << std::endl;
         pos.doMove(move);
     }
