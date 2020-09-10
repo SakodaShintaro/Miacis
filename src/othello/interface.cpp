@@ -2,6 +2,7 @@
 #include "../game.hpp"
 #include "../learn.hpp"
 #include "../neural_network.hpp"
+#include "../search_nn/learn_search_nn.hpp"
 #include "../search_nn/models.hpp"
 #include "../search_nn/simple_MLP/learn_simple_mlp.hpp"
 
@@ -33,6 +34,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["supervisedLearn"]   = supervisedLearn;
     command_["alphaZero"]         = alphaZero;
     command_["pretrain"]          = pretrainSimpleMLP;
+    command_["learnMCTSNet"]      = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
     // clang-format on
 }
 
