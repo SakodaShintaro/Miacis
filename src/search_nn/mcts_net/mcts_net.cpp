@@ -10,7 +10,7 @@ static const float LOG_SOFTMAX_THRESHOLD = std::log(1.0 / POLICY_DIM);
 MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
     : search_options_(search_options),
       hash_table_(std::min(search_options.USI_Hash * 1024 * 1024 / 10000, search_options.search_limit * 10)),
-      device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
+      device_(torch::kCUDA), fp16_(false), freeze_encoder_(true), use_policy_gradient_(false) {
     constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
     simulation_policy_ =
         register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
@@ -456,9 +456,34 @@ std::vector<torch::Tensor> MCTSNetImpl::lossBatch(const std::vector<LearningData
         }
     }
 
-    loss.push_back(entropy);
+    //方策勾配法による勾配計算を行わないならここでそのままlossを返す
+    if (!use_policy_gradient_) {
+        loss.push_back(entropy);
+        return loss;
+    }
 
-    return loss;
+    //損失の差分を計算
+    std::vector<torch::Tensor> r(M + 1);
+    for (int64_t m = 1; m <= M; m++) {
+        r[m] = loss[m - 1] - loss[m];
+    }
+
+    //重み付き累積和
+    std::vector<torch::Tensor> R(M + 1);
+    R[M] = r[M].detach().to(device_);
+    for (int64_t m = M - 1; m >= 1; m--) {
+        //逆順に求めていくことでO(M)
+        R[m] = (r[m] + gamma * R[m + 1]).detach().to(device_);
+    }
+
+    //Rを擬似報酬として方策勾配法を適用
+    std::vector<torch::Tensor> l;
+    l.push_back(l[M].view({ 1 }));
+    for (int64_t m = 1; m <= M; m++) {
+        l.push_back(torch::clamp(-log_probs_[m] * R[m], LOG_SOFTMAX_THRESHOLD, -LOG_SOFTMAX_THRESHOLD));
+    }
+    l.push_back(entropy);
+    return l;
 }
 
 void MCTSNetImpl::setGPU(int16_t gpu_id, bool fp16) {

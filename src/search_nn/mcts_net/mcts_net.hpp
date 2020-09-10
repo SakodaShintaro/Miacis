@@ -67,6 +67,9 @@ private:
 
     //エンコーダを固定して学習するかどうか
     bool freeze_encoder_;
+
+    //方策勾配法を用いた学習を行うかどうか
+    bool use_policy_gradient_;
 };
 TORCH_MODULE(MCTSNet);
 
