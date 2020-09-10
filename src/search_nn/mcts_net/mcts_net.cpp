@@ -320,15 +320,13 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
             }
 
             //GPUで計算
-            torch::Tensor h1 = torch::stack(left);           //[backup中のもの, HIDDEN_DIM]
-            torch::Tensor h2 = torch::stack(right);          //[backup中のもの, HIDDEN_DIM]
-            torch::Tensor cat_h = torch::cat({ h1, h2 }, 1); //[backup中のもの, HIDDEN_DIM * 2]
-            torch::Tensor gate = torch::sigmoid(backup_gate_->forward(cat_h));
-            torch::Tensor backup = h1 + gate * backup_update_->forward(cat_h);
+            torch::Tensor h1 = torch::stack(left);  //[backup中のもの, HIDDEN_DIM]
+            torch::Tensor h2 = torch::stack(right); //[backup中のもの, HIDDEN_DIM]
+            torch::Tensor backup_h = backup(h1, h2);
 
             for (uint64_t j = 0; j < ids.size(); j++) {
                 uint64_t i = ids[j];
-                hash_tables[i][update_indices[j]].embedding_vector = backup[j];
+                hash_tables[i][update_indices[j]].embedding_vector = backup_h[j];
                 next_indices[i] = update_indices[j];
                 positions[i].undo();
             }
