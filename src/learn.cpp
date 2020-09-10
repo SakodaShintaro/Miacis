@@ -81,9 +81,9 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
     return losses;
 }
 
-std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation) {
+std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold) {
     //棋譜を読み込めるだけ読み込む
-    std::vector<Game> games = loadGames(file_path);
+    std::vector<Game> games = loadGames(file_path, rate_threshold);
 
     //データを局面単位にバラす
     std::vector<LearningData> data_buffer;

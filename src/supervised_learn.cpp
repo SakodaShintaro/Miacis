@@ -12,6 +12,7 @@ void supervisedLearn() {
     float momentum              = settings.get<float>("momentum");
     float weight_decay          = settings.get<float>("weight_decay");
     float mixup_alpha           = settings.get<float>("mixup_alpha");
+    float rate_threshold        = settings.get<float>("rate_threshold");
     bool data_augmentation      = settings.get<bool>("data_augmentation");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
@@ -30,8 +31,8 @@ void supervisedLearn() {
     }
 
     //データを取得
-    std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation);
-    std::vector<LearningData> valid_data = loadData(valid_kifu_path, false);
+    std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation, rate_threshold);
+    std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, rate_threshold);
     std::cout << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size() << std::endl;
 
     //学習推移のログファイル

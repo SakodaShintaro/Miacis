@@ -103,7 +103,7 @@ std::pair<Game, bool> parseGGF(const std::string& ggf_str) {
     return std::make_pair(game, true);
 }
 
-std::vector<Game> loadGames(const std::string& path) {
+std::vector<Game> loadGames(const std::string& path, float rate_threshold) {
     namespace sys = std::experimental::filesystem;
     const sys::path dir(path);
     std::vector<Game> games;

@@ -144,8 +144,8 @@ void ReplayBuffer::update(const std::vector<float>& loss) {
     mutex_.unlock();
 }
 
-void ReplayBuffer::fillByKifu(const std::string& file_path) {
-    std::vector<LearningData> data = loadData(file_path, data_augmentation_);
+void ReplayBuffer::fillByKifu(const std::string& file_path, float rate_threshold) {
+    std::vector<LearningData> data = loadData(file_path, data_augmentation_, rate_threshold);
     std::cout << "data.size() = " << data.size() << ", max_size_ = " << max_size_ << std::endl;
     for (int64_t i = 0; i < std::min(max_size_, (int64_t)data.size()); i++) {
         //このデータを入れる位置を取得

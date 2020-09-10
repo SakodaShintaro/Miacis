@@ -6,7 +6,10 @@ namespace sys = std::filesystem;
 namespace sys = std::experimental::filesystem;
 #endif
 
-std::vector<Game> loadGames(const std::string& path) {
+std::vector<Game> loadGames(const std::string& path, float rate_threshold) {
+    //最小手数の閾値（これ以下は不正な対局と見なす）
+    constexpr int32_t move_threshold = 50;
+
     const sys::path dir(path);
     std::vector<Game> games;
     for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
@@ -21,8 +24,28 @@ std::vector<Game> loadGames(const std::string& path) {
         Position pos;
         Game game;
         std::ifstream ifs(p->path());
+        bool illegal_summary = false;
+        float black_rate = 0, white_rate = 0;
         std::string buf;
         while (getline(ifs, buf)) {
+            //レート読み込み
+            if (buf.find("'black_rate") < buf.size()) {
+                black_rate = std::stod(buf.substr(buf.rfind(':') + 1));
+                continue;
+            } else if (buf.find("'white_rate") < buf.size()) {
+                white_rate = std::stod(buf.substr(buf.rfind(':') + 1));
+                continue;
+            }
+
+            //summaryが投了以外のものは削除
+            if (buf.find("summary") < buf.size()) {
+                if (buf.find("toryo") > buf.size()) {
+                    illegal_summary = true;
+                    break;
+                }
+                continue;
+            }
+
             //指し手じゃないものはスキップ
             if (buf[0] == '\'' || (buf[0] != '+' && buf[0] != '-') || buf.size() == 1) {
                 continue;
@@ -56,6 +79,12 @@ std::vector<Game> loadGames(const std::string& path) {
             pos.doMove(move);
         }
         game.result = (pos.color() == BLACK ? MIN_SCORE : MAX_SCORE);
+
+        //条件を見て、不正だったらデータに加えない
+        if (illegal_summary || game.elements.size() < move_threshold || black_rate < rate_threshold ||
+            white_rate < rate_threshold) {
+            continue;
+        }
 
         games.push_back(game);
     }

@@ -3,6 +3,7 @@ min_learn_rate      0.0025
 momentum            0.9
 weight_decay        0.0001
 mixup_alpha         0.0
+rate_threshold      2800
 policy_loss_coeff   1.0
 value_loss_coeff    1.0
 data_augmentation   1

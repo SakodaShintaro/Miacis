@@ -34,7 +34,7 @@ struct Game {
     void writeKifuFile(const std::string& dir_path) const;
 };
 
-std::vector<Game> loadGames(const std::string& path);
+std::vector<Game> loadGames(const std::string& path, float rate_threshold);
 void cleanGames();
 
 #endif //MIACIS_GAME_HPP
