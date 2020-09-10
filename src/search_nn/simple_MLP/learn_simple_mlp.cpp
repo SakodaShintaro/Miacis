@@ -69,6 +69,7 @@ void pretrainSimpleMLP() {
             //学習
             optimizer.zero_grad();
             std::vector<torch::Tensor> loss = model->loss(curr_data);
+            global_step++;
 
             //表示
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
@@ -84,7 +85,6 @@ void pretrainSimpleMLP() {
             torch::Tensor loss_sum = torch::cat(loss).sum();
             loss_sum.mean().backward();
             optimizer.step();
-            global_step++;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
