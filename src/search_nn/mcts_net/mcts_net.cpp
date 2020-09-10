@@ -461,38 +461,6 @@ std::vector<torch::Tensor> MCTSNetImpl::lossBatch(const std::vector<LearningData
     return loss;
 }
 
-std::vector<torch::Tensor> MCTSNetImpl::validationLoss(const std::vector<LearningData>& data) {
-    //現状バッチサイズは1のみに対応
-    assert(data.size() == 1);
-
-    Position root;
-    root.fromStr(data.front().position_str);
-
-    //探索を行い、途中のルート埋め込みベクトル,各探索の確率等を保存しておく
-    root_h_.clear();
-    log_probs_.clear();
-    think(root, INT_MAX, true);
-
-    assert(root_h_.size() == log_probs_.size());
-
-    const int64_t M = root_h_.size();
-
-    //policyの教師信号
-    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
-
-    //各探索後の損失を計算
-    std::vector<torch::Tensor> loss;
-    for (int64_t m = 0; m < M; m++) {
-        torch::Tensor policy_logit = readout_policy_->forward(root_h_[m]);
-        torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
-        torch::Tensor clipped = torch::clamp_min(log_softmax, LOG_SOFTMAX_THRESHOLD);
-        torch::Tensor curr_loss = (-policy_teacher * clipped).sum().view({ 1 });
-        loss.push_back(curr_loss);
-    }
-
-    return loss;
-}
-
 void MCTSNetImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;

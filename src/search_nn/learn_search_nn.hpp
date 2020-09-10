@@ -193,7 +193,7 @@ template<class T> void validSearchNN(const std::string& model_name) {
     std::vector<float> valid_loss_sum(options.search_limit + 1, 0);
     for (uint64_t i = 0; i < valid_data.size(); i++) {
         const LearningData& datum = valid_data[i];
-        std::vector<torch::Tensor> valid_loss = model->validationLoss({ datum });
+        std::vector<torch::Tensor> valid_loss = model->lossBatch({ datum }, true, 1.0);
         for (uint64_t j = 0; j < valid_loss_sum.size(); j++) {
             valid_loss_sum[j] += valid_loss[j].item<float>();
         }

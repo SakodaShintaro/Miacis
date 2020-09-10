@@ -16,7 +16,6 @@ public:
     std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool freeze_encoder, float gamma);
     std::vector<torch::Tensor> loss2(const std::vector<LearningData>& data, bool freeze_encoder, float gamma);
     std::vector<torch::Tensor> lossBatch(const std::vector<LearningData>& data, bool freeze_encoder, float gamma);
-    std::vector<torch::Tensor> validationLoss(const std::vector<LearningData>& data);
 
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
