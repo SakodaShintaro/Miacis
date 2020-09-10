@@ -88,9 +88,10 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                 curr_data.push_back(train_data[step * batch_size + b]);
             }
 
-            //学習
+            //損失計算
             optimizer.zero_grad();
             std::vector<torch::Tensor> loss = model->lossBatch(curr_data, freeze_encoder, gamma);
+            global_step++;
 
             //表示
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
@@ -110,12 +111,11 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                 dout(std::cout, train_log) << "\r" << std::flush;
             }
 
-            //勾配計算
+            //勾配計算,パラメータ更新
             loss.back() *= entropy_coeff;
             torch::Tensor loss_sum = torch::cat(loss).sum();
             loss_sum.mean().backward();
             optimizer.step();
-            global_step++;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
