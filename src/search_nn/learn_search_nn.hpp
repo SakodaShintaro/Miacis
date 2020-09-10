@@ -29,6 +29,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     int64_t lr_decay_step1       = settings.get<int64_t>("lr_decay_step1");
     int64_t lr_decay_step2       = settings.get<int64_t>("lr_decay_step2");
     int64_t lr_decay_period      = settings.get<int64_t>("lr_decay_period");
+    int64_t print_interval       = settings.get<int64_t>("print_interval");
     std::string train_kifu_path  = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path  = settings.get<std::string>("valid_kifu_path");
     std::string encoder_path     = settings.get<std::string>("encoder_path");
@@ -45,9 +46,13 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     std::ofstream valid_log(model_name + "_valid_log.txt");
     tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep";
     for (int64_t i = 0; i <= options.search_limit; i++) {
-        tout(std::cout, train_log, valid_log) << "\tloss_" << i;
+        if (i % print_interval == 0) {
+            tout(std::cout, train_log, valid_log) << "\tloss_" << i;
+        } else {
+            dout(train_log, valid_log) << "\tloss_" << i;
+        }
     }
-    tout(std::cout, train_log, valid_log) << std::endl;
+    tout(std::cout, train_log, valid_log) << "\tentropy" << std::endl;
 
     //モデル作成
     T model(options);
@@ -90,9 +95,18 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             //表示
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
                 dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
-                for (const torch::Tensor& t : loss) {
-                    dout(std::cout, train_log) << "\t" << t.item<float>();
+                for (int64_t m = 0; m <= options.search_limit; m++) {
+                    if (m % print_interval == 0) {
+                        //標準出力にも表示
+                        dout(std::cout, train_log) << "\t" << loss[m].item<float>();
+                    } else {
+                        //ファイルにだけ表示
+                        train_log << "\t" << loss[m].item<float>();
+                    }
                 }
+                //entropy
+                dout(std::cout, train_log) << "\t" << loss.back().item<float>();
+
                 dout(std::cout, train_log) << "\r" << std::flush;
             }
 
@@ -126,10 +140,16 @@ template<class T> void learnSearchNN(const std::string& model_name) {
 
                 //表示
                 dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
-                for (float v : valid_loss_sum) {
-                    dout(std::cout, valid_log) << "\t" << v;
+                for (int64_t m = 0; m <= options.search_limit; m++) {
+                    if (m % print_interval == 0) {
+                        //標準出力にも表示
+                        dout(std::cout, valid_log) << "\t" << valid_loss_sum[m];
+                    } else {
+                        //ファイルにだけ表示
+                        valid_log << "\t" << valid_loss_sum[m];
+                    }
                 }
-                dout(std::cout, valid_log) << std::endl;
+                dout(std::cout, valid_log) << "\t" << valid_loss_sum.back() << std::endl;
             }
             if (global_step % save_interval == 0) {
                 //学習中のパラメータを書き出す

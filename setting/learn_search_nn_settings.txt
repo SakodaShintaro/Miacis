@@ -16,6 +16,7 @@ lr_decay_mode       0
 lr_decay_step1      3000000
 lr_decay_step2      3000000
 lr_decay_period     100000
+print_interval      2
 train_kifu_path     /root/training_kifu
 valid_kifu_path     /root/validation_kifu_small
 encoder_path        encoder.model
