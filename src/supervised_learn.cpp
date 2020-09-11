@@ -15,6 +15,7 @@ void supervisedLearn() {
     float train_rate_threshold  = settings.get<float>("train_rate_threshold");
     float valid_rate_threshold  = settings.get<float>("valid_rate_threshold");
     bool data_augmentation      = settings.get<bool>("data_augmentation");
+    bool load_multi_dir         = settings.get<bool>("load_multi_dir");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
@@ -29,6 +30,13 @@ void supervisedLearn() {
     std::array<float, LOSS_TYPE_NUM> coefficients{};
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         coefficients[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
+    }
+
+    //ディレクトリを逐次的に展開していく場合、まず展開するパス名を取得する
+    std::vector<std::string> dir_paths;
+    if (load_multi_dir) {
+        dir_paths = childFiles(train_kifu_path);
+        train_kifu_path = dir_paths[0];
     }
 
     //データを取得
@@ -136,6 +144,13 @@ void supervisedLearn() {
                 (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() =
                     min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / lr_decay_period));
             }
+        }
+
+        if (load_multi_dir) {
+            if ((uint64_t)epoch >= dir_paths.size()) {
+                break;
+            }
+            train_data = loadData(dir_paths[epoch], data_augmentation, train_rate_threshold);
         }
     }
 

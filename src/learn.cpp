@@ -116,3 +116,18 @@ void initParams() {
     torch::save(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
     std::cout << "初期化したパラメータを" << NeuralNetworkImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
 }
+
+std::vector<std::string> childFiles(const std::string& file_path) {
+#ifdef _MSC_VER
+    namespace sys = std::filesystem;
+#elif __GNUC__
+    namespace sys = std::experimental::filesystem;
+#endif
+
+    const sys::path dir(file_path);
+    std::vector<std::string> child_files;
+    for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
+        child_files.push_back(p->path().string());
+    }
+    return child_files;
+}
