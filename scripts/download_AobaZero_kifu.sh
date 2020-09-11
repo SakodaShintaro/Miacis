@@ -39,4 +39,4 @@ while read row; do
   else
     echo "スキップ"
   fi
-done <AobaZero_kifuID.csv
+done <"$(dirname "$0")/AobaZero_kifuID.csv"
