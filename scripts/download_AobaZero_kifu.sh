@@ -2,7 +2,6 @@
 
 # どこに保存するかの基準位置($0 = ./の２つ上がMiacisと同階層なのでそこに置く)
 root_dir=$(dirname "$0")/../../data/aobazero_kifu
-mkdir -p "${root_dir}"
 mkdir -p "${root_dir}/train"
 
 THRESHOLD=000014300000
@@ -34,8 +33,11 @@ while read row; do
       curl -Lb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${file_id}" -o "${root_dir}/${file_name}"
     fi
 
-    # 解凍(*.csa.xzなのをtrain/*.csaとして保存)
-    xz -dc "${root_dir}/${file_name}" >"${root_dir}/train/${file_name%.*}"
+    # 解凍
+    # 教師あり学習の実装の都合上,*.csa.xzなのをdata/archXXXX/*.csaとして保存
+    save_dir="${root_dir}/data/${file_name%%.*}"
+    mkdir -p "${save_dir}"
+    xz -dc "${root_dir}/${file_name}" >"${save_dir}/${file_name%.*}"
   else
     echo "スキップ"
   fi
