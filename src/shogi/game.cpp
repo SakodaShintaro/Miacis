@@ -24,7 +24,7 @@ std::tuple<Game, bool> loadCSAOneGame(std::ifstream& ifs, bool rate_threshold) {
             black_rate = std::stod(buf.substr(buf.rfind(':') + 1));
         } else if (buf.find("'white_rate") < buf.size()) {
             white_rate = std::stod(buf.substr(buf.rfind(':') + 1));
-        } else if (buf[0] != '%' && (buf[0] != '+' && buf[0] != '-') || buf.size() == 1) {
+        } else if (buf[0] != '%' && ((buf[0] != '+' && buf[0] != '-') || buf.size() == 1)) {
             //最終結果あるいは指し手ではないものはスキップ
             continue;
         } else if (buf[0] == '+' || buf[0] == '-') {
