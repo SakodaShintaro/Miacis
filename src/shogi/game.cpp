@@ -61,10 +61,11 @@ std::tuple<Game, bool> loadCSAOneGame(std::ifstream& ifs, bool rate_threshold) {
                 game.result = (MAX_SCORE + MIN_SCORE) / 2;
             } else if (buf == "%KACHI") {
                 game.result = (pos.color() == BLACK ? MAX_SCORE : MIN_SCORE);
-            } else if (buf == "%CHUDAN" || buf == "%+ILLEGAL_ACTION" || buf == "%-ILLEGAL_ACTION") {
+            } else if (buf == "%CHUDAN" || buf == "%+ILLEGAL_ACTION" || buf == "%-ILLEGAL_ACTION" || buf == "%TIME_UP") {
                 //ダメな対局であったというフラグを返す
                 return std::make_tuple(game, false);
             } else {
+                std::cout << buf << std::endl;
                 std::exit(1);
             }
             break;
