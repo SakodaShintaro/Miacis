@@ -199,7 +199,7 @@ void alphaZero() {
 
         if (step_num % validation_interval == 0) {
             learning_model->eval();
-            std::array<float, LOSS_TYPE_NUM> valid_loss = validation(learning_model, validation_data, 4096);
+            std::array<float, LOSS_TYPE_NUM> valid_loss = validation(learning_model, validation_data, batch_size);
             learning_model->train();
             float valid_loss_sum = 0.0;
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
