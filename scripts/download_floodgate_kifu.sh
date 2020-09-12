@@ -6,6 +6,7 @@ download_path=${root_dir}/floodgate_kifu
 mkdir -p "${download_path}"
 wget -P "${download_path}" "http://wdoor.c.u-tokyo.ac.jp/shogi/x/wdoor2015.7z"
 wget -P "${download_path}" "http://wdoor.c.u-tokyo.ac.jp/shogi/x/wdoor2016.7z"
+wget -P "${download_path}" "http://wdoor.c.u-tokyo.ac.jp/shogi/x/wdoor2017.7z"
 wget -P "${download_path}" "http://wdoor.c.u-tokyo.ac.jp/shogi/x/wdoor2018.7z"
 wget -P "${download_path}" "http://wdoor.c.u-tokyo.ac.jp/shogi/x/wdoor2019.7z"
 
