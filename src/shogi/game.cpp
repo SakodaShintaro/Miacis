@@ -13,7 +13,7 @@ static std::unordered_map<std::string, Piece> CSAstringToPiece = {
     { "NK", KNIGHT_PROMOTE }, { "NG", SILVER_PROMOTE }, { "UM", BISHOP_PROMOTE }, { "RY", ROOK_PROMOTE },
 };
 
-std::tuple<Game, bool> loadCSAOneGame(std::ifstream& ifs, bool rate_threshold) {
+std::tuple<Game, bool> loadCSAOneGame(std::ifstream& ifs, float rate_threshold) {
     Position pos;
     Game game;
     std::string buf;
