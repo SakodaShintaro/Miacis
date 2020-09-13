@@ -73,7 +73,10 @@ if curr_path[-1] != "/":
 
 # 結果を書き込むファイルを取得
 f = open(curr_path + "result.txt", mode="a")
-f.write(f"Miacis time = {args.time1}, YaneuraOu time = {args.time2}, YaneuraOu Threads = {args.Threads}\n")
+f.write("~/Miacis/scripts/vsYaneuraOu.py")
+for w in sys.argv:
+    f.write(" " + w)
+f.write(f"\nMiacis time = {args.time1}, YaneuraOu time = {args.time2}, YaneuraOu Threads = {args.Threads}\n")
 
 # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
 model_names = natsorted(glob.glob(curr_path + "*0.model"))
