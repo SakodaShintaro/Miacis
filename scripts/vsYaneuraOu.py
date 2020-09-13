@@ -22,6 +22,7 @@ parser.add_argument("--Threads", type=int, default=4)
 parser.add_argument("--NodesLimit", type=int, default=0)
 parser.add_argument("--game_num", type=int, default=500)
 parser.add_argument("--init_model_step", type=int, default=0)
+parser.add_argument("--reverse", action="store_true")
 parser.add_argument("--option", type=str, default=None)
 parser.add_argument("--parameters", type=(lambda x: list(map(int, x.split()))))
 parser.add_argument("--Suisho", action="store_true")
@@ -77,6 +78,9 @@ f.write(f"Miacis time = {args.time1}, YaneuraOu time = {args.time2}, YaneuraOu T
 # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
 model_names = natsorted(glob.glob(curr_path + "*0.model"))
 assert len(model_names) > 0
+
+if args.reverse:
+    model_names = model_names[::-1]
 
 if args.option is None:
     # 各ステップの勝率を計測
