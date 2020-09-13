@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--time1", type=int, default=1000)
 parser.add_argument("--time2", type=int, default=400)
 parser.add_argument("--Threads", type=int, default=4)
+parser.add_argument("--NodesLimit", type=int, default=0)
 parser.add_argument("--game_num", type=int, default=500)
 parser.add_argument("--init_model_step", type=int, default=0)
 parser.add_argument("--option", type=str, default=None)
@@ -52,6 +53,7 @@ server.moves_to_draw = 320
 # YaneuraOuの設定
 server.engines[1].set_engine_options({"USI_Ponder": "false",
                                       "Threads": args.Threads,
+                                      "NodesLimit": args.NodesLimit,
                                       "USI_Hash": 1024,
                                       "BookMoves": 0,
                                       "NetworkDelay": 0,
