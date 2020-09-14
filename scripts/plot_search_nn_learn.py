@@ -41,8 +41,10 @@ for prefix in args.method:
             if loss_name == "train":
                 loss = transform(loss)
             color = [0.0, 0.5, i / loss_num]
-            plt.plot(step, loss, color=color, label=f"{i}回探索後" if loss_name == "valid" else (
-                f"{loss_num - 1}回探索後の損失" if i == 0 else f"{i}回目探索の寄与と確率の積"),
+            # plt.plot(step, loss, color=color, label=f"{i}回探索後" if loss_name == "valid" else (
+            #     f"{loss_num - 1}回探索後の損失" if i == 0 else f"{i}回目探索の寄与と確率の積"),
+            #          linestyle=("dashed" if i == 0 else "solid"))
+            plt.plot(step, loss, color=color, label=f"{i}回探索後",
                      linestyle=("dashed" if i == 0 else "solid"))
             # plt.text(step[-1], loss[-1], f"{i + 1}回探索後", color=color)
         plt.legend()
