@@ -11,6 +11,7 @@ parser.add_argument("--method", type=(lambda x: x.split()),
 args = parser.parse_args()
 
 PLOT_NUM = 20
+loss_num = 11
 
 
 def transform(arr):
@@ -34,7 +35,7 @@ for prefix in args.method:
         if loss_name == "train":
             step = transform(step)
 
-        loss_num = len(df.columns) - 3
+        loss_num = len(df.columns) - 4
         for i in range(loss_num):
             loss = df[f"loss_{i}"].to_numpy()
             if loss_name == "train":
@@ -67,7 +68,7 @@ for loss_name in ["train", "valid"]:
         step = df["step"].to_numpy()
         if loss_name == "train":
             step = transform(step)
-        last_index = len(df.columns) - 4
+        last_index = loss_num - 1
         loss = df[f"loss_{last_index}"].to_numpy()
         if loss_name == "train":
             loss = transform(loss)
@@ -92,7 +93,7 @@ for loss_name in ["train", "valid"]:
         time = [time_str2time_int(v) for v in time]
         if loss_name == "train":
             time = transform(time)
-        last_index = len(df.columns) - 4
+        last_index = loss_num - 1
         loss = df[f"loss_{last_index}"].to_numpy()
         if loss_name == "train":
             loss = transform(loss)
