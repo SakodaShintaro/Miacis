@@ -1,6 +1,7 @@
 ﻿#ifndef MIACIS_OTHELLO_INTERFACE_HPP
 #define MIACIS_OTHELLO_INTERFACE_HPP
 
+#include "../search_nn/models.hpp"
 #include "../search_options.hpp"
 #include "../searcher_for_play.hpp"
 #include "position.hpp"
@@ -52,6 +53,7 @@ private:
     std::unordered_map<std::string, std::function<void()>> command_;
     Position root_;
     std::unique_ptr<SearcherForPlay> searcher_;
+    MCTSNet mcts_net_;
     std::thread thread_;
     SearchOptions options_;
 };

@@ -266,7 +266,11 @@ void Interface::init() {
     root_.init();
 
     //対局の準備
-    searcher_ = std::make_unique<SearcherForPlay>(options_);
+    //searcher_ = std::make_unique<SearcherForPlay>(options_);
+
+    mcts_net_ = MCTSNet(options_);
+    torch::load(mcts_net_, mcts_net_->defaultModelName());
+    mcts_net_->eval();
 }
 
 void Interface::play() {
@@ -277,9 +281,16 @@ void Interface::play() {
 }
 
 void Interface::go() {
-    Move best_move = searcher_->think(root_, options_.byoyomi_margin);
-    std::cout << "best_move " << best_move << std::endl;
-    root_.doMove(best_move);
+    if (options_.use_mcts_net) {
+        torch::NoGradGuard no_grad_guard;
+        Move best_move = mcts_net_->think(root_, options_.byoyomi_margin);
+        std::cout << "best_move " << best_move << std::endl;
+        root_.doMove(best_move);
+    } else {
+        Move best_move = searcher_->think(root_, options_.byoyomi_margin);
+        std::cout << "best_move " << best_move << std::endl;
+        root_.doMove(best_move);
+    }
 }
 
 void Interface::stop() {
