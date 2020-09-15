@@ -25,13 +25,12 @@ while read row; do
   file_number=${file_name//[^0-9]/}
 
   # THRESHOLDより大きいものだけをダウンロード
-  if [ "${file_number}" -ge ${THRESHOLD} ]; then
-    # 2重にダウンロードしないように存在判定を入れる
-    if [ ! -f "${root_dir}/${file_name}" ]; then
-      curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${file_id}" >/dev/null
-      CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
-      curl -Lb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${file_id}" -o "${root_dir}/${file_name}"
-    fi
+  # 2重にダウンロードしないように存在判定を入れる
+  if [ "${file_number}" -ge ${THRESHOLD} ] && [ ! -f "${root_dir}/${file_name}" ] ; then
+    # ダウンロード
+    curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${file_id}" >/dev/null
+    CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
+    curl -Lb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=${file_id}" -o "${root_dir}/${file_name}"
 
     # 解凍
     # 教師あり学習の実装の都合上,*.csa.xzなのをdata/archXXXX/*.csaとして保存
