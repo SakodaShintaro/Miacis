@@ -140,7 +140,7 @@ void supervisedLearn() {
                     (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
                 }
             } else if (lr_decay_mode == 2) {
-                int64_t curr_step = (step + 1) % lr_decay_period;
+                int64_t curr_step = global_step % lr_decay_period;
                 (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() =
                     min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / lr_decay_period));
             }
