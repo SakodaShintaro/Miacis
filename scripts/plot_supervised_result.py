@@ -68,13 +68,14 @@ for dir_name in args.dirs:
     steps = list()
     rates = list()
     for line in open(result_file_name):
-        # 空白区切りで"絶対レート"という要素の次にレートが記録されていることを前提とする
-        elements = line.strip().split(" ")
+        # 空白区切りで"相対レート"という要素の次にレートが記録されていることを前提とする
+        elements = line.strip().split()
         for e in elements:
             if "ステップ" in e:
                 steps.append(int(e.replace("ステップ", "")))
-        if "絶対レート" in elements:
-            rates.append(float(elements[elements.index("絶対レート") + 1]))
+        if "相対レート" in elements:
+            rates.append(float(elements[elements.index("相対レート") + 1]))
+
     c = zip(steps, rates)
     c = sorted(c)
     steps, rates = zip(*c)

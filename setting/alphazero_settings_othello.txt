@@ -12,6 +12,7 @@ Q_dist_lambda           1.0
 noise_epsilon           0.25
 noise_alpha             0.15
 C_PUCT                  2.5
+rate_threshold          2200
 use_fp16                1
 draw_turn               320
 random_turn             320

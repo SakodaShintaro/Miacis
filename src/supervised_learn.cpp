@@ -12,7 +12,10 @@ void supervisedLearn() {
     float momentum              = settings.get<float>("momentum");
     float weight_decay          = settings.get<float>("weight_decay");
     float mixup_alpha           = settings.get<float>("mixup_alpha");
+    float train_rate_threshold  = settings.get<float>("train_rate_threshold");
+    float valid_rate_threshold  = settings.get<float>("valid_rate_threshold");
     bool data_augmentation      = settings.get<bool>("data_augmentation");
+    bool load_multi_dir         = settings.get<bool>("load_multi_dir");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
@@ -29,9 +32,16 @@ void supervisedLearn() {
         coefficients[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
     }
 
+    //ディレクトリを逐次的に展開していく場合、まず展開するパス名を取得する
+    std::vector<std::string> dir_paths;
+    if (load_multi_dir) {
+        dir_paths = childFiles(train_kifu_path);
+        train_kifu_path = dir_paths[0];
+    }
+
     //データを取得
-    std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation);
-    std::vector<LearningData> valid_data = loadData(valid_kifu_path, false);
+    std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation, train_rate_threshold);
+    std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
     std::cout << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size() << std::endl;
 
     //学習推移のログファイル
@@ -107,7 +117,7 @@ void supervisedLearn() {
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
                 neural_network->eval();
-                std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network, valid_data, 4096);
+                std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network, valid_data, batch_size);
                 neural_network->train();
                 float sum_loss = 0;
                 for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
@@ -130,10 +140,17 @@ void supervisedLearn() {
                     (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
                 }
             } else if (lr_decay_mode == 2) {
-                int64_t curr_step = (step + 1) % lr_decay_period;
+                int64_t curr_step = global_step % lr_decay_period;
                 (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() =
                     min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / lr_decay_period));
             }
+        }
+
+        if (load_multi_dir) {
+            if ((uint64_t)epoch >= dir_paths.size()) {
+                break;
+            }
+            train_data = loadData(dir_paths[epoch], data_augmentation, train_rate_threshold);
         }
     }
 

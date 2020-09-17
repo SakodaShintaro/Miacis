@@ -11,6 +11,8 @@ Q_dist_temperature      0.01
 Q_dist_lambda           1.0
 noise_epsilon           0.25
 noise_alpha             0.15
+train_rate_threshold    2800
+valid_rate_threshold    2800
 C_PUCT                  2.5
 use_fp16                1
 draw_turn               320

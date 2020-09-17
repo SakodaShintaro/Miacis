@@ -33,7 +33,7 @@ public:
     void push(Game& game);
 
     //既存の棋譜データからリプレイバッファを埋める関数
-    void fillByKifu(const std::string& file_path);
+    void fillByKifu(const std::string& file_path, float rate_threshold);
 
     //ミニバッチを学習した結果を用いてpriorityを更新する関数
     void update(const std::vector<float>& loss);

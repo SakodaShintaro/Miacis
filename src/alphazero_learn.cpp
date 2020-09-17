@@ -16,6 +16,8 @@ void alphaZero() {
     float Q_dist_lambda               = settings.get<float>("Q_dist_lambda");
     float noise_epsilon               = settings.get<float>("noise_epsilon");
     float noise_alpha                 = settings.get<float>("noise_alpha");
+    float train_rate_threshold        = settings.get<float>("train_rate_threshold");
+    float valid_rate_threshold        = settings.get<float>("valid_rate_threshold");
     search_options.temperature_x1000  = settings.get<float>("Q_dist_temperature") * 1000;
     search_options.C_PUCT_x1000       = settings.get<float>("C_PUCT") * 1000;
     search_options.use_fp16           = settings.get<bool>("use_fp16");
@@ -66,11 +68,11 @@ void alphaZero() {
     ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, alpha, data_augmentation);
 
     if (init_buffer_by_kifu) {
-        replay_buffer.fillByKifu(training_kifu_path);
+        replay_buffer.fillByKifu(training_kifu_path, train_rate_threshold);
     }
 
     //validation用のデータを取得
-    std::vector<LearningData> validation_data = loadData(validation_kifu_path, false);
+    std::vector<LearningData> validation_data = loadData(validation_kifu_path, false, valid_rate_threshold);
     std::cout << "validation_data.size() = " << validation_data.size() << std::endl;
 
     //ログファイルの設定
@@ -197,7 +199,7 @@ void alphaZero() {
 
         if (step_num % validation_interval == 0) {
             learning_model->eval();
-            std::array<float, LOSS_TYPE_NUM> valid_loss = validation(learning_model, validation_data, 4096);
+            std::array<float, LOSS_TYPE_NUM> valid_loss = validation(learning_model, validation_data, batch_size);
             learning_model->train();
             float valid_loss_sum = 0.0;
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {

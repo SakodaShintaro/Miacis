@@ -17,10 +17,12 @@ from calc_elo_rate import calc_elo_rate
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--time1", type=int, default=1000)
-parser.add_argument("--time2", type=int, default=200)
+parser.add_argument("--time2", type=int, default=400)
 parser.add_argument("--Threads", type=int, default=4)
+parser.add_argument("--NodesLimit", type=int, default=0)
 parser.add_argument("--game_num", type=int, default=500)
 parser.add_argument("--init_model_step", type=int, default=0)
+parser.add_argument("--reverse", action="store_true")
 parser.add_argument("--option", type=str, default=None)
 parser.add_argument("--parameters", type=(lambda x: list(map(int, x.split()))))
 parser.add_argument("--Suisho", action="store_true")
@@ -52,6 +54,7 @@ server.moves_to_draw = 320
 # YaneuraOuの設定
 server.engines[1].set_engine_options({"USI_Ponder": "false",
                                       "Threads": args.Threads,
+                                      "NodesLimit": args.NodesLimit,
                                       "USI_Hash": 1024,
                                       "BookMoves": 0,
                                       "NetworkDelay": 0,
@@ -70,11 +73,17 @@ if curr_path[-1] != "/":
 
 # 結果を書き込むファイルを取得
 f = open(curr_path + "result.txt", mode="a")
-f.write(f"Miacis time = {args.time1}, YaneuraOu time = {args.time2}, YaneuraOu Threads = {args.Threads}\n")
+f.write("~/Miacis/scripts/vsYaneuraOu.py")
+for w in sys.argv:
+    f.write(" " + w)
+f.write(f"\nMiacis time = {args.time1}, YaneuraOu time = {args.time2}, YaneuraOu Threads = {args.Threads}\n")
 
 # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
 model_names = natsorted(glob.glob(curr_path + "*0.model"))
 assert len(model_names) > 0
+
+if args.reverse:
+    model_names = model_names[::-1]
 
 if args.option is None:
     # 各ステップの勝率を計測

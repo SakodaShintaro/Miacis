@@ -253,7 +253,7 @@ void checkVal() {
     std::string path;
     std::cout << "validation kifu path : ";
     std::cin >> path;
-    std::vector<LearningData> data = loadData(path, false);
+    std::vector<LearningData> data = loadData(path, false, 2800);
 
     //ネットワークの準備
     NeuralNetwork nn;

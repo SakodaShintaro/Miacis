@@ -54,11 +54,14 @@ public:
 };
 
 //教師データを読み込む関数
-std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation);
+std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold);
 
 //validationを行う関数
 std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<LearningData>& validation_data,
                                             uint64_t batch_size);
+
+//子階層にあるディレクトリ名を取得する関数
+std::vector<std::string> childFiles(const std::string& file_path);
 
 //パラメータを初期化
 void initParams();
