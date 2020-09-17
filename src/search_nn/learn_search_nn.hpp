@@ -17,6 +17,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     float weight_decay           = settings.get<float>("weight_decay");
     float gamma                  = settings.get<float>("gamma");
     float entropy_coeff          = settings.get<float>("entropy_coeff");
+    float train_rate_threshold   = settings.get<float>("train_rate_threshold");
+    float valid_rate_threshold   = settings.get<float>("valid_rate_threshold");
     bool data_augmentation       = settings.get<bool>("data_augmentation");
     bool freeze_encoder          = settings.get<bool>("freeze_encoder");
     options.use_readout_only     = settings.get<bool>("use_readout_only");
@@ -38,8 +40,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     // clang-format on
 
     //データを取得
-    std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation);
-    std::vector<LearningData> valid_data = loadData(valid_kifu_path, false);
+    std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation, train_rate_threshold);
+    std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
     std::cout << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size() << std::endl;
 
     //学習推移のログファイル
@@ -181,7 +183,11 @@ template<class T> void validSearchNN(const std::string& model_name) {
     std::string valid_kifu_path;
     std::cout << "validation_kifu_path: ";
     std::cin >> valid_kifu_path;
-    std::vector<LearningData> valid_data = loadData(valid_kifu_path, false);
+    float valid_rate_threshold{};
+    std::cout << "valid_rate_threshold: ";
+    std::cin >> valid_rate_threshold;
+
+    std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
     std::cout << "valid_data_size = " << valid_data.size() << std::endl;
 
     //モデル作成
