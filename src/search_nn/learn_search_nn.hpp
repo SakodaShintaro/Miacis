@@ -186,6 +186,9 @@ template<class T> void validSearchNN(const std::string& model_name) {
     float valid_rate_threshold{};
     std::cout << "valid_rate_threshold: ";
     std::cin >> valid_rate_threshold;
+    int64_t batch_size{};
+    std::cout << "batch_size: ";
+    std::cin >> batch_size;
 
     std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
     std::cout << "valid_data_size = " << valid_data.size() << std::endl;
@@ -200,19 +203,23 @@ template<class T> void validSearchNN(const std::string& model_name) {
 
     //validation_lossを計算
     std::vector<float> valid_loss_sum(options.search_limit + 1, 0);
-    for (uint64_t i = 0; i < valid_data.size(); i++) {
-        const LearningData& datum = valid_data[i];
-        std::vector<torch::Tensor> valid_loss = model->loss({ datum }, false);
-        for (uint64_t j = 0; j < valid_loss_sum.size(); j++) {
-            valid_loss_sum[j] += valid_loss[j].item<float>();
+    for (uint64_t i = 0; i < valid_data.size();) {
+        std::vector<LearningData> curr_data;
+        while (curr_data.size() < batch_size && i < valid_data.size()) {
+            curr_data.push_back(valid_data[i++]);
         }
-        std::cout << "finish " << std::setw(4) << i + 1 << " / " << valid_data.size() << "\r";
+        std::vector<torch::Tensor> valid_loss = model->loss(curr_data, false);
+        for (uint64_t j = 0; j < valid_loss_sum.size(); j++) {
+            valid_loss_sum[j] += valid_loss[j].item<float>() * curr_data.size();
+        }
+        std::cout << "finish " << std::setw(4) << i << " / " << valid_data.size() << "\r";
     }
     for (float& v : valid_loss_sum) {
         v /= valid_data.size();
     }
 
     //表示
+    std::cout << std::endl;
     for (float v : valid_loss_sum) {
         std::cout << v << "\t";
     }
