@@ -47,9 +47,6 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
     //最初のエンコード
     torch::Tensor embed_vector = embed(root.makeFeature());
 
-    //思考開始局面から考えた深さ
-    int64_t depth = 0;
-
     for (int64_t m = 0; m < search_options_.search_limit; m++) {
         //今までの探索から現時点での結論を推論
         torch::Tensor readout_policy = readoutPolicy(embed_vector);
@@ -64,11 +61,6 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
 
         //埋め込みベクトルを更新
         embed_vector = output;
-    }
-
-    //局面を戻す
-    for (int64_t i = 0; i < depth; i++) {
-        root.undo();
     }
 
     //合法手だけマスクをかける
