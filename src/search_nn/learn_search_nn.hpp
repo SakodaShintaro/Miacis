@@ -117,7 +117,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
 
             //勾配計算,パラメータ更新
             loss.back() *= entropy_coeff;
-            torch::Tensor loss_sum = torch::cat(loss).sum();
+            torch::Tensor loss_sum = torch::stack(loss).sum();
             loss_sum.mean().backward();
             optimizer.step();
 
