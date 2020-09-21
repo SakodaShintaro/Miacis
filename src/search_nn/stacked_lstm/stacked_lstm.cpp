@@ -202,6 +202,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::lossBatch(const std::vector<Learning
     readout_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
 
     //探索前の結果
+    outputs_.clear();
     outputs_.push_back(readoutPolicy(embed_vector));
 
     for (int64_t m = 1; m <= M; m++) {
