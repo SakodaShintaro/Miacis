@@ -53,7 +53,7 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
         torch::Tensor abstract_action = simulationPolicy(embed_vector);
 
         //環境モデルに入力して次状態を予測
-        torch::Tensor c = torch::cat({ embed_vector, abstract_action }, 1);
+        torch::Tensor c = torch::cat({ embed_vector, abstract_action }, 2);
         embed_vector = env_model_lstm_->forward(c);
 
         //今までの探索から現時点での結論を推論
@@ -123,19 +123,18 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
     //探索を行い、各探索後の方策を得る(output_に保存される)
     think(root, INT_MAX);
 
-    const int64_t M = outputs_.size();
+    const int64_t M = search_options_.search_limit;
 
     //policyの教師信号
     torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
 
     //各探索後の損失を計算
     std::vector<torch::Tensor> l(M + 1);
-    l[0] = torch::zeros({ 1 });
-    for (int64_t m = 0; m < M; m++) {
+    for (int64_t m = 0; m <= M; m++) {
         torch::Tensor policy_logit = outputs_[m][0];
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-        l[m + 1] = (-policy_teacher * clipped).sum();
+        l[m] = (-policy_teacher * clipped).sum();
     }
 
     if (!use_policy_gradient) {
@@ -163,7 +162,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
 
     std::vector<torch::Tensor> loss;
     for (int64_t m = 1; m <= M; m++) {
-        loss.push_back(l[m].view({ 1 }));
+        loss.push_back(l[m]);
     }
 
     return loss;
