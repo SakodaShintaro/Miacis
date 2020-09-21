@@ -178,7 +178,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::lossBatch(const std::vector<Learning
     //盤面を復元
     std::vector<float> root_features;
     std::vector<Position> positions(batch_size);
-    for (uint64_t i = 0; i < batch_size; i++) {
+    for (int64_t i = 0; i < batch_size; i++) {
         positions[i].fromStr(data[i].position_str);
         std::vector<float> f = positions[i].makeFeature();
         root_features.insert(root_features.end(), f.begin(), f.end());
@@ -202,7 +202,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::lossBatch(const std::vector<Learning
     //探索前の結果
     outputs_.push_back(readoutPolicy(embed_vector));
 
-    for (int64_t m = 1; m <= search_options_.search_limit; m++) {
+    for (int64_t m = 1; m <= M; m++) {
         //LSTMでの探索を実行
         torch::Tensor abstract_action = simulationPolicy(embed_vector);
 
