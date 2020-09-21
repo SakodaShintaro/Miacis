@@ -186,7 +186,7 @@ template<class T> void validSearchNN(const std::string& model_name) {
     float valid_rate_threshold{};
     std::cout << "valid_rate_threshold: ";
     std::cin >> valid_rate_threshold;
-    int64_t batch_size{};
+    uint64_t batch_size{};
     std::cout << "batch_size: ";
     std::cin >> batch_size;
 
