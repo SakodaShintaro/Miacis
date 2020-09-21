@@ -48,9 +48,7 @@ private:
     //-------------------------
     //    Environment Model
     //-------------------------
-    torch::nn::LSTM env_model_lstm_{ nullptr };
-    torch::Tensor env_model_h_;
-    torch::Tensor env_model_c_;
+    torch::nn::Linear env_model_lstm_{ nullptr };
 
     //-------------------------
     //    Simulation Policy

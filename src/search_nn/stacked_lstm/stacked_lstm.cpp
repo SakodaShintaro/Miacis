@@ -15,18 +15,18 @@ StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
     encoder_ = register_module("encoder_", StateEncoder());
 
+    using torch::nn::Linear;
     using torch::nn::LSTM;
     using torch::nn::LSTMOptions;
-    env_model_lstm_ =
-        register_module("env_model_lstm_", LSTM(LSTMOptions(ABSTRACT_ACTION_DIM, HIDDEN_DIM).num_layers(NUM_LAYERS)));
+
+    env_model_lstm_ = register_module("env_model_lstm_", Linear(HIDDEN_DIM + ABSTRACT_ACTION_DIM, HIDDEN_DIM));
 
     LSTMOptions option(HIDDEN_DIM, LSTM_HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
     simulation_lstm_ = register_module("simulation_lstm_", LSTM(option));
-    simulation_policy_head_ =
-        register_module("simulation_policy_head_", torch::nn::Linear(LSTM_HIDDEN_SIZE, ABSTRACT_ACTION_DIM));
+    simulation_policy_head_ = register_module("simulation_policy_head_", Linear(LSTM_HIDDEN_SIZE, ABSTRACT_ACTION_DIM));
     readout_lstm_ = register_module("readout_lstm_", LSTM(option));
-    readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(LSTM_HIDDEN_SIZE, POLICY_DIM));
+    readout_policy_head_ = register_module("readout_policy_head_", Linear(LSTM_HIDDEN_SIZE, POLICY_DIM));
 }
 
 Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
@@ -34,8 +34,6 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
 
     //状態を初期化
     //(num_layers * num_directions, batch, hidden_size)
-    env_model_h_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_DIM }).to(device_);
-    env_model_c_ = torch::zeros({ NUM_LAYERS, 1, HIDDEN_DIM }).to(device_);
     simulation_h_ = torch::zeros({ NUM_LAYERS, 1, LSTM_HIDDEN_SIZE }).to(device_);
     simulation_c_ = torch::zeros({ NUM_LAYERS, 1, LSTM_HIDDEN_SIZE }).to(device_);
     readout_h_ = torch::zeros({ NUM_LAYERS, 1, LSTM_HIDDEN_SIZE }).to(device_);
@@ -47,20 +45,19 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
     //最初のエンコード
     torch::Tensor embed_vector = embed(root.makeFeature());
 
-    for (int64_t m = 0; m < search_options_.search_limit; m++) {
-        //今までの探索から現時点での結論を推論
-        torch::Tensor readout_policy = readoutPolicy(embed_vector);
-        outputs_.push_back(readout_policy);
+    //探索前の結果
+    outputs_.push_back(readoutPolicy(embed_vector));
 
+    for (int64_t m = 1; m <= search_options_.search_limit; m++) {
         //LSTMでの探索を実行
         torch::Tensor abstract_action = simulationPolicy(embed_vector);
 
         //環境モデルに入力して次状態を予測
-        auto [output, h_and_c] = env_model_lstm_->forward(abstract_action, std::make_tuple(env_model_h_, env_model_c_));
-        std::tie(env_model_h_, env_model_c_) = h_and_c;
+        torch::Tensor c = torch::cat({ embed_vector, abstract_action }, 1);
+        embed_vector = env_model_lstm_->forward(c);
 
-        //埋め込みベクトルを更新
-        embed_vector = output;
+        //今までの探索から現時点での結論を推論
+        outputs_.push_back(readoutPolicy(embed_vector));
     }
 
     //合法手だけマスクをかける
