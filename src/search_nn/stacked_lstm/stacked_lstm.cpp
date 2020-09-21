@@ -113,12 +113,9 @@ torch::Tensor StackedLSTMImpl::readoutPolicy(const torch::Tensor& x) {
     return readout_policy_head_->forward(output);
 }
 
-std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>& data, bool freeze_encoder) {
+std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
     //現状バッチサイズは1のみに対応
     assert(data.size() == 1);
-
-    //設定を内部の変数に格納
-    freeze_encoder_ = freeze_encoder;
 
     Position root;
     root.fromStr(data.front().position_str);
@@ -139,6 +136,10 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
         l[m + 1] = (-policy_teacher * clipped).sum();
+    }
+
+    if (!use_policy_gradient) {
+        return l;
     }
 
     //損失の差分を計算
@@ -168,6 +169,56 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
     return loss;
 }
 
+std::vector<torch::Tensor> StackedLSTMImpl::lossBatch(const std::vector<LearningData>& data, bool use_policy_gradient) {
+    //バッチサイズを取得しておく
+    const int64_t batch_size = data.size();
+
+    //探索回数
+    const int64_t M = search_options_.search_limit;
+
+    //盤面を復元
+    std::vector<float> root_features;
+    std::vector<Position> positions(batch_size);
+    for (uint64_t i = 0; i < batch_size; i++) {
+        positions[i].fromStr(data[i].position_str);
+        std::vector<float> f = positions[i].makeFeature();
+        root_features.insert(root_features.end(), f.begin(), f.end());
+    }
+
+    //GPUで計算
+    torch::Tensor embed_vector = encoder_->embed(root_features, device_, fp16_, freeze_encoder_).cpu();
+
+    //探索中に情報を落としておかなきゃいけないもの
+    std::vector<std::vector<torch::Tensor>> outputs(batch_size), log_probs(batch_size);
+
+    //思考を行う
+
+    //状態を初期化
+    //(num_layers * num_directions, batch, hidden_size)
+    simulation_h_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+    simulation_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+    readout_h_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+    readout_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+
+    //探索前の結果
+    outputs_.push_back(readoutPolicy(embed_vector));
+
+    for (int64_t m = 1; m <= search_options_.search_limit; m++) {
+        //LSTMでの探索を実行
+        torch::Tensor abstract_action = simulationPolicy(embed_vector);
+
+        //環境モデルに入力して次状態を予測
+        torch::Tensor c = torch::cat({ embed_vector, abstract_action }, 1);
+        embed_vector = env_model_lstm_->forward(c);
+
+        //今までの探索から現時点での結論を推論
+        outputs_.push_back(readoutPolicy(embed_vector));
+    }
+
+    std::cout << outputs_.back().sizes() << std::endl;
+    std::exit(0);
+}
+
 void StackedLSTMImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
@@ -177,3 +228,5 @@ void StackedLSTMImpl::setGPU(int16_t gpu_id, bool fp16) {
 void StackedLSTMImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
     torch::load(encoder_, encoder_path);
 }
+
+void StackedLSTMImpl::setOption(bool freeze_encoder, float gamma) { freeze_encoder_ = freeze_encoder; }

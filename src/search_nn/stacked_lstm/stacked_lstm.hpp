@@ -12,7 +12,8 @@ public:
     Move think(Position& root, int64_t time_limit);
 
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
-    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool freeze_encoder);
+    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool use_policy_gradient);
+    std::vector<torch::Tensor> lossBatch(const std::vector<LearningData>& data, bool use_policy_gradient);
     std::vector<torch::Tensor> validationLoss(const std::vector<LearningData>& data) { return loss(data, true); }
 
     //GPUにネットワークを送る関数
@@ -24,6 +25,9 @@ public:
     //インタンスから下のクラス変数を参照するための関数
     static std::string modelPrefix() { return MODEL_PREFIX; }
     static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
+
+    //学習の設定を定める関数
+    void setOption(bool freeze_encoder, float gamma);
 
 private:
     //評価パラメータを読み書きするファイルのprefix

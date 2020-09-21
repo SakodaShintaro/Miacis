@@ -35,6 +35,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["alphaZero"]         = alphaZero;
     command_["pretrain"]          = pretrainSimpleMLP;
     command_["learnMCTSNet"]      = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
+    command_["learnStackedLSTM"]  = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
     command_["validMCTSNet"]      = [](){ validSearchNN<MCTSNet>("mcts_net"); };
     // clang-format on
 }
