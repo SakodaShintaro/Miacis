@@ -19,7 +19,7 @@ StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options)
     using torch::nn::LSTM;
     using torch::nn::LSTMOptions;
 
-    env_model_lstm_ = register_module("env_model_lstm_", Linear(HIDDEN_DIM + ABSTRACT_ACTION_DIM, HIDDEN_DIM));
+    env_model_ = register_module("env_model_", Linear(HIDDEN_DIM + ABSTRACT_ACTION_DIM, HIDDEN_DIM));
 
     LSTMOptions option(HIDDEN_DIM, LSTM_HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
@@ -54,7 +54,7 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
 
         //環境モデルに入力して次状態を予測
         torch::Tensor c = torch::cat({ embed_vector, abstract_action }, 2);
-        embed_vector = env_model_lstm_->forward(c);
+        embed_vector = env_model_->forward(c);
 
         //今までの探索から現時点での結論を推論
         outputs_.push_back(readoutPolicy(embed_vector));
@@ -114,6 +114,8 @@ torch::Tensor StackedLSTMImpl::readoutPolicy(const torch::Tensor& x) {
 }
 
 std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
+    return lossBatch(data, use_policy_gradient);
+
     //現状バッチサイズは1のみに対応
     assert(data.size() == 1);
 
@@ -185,7 +187,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::lossBatch(const std::vector<Learning
     }
 
     //GPUで計算
-    torch::Tensor embed_vector = encoder_->embed(root_features, device_, fp16_, freeze_encoder_).cpu();
+    torch::Tensor embed_vector = embed(root_features);
 
     //探索中に情報を落としておかなきゃいけないもの
     std::vector<std::vector<torch::Tensor>> outputs(batch_size), log_probs(batch_size);
@@ -207,15 +209,66 @@ std::vector<torch::Tensor> StackedLSTMImpl::lossBatch(const std::vector<Learning
         torch::Tensor abstract_action = simulationPolicy(embed_vector);
 
         //環境モデルに入力して次状態を予測
-        torch::Tensor c = torch::cat({ embed_vector, abstract_action }, 1);
-        embed_vector = env_model_lstm_->forward(c);
+        torch::Tensor c = torch::cat({ embed_vector, abstract_action }, 2);
+        embed_vector = env_model_->forward(c);
 
         //今までの探索から現時点での結論を推論
         outputs_.push_back(readoutPolicy(embed_vector));
     }
 
-    std::cout << outputs_.back().sizes() << std::endl;
-    std::exit(0);
+    //policyの教師信号
+    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
+
+    //エントロピー正則化
+    torch::Tensor entropy;
+
+    //各探索後の損失を計算
+    std::vector<torch::Tensor> l(M + 1);
+    for (int64_t m = 0; m <= M; m++) {
+        torch::Tensor policy_logit = outputs_[m][0]; //(batch_size, POLICY_DIM)
+        torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
+        torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
+        l[m] = (-policy_teacher * clipped).sum(1).mean();
+
+        //探索なしの直接推論についてエントロピーも求めておく
+        if (m == 0) {
+            entropy = (torch::softmax(policy_logit, 1) * clipped).sum(1).mean(0);
+        }
+    }
+
+    if (!use_policy_gradient) {
+        l.push_back(entropy);
+        return l;
+    }
+
+    //以下はまだ未検証
+    std::exit(1);
+
+    //損失の差分を計算
+    std::vector<torch::Tensor> r(M + 1);
+    for (int64_t m = 0; m < M; m++) {
+        r[m + 1] = -(l[m + 1] - l[m]);
+    }
+
+    //重み付き累積和
+    constexpr float gamma = 1.0;
+    std::vector<torch::Tensor> R(M + 1);
+    for (int64_t m = 1; m <= M; m++) {
+        R[m] = torch::zeros({ 1 });
+        for (int64_t m2 = m; m2 <= M; m2++) {
+            R[m] += std::pow(gamma, m2 - m) * r[m2];
+        }
+
+        //この値は勾配を切る
+        R[m] = R[m].detach().to(device_);
+    }
+
+    std::vector<torch::Tensor> loss;
+    for (int64_t m = 1; m <= M; m++) {
+        loss.push_back(l[m]);
+    }
+
+    return loss;
 }
 
 void StackedLSTMImpl::setGPU(int16_t gpu_id, bool fp16) {
