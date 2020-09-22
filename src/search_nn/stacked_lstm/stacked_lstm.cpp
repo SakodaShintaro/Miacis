@@ -212,7 +212,10 @@ void StackedLSTMImpl::setGPU(int16_t gpu_id, bool fp16) {
 }
 
 void StackedLSTMImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
-    torch::load(encoder_, encoder_path);
+    std::ifstream encoder_file(encoder_path);
+    if (encoder_file.is_open()) {
+        torch::load(encoder_, encoder_path);
+    }
 }
 
 void StackedLSTMImpl::setOption(bool freeze_encoder, float gamma) { freeze_encoder_ = freeze_encoder; }
