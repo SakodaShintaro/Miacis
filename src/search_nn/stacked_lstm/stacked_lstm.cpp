@@ -12,7 +12,7 @@ const std::string StackedLSTMImpl::MODEL_PREFIX = "stacked_lstm";
 const std::string StackedLSTMImpl::DEFAULT_MODEL_NAME = StackedLSTMImpl::MODEL_PREFIX + ".model";
 
 StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options)
-    : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
+    : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
     encoder_ = register_module("encoder_", StateEncoder());
 
     using torch::nn::Linear;
@@ -39,14 +39,14 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
     readout_h_ = torch::zeros({ NUM_LAYERS, 1, LSTM_HIDDEN_SIZE }).to(device_);
     readout_c_ = torch::zeros({ NUM_LAYERS, 1, LSTM_HIDDEN_SIZE }).to(device_);
 
-    //出力系列を初期化
-    outputs_.clear();
+    //出力方策の系列
+    std::vector<torch::Tensor> policy_logits;
 
     //最初のエンコード
     torch::Tensor embed_vector = embed(root.makeFeature());
 
     //探索前の結果
-    outputs_.push_back(readoutPolicy(embed_vector));
+    policy_logits.push_back(readoutPolicy(embed_vector));
 
     for (int64_t m = 1; m <= search_options_.search_limit; m++) {
         //LSTMでの探索を実行
@@ -57,14 +57,14 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
         embed_vector = env_model_->forward(c);
 
         //今までの探索から現時点での結論を推論
-        outputs_.push_back(readoutPolicy(embed_vector));
+        policy_logits.push_back(readoutPolicy(embed_vector));
     }
 
     //合法手だけマスクをかける
     std::vector<Move> moves = root.generateAllMoves();
     std::vector<float> logits;
     for (const Move& move : moves) {
-        logits.push_back(outputs_.back()[0][0][move.toLabel()].item<float>());
+        logits.push_back(policy_logits.back()[0][0][move.toLabel()].item<float>());
     }
 
     if (root.turnNumber() <= search_options_.random_turn) {
@@ -144,9 +144,11 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
     readout_h_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
     readout_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
 
+    //出力方策の系列
+    std::vector<torch::Tensor> policy_logits;
+
     //探索前の結果
-    outputs_.clear();
-    outputs_.push_back(readoutPolicy(embed_vector));
+    policy_logits.push_back(readoutPolicy(embed_vector));
 
     for (int64_t m = 1; m <= M; m++) {
         //LSTMでの探索を実行
@@ -157,7 +159,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
         embed_vector = env_model_->forward(c);
 
         //今までの探索から現時点での結論を推論
-        outputs_.push_back(readoutPolicy(embed_vector));
+        policy_logits.push_back(readoutPolicy(embed_vector));
     }
 
     //policyの教師信号
@@ -169,7 +171,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
     //各探索後の損失を計算
     std::vector<torch::Tensor> l(M + 1);
     for (int64_t m = 0; m <= M; m++) {
-        torch::Tensor policy_logit = outputs_[m][0]; //(batch_size, POLICY_DIM)
+        torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
         l[m] = (-policy_teacher * clipped).sum(1).mean();
