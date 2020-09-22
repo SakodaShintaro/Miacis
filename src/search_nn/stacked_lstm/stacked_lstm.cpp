@@ -53,8 +53,7 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
         torch::Tensor abstract_action = simulationPolicy(embed_vector);
 
         //環境モデルに入力して次状態を予測
-        torch::Tensor c = torch::cat({ embed_vector, abstract_action }, 2);
-        embed_vector = env_model_->forward(c);
+        embed_vector = predictNextState(embed_vector, abstract_action);
 
         //今までの探索から現時点での結論を推論
         policy_logits.push_back(readoutPolicy(embed_vector));
@@ -113,6 +112,11 @@ torch::Tensor StackedLSTMImpl::readoutPolicy(const torch::Tensor& x) {
     return readout_policy_head_->forward(output);
 }
 
+torch::Tensor StackedLSTMImpl::predictNextState(const torch::Tensor& pre_state, const torch::Tensor& abstract_action) {
+    torch::Tensor c = torch::cat({ pre_state, abstract_action }, 2);
+    return env_model_->forward(c);
+}
+
 std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
     //バッチサイズを取得しておく
     const int64_t batch_size = data.size();
@@ -155,8 +159,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
         torch::Tensor abstract_action = simulationPolicy(embed_vector);
 
         //環境モデルに入力して次状態を予測
-        torch::Tensor c = torch::cat({ embed_vector, abstract_action }, 2);
-        embed_vector = env_model_->forward(c);
+        embed_vector = predictNextState(embed_vector, abstract_action);
 
         //今までの探索から現時点での結論を推論
         policy_logits.push_back(readoutPolicy(embed_vector));

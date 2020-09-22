@@ -39,6 +39,7 @@ private:
     torch::Tensor embed(const std::vector<float>& inputs);
     torch::Tensor simulationPolicy(const torch::Tensor& x);
     torch::Tensor readoutPolicy(const torch::Tensor& x);
+    torch::Tensor predictNextState(const torch::Tensor& pre_state, const torch::Tensor& abstract_action);
 
     //探索に関するオプション
     SearchOptions search_options_;
