@@ -36,7 +36,8 @@ public:
         check_options.emplace("use_book",              CheckOption(use_book   = false));
         check_options.emplace("print_info",            CheckOption(print_info = true));
         check_options.emplace("output_log_file",       CheckOption(output_log_file = false));
-        check_options.emplace("use_mcts_net",          CheckOption(use_mcts_net = true));
+        check_options.emplace("use_mcts_net",          CheckOption(use_mcts_net = false));
+        check_options.emplace("use_stacked_lstm",      CheckOption(use_stacked_lstm = false));
         check_options.emplace("use_readout_only",      CheckOption(use_readout_only = false));
         spin_options.emplace("USI_Hash",               SpinOption(USI_Hash                 =   256,    0,  MAX));
         spin_options.emplace("byoyomi_margin",         SpinOption(byoyomi_margin           =     0,    0,  MAX));
@@ -74,6 +75,7 @@ public:
     bool print_info;
     bool output_log_file;
     bool use_mcts_net;
+    bool use_stacked_lstm;
     bool use_readout_only;
     int64_t byoyomi_margin;
     int64_t random_turn;
