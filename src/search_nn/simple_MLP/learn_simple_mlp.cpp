@@ -95,7 +95,7 @@ void pretrainSimpleMLP() {
                 std::vector<float> valid_loss_sum(loss.size(), 0);
                 for (uint64_t i = 0; i < valid_data.size();) {
                     std::vector<LearningData> curr_valid_data;
-                    while (curr_valid_data.size() < (uint64_t)batch_size) {
+                    while (curr_valid_data.size() < (uint64_t)batch_size && i < valid_data.size()) {
                         curr_valid_data.push_back(valid_data[i++]);
                     }
                     std::vector<torch::Tensor> valid_loss = model->loss(curr_valid_data);
