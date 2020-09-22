@@ -41,6 +41,9 @@ private:
     torch::Tensor readoutPolicy(const torch::Tensor& x);
     torch::Tensor predictNextState(const torch::Tensor& pre_state, const torch::Tensor& abstract_action);
 
+    //探索全体
+    std::vector<torch::Tensor> search(const std::vector<float>& inputs);
+
     //探索に関するオプション
     SearchOptions search_options_;
 

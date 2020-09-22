@@ -39,25 +39,8 @@ Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
     readout_h_ = torch::zeros({ NUM_LAYERS, 1, LSTM_HIDDEN_SIZE }).to(device_);
     readout_c_ = torch::zeros({ NUM_LAYERS, 1, LSTM_HIDDEN_SIZE }).to(device_);
 
-    //出力方策の系列
-    std::vector<torch::Tensor> policy_logits;
-
-    //最初のエンコード
-    torch::Tensor embed_vector = embed(root.makeFeature());
-
-    //探索前の結果
-    policy_logits.push_back(readoutPolicy(embed_vector));
-
-    for (int64_t m = 1; m <= search_options_.search_limit; m++) {
-        //LSTMでの探索を実行
-        torch::Tensor abstract_action = simulationPolicy(embed_vector);
-
-        //環境モデルに入力して次状態を予測
-        embed_vector = predictNextState(embed_vector, abstract_action);
-
-        //今までの探索から現時点での結論を推論
-        policy_logits.push_back(readoutPolicy(embed_vector));
-    }
+    //探索をして出力方策の系列を得る
+    std::vector<torch::Tensor> policy_logits = search(root.makeFeature());
 
     //合法手だけマスクをかける
     std::vector<Move> moves = root.generateAllMoves();
@@ -112,49 +95,17 @@ torch::Tensor StackedLSTMImpl::readoutPolicy(const torch::Tensor& x) {
     return readout_policy_head_->forward(output);
 }
 
-torch::Tensor StackedLSTMImpl::predictNextState(const torch::Tensor& pre_state, const torch::Tensor& abstract_action) {
-    torch::Tensor c = torch::cat({ pre_state, abstract_action }, 2);
-    return env_model_->forward(c);
-}
-
-std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
-    //バッチサイズを取得しておく
-    const int64_t batch_size = data.size();
-
-    //探索回数
-    const int64_t M = search_options_.search_limit;
-
-    //盤面を復元
-    std::vector<float> root_features;
-    std::vector<Position> positions(batch_size);
-    for (int64_t i = 0; i < batch_size; i++) {
-        positions[i].fromStr(data[i].position_str);
-        std::vector<float> f = positions[i].makeFeature();
-        root_features.insert(root_features.end(), f.begin(), f.end());
-    }
-
-    //GPUで計算
-    torch::Tensor embed_vector = embed(root_features);
-
-    //探索中に情報を落としておかなきゃいけないもの
-    std::vector<std::vector<torch::Tensor>> outputs(batch_size), log_probs(batch_size);
-
-    //思考を行う
-
-    //状態を初期化
-    //(num_layers * num_directions, batch, hidden_size)
-    simulation_h_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
-    simulation_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
-    readout_h_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
-    readout_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
-
+std::vector<torch::Tensor> StackedLSTMImpl::search(const std::vector<float>& inputs) {
     //出力方策の系列
     std::vector<torch::Tensor> policy_logits;
+
+    //最初のエンコード
+    torch::Tensor embed_vector = embed(inputs);
 
     //探索前の結果
     policy_logits.push_back(readoutPolicy(embed_vector));
 
-    for (int64_t m = 1; m <= M; m++) {
+    for (int64_t m = 1; m <= search_options_.search_limit; m++) {
         //LSTMでの探索を実行
         torch::Tensor abstract_action = simulationPolicy(embed_vector);
 
@@ -165,11 +116,45 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
         policy_logits.push_back(readoutPolicy(embed_vector));
     }
 
+    return policy_logits;
+}
+
+torch::Tensor StackedLSTMImpl::predictNextState(const torch::Tensor& pre_state, const torch::Tensor& abstract_action) {
+    torch::Tensor c = torch::cat({ pre_state, abstract_action }, 2);
+    return env_model_->forward(c);
+}
+
+std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
+    //バッチサイズを取得しておく
+    const int64_t batch_size = data.size();
+
+    //盤面を復元
+    std::vector<float> root_features;
+    Position pos;
+    for (int64_t i = 0; i < batch_size; i++) {
+        pos.fromStr(data[i].position_str);
+        std::vector<float> f = pos.makeFeature();
+        root_features.insert(root_features.end(), f.begin(), f.end());
+    }
+
+    //状態を初期化
+    //(num_layers * num_directions, batch, hidden_size)
+    simulation_h_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+    simulation_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+    readout_h_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+    readout_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+
+    //探索をして出力方策の系列を得る
+    std::vector<torch::Tensor> policy_logits = search(root_features);
+
     //policyの教師信号
     torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
 
-    //エントロピー正則化
+    //エントロピー正則化の項
     torch::Tensor entropy;
+
+    //探索回数
+    const int64_t M = search_options_.search_limit;
 
     //各探索後の損失を計算
     std::vector<torch::Tensor> l(M + 1);
