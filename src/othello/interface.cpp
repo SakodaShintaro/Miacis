@@ -268,11 +268,13 @@ void Interface::init() {
     root_.init();
 
     //対局の準備
-    //searcher_ = std::make_unique<SearcherForPlay>(options_);
-
-    mcts_net_ = MCTSNet(options_);
-    torch::load(mcts_net_, mcts_net_->defaultModelName());
-    mcts_net_->eval();
+    if (options_.use_mcts_net) {
+        mcts_net_ = MCTSNet(options_);
+        torch::load(mcts_net_, options_.model_name);
+        mcts_net_->eval();
+    } else {
+        searcher_ = std::make_unique<SearcherForPlay>(options_);
+    }
 }
 
 void Interface::play() {
