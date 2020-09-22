@@ -114,63 +114,6 @@ torch::Tensor StackedLSTMImpl::readoutPolicy(const torch::Tensor& x) {
 }
 
 std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
-    return lossBatch(data, use_policy_gradient);
-
-    //現状バッチサイズは1のみに対応
-    assert(data.size() == 1);
-
-    Position root;
-    root.fromStr(data.front().position_str);
-
-    //探索を行い、各探索後の方策を得る(output_に保存される)
-    think(root, INT_MAX);
-
-    const int64_t M = search_options_.search_limit;
-
-    //policyの教師信号
-    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
-
-    //各探索後の損失を計算
-    std::vector<torch::Tensor> l(M + 1);
-    for (int64_t m = 0; m <= M; m++) {
-        torch::Tensor policy_logit = outputs_[m][0];
-        torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
-        torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-        l[m] = (-policy_teacher * clipped).sum();
-    }
-
-    if (!use_policy_gradient) {
-        return l;
-    }
-
-    //損失の差分を計算
-    std::vector<torch::Tensor> r(M + 1);
-    for (int64_t m = 0; m < M; m++) {
-        r[m + 1] = -(l[m + 1] - l[m]);
-    }
-
-    //重み付き累積和
-    constexpr float gamma = 1.0;
-    std::vector<torch::Tensor> R(M + 1);
-    for (int64_t m = 1; m <= M; m++) {
-        R[m] = torch::zeros({ 1 });
-        for (int64_t m2 = m; m2 <= M; m2++) {
-            R[m] += std::pow(gamma, m2 - m) * r[m2];
-        }
-
-        //この値は勾配を切る
-        R[m] = R[m].detach().to(device_);
-    }
-
-    std::vector<torch::Tensor> loss;
-    for (int64_t m = 1; m <= M; m++) {
-        loss.push_back(l[m]);
-    }
-
-    return loss;
-}
-
-std::vector<torch::Tensor> StackedLSTMImpl::lossBatch(const std::vector<LearningData>& data, bool use_policy_gradient) {
     //バッチサイズを取得しておく
     const int64_t batch_size = data.size();
 

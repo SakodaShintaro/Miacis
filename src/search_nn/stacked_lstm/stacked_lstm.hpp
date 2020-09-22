@@ -13,7 +13,6 @@ public:
 
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
     std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool use_policy_gradient);
-    std::vector<torch::Tensor> lossBatch(const std::vector<LearningData>& data, bool use_policy_gradient);
     std::vector<torch::Tensor> validationLoss(const std::vector<LearningData>& data) { return loss(data, true); }
 
     //GPUにネットワークを送る関数
