@@ -106,11 +106,13 @@ std::vector<torch::Tensor> StackedLSTMImpl::search(const std::vector<float>& inp
     policy_logits.push_back(readoutPolicy(embed_vector));
 
     for (int64_t m = 1; m <= search_options_.search_limit; m++) {
-        //LSTMでの探索を実行
-        torch::Tensor abstract_action = simulationPolicy(embed_vector);
+        if (!search_options_.use_readout_only) {
+            //Simulation Policyにより抽象的な行動を取得
+            torch::Tensor abstract_action = simulationPolicy(embed_vector);
 
-        //環境モデルに入力して次状態を予測
-        embed_vector = predictNextState(embed_vector, abstract_action);
+            //環境モデルに入力して次状態を予測
+            embed_vector = predictNextState(embed_vector, abstract_action);
+        }
 
         //今までの探索から現時点での結論を推論
         policy_logits.push_back(readoutPolicy(embed_vector));
