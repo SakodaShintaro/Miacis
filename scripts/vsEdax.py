@@ -104,6 +104,7 @@ def main():
     parser.add_argument("--exp_search", action="store_true")
     parser.add_argument("--mcts_net", action="store_true")
     parser.add_argument("--stacked_lstm", action="store_true")
+    parser.add_argument("--use_readout_only", action="store_true")
     args = parser.parse_args()
 
     # カレントディレクトリ内にある{prefix}_{step}.modelを評価する
@@ -136,6 +137,9 @@ def main():
         miacis_manager.send_option("use_mcts_net", "true")
     elif args.stacked_lstm:
         miacis_manager.send_option("use_stacked_lstm", "true")
+
+    if args.use_readout_only:
+        miacis_manager.send_option("use_readout_only", "true")
 
     # 結果を書き込むファイルを取得
     f = open(curr_path + "result.txt", mode="a")

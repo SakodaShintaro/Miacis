@@ -6,7 +6,7 @@
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
 static constexpr int32_t LSTM_HIDDEN_SIZE = 512;
 static constexpr int32_t ABSTRACT_ACTION_DIM = 512;
-static constexpr int32_t NUM_LAYERS = 1;
+static constexpr int32_t NUM_LAYERS = 2;
 
 const std::string StackedLSTMImpl::MODEL_PREFIX = "stacked_lstm";
 const std::string StackedLSTMImpl::DEFAULT_MODEL_NAME = StackedLSTMImpl::MODEL_PREFIX + ".model";
