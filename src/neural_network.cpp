@@ -13,6 +13,10 @@ static constexpr int32_t CHANNEL_NUM = 64;
 static constexpr int32_t KERNEL_SIZE = 3;
 static constexpr int32_t REDUCTION = 8;
 static constexpr int32_t VALUE_HIDDEN_NUM = 256;
+static constexpr int32_t LAST_CHANNEL_NUM = 32;
+static constexpr int32_t NUM_LAYERS = 2;
+static constexpr int64_t LOOP_NUM = 3;
+static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * LAST_CHANNEL_NUM;
 
 #ifdef USE_CATEGORICAL
 const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
@@ -32,10 +36,17 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
 #ifdef REPRESENTATION_DROPOUT
     representation_dropout_ = register_module("representation_dropout_", torch::nn::Dropout2d());
 #endif
+
+    last_conv_ = register_module("last_conv_", Conv2DwithBatchNorm(CHANNEL_NUM, LAST_CHANNEL_NUM, KERNEL_SIZE));
+    torch::nn::LSTMOptions option(HIDDEN_DIM, HIDDEN_DIM);
+    option.num_layers(NUM_LAYERS);
+    lstm_ = register_module("lstm_", torch::nn::LSTM(option));
+
     policy_conv_ = register_module(
-        "policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).bias(true)));
-    value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
-    value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
+        "policy_conv_",
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(LAST_CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).bias(true)));
+    value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(LAST_CHANNEL_NUM, LAST_CHANNEL_NUM, 1));
+    value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * LAST_CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 }
 
@@ -52,6 +63,21 @@ torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
 #ifdef REPRESENTATION_DROPOUT
     x = representation_dropout_->forward(x);
 #endif
+    x = last_conv_->forward(x);
+
+    std::cout << x.sizes() << std::endl;
+
+    torch::Tensor final_output;
+    torch::Tensor h = torch::zeros({ NUM_LAYERS, x.size(1), HIDDEN_DIM }).to(device_);
+    torch::Tensor c = torch::zeros({ NUM_LAYERS, x.size(1), HIDDEN_DIM }).to(device_);
+    for (int64_t i = 0; i < LOOP_NUM; i++) {
+        auto [output, h_and_c] = lstm_->forward(x, std::make_tuple(h, c));
+        final_output = output;
+        std::tie(h, c) = h_and_c;
+    }
+    x = final_output;
+    x = x.view({ -1, LAST_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+
     return x;
 }
 
@@ -62,7 +88,7 @@ std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::decode(const torch::T
     //value
     torch::Tensor value = value_conv_and_norm_->forward(representation);
     value = activation(value);
-    value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
+    value = value.view({ -1, SQUARE_NUM * LAST_CHANNEL_NUM });
     value = value_linear0_->forward(value);
     value = activation(value);
     value = value_linear1_->forward(value);

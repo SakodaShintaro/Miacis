@@ -75,6 +75,8 @@ private:
 #ifdef REPRESENTATION_DROPOUT
     torch::nn::Dropout2d representation_dropout_{ nullptr };
 #endif
+    Conv2DwithBatchNorm last_conv_{ nullptr };
+    torch::nn::LSTM lstm_{ nullptr };
 
     torch::nn::Conv2d policy_conv_{ nullptr };
     Conv2DwithBatchNorm value_conv_and_norm_{ nullptr };
