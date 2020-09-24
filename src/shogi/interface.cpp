@@ -42,7 +42,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["learnMCTSNet"]       = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
     command_["validMCTSNet"]       = [](){ validSearchNN<MCTSNet>("mcts_net"); };
 //    command_["learnProposedModel"] = [](){ learnSearchNN<ProposedModel>("proposed_model"); };
-//    command_["learnStackedLSTM"]   = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
+    command_["learnStackedLSTM"]   = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
     command_["pretrain"]           = pretrainSimpleMLP;
     command_["testMCTSNet"]        = testMCTSNet;
     // clang-format on
