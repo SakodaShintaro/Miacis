@@ -64,9 +64,7 @@ torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
     x = representation_dropout_->forward(x);
 #endif
     x = last_conv_->forward(x);
-
-    std::cout << x.sizes() << std::endl;
-
+    x = x.view({ 1, -1, HIDDEN_DIM });
     torch::Tensor final_output;
     torch::Tensor h = torch::zeros({ NUM_LAYERS, x.size(1), HIDDEN_DIM }).to(device_);
     torch::Tensor c = torch::zeros({ NUM_LAYERS, x.size(1), HIDDEN_DIM }).to(device_);
