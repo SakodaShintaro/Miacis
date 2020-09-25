@@ -5,8 +5,12 @@ weight_decay         0.0001
 mixup_alpha          0.0
 train_rate_threshold 2800
 valid_rate_threshold 2800
-policy_loss_coeff    1.0
-value_loss_coeff     1.0
+policy0_loss_coeff   1.0
+value0_loss_coeff    1.0
+policy1_loss_coeff   1.0
+value1_loss_coeff    1.0
+policy2_loss_coeff   1.0
+value2_loss_coeff    1.0
 data_augmentation    1
 load_multi_dir       0
 batch_size           512
