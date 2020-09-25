@@ -183,7 +183,6 @@ template<class T> void learnSearchNN(const std::string& model_name) {
 
 template<class T> void validSearchNN(const std::string& model_name) {
     SearchOptions options;
-    options.search_limit = 10;
 
     //データを取得
     std::string valid_kifu_path;
@@ -195,6 +194,10 @@ template<class T> void validSearchNN(const std::string& model_name) {
     uint64_t batch_size{};
     std::cout << "batch_size: ";
     std::cin >> batch_size;
+    std::cout << "search_limit: ";
+    std::cin >> options.search_limit;
+    std::cout << "use_readout_only: ";
+    std::cin >> options.use_readout_only;
 
     std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
     std::cout << "valid_data_size = " << valid_data.size() << std::endl;
