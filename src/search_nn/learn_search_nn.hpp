@@ -23,6 +23,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     bool freeze_encoder          = settings.get<bool>("freeze_encoder");
     options.use_readout_only     = settings.get<bool>("use_readout_only");
     bool use_policy_gradient     = settings.get<bool>("use_policy_gradient");
+    bool use_only_last_loss      = settings.get<bool>("use_only_last_loss");
     int64_t batch_size           = settings.get<int64_t>("batch_size");
     options.search_limit         = settings.get<int64_t>("search_limit");
     int64_t max_step             = settings.get<int64_t>("max_step");
@@ -116,6 +117,11 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             }
 
             //勾配計算,パラメータ更新
+            if (use_only_last_loss) {
+                for (int64_t i = 0; i < loss.size() - 2; i++) {
+                    loss[i] *= 0;
+                }
+            }
             loss.back() *= entropy_coeff;
             torch::Tensor loss_sum = torch::stack(loss).sum();
             loss_sum.mean().backward();
