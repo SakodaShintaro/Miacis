@@ -127,6 +127,11 @@ torch::Tensor StackedLSTMImpl::predictNextState(const torch::Tensor& pre_state, 
 }
 
 std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
+    if (use_policy_gradient) {
+        std::cout << "StackedLSTM is not compatible with use_policy_gradient." << std::endl;
+        std::exit(1);
+    }
+
     //バッチサイズを取得しておく
     const int64_t batch_size = data.size();
 
@@ -159,12 +164,12 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
     const int64_t M = search_options_.search_limit;
 
     //各探索後の損失を計算
-    std::vector<torch::Tensor> l(M + 1);
+    std::vector<torch::Tensor> loss(M + 1);
     for (int64_t m = 0; m <= M; m++) {
         torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-        l[m] = (-policy_teacher * clipped).sum(1).mean();
+        loss[m] = (-policy_teacher * clipped).sum(1).mean();
 
         //探索なしの直接推論についてエントロピーも求めておく
         if (m == 0) {
@@ -172,38 +177,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
         }
     }
 
-    if (!use_policy_gradient) {
-        l.push_back(entropy);
-        return l;
-    }
-
-    //以下はまだ未検証
-    std::exit(1);
-
-    //損失の差分を計算
-    std::vector<torch::Tensor> r(M + 1);
-    for (int64_t m = 0; m < M; m++) {
-        r[m + 1] = -(l[m + 1] - l[m]);
-    }
-
-    //重み付き累積和
-    constexpr float gamma = 1.0;
-    std::vector<torch::Tensor> R(M + 1);
-    for (int64_t m = 1; m <= M; m++) {
-        R[m] = torch::zeros({ 1 });
-        for (int64_t m2 = m; m2 <= M; m2++) {
-            R[m] += std::pow(gamma, m2 - m) * r[m2];
-        }
-
-        //この値は勾配を切る
-        R[m] = R[m].detach().to(device_);
-    }
-
-    std::vector<torch::Tensor> loss;
-    for (int64_t m = 1; m <= M; m++) {
-        loss.push_back(l[m]);
-    }
-
+    loss.push_back(entropy);
     return loss;
 }
 
