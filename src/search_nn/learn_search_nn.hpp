@@ -118,7 +118,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
 
             //勾配計算,パラメータ更新
             if (use_only_last_loss) {
-                for (int64_t i = 0; i < loss.size() - 2; i++) {
+                for (uint64_t i = 0; i < loss.size() - 2; i++) {
                     loss[i] *= 0;
                 }
             }
