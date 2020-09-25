@@ -96,9 +96,7 @@ void supervisedLearn() {
 
             //学習
             optimizer.zero_grad();
-            std::array<torch::Tensor, LOSS_TYPE_NUM> loss =
-                (mixup_alpha == 0 ? neural_network->loss(curr_data)
-                                  : neural_network->mixUpLossFinalLayer(curr_data, mixup_alpha));
+            std::vector<torch::Tensor> loss = neural_network->loss(curr_data);
             torch::Tensor loss_sum = torch::zeros({ batch_size });
             for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
                 loss_sum += coefficients[i] * loss[i].cpu();

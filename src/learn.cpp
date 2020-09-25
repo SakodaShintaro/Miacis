@@ -42,10 +42,10 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
         }
 
         //計算
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = nn->loss(curr_data);
+        std::vector<torch::Tensor> loss = nn->loss(curr_data);
 
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            if (i == VALUE_LOSS_INDEX) {
+            if (i % 2 == VALUE_LOSS0_INDEX) {
                 //valueだけは別計算する
                 continue;
             }
@@ -65,11 +65,13 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
         for (uint64_t i = 0; i < values.size(); i++) {
             float e = expOfValueDist(values[i]);
             float vt = (curr_data[i].value == BIN_SIZE - 1 ? MAX_SCORE : MIN_SCORE);
-            losses[VALUE_LOSS_INDEX] += (e - vt) * (e - vt);
+            losses[VALUE_LOSS0_INDEX] += (e - vt) * (e - vt);
         }
 #else
         //scalarモデルのときはそのまま損失を加える
-        losses[VALUE_LOSS_INDEX] += loss[VALUE_LOSS_INDEX].sum().item<float>();
+        losses[VALUE_LOSS0_INDEX] += loss[VALUE_LOSS0_INDEX].sum().item<float>();
+        losses[VALUE_LOSS1_INDEX] += loss[VALUE_LOSS1_INDEX].sum().item<float>();
+        losses[VALUE_LOSS2_INDEX] += loss[VALUE_LOSS2_INDEX].sum().item<float>();
 #endif
     }
 

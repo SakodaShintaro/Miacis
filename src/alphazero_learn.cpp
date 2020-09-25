@@ -135,8 +135,7 @@ void alphaZero() {
 
         //損失計算
         optimizer.zero_grad();
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss =
-            (mixup_alpha == 0 ? learning_model->loss(curr_data) : learning_model->mixUpLossFinalLayer(curr_data, mixup_alpha));
+        std::vector<torch::Tensor> loss = learning_model->loss(curr_data);
         torch::Tensor loss_sum = torch::zeros({ batch_size });
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             loss_sum += coefficients[i] * loss[i].cpu();

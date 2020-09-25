@@ -26,10 +26,18 @@ struct LearningData {
 };
 
 //損失の種類
-enum LossType { POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM };
+enum LossType {
+    POLICY_LOSS0_INDEX,
+    VALUE_LOSS0_INDEX,
+    POLICY_LOSS1_INDEX,
+    VALUE_LOSS1_INDEX,
+    POLICY_LOSS2_INDEX,
+    VALUE_LOSS2_INDEX,
+    LOSS_TYPE_NUM
+};
 
 //各損失の名前を示す文字列
-const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{ "policy", "value" };
+const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{ "policy0", "value0", "policy1", "value1", "policy2", "value2" };
 
 //#define REPRESENTATION_DROPOUT
 
@@ -38,20 +46,11 @@ class NeuralNetworkImpl : public torch::nn::Module {
 public:
     NeuralNetworkImpl();
 
-    //入力として局面の特徴量を並べたvectorを受け取ってPolicyとValueに対応するTensorを返す関数
-    std::pair<torch::Tensor, torch::Tensor> forward(const std::vector<float>& inputs);
-
     //複数局面の特徴量を1次元vectorにしたものを受け取ってそれぞれに対する評価を返す関数
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
     //学習データについて損失を返す関数
-    std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
-
-    //MixUpを行って損失を返す関数
-    std::array<torch::Tensor, LOSS_TYPE_NUM> mixUpLoss(const std::vector<LearningData>& data, float alpha);
-
-    //MixUpを行って損失を返す関数
-    std::array<torch::Tensor, LOSS_TYPE_NUM> mixUpLossFinalLayer(const std::vector<LearningData>& data, float alpha);
+    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
 
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
@@ -64,7 +63,7 @@ public:
 
 private:
     torch::Tensor encode(const std::vector<float>& inputs);
-    std::pair<torch::Tensor, torch::Tensor> decode(const torch::Tensor& representation);
+    std::vector<std::pair<torch::Tensor, torch::Tensor>> decode(const torch::Tensor& representation);
 
     torch::Device device_;
     bool fp16_;
