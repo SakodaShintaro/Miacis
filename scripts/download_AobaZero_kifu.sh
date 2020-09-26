@@ -4,7 +4,7 @@
 root_dir=$(dirname "$0")/../../data/aobazero_kifu
 mkdir -p "${root_dir}/train"
 
-THRESHOLD=000014300000
+THRESHOLD=000013300000
 
 while read row; do
   file_name=$(echo ${row} | cut -d , -f 1)
