@@ -20,8 +20,8 @@ StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options)
     using torch::nn::LSTMOptions;
 
     env_model_ = register_module("env_model_", Linear(HIDDEN_DIM + ABSTRACT_ACTION_DIM, HIDDEN_DIM));
-
-    LSTMOptions option(HIDDEN_DIM, LSTM_HIDDEN_SIZE);
+    value_head_ = register_module("value_head_", Linear(HIDDEN_DIM, 1));
+    LSTMOptions option(HIDDEN_DIM + 1, LSTM_HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
     simulation_lstm_ = register_module("simulation_lstm_", LSTM(option));
     simulation_policy_head_ = register_module("simulation_policy_head_", Linear(LSTM_HIDDEN_SIZE, ABSTRACT_ACTION_DIM));
@@ -102,20 +102,32 @@ std::vector<torch::Tensor> StackedLSTMImpl::search(const std::vector<float>& inp
     //最初のエンコード
     torch::Tensor embed_vector = embed(inputs);
 
+    //価値を推定
+    torch::Tensor value = torch::tanh(value_head_->forward(embed_vector));
+
+    //表現と価値を連結
+    torch::Tensor concatenated = torch::cat({ embed_vector, value }, -1);
+
     //探索前の結果
-    policy_logits.push_back(readoutPolicy(embed_vector));
+    policy_logits.push_back(readoutPolicy(concatenated));
 
     for (int64_t m = 1; m <= search_options_.search_limit; m++) {
         if (!search_options_.use_readout_only) {
             //Simulation Policyにより抽象的な行動を取得
-            torch::Tensor abstract_action = simulationPolicy(embed_vector);
+            torch::Tensor abstract_action = simulationPolicy(concatenated);
 
             //環境モデルに入力して次状態を予測
             embed_vector = predictNextState(embed_vector, abstract_action);
+
+            //価値を推定
+            value = torch::tanh(value_head_->forward(embed_vector));
+
+            //表現と価値を連結
+            concatenated = torch::cat({ embed_vector, value }, -1);
         }
 
         //今までの探索から現時点での結論を推論
-        policy_logits.push_back(readoutPolicy(embed_vector));
+        policy_logits.push_back(readoutPolicy(concatenated));
     }
 
     return policy_logits;
@@ -178,6 +190,27 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
     }
 
     loss.push_back(entropy);
+
+    //価値を追加
+
+    //valueの教師信号を構築
+    std::vector<ValueTeacherType> value_teachers;
+    for (const LearningData& datum : data) {
+        value_teachers.push_back(datum.value);
+    }
+    torch::Tensor value_t =
+        (fp16_ ? torch::tensor(value_teachers).to(device_, torch::kHalf) : torch::tensor(value_teachers).to(device_));
+
+    //最初のエンコード
+    torch::Tensor embed_vector = embed(root_features);
+
+    //価値を推定
+    torch::Tensor value = torch::tanh(value_head_->forward(embed_vector));
+
+    torch::Tensor value_loss = torch::mse_loss(value, value_t);
+
+    loss.push_back(value_loss);
+
     return loss;
 }
 

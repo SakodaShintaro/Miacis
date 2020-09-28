@@ -52,6 +52,11 @@ private:
     //---------------
     StateEncoder encoder_{ nullptr };
 
+    //------------------
+    //    Value Head
+    //------------------
+    torch::nn::Linear value_head_{ nullptr };
+
     //-------------------------
     //    Environment Model
     //-------------------------
