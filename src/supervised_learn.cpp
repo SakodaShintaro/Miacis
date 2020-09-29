@@ -39,10 +39,14 @@ void supervisedLearn() {
         train_kifu_path = dir_paths[0];
     }
 
+    //学習設定などに関するログ。現状はすぐ下のところで使っているだけ
+    std::ofstream other_log("other_log.txt");
+
     //データを取得
     std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation, train_rate_threshold);
     std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
-    std::cout << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size() << std::endl;
+    dout(std::cout, other_log) << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size()
+                               << ", dir_paths.size() = " << dir_paths.size() << std::endl;
 
     //学習推移のログファイル
     std::ofstream train_log("supervised_train_log.txt");
@@ -147,10 +151,7 @@ void supervisedLearn() {
         }
 
         if (load_multi_dir) {
-            if ((uint64_t)epoch >= dir_paths.size()) {
-                break;
-            }
-            train_data = loadData(dir_paths[epoch], data_augmentation, train_rate_threshold);
+            train_data = loadData(dir_paths[epoch % dir_paths.size()], data_augmentation, train_rate_threshold);
         }
     }
 
