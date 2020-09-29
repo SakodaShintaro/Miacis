@@ -13,10 +13,12 @@ static constexpr int32_t CHANNEL_NUM = 64;
 static constexpr int32_t KERNEL_SIZE = 3;
 static constexpr int32_t REDUCTION = 8;
 static constexpr int32_t VALUE_HIDDEN_NUM = 256;
-static constexpr int32_t LAST_CHANNEL_NUM = 32;
+static constexpr int32_t LAST_CHANNEL_NUM = 16;
 static constexpr int32_t NUM_LAYERS = 2;
-static constexpr int64_t LOOP_NUM = 2;
+static constexpr int64_t LOOP_NUM = 0;
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * LAST_CHANNEL_NUM;
+static constexpr int32_t LSTM_HIDDEN_SIZE = 512;
+static constexpr int32_t ABSTRACT_ACTION_DIM = 512;
 
 #ifdef USE_CATEGORICAL
 const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
@@ -40,7 +42,18 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
     last_conv_ = register_module("last_conv_", Conv2DwithBatchNorm(CHANNEL_NUM, LAST_CHANNEL_NUM, KERNEL_SIZE));
     torch::nn::LSTMOptions option(HIDDEN_DIM, HIDDEN_DIM);
     option.num_layers(NUM_LAYERS);
-    lstm_ = register_module("lstm_", torch::nn::LSTM(option));
+    readout_lstm_ = register_module("readout_lstm_", torch::nn::LSTM(option));
+
+    using torch::nn::Linear;
+    using torch::nn::LSTM;
+    using torch::nn::LSTMOptions;
+
+    simulation_lstm_ =
+        register_module("simulation_lstm_", LSTM(LSTMOptions(HIDDEN_DIM, LSTM_HIDDEN_SIZE).num_layers(NUM_LAYERS)));
+    simulation_policy_head_ = register_module("simulation_policy_head_", Linear(LSTM_HIDDEN_SIZE, ABSTRACT_ACTION_DIM));
+
+    env_model0_ = register_module("env_model0_", Linear(HIDDEN_DIM + ABSTRACT_ACTION_DIM, HIDDEN_DIM));
+    env_model1_ = register_module("env_model1_", Linear(HIDDEN_DIM, HIDDEN_DIM));
 
     policy_conv_ = register_module(
         "policy_conv_",
@@ -72,19 +85,17 @@ std::vector<std::pair<torch::Tensor, torch::Tensor>> NeuralNetworkImpl::decode(c
     std::vector<std::pair<torch::Tensor, torch::Tensor>> result;
 
     torch::Tensor x = representation.view({ 1, -1, HIDDEN_DIM });
-    torch::Tensor h = torch::zeros({ NUM_LAYERS, x.size(1), HIDDEN_DIM }).to(device_);
-    torch::Tensor c = torch::zeros({ NUM_LAYERS, x.size(1), HIDDEN_DIM }).to(device_);
+    torch::Tensor simulation_h = torch::zeros({ NUM_LAYERS, x.size(1), LSTM_HIDDEN_SIZE }).to(device_);
+    torch::Tensor simulation_c = torch::zeros({ NUM_LAYERS, x.size(1), LSTM_HIDDEN_SIZE }).to(device_);
+    torch::Tensor readout_h = torch::zeros({ NUM_LAYERS, x.size(1), HIDDEN_DIM }).to(device_);
+    torch::Tensor readout_c = torch::zeros({ NUM_LAYERS, x.size(1), HIDDEN_DIM }).to(device_);
 
-    for (int64_t i = 0; i <= LOOP_NUM; i++) {
-        auto [output, h_and_c] = lstm_->forward(x, std::make_tuple(h, c));
-        std::tie(h, c) = h_and_c;
-        output = output.view({ -1, LAST_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-
+    auto pol_and_val = [&](const torch::Tensor& x) {
         //policy
-        torch::Tensor policy = policy_conv_->forward(output);
+        torch::Tensor policy = policy_conv_->forward(x);
 
         //value
-        torch::Tensor value = value_conv_and_norm_->forward(output);
+        torch::Tensor value = value_conv_and_norm_->forward(x);
         value = activation(value);
         value = value.view({ -1, SQUARE_NUM * LAST_CHANNEL_NUM });
         value = value_linear0_->forward(value);
@@ -99,7 +110,29 @@ std::vector<std::pair<torch::Tensor, torch::Tensor>> NeuralNetworkImpl::decode(c
 #endif
 #endif
 
-        result.emplace_back(policy, value);
+        return std::make_pair(policy, value);
+    };
+
+    //探索前の結果
+    result.push_back(pol_and_val(x.view({ -1, LAST_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH })));
+
+    for (int64_t i = 0; i < LOOP_NUM; i++) {
+        auto [sim_output, sim_h_and_c] = simulation_lstm_->forward(x, std::make_tuple(simulation_h, simulation_c));
+        std::tie(simulation_h, simulation_c) = sim_h_and_c;
+        torch::Tensor abstract_action = simulation_policy_head_->forward(sim_output);
+
+        //環境モデルという気持ち
+        torch::Tensor x_diff = torch::cat({ x, abstract_action }, 2);
+        x_diff = env_model0_->forward(x_diff);
+        x_diff = torch::relu(x_diff);
+        x_diff = env_model1_->forward(x_diff);
+        x = x + x_diff;
+
+        //推論
+        auto [output, h_and_c] = readout_lstm_->forward(x, std::make_tuple(readout_h, readout_c));
+        std::tie(readout_h, readout_c) = h_and_c;
+
+        result.push_back(pol_and_val(output.view({ -1, LAST_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH })));
     }
 
     return result;

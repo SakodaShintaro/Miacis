@@ -75,7 +75,19 @@ private:
     torch::nn::Dropout2d representation_dropout_{ nullptr };
 #endif
     Conv2DwithBatchNorm last_conv_{ nullptr };
-    torch::nn::LSTM lstm_{ nullptr };
+    torch::nn::LSTM readout_lstm_{ nullptr };
+
+    //-------------------------
+    //    Environment Model
+    //-------------------------
+    torch::nn::Linear env_model0_{ nullptr };
+    torch::nn::Linear env_model1_{ nullptr };
+
+    //-------------------------
+    //    Simulation Policy
+    //-------------------------
+    torch::nn::LSTM simulation_lstm_{ nullptr };
+    torch::nn::Linear simulation_policy_head_{ nullptr };
 
     torch::nn::Conv2d policy_conv_{ nullptr };
     Conv2DwithBatchNorm value_conv_and_norm_{ nullptr };
