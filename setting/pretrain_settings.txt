@@ -3,8 +3,6 @@ min_learn_rate       0.0025
 momentum             0.9
 weight_decay         0.0
 entropy_coeff        0.0
-train_rate_threshold 2200
-valid_rate_threshold 2290
 data_augmentation    1
 batch_size           512
 max_step             2000000
@@ -14,5 +12,15 @@ lr_decay_mode        1
 lr_decay_step1       1000000
 lr_decay_step2       1500000
 lr_decay_period      10000
+
+# Othello
+train_rate_threshold 2200
+valid_rate_threshold 2290
 train_kifu_path      /root/othello_train_kifu
 valid_kifu_path      /root/othello_valid_kifu
+
+# Shogi
+# train_rate_threshold 2800
+# valid_rate_threshold 3000
+# train_kifu_path      /root/training_kifu
+# valid_kifu_path      /root/validation_kifu

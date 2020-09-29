@@ -19,8 +19,10 @@ StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options)
     using torch::nn::LSTM;
     using torch::nn::LSTMOptions;
 
-    env_model_ = register_module("env_model_", Linear(HIDDEN_DIM + ABSTRACT_ACTION_DIM, HIDDEN_DIM));
     value_head_ = register_module("value_head_", Linear(HIDDEN_DIM, 1));
+    env_model0_ = register_module("env_model0_", Linear(HIDDEN_DIM + ABSTRACT_ACTION_DIM, HIDDEN_DIM));
+    env_model1_ = register_module("env_model1_", Linear(HIDDEN_DIM, HIDDEN_DIM));
+
     LSTMOptions option(HIDDEN_DIM + 1, LSTM_HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
     simulation_lstm_ = register_module("simulation_lstm_", LSTM(option));
@@ -134,8 +136,11 @@ std::vector<torch::Tensor> StackedLSTMImpl::search(const std::vector<float>& inp
 }
 
 torch::Tensor StackedLSTMImpl::predictNextState(const torch::Tensor& pre_state, const torch::Tensor& abstract_action) {
-    torch::Tensor c = torch::cat({ pre_state, abstract_action }, 2);
-    return env_model_->forward(c);
+    torch::Tensor x = torch::cat({ pre_state, abstract_action }, 2);
+    x = env_model0_->forward(x);
+    x = torch::relu(x);
+    x = env_model1_->forward(x);
+    return pre_state + x;
 }
 
 std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
