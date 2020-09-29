@@ -4,8 +4,6 @@ momentum             0.9
 weight_decay         0.0
 gamma                0.7
 entropy_coeff        0.0
-train_rate_threshold 2200
-valid_rate_threshold 2290
 data_augmentation    1
 freeze_encoder       0
 use_readout_only     0
@@ -21,7 +19,17 @@ lr_decay_step1       200000
 lr_decay_step2       400000
 lr_decay_period      20000
 print_interval       2
-train_kifu_path      /root/othello_train_kifu
-valid_kifu_path      /root/othello_valid_kifu
 encoder_path         encoder.model
 policy_head_path     policy_head.model
+
+# Othello
+train_rate_threshold 2200
+valid_rate_threshold 2290
+train_kifu_path      /root/othello_train_kifu
+valid_kifu_path      /root/othello_valid_kifu
+
+# Shogi
+# train_rate_threshold 2800
+# valid_rate_threshold 3000
+# train_kifu_path      /root/training_kifu
+# valid_kifu_path      /root/validation_kifu
