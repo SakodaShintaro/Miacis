@@ -38,7 +38,7 @@ void pretrainSimpleMLP() {
     //学習推移のログファイル
     std::ofstream train_log("pretrain_train_log.txt");
     std::ofstream valid_log("pretrain_valid_log.txt");
-    tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tloss\tentropy" << std::endl;
+    tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tpolicy_loss\tvalue_loss\tentropy" << std::endl;
 
     //モデル作成
     SimpleMLP model;
@@ -84,7 +84,7 @@ void pretrainSimpleMLP() {
 
             //勾配を求めてパラメータ更新
             loss.back() *= entropy_coeff;
-            torch::Tensor loss_sum = torch::cat(loss).sum();
+            torch::Tensor loss_sum = torch::stack(loss).sum();
             loss_sum.mean().backward();
             optimizer.step();
 
@@ -137,6 +137,7 @@ void pretrainSimpleMLP() {
     torch::save(model, "pretrain.model");
     torch::save(model->encoder, "encoder.model");
     torch::save(model->policy_head, "policy_head.model");
+    torch::save(model->value_head, "value_head.model");
 
     std::cout << "finish learnSearchNN" << std::endl;
 }

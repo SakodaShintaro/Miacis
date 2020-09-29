@@ -11,19 +11,20 @@ SimpleMLPImpl::SimpleMLPImpl(SearchOptions search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
     encoder = register_module("encoder", StateEncoder());
     policy_head = register_module("policy_head", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
+    value_head = register_module("value_head", torch::nn::Linear(HIDDEN_DIM, 1));
 }
 
 Move SimpleMLPImpl::think(Position& root, int64_t time_limit) {
     //この局面を推論して探索せずにそのまま出力
 
     //ニューラルネットワークによる推論
-    torch::Tensor policy = inferPolicy(root);
+    auto [policy_logit, value] = infer(root);
 
     //合法手だけマスクをかける
     std::vector<Move> moves = root.generateAllMoves();
     std::vector<float> logits;
     for (const Move& move : moves) {
-        logits.push_back(policy[0][move.toLabel()].item<float>());
+        logits.push_back(policy_logit[0][move.toLabel()].item<float>());
     }
 
     if (root.turnNumber() <= search_options_.random_turn) {
@@ -42,7 +43,7 @@ std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& 
     const uint64_t batch_size = data.size();
     std::vector<float> inputs;
     std::vector<float> policy_teachers(POLICY_DIM * batch_size, 0.0);
-
+    std::vector<float> value_teachers;
     static Position pos;
     for (uint64_t i = 0; i < batch_size; i++) {
         //入力
@@ -54,27 +55,37 @@ std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& 
         for (const std::pair<int32_t, float>& e : data[i].policy) {
             policy_teachers[i * POLICY_DIM + e.first] = e.second;
         }
+
+        //valueの教師信号
+        value_teachers.push_back(data[i].value);
     }
 
+    //推論
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    torch::Tensor policy_logit = forward(x);
-    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
+    auto [policy_logit, value] = forward(x);
 
+    //損失
     std::vector<torch::Tensor> loss;
 
-    //教師との交差エントロピー
+    //Policy損失:教師との交差エントロピー
+    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
     torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
     torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-    loss.push_back((-policy_teacher * clipped).sum(1).mean().view({ 1 }));
+    loss.push_back((-policy_teacher * clipped).sum(1).mean());
+
+    //Value損失:教師との自乗誤差
+    torch::Tensor value_teacher = torch::tensor(value_teachers).to(device_);
+    torch::Tensor value_loss = torch::mse_loss(value, value_teacher);
+    loss.push_back(value_loss);
 
     //エントロピー正則化
     torch::Tensor softmax_p = torch::softmax(policy_logit, 1);
-    loss.push_back((softmax_p * clipped).sum(1).mean().view({ 1 }));
+    loss.push_back((softmax_p * clipped).sum(1).mean());
 
     return loss;
 }
 
-torch::Tensor SimpleMLPImpl::inferPolicy(const Position& pos) {
+std::tuple<torch::Tensor, torch::Tensor> SimpleMLPImpl::infer(const Position& pos) {
     std::vector<float> inputs = pos.makeFeature();
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     return forward(x);
@@ -86,9 +97,11 @@ void SimpleMLPImpl::setGPU(int16_t gpu_id, bool fp16) {
     (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
 }
 
-torch::Tensor SimpleMLPImpl::forward(const torch::Tensor& x) {
+std::tuple<torch::Tensor, torch::Tensor> SimpleMLPImpl::forward(const torch::Tensor& x) {
     torch::Tensor y = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     y = encoder->forward(y);
     y = y.view({ -1, HIDDEN_DIM });
-    return policy_head->forward(y);
+    torch::Tensor policy = policy_head->forward(y);
+    torch::Tensor value = torch::tanh(value_head->forward(y));
+    return std::make_tuple(policy, value);
 }
