@@ -3,18 +3,34 @@ min_learn_rate       0.0025
 momentum             0.9
 weight_decay         0.0001
 mixup_alpha          0.0
-train_rate_threshold 2800
-valid_rate_threshold 2800
 policy_loss_coeff    1.0
 value_loss_coeff     1.0
 data_augmentation    1
-load_multi_dir       0
 batch_size           512
-max_step             400000
-validation_interval  20000
+max_step             1000000
+validation_interval  50000
 lr_decay_mode        2
-lr_decay_step1       200000
-lr_decay_step2       300000
-lr_decay_period      20000
-train_kifu_path      /root/training_kifu
-valid_kifu_path      /root/validation_kifu
+lr_decay_step1       400000
+lr_decay_step2       700000
+lr_decay_period      40000
+
+# Shogi(AobaZero)
+load_multi_dir       1
+train_rate_threshold 0
+valid_rate_threshold 3000
+train_kifu_path      /root/data/aobazero_kifu/data
+valid_kifu_path      /root/data/floodgate_kifu/valid
+
+# Shogi(floodgate)
+# load_multi_dir       0
+# train_rate_threshold 2800
+# valid_rate_threshold 3000
+# train_kifu_path      /root/data/floodgate_kifu/train
+# valid_kifu_path      /root/data/floodgate_kifu/valid
+
+# Othello
+# load_multi_dir       0
+# train_rate_threshold 2200
+# valid_rate_threshold 2290
+# train_kifu_path      /root/othello_train_kifu
+# valid_kifu_path      /root/othello_valid_kifu
