@@ -55,7 +55,8 @@ private:
     //-------------------------
     //    Environment Model
     //-------------------------
-    torch::nn::Linear env_model_{ nullptr };
+    torch::nn::Linear env_model0_{ nullptr };
+    torch::nn::Linear env_model1_{ nullptr };
 
     //-------------------------
     //    Simulation Policy
