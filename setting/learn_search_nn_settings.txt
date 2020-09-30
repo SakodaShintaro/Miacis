@@ -21,6 +21,7 @@ lr_decay_period      20000
 print_interval       2
 encoder_path         encoder.model
 policy_head_path     policy_head.model
+value_head_path      value_head.model
 
 # Othello
 train_rate_threshold 2200

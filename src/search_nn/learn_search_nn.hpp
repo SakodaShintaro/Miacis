@@ -38,6 +38,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     std::string valid_kifu_path  = settings.get<std::string>("valid_kifu_path");
     std::string encoder_path     = settings.get<std::string>("encoder_path");
     std::string policy_head_path = settings.get<std::string>("policy_head_path");
+    std::string value_head_path  = settings.get<std::string>("value_head_path");
     // clang-format on
 
     //データを取得
@@ -64,7 +65,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     model->setOption(freeze_encoder, gamma);
 
     //encoderを既存のパラメータから読み込み
-    model->loadPretrain(encoder_path, policy_head_path);
+    model->loadPretrain(encoder_path, policy_head_path, value_head_path);
 
     //学習前のパラメータを出力
     torch::save(model, model->modelPrefix() + "_before_learn.model");

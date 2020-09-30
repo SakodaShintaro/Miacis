@@ -16,6 +16,8 @@ MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
         register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
     encoder_ = register_module("encoder_", StateEncoder());
 
+    value_head_ = register_module("value_head_", torch::nn::Linear(HIDDEN_DIM, 1));
+
     backup_update_ = register_module("backup_update_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
     backup_gate_ = register_module("backup_gate_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
 
@@ -385,7 +387,8 @@ void MCTSNetImpl::setGPU(int16_t gpu_id, bool fp16) {
     (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
 }
 
-void MCTSNetImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
+void MCTSNetImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path,
+                               const std::string& value_head_path) {
     std::ifstream encoder_file(encoder_path);
     if (encoder_file.is_open()) {
         torch::load(encoder_, encoder_path);
@@ -394,6 +397,10 @@ void MCTSNetImpl::loadPretrain(const std::string& encoder_path, const std::strin
     if (policy_head_file.is_open()) {
         torch::load(simulation_policy_, policy_head_path);
         torch::load(readout_policy_, policy_head_path);
+    }
+    std::ifstream value_head_file(value_head_path);
+    if (value_head_file.is_open()) {
+        torch::load(value_head_, value_head_path);
     }
 }
 

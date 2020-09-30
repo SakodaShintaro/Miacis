@@ -19,7 +19,7 @@ public:
     void setGPU(int16_t gpu_id, bool fp16 = false);
 
     //事前学習したモデルを読み込む関数
-    void loadPretrain(const std::string& encoder_path, const std::string& policy_head_path);
+    void loadPretrain(const std::string& encoder_path, const std::string& policy_head_path, const std::string& value_head_path);
 
     //インタンスから下のクラス変数を参照するための関数
     static std::string modelPrefix() { return MODEL_PREFIX; }

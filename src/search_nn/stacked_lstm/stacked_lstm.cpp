@@ -225,10 +225,17 @@ void StackedLSTMImpl::setGPU(int16_t gpu_id, bool fp16) {
     (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
 }
 
-void StackedLSTMImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
+void StackedLSTMImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path,
+                                   const std::string& value_head_path) {
     std::ifstream encoder_file(encoder_path);
     if (encoder_file.is_open()) {
         torch::load(encoder_, encoder_path);
+    }
+    //policy_headは特に読み込まない
+
+    std::ifstream value_file(value_head_path);
+    if (value_file.is_open()) {
+        torch::load(value_head_, value_head_path);
     }
 }
 
