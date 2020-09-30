@@ -75,6 +75,7 @@ std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& 
 
     //Value損失:教師との自乗誤差
     torch::Tensor value_teacher = torch::tensor(value_teachers).to(device_);
+    value = value.view_as(value_teacher);
     torch::Tensor value_loss = torch::mse_loss(value, value_teacher);
     loss.push_back(value_loss);
 
