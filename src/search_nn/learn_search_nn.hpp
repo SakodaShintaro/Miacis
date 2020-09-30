@@ -112,7 +112,10 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                     }
                 }
                 //entropy
-                dout(std::cout, train_log) << "\t" << loss.back().item<float>();
+                dout(std::cout, train_log) << "\t" << loss[loss.size() - 2].item<float>();
+
+                //value
+                dout(std::cout, train_log) << "\t" << loss[loss.size() - 1].item<float>();
 
                 dout(std::cout, train_log) << "\r" << std::flush;
             }
