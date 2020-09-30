@@ -57,7 +57,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             dout(train_log, valid_log) << "\tloss_" << i;
         }
     }
-    tout(std::cout, train_log, valid_log) << "\tentropy\tvalue_loss" << std::endl;
+    tout(std::cout, train_log, valid_log) << "\tvalue_loss\tentropy" << std::endl;
 
     //モデル作成
     T model(options);
