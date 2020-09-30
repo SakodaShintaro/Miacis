@@ -111,10 +111,10 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                         train_log << "\t" << loss[m].item<float>();
                     }
                 }
-                //entropy
+                //value
                 dout(std::cout, train_log) << "\t" << loss[loss.size() - 2].item<float>();
 
-                //value
+                //entropy
                 dout(std::cout, train_log) << "\t" << loss[loss.size() - 1].item<float>();
 
                 dout(std::cout, train_log) << "\r" << std::flush;
@@ -127,8 +127,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                 }
             }
             loss.back() *= entropy_coeff;
-            torch::Tensor loss_sum = torch::stack(loss).sum();
-            loss_sum.mean().backward();
+            torch::stack(loss).sum().backward();
             optimizer.step();
 
             if (global_step % validation_interval == 0) {

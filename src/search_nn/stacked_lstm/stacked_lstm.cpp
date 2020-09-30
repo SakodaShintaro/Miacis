@@ -194,27 +194,25 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
         }
     }
 
-    loss.push_back(entropy);
-
-    //価値を追加
-
+    //Value損失
     //valueの教師信号を構築
     std::vector<ValueTeacherType> value_teachers;
     for (const LearningData& datum : data) {
         value_teachers.push_back(datum.value);
     }
-    torch::Tensor value_t =
-        (fp16_ ? torch::tensor(value_teachers).to(device_, torch::kHalf) : torch::tensor(value_teachers).to(device_));
-
-    //最初のエンコード
-    torch::Tensor embed_vector = embed(root_features);
+    torch::Tensor value_teacher = torch::tensor(value_teachers).to(device_);
 
     //価値を推定
+    torch::Tensor embed_vector = embed(root_features);
     torch::Tensor value = torch::tanh(value_head_->forward(embed_vector));
+    value = value.view_as(value_teacher);
 
-    torch::Tensor value_loss = torch::mse_loss(value, value_t);
-
+    //損失計算
+    torch::Tensor value_loss = torch::mse_loss(value, value_teacher);
     loss.push_back(value_loss);
+
+    //エントロピー正則化
+    loss.push_back(entropy);
 
     return loss;
 }
