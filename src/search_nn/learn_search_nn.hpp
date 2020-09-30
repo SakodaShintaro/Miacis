@@ -167,7 +167,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                 dout(std::cout, valid_log) << "\t" << valid_loss_sum[loss.size() - 2];
 
                 //entropy
-                dout(std::cout, valid_log) << "\t" << valid_loss_sum[loss.size() - 2] << std::endl;
+                dout(std::cout, valid_log) << "\t" << valid_loss_sum[loss.size() - 1] << std::endl;
             }
             if (global_step % save_interval == 0) {
                 //学習中のパラメータを書き出す
