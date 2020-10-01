@@ -121,7 +121,7 @@ def main():
     edax_manager.read_lines()
     edax_manager.send_message(f"set level {args.level}")
 
-    miacis_manager = MiacisManager("scalar" if "sca" in model_names[0] else "categorical")
+    miacis_manager = MiacisManager("categorical" if "cat" in model_names[0] else "scalar")
     miacis_manager.send_option("search_limit", args.search_limit)
     miacis_manager.send_option("byoyomi_margin", 10000000)
     miacis_manager.send_option("search_batch_size", args.search_batch_size)
