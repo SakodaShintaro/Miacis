@@ -7,12 +7,13 @@ policy_loss_coeff    1.0
 value_loss_coeff     1.0
 data_augmentation    1
 batch_size           512
-max_step             1000000
-validation_interval  50000
-lr_decay_mode        2
+max_step             1600000
+validation_interval  100000
+lr_decay_mode        1
 lr_decay_step1       400000
-lr_decay_step2       700000
-lr_decay_period      40000
+lr_decay_step2       800000
+lr_decay_step2       1200000
+lr_decay_period      100000
 
 # Shogi(AobaZero)
 load_multi_dir       1
