@@ -82,6 +82,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     //学習開始時間の設定
     auto start_time = std::chrono::steady_clock::now();
 
+    std::cout << std::setprecision(2);
+
     //学習開始
     for (int64_t epoch = 1; global_step < max_step; epoch++) {
         //データをシャッフル
@@ -102,21 +104,9 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             //表示
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
                 dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
-                for (int64_t m = 0; m <= options.search_limit; m++) {
-                    if (m % print_interval == 0) {
-                        //標準出力にも表示
-                        dout(std::cout, train_log) << "\t" << loss[m].item<float>();
-                    } else {
-                        //ファイルにだけ表示
-                        train_log << "\t" << loss[m].item<float>();
-                    }
+                for (uint64_t i = 0; i < loss.size(); i++) {
+                    dout(std::cout, train_log) << "\t" << loss[i].item<float>();
                 }
-                //value
-                dout(std::cout, train_log) << "\t" << loss[loss.size() - 2].item<float>();
-
-                //entropy
-                dout(std::cout, train_log) << "\t" << loss[loss.size() - 1].item<float>();
-
                 dout(std::cout, train_log) << "\r" << std::flush;
             }
 

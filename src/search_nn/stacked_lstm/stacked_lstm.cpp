@@ -218,10 +218,8 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
         torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-        loss[m] = (-policy_teacher * clipped).sum(1).mean();
-
-        //nll_lossを使うかも
-        //torch::nll_loss(torch::log_softmax(policy, 1), policy_teacher_tensor, {}, Reduction::None);
+        //loss[m] = (-policy_teacher * clipped).sum(1).mean();
+        loss[m] = torch::nll_loss(clipped, policy_teacher);
 
         //探索なしの直接推論についてエントロピーも求めておく
         if (m == 0) {
@@ -260,13 +258,13 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
     torch::Tensor simulated_representation = embed(state_features[0]);
     for (int64_t i = 1; i < LEARNING_RANGE; i++) {
         //行動の表現を取得
-        torch::Tensor action_representation = encodeActions(moves[i]);
+        torch::Tensor action_representation = encodeActions(moves[i]).view({ 1, -1, ABSTRACT_ACTION_DIM });
 
         //次状態を予測
         simulated_representation = predictNextState(simulated_representation, action_representation);
 
-        loss.push_back(policyLoss(simulated_representation, move_teachers[i + 1]));
-        loss.push_back(valueLoss(simulated_representation, value_teachers[i + 1]));
+        loss.push_back(policyLoss(simulated_representation, move_teachers[i]));
+        loss.push_back(valueLoss(simulated_representation, value_teachers[i]));
     }
 
     //-----------------------
@@ -310,7 +308,8 @@ torch::Tensor StackedLSTMImpl::encodeActions(const std::vector<Move>& moves) {
 
 torch::Tensor StackedLSTMImpl::policyLoss(const torch::Tensor& state_representation, const std::vector<int64_t>& policy_teacher) {
     torch::Tensor policy_teacher_tensor = torch::tensor(policy_teacher).to(device_);
-    torch::Tensor policy_logit = policy_head_->forward(state_representation).view_as(policy_teacher_tensor);
+    torch::Tensor x = state_representation.view({ -1, HIDDEN_DIM });
+    torch::Tensor policy_logit = policy_head_->forward(x);
     return torch::nll_loss(torch::log_softmax(policy_logit, 1), policy_teacher_tensor);
 }
 torch::Tensor StackedLSTMImpl::valueLoss(const torch::Tensor& state_representation,
