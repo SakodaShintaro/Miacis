@@ -1,6 +1,5 @@
 #include "proposed_model.hpp"
 #include "../../common.hpp"
-#include "../common.hpp"
 
 //ネットワークの設定
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
@@ -141,96 +140,8 @@ torch::Tensor ProposedModelImpl::readoutPolicy(const torch::Tensor& x) {
 }
 
 std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningData>& data, bool freeze_encoder) {
-    //    if (use_policy_gradient) {
-    //        std::cout << "StackedLSTM is not compatible with use_policy_gradient." << std::endl;
-    //        std::exit(1);
-    //    }
-
-    //バッチサイズを取得しておく
-    const int64_t batch_size = data.size();
-
-    //盤面を復元
-    std::vector<float> root_features;
-    std::vector<Position> positions(batch_size);
-    for (int64_t i = 0; i < batch_size; i++) {
-        positions[i].fromStr(data[i].position_str);
-        std::vector<float> f = positions[i].makeFeature();
-        root_features.insert(root_features.end(), f.begin(), f.end());
-    }
-
-    //状態を初期化
-    //(num_layers * num_directions, batch, hidden_size)
-    simulation_h_ = torch::zeros({ NUM_LAYERS, batch_size, HIDDEN_SIZE }).to(device_);
-    simulation_c_ = torch::zeros({ NUM_LAYERS, batch_size, HIDDEN_SIZE }).to(device_);
-    readout_h_ = torch::zeros({ NUM_LAYERS, batch_size, HIDDEN_SIZE }).to(device_);
-    readout_c_ = torch::zeros({ NUM_LAYERS, batch_size, HIDDEN_SIZE }).to(device_);
-
-    //探索をして出力方策の系列を得る
-    std::vector<torch::Tensor> policy_logits;
-
-    //最初のエンコード
-    torch::Tensor embed_vector = embed(root_features);
-
-    //探索前の結果
-    policy_logits.push_back(readoutPolicy(embed_vector));
-
-    //探索行動系列の履歴
-    std::vector<std::set<std::vector<int32_t>>> moves_histories;
-
-    for (int64_t m = 1; m <= search_options_.search_limit; m++) {
-        std::vector<float> features;
-        if (search_options_.use_readout_only) {
-            //Readout Policyを用いて行動を推論
-            torch::Tensor policy_logit = policy_logits[m - 1];
-            for (int64_t i = 0; i < batch_size; i++) {
-                std::vector<Move> moves = positions[i].generateAllMoves();
-                //行動を決定
-                std::vector<float> logits(moves.size());
-                for (uint64_t j = 0; j < moves.size(); j++) {
-                    logits[j] = policy_logits[0][j][moves[i].toLabel()].item<float>();
-                }
-                std::vector<float> softmaxed = softmax(logits, 1.0f);
-                int64_t move_index = randomChoose(softmaxed);
-            }
-
-            //それにより盤面を動かす
-            //盤面から特徴量を取得
-        } else {
-            //Simulation Policyを用いて行動を推論
-            //それにより盤面を動かす
-            //盤面から特徴量を取得
-        }
-        embed_vector = embed(features);
-
-        //今までの探索から現時点での結論を推論
-        policy_logits.push_back(readoutPolicy(embed_vector));
-    }
-
-    //policyの教師信号
-    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
-
-    //エントロピー正則化の項
-    torch::Tensor entropy;
-
-    //探索回数
-    const int64_t M = search_options_.search_limit;
-
-    //各探索後の損失を計算
-    std::vector<torch::Tensor> loss(M + 1);
-    for (int64_t m = 0; m <= M; m++) {
-        torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
-        torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
-        torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-        loss[m] = (-policy_teacher * clipped).sum(1).mean();
-
-        //探索なしの直接推論についてエントロピーも求めておく
-        if (m == 0) {
-            entropy = (torch::softmax(policy_logit, 1) * clipped).sum(1).mean(0);
-        }
-    }
-
-    loss.push_back(entropy);
-    return loss;
+    std::cerr << "No Implementation" << std::endl;
+    std::exit(1);
 }
 
 void ProposedModelImpl::setGPU(int16_t gpu_id, bool fp16) {

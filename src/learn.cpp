@@ -86,29 +86,28 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
     std::vector<Game> games = loadGames(file_path, rate_threshold);
 
     //データを局面単位にバラす
-    std::vector<LearningData> data_buffer;
+    std::vector<LearningData> data;
     for (const Game& game : games) {
         Position pos;
-        for (const OneTurnElement& e : game.elements) {
-            const Move& move = e.move;
-            uint32_t label = move.toLabel();
-            std::string position_str = pos.toStr();
-            for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
-                LearningData datum{};
-                datum.policy.push_back({ Move::augmentLabel(label, i), 1.0 });
+        for (uint64_t i = 0; i + LEARNING_RANGE < game.elements.size(); i++) {
+            LearningData datum;
+            datum.position_str = pos.toStr();
+
+            for (uint64_t j = 0; j < LEARNING_RANGE; j++) {
+                datum.moves[j] = game.elements[i + j].move;
 #ifdef USE_CATEGORICAL
-                datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
+                datum.value[j] =
+                    valueToIndex(((pos.color() + j) % 2 == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
 #else
-                datum.value = (float)(pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
+                datum.value[j] = (float)((pos.color() + j) % 2 == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
 #endif
-                datum.position_str = Position::augmentStr(position_str, i);
-                data_buffer.push_back(datum);
             }
-            pos.doMove(move);
+            data.push_back(datum);
+            pos.doMove(game.elements[i].move);
         }
     }
 
-    return data_buffer;
+    return data;
 }
 
 void initParams() {

@@ -40,50 +40,8 @@ Move SimpleMLPImpl::think(Position& root, int64_t time_limit) {
 }
 
 std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& data) {
-    const uint64_t batch_size = data.size();
-    std::vector<float> inputs;
-    std::vector<float> policy_teachers(POLICY_DIM * batch_size, 0.0);
-    std::vector<float> value_teachers;
-    static Position pos;
-    for (uint64_t i = 0; i < batch_size; i++) {
-        //入力
-        pos.fromStr(data[i].position_str);
-        std::vector<float> curr_feature = pos.makeFeature();
-        inputs.insert(inputs.end(), curr_feature.begin(), curr_feature.end());
-
-        //policyの教師信号
-        for (const std::pair<int32_t, float>& e : data[i].policy) {
-            policy_teachers[i * POLICY_DIM + e.first] = e.second;
-        }
-
-        //valueの教師信号
-        value_teachers.push_back(data[i].value);
-    }
-
-    //推論
-    torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    auto [policy_logit, value] = forward(x);
-
-    //損失
-    std::vector<torch::Tensor> loss;
-
-    //Policy損失:教師との交差エントロピー
-    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
-    torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
-    torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-    loss.push_back((-policy_teacher * clipped).sum(1).mean());
-
-    //Value損失:教師との自乗誤差
-    torch::Tensor value_teacher = torch::tensor(value_teachers).to(device_);
-    value = value.view_as(value_teacher);
-    torch::Tensor value_loss = torch::mse_loss(value, value_teacher);
-    loss.push_back(value_loss);
-
-    //エントロピー正則化
-    torch::Tensor softmax_p = torch::softmax(policy_logit, 1);
-    loss.push_back((softmax_p * clipped).sum(1).mean());
-
-    return loss;
+    std::cerr << "No Implementation" << std::endl;
+    std::exit(1);
 }
 
 std::tuple<torch::Tensor, torch::Tensor> SimpleMLPImpl::infer(const Position& pos) {

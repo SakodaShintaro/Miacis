@@ -40,6 +40,9 @@ private:
     torch::Tensor simulationPolicy(const torch::Tensor& x);
     torch::Tensor readoutPolicy(const torch::Tensor& x);
     torch::Tensor predictNextState(const torch::Tensor& pre_state, const torch::Tensor& abstract_action);
+    torch::Tensor encodeActions(const std::vector<Move>& moves);
+    torch::Tensor policyLoss(const torch::Tensor& state_representation, const std::vector<int64_t>& policy_teacher);
+    torch::Tensor valueLoss(const torch::Tensor& state_representation, const std::vector<ValueTeacherType>& value_teacher);
 
     //探索全体
     std::vector<torch::Tensor> search(const std::vector<float>& inputs);
@@ -51,10 +54,12 @@ private:
     //    Encoder
     //---------------
     StateEncoder encoder_{ nullptr };
+    torch::nn::Linear action_encoder_{ nullptr };
 
     //------------------
-    //    Value Head
+    //    Head
     //------------------
+    torch::nn::Linear policy_head_{ nullptr };
     torch::nn::Linear value_head_{ nullptr };
 
     //-------------------------

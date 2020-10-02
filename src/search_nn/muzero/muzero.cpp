@@ -45,32 +45,8 @@ Move MuZeroImpl::think(Position& root, int64_t time_limit) {
 }
 
 std::vector<torch::Tensor> MuZeroImpl::loss(const std::vector<LearningData>& data) {
-    //現状バッチサイズは1のみに対応
-    assert(data.size() == 1);
-
-    std::cout << "まだ未実装" << std::endl;
+    std::cerr << "No Implementation" << std::endl;
     std::exit(1);
-
-    //局面を構築して推論
-    Position root;
-    root.fromStr(data.front().position_str);
-    torch::Tensor policy_logit = inferPolicy(root);
-
-    //policyの教師信号
-    std::vector<float> policy_teachers(POLICY_DIM, 0.0);
-    for (const std::pair<int32_t, float>& e : data.front().policy) {
-        policy_teachers[e.first] = e.second;
-    }
-
-    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
-
-    //損失を計算
-    std::vector<torch::Tensor> loss(1);
-    torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
-    torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-    loss[0] = (-policy_teacher * clipped).sum().view({ 1 });
-
-    return loss;
 }
 
 torch::Tensor MuZeroImpl::encodeAction(Move move) {

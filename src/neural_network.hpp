@@ -1,6 +1,7 @@
 ﻿#ifndef MIACIS_NEURAL_NETWORK_HPP
 #define MIACIS_NEURAL_NETWORK_HPP
 
+#include "include_switch.hpp"
 #include "neural_network_modules.hpp"
 #include "types.hpp"
 
@@ -18,11 +19,11 @@ using ValueType = float;
 using ValueTeacherType = float;
 #endif
 
-//学習データの型
+constexpr int64_t LEARNING_RANGE = 3;
 struct LearningData {
     std::string position_str;
-    PolicyTeacherType policy;
-    ValueTeacherType value;
+    std::array<Move, LEARNING_RANGE> moves;
+    std::array<ValueTeacherType, LEARNING_RANGE> value;
 };
 
 //損失の種類
