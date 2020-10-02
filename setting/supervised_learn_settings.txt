@@ -12,7 +12,7 @@ validation_interval  100000
 lr_decay_mode        1
 lr_decay_step1       400000
 lr_decay_step2       800000
-lr_decay_step2       1200000
+lr_decay_step3       1200000
 lr_decay_period      100000
 
 # Shogi(AobaZero)
