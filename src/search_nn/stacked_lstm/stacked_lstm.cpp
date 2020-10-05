@@ -228,21 +228,6 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
     }
 
     //-----------------
-    //    Value損失
-    //-----------------
-    //valueの教師信号を構築
-    torch::Tensor value_teacher = torch::tensor(value_teachers[0]).to(device_);
-
-    //価値を推定
-    torch::Tensor embed_vector = embed(state_features[0]);
-    torch::Tensor value = torch::tanh(value_head_->forward(embed_vector));
-    value = value.view_as(value_teacher);
-
-    //損失計算
-    torch::Tensor value_loss = torch::mse_loss(value, value_teacher);
-    loss.push_back(value_loss);
-
-    //-----------------
     //    遷移予測部
     //-----------------
 
