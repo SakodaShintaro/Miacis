@@ -298,9 +298,12 @@ torch::Tensor StackedLSTMImpl::policyLoss(const torch::Tensor& state_representat
     return torch::nll_loss(torch::log_softmax(policy_logit, 1), policy_teacher_tensor);
 }
 torch::Tensor StackedLSTMImpl::valueLoss(const torch::Tensor& state_representation,
-                                         const std::vector<ValueTeacherType>& value_teacher) {
+                                         const std::vector<ValueTeacherType>& value_teacher, bool reverse_teacher_score) {
     //教師の構築
     torch::Tensor value_teacher_tensor = torch::tensor(value_teacher).to(device_);
+    if (reverse_teacher_score) {
+        value_teacher_tensor = MAX_SCORE + MIN_SCORE - value_teacher_tensor;
+    }
 
     //Valueを取得
     torch::Tensor value = value_head_->forward(state_representation);

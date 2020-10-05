@@ -42,7 +42,8 @@ private:
     torch::Tensor predictNextState(const torch::Tensor& pre_state, const torch::Tensor& abstract_action);
     torch::Tensor encodeActions(const std::vector<Move>& moves);
     torch::Tensor policyLoss(const torch::Tensor& state_representation, const std::vector<int64_t>& policy_teacher);
-    torch::Tensor valueLoss(const torch::Tensor& state_representation, const std::vector<ValueTeacherType>& value_teacher);
+    torch::Tensor valueLoss(const torch::Tensor& state_representation, const std::vector<ValueTeacherType>& value_teacher,
+                            bool reverse_teacher_score = false);
 
     //探索全体
     std::vector<torch::Tensor> search(const std::vector<float>& inputs);
