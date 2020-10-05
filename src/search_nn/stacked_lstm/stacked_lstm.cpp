@@ -243,7 +243,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
     torch::Tensor simulated_representation = embed(state_features[0]);
     for (int64_t i = 1; i < LEARNING_RANGE; i++) {
         //行動の表現を取得
-        torch::Tensor action_representation = encodeActions(moves[i]).view({ 1, -1, ABSTRACT_ACTION_DIM });
+        torch::Tensor action_representation = encodeActions(moves[i - 1]).view({ 1, -1, ABSTRACT_ACTION_DIM });
 
         //次状態を予測
         simulated_representation = predictNextState(simulated_representation, action_representation);
