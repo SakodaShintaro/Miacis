@@ -299,12 +299,13 @@ torch::Tensor StackedLSTMImpl::policyLoss(const torch::Tensor& state_representat
 }
 torch::Tensor StackedLSTMImpl::valueLoss(const torch::Tensor& state_representation,
                                          const std::vector<ValueTeacherType>& value_teacher) {
+    //教師の構築
+    torch::Tensor value_teacher_tensor = torch::tensor(value_teacher).to(device_);
+
     //Valueを取得
     torch::Tensor value = value_head_->forward(state_representation);
     value = torch::tanh(value);
-
-    //教師の構築
-    torch::Tensor value_teacher_tensor = torch::tensor(value_teacher).to(device_);
+    value = value.view_as(value_teacher_tensor);
 
     //損失計算
 #ifdef USE_CATEGORICAL
