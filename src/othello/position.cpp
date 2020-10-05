@@ -228,6 +228,11 @@ void Position::fromStr(const std::string& str) {
     }
     color_ = (str.back() == 'b' ? BLACK : WHITE);
     initHashValue();
+
+    //履歴系を初期化
+    board_history_.clear();
+    hash_values_.clear();
+    kifu_.clear();
 }
 
 bool Position::isFinish(float& score, bool check_repeat) const {
