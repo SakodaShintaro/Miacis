@@ -64,10 +64,10 @@ torch::Tensor ResidualBlockImpl::forward(const torch::Tensor& x) {
 
 torch::Tensor activation(const torch::Tensor& x) {
     //ReLU
-    return torch::relu(x);
+    //return torch::relu(x);
 
     //Mish
-    //return x * torch::tanh(torch::softplus(x));
+    return x * torch::tanh(torch::softplus(x));
 
     //Swish
     //return x * torch::sigmoid(x);

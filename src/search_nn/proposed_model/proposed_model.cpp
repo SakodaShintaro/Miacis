@@ -168,42 +168,47 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     //探索をして出力方策の系列を得る
     std::vector<torch::Tensor> policy_logits;
 
-    //最初のエンコード
-    torch::Tensor embed_vector = embed(root_features);
-
-    //探索前の結果
-    policy_logits.push_back(readoutPolicy(embed_vector));
-
     //探索行動系列の履歴
     std::vector<std::set<std::vector<int32_t>>> moves_histories;
 
-    for (int64_t m = 1; m <= search_options_.search_limit; m++) {
-        std::vector<float> features;
-        if (search_options_.use_readout_only) {
-            //Readout Policyを用いて行動を推論
-            torch::Tensor policy_logit = policy_logits[m - 1];
+    //何回探索したら戻すか
+    constexpr int64_t RESET_NUM = 3;
+
+    for (int64_t m = 0; m <= search_options_.search_limit; m++) {
+        if (m % RESET_NUM == 0) {
+            //盤面を戻す
             for (int64_t i = 0; i < batch_size; i++) {
-                std::vector<Move> moves = positions[i].generateAllMoves();
-                //行動を決定
-                std::vector<float> logits(moves.size());
-                for (uint64_t j = 0; j < moves.size(); j++) {
-                    logits[j] = policy_logits[0][j][moves[i].toLabel()].item<float>();
+                for (int64_t _ = 0; _ < RESET_NUM; _++) {
+                    positions[i].undo();
                 }
-                std::vector<float> softmaxed = softmax(logits, 1.0f);
-                int64_t move_index = randomChoose(softmaxed);
             }
-
-            //それにより盤面を動かす
-            //盤面から特徴量を取得
-        } else {
-            //Simulation Policyを用いて行動を推論
-            //それにより盤面を動かす
-            //盤面から特徴量を取得
         }
-        embed_vector = embed(features);
 
-        //今までの探索から現時点での結論を推論
-        policy_logits.push_back(readoutPolicy(embed_vector));
+        //現局面の特徴を抽出
+        std::vector<float> features;
+        for (int64_t i = 0; i < batch_size; i++) {
+            std::vector<float> f = positions[i].makeFeature();
+            features.insert(features.end(), f.begin(), f.end());
+        }
+        torch::Tensor x = embed(features);
+
+        //ここまでの探索から最終行動決定
+        policy_logits.push_back(readoutPolicy(x));
+
+        //探索行動を決定
+        torch::Tensor sim_policy_logit = (search_options_.use_readout_only ? readoutPolicy(x) : simulationPolicy(x));
+
+        //行動をサンプリングして盤面を動かす
+        for (int64_t i = 0; i < batch_size; i++) {
+            std::vector<Move> moves = positions[i].generateAllMoves();
+            std::vector<float> logits(moves.size());
+            for (uint64_t j = 0; j < moves.size(); j++) {
+                logits[j] = sim_policy_logit[0][j][moves[i].toLabel()].item<float>();
+            }
+            std::vector<float> softmaxed = softmax(logits, 1.0f);
+            int64_t move_index = randomChoose(softmaxed);
+            positions[i].doMove(moves[move_index]);
+        }
     }
 
     //policyの教師信号
