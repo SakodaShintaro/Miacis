@@ -54,6 +54,7 @@ private:
     Position root_;
     std::unique_ptr<SearcherForPlay> searcher_;
     MCTSNet mcts_net_;
+    ProposedModel proposed_model_;
     StackedLSTM stacked_lstm_;
     std::thread thread_;
     SearchOptions options_;
