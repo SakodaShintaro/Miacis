@@ -114,13 +114,10 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     }
     torch::Tensor x = embed(features);
     torch::Tensor sim_policy_logit = simulationPolicy(x)[0];
-    torch::Tensor log_softmax = torch::log_softmax(sim_policy_logit, 1);
-    torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-    torch::Tensor sim_policy_loss = (-policy_teacher * clipped).sum(1).mean(0);
-    loss.push_back(sim_policy_loss);
+    loss.push_back(policyLoss(sim_policy_logit, policy_teacher));
 
     //エントロピー正則化(Simulation Policyにかける)
-    loss.push_back((torch::softmax(sim_policy_logit, 1) * clipped).sum(1).mean(0));
+    loss.push_back(entropyLoss(sim_policy_logit));
 
     return loss;
 }

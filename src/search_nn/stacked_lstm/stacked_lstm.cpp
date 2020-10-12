@@ -171,13 +171,11 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
     std::vector<torch::Tensor> loss(M + 1);
     for (int64_t m = 0; m <= M; m++) {
         torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
-        torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
-        torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-        loss[m] = (-policy_teacher * clipped).sum(1).mean();
+        loss[m] = policyLoss(policy_logit, policy_teacher);
 
         //探索なしの直接推論についてエントロピーも求めておく
         if (m == 0) {
-            entropy = (torch::softmax(policy_logit, 1) * clipped).sum(1).mean(0);
+            entropy = entropyLoss(policy_logit);
         }
     }
 

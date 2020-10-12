@@ -11,3 +11,14 @@ torch::Tensor getPolicyTeacher(const std::vector<LearningData>& data, torch::Dev
     }
     return torch::tensor(policy_teachers).to(device).view({ batch_size, POLICY_DIM });
 }
+
+torch::Tensor policyLoss(const torch::Tensor& policy_logit, const torch::Tensor& policy_teacher) {
+    //policy_logit, policy_teacherのshapeは(batch_size, policy_dim)であるとする
+    static const float LOG_SOFTMAX_THRESHOLD = std::log(1.0 / POLICY_DIM);
+
+    torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
+    torch::Tensor clipped = torch::clamp_min(log_softmax, LOG_SOFTMAX_THRESHOLD);
+    return -(policy_teacher * clipped).sum(1).mean(0);
+}
+
+torch::Tensor entropyLoss(const torch::Tensor& policy_logit) { return policyLoss(policy_logit, torch::softmax(policy_logit, 1)); }

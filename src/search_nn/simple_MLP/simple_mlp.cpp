@@ -1,5 +1,6 @@
 #include "simple_mlp.hpp"
 #include "../../common.hpp"
+#include "../common.hpp"
 
 //ネットワークの設定
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
@@ -63,13 +64,10 @@ std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& 
     std::vector<torch::Tensor> loss;
 
     //教師との交差エントロピー
-    torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
-    torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-    loss.push_back((-policy_teacher * clipped).sum(1).mean().view({ 1 }));
+    loss.push_back(policyLoss(policy_logit, policy_teacher));
 
     //エントロピー正則化
-    torch::Tensor softmax_p = torch::softmax(policy_logit, 1);
-    loss.push_back((softmax_p * clipped).sum(1).mean().view({ 1 }));
+    loss.push_back(entropyLoss(policy_logit));
 
     return loss;
 }
