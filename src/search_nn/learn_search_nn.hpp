@@ -102,7 +102,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             //表示
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
                 dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
-                for (int64_t m = 0; m < loss.size(); m++) {
+                for (uint64_t m = 0; m < loss.size(); m++) {
                     if (m % print_interval == 0 || m > options.search_limit) {
                         //標準出力にも表示
                         dout(std::cout, train_log) << "\t" << loss[m].item<float>();
@@ -149,8 +149,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
 
                 //表示
                 dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
-                for (int64_t m = 0; m <= options.search_limit; m++) {
-                    if (m % print_interval == 0) {
+                for (uint64_t m = 0; m < loss.size(); m++) {
+                    if (m % print_interval == 0 || m > options.search_limit) {
                         //標準出力にも表示
                         dout(std::cout, valid_log) << "\t" << valid_loss_sum[m];
                     } else {
@@ -158,7 +158,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                         valid_log << "\t" << valid_loss_sum[m];
                     }
                 }
-                dout(std::cout, valid_log) << "\t" << valid_loss_sum.back() << std::endl;
+                dout(std::cout, valid_log) << std::endl;
             }
             if (global_step % save_interval == 0) {
                 //学習中のパラメータを書き出す
