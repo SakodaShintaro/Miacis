@@ -35,6 +35,9 @@ private:
     //デフォルトで読み書きするファイル名
     static const std::string DEFAULT_MODEL_NAME;
 
+    //探索
+    std::vector<torch::Tensor> search(std::vector<Position>& positions);
+
     //各部分の推論
     torch::Tensor embed(const std::vector<float>& inputs);
     torch::Tensor simulationPolicy(const torch::Tensor& x);
