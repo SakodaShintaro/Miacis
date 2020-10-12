@@ -69,9 +69,6 @@ private:
     torch::Tensor readout_h_;
     torch::Tensor readout_c_;
 
-    //出力方策の系列
-    std::vector<torch::Tensor> outputs_;
-
     //デバイスとfp16化
     torch::Device device_;
     bool fp16_;
