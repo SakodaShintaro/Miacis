@@ -150,12 +150,9 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     const int64_t batch_size = data.size();
 
     //盤面を復元
-    std::vector<float> root_features;
     std::vector<Position> positions(batch_size);
     for (int64_t i = 0; i < batch_size; i++) {
         positions[i].fromStr(data[i].position_str);
-        std::vector<float> f = positions[i].makeFeature();
-        root_features.insert(root_features.end(), f.begin(), f.end());
     }
 
     //状態を初期化
@@ -168,14 +165,11 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     //探索をして出力方策の系列を得る
     std::vector<torch::Tensor> policy_logits;
 
-    //探索行動系列の履歴
-    std::vector<std::set<std::vector<int32_t>>> moves_histories;
-
     //何回探索したら戻すか
     constexpr int64_t RESET_NUM = 3;
 
     for (int64_t m = 0; m <= search_options_.search_limit; m++) {
-        if (m % RESET_NUM == 0) {
+        if (m != 0 && m % RESET_NUM == 0) {
             //盤面を戻す
             for (int64_t i = 0; i < batch_size; i++) {
                 for (int64_t _ = 0; _ < RESET_NUM; _++) {
@@ -203,7 +197,7 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
             std::vector<Move> moves = positions[i].generateAllMoves();
             std::vector<float> logits(moves.size());
             for (uint64_t j = 0; j < moves.size(); j++) {
-                logits[j] = sim_policy_logit[0][j][moves[i].toLabel()].item<float>();
+                logits[j] = sim_policy_logit[0][i][moves[j].toLabel()].item<float>();
             }
             std::vector<float> softmaxed = softmax(logits, 1.0f);
             int64_t move_index = randomChoose(softmaxed);
