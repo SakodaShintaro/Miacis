@@ -14,7 +14,9 @@ torch::Tensor getPolicyTeacher(const std::vector<LearningData>& data, torch::Dev
 
 torch::Tensor policyLoss(const torch::Tensor& policy_logit, const torch::Tensor& policy_teacher) {
     //policy_logit, policy_teacherのshapeは(batch_size, policy_dim)であるとする
-    static const float LOG_SOFTMAX_THRESHOLD = std::log(1.0 / POLICY_DIM);
+
+    //policyが尖っていると損失値が非常に大きくなってしまうので適当な値で制限をかける
+    static const float LOG_SOFTMAX_THRESHOLD = -20;
 
     torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
     torch::Tensor clipped = torch::clamp_min(log_softmax, LOG_SOFTMAX_THRESHOLD);
