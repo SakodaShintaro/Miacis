@@ -56,7 +56,6 @@ private:
     //-------------------------
     torch::nn::LSTM simulation_lstm_{ nullptr };
     torch::nn::Linear simulation_policy_head_{ nullptr };
-    torch::nn::Linear simulation_value_head_{ nullptr };
     torch::Tensor simulation_h_;
     torch::Tensor simulation_c_;
 
@@ -65,7 +64,6 @@ private:
     //----------------------
     torch::nn::LSTM readout_lstm_{ nullptr };
     torch::nn::Linear readout_policy_head_{ nullptr };
-    torch::nn::Linear readout_value_head_{ nullptr };
     torch::Tensor readout_h_;
     torch::Tensor readout_c_;
 

@@ -18,10 +18,8 @@ ProposedModelImpl::ProposedModelImpl(SearchOptions search_options)
     option.num_layers(NUM_LAYERS);
     simulation_lstm_ = register_module("simulation_lstm_", torch::nn::LSTM(option));
     simulation_policy_head_ = register_module("simulation_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM + 1));
-    simulation_value_head_ = register_module("simulation_value_head_", torch::nn::Linear(HIDDEN_SIZE, 1));
     readout_lstm_ = register_module("readout_lstm_", torch::nn::LSTM(option));
     readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM));
-    readout_value_head_ = register_module("readout_value_head_", torch::nn::Linear(HIDDEN_SIZE, 1));
 }
 
 Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
