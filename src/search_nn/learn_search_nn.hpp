@@ -102,8 +102,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             //表示
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
                 dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
-                for (int64_t m = 0; m <= options.search_limit; m++) {
-                    if (m % print_interval == 0) {
+                for (int64_t m = 0; m < loss.size(); m++) {
+                    if (m % print_interval == 0 || m > options.search_limit) {
                         //標準出力にも表示
                         dout(std::cout, train_log) << "\t" << loss[m].item<float>();
                     } else {
@@ -111,8 +111,6 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                         train_log << "\t" << loss[m].item<float>();
                     }
                 }
-                //entropy
-                dout(std::cout, train_log) << "\t" << loss.back().item<float>();
 
                 dout(std::cout, train_log) << "\r" << std::flush;
             }

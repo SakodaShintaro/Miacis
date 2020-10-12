@@ -16,8 +16,7 @@ ProposedModelImpl::ProposedModelImpl(SearchOptions search_options)
 
     torch::nn::LSTMOptions option(HIDDEN_DIM, HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
-    simulation_lstm_ = register_module("simulation_lstm_", torch::nn::LSTM(option));
-    simulation_policy_head_ = register_module("simulation_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM + 1));
+    simulation_policy_head_ = register_module("simulation_policy_head_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
     readout_lstm_ = register_module("readout_lstm_", torch::nn::LSTM(option));
     readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM));
 }
@@ -55,21 +54,7 @@ torch::Tensor ProposedModelImpl::embed(const std::vector<float>& inputs) {
     return x;
 }
 
-torch::Tensor ProposedModelImpl::simulationPolicy(const torch::Tensor& x) {
-    //lstmは入力(input, (h_0, c_0))
-    //inputのshapeは(seq_len, batch, input_size)
-    //h_0, c_0は任意の引数で、状態を初期化できる
-    //h_0, c_0のshapeは(num_layers_ * num_directions, batch, hidden_size_)
-
-    //出力はoutput, (h_n, c_n)
-    //outputのshapeは(seq_len, batch, num_directions * hidden_size)
-    auto [output, h_and_c] = simulation_lstm_->forward(x, std::make_tuple(simulation_h_, simulation_c_));
-    std::tie(simulation_h_, simulation_c_) = h_and_c;
-
-    torch::Tensor policy = simulation_policy_head_->forward(output);
-
-    return policy;
-}
+torch::Tensor ProposedModelImpl::simulationPolicy(const torch::Tensor& x) { return simulation_policy_head_->forward(x); }
 
 torch::Tensor ProposedModelImpl::readoutPolicy(const torch::Tensor& x) {
     //lstmは入力(input, (h_0, c_0))
@@ -108,9 +93,6 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     //policyの教師信号
     torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
 
-    //エントロピー正則化の項
-    torch::Tensor entropy;
-
     //探索回数
     const int64_t M = search_options_.search_limit;
 
@@ -120,15 +102,26 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
         torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
         torch::Tensor log_softmax = torch::log_softmax(policy_logit, 1);
         torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
-        loss[m] = (-policy_teacher * clipped).sum(1).mean();
-
-        //探索なしの直接推論についてエントロピーも求めておく
-        if (m == 0) {
-            entropy = (torch::softmax(policy_logit, 1) * clipped).sum(1).mean(0);
-        }
+        loss[m] = (-policy_teacher * clipped).sum(1).mean(0);
     }
 
-    loss.push_back(entropy);
+    //Simulation Policyの損失
+    //現局面の特徴を抽出
+    std::vector<float> features;
+    for (int64_t i = 0; i < batch_size; i++) {
+        std::vector<float> f = positions[i].makeFeature();
+        features.insert(features.end(), f.begin(), f.end());
+    }
+    torch::Tensor x = embed(features);
+    torch::Tensor sim_policy_logit = simulationPolicy(x)[0];
+    torch::Tensor log_softmax = torch::log_softmax(sim_policy_logit, 1);
+    torch::Tensor clipped = torch::clamp_min(log_softmax, -20);
+    torch::Tensor sim_policy_loss = (-policy_teacher * clipped).sum(1).mean(0);
+    loss.push_back(sim_policy_loss);
+
+    //エントロピー正則化(Simulation Policyにかける)
+    loss.push_back((torch::softmax(sim_policy_logit, 1) * clipped).sum(1).mean(0));
+
     return loss;
 }
 
@@ -143,6 +136,10 @@ void ProposedModelImpl::loadPretrain(const std::string& encoder_path, const std:
     if (encoder_file.is_open()) {
         torch::load(encoder_, encoder_path);
     }
+    std::ifstream policy_head_file(policy_head_path);
+    if (policy_head_file.is_open()) {
+        torch::load(simulation_policy_head_, policy_head_path);
+    }
 }
 
 void ProposedModelImpl::setOption(bool freeze_encoder, float gamma) { freeze_encoder_ = freeze_encoder; }
@@ -156,8 +153,6 @@ std::vector<torch::Tensor> ProposedModelImpl::search(std::vector<Position>& posi
 
     //状態を初期化
     //(num_layers * num_directions, batch, hidden_size)
-    simulation_h_ = torch::zeros({ NUM_LAYERS, batch_size, HIDDEN_SIZE }).to(device_);
-    simulation_c_ = torch::zeros({ NUM_LAYERS, batch_size, HIDDEN_SIZE }).to(device_);
     readout_h_ = torch::zeros({ NUM_LAYERS, batch_size, HIDDEN_SIZE }).to(device_);
     readout_c_ = torch::zeros({ NUM_LAYERS, batch_size, HIDDEN_SIZE }).to(device_);
 

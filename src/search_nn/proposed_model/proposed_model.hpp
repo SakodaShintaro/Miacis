@@ -54,10 +54,7 @@ private:
     //-------------------------
     //    Simulation Policy
     //-------------------------
-    torch::nn::LSTM simulation_lstm_{ nullptr };
     torch::nn::Linear simulation_policy_head_{ nullptr };
-    torch::Tensor simulation_h_;
-    torch::Tensor simulation_c_;
 
     //----------------------
     //    Readout Policy
