@@ -25,6 +25,9 @@ public:
     static std::string modelPrefix() { return MODEL_PREFIX; }
     static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
 
+    //学習の設定を定める関数
+    void setOption(bool freeze_encoder, float gamma);
+
 private:
     //評価パラメータを読み書きするファイルのprefix
     static const std::string MODEL_PREFIX;
