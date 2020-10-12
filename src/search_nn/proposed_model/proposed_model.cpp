@@ -175,6 +175,10 @@ std::vector<torch::Tensor> ProposedModelImpl::search(std::vector<Position>& posi
         //ここまでの探索から最終行動決定
         policy_logits.push_back(readoutPolicy(x));
 
+        if (m == search_options_.search_limit) {
+            break;
+        }
+
         //探索行動を決定
         torch::Tensor sim_policy_logit = (search_options_.use_readout_only ? readoutPolicy(x) : simulationPolicy(x));
 
@@ -188,6 +192,12 @@ std::vector<torch::Tensor> ProposedModelImpl::search(std::vector<Position>& posi
             std::vector<float> softmaxed = softmax(logits, 1.0f);
             int64_t move_index = randomChoose(softmaxed);
             positions[i].doMove(moves[move_index]);
+        }
+    }
+
+    for (int64_t i = 0; i < batch_size; i++) {
+        for (int64_t _ = 0; _ < search_options_.search_limit % RESET_NUM; _++) {
+            positions[i].undo();
         }
     }
 
