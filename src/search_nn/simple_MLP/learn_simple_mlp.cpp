@@ -84,7 +84,7 @@ void pretrainSimpleMLP() {
 
             //勾配を求めてパラメータ更新
             loss.back() *= entropy_coeff;
-            torch::Tensor loss_sum = torch::cat(loss).sum();
+            torch::Tensor loss_sum = torch::stack(loss).sum();
             loss_sum.mean().backward();
             optimizer.step();
 
