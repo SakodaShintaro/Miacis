@@ -57,6 +57,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
         }
     }
     tout(std::cout, train_log, valid_log) << "\tentropy" << std::endl;
+    std::cout << std::setprecision(4);
 
     //モデル作成
     T model(options);
