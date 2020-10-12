@@ -21,4 +21,6 @@ torch::Tensor policyLoss(const torch::Tensor& policy_logit, const torch::Tensor&
     return -(policy_teacher * clipped).sum(1).mean(0);
 }
 
-torch::Tensor entropyLoss(const torch::Tensor& policy_logit) { return policyLoss(policy_logit, torch::softmax(policy_logit, 1)); }
+torch::Tensor entropyLoss(const torch::Tensor& policy_logit) {
+    return -policyLoss(policy_logit, torch::softmax(policy_logit, 1));
+}
