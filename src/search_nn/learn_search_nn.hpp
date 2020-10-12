@@ -103,7 +103,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
                 dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
                 for (uint64_t m = 0; m < loss.size(); m++) {
-                    if (m % print_interval == 0 || m > options.search_limit) {
+                    if (m % print_interval == 0 || m > (uint64_t)options.search_limit) {
                         //標準出力にも表示
                         dout(std::cout, train_log) << "\t" << loss[m].item<float>();
                     } else {
@@ -117,8 +117,14 @@ template<class T> void learnSearchNN(const std::string& model_name) {
 
             //勾配計算,パラメータ更新
             if (use_only_last_loss) {
-                for (uint64_t i = 0; i < loss.size() - 2; i++) {
+                //最後以外0にする
+                for (int64_t i = 0; i < options.search_limit; i++) {
                     loss[i] *= 0;
+                }
+            } else {
+                //平均化する
+                for (int64_t i = 0; i <= options.search_limit; i++) {
+                    loss[i] /= (options.search_limit + 1);
                 }
             }
             loss.back() *= entropy_coeff;
@@ -150,7 +156,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                 //表示
                 dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
                 for (uint64_t m = 0; m < loss.size(); m++) {
-                    if (m % print_interval == 0 || m > options.search_limit) {
+                    if (m % print_interval == 0 || m > (uint64_t)options.search_limit) {
                         //標準出力にも表示
                         dout(std::cout, valid_log) << "\t" << valid_loss_sum[m];
                     } else {
