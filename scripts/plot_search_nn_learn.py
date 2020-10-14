@@ -35,7 +35,6 @@ for prefix in args.method:
         if loss_name == "train":
             step = transform(step)
 
-        loss_num = len(df.columns) - 4
         for i in range(loss_num):
             loss = df[f"loss_{i}"].to_numpy()
             if loss_name == "train":
