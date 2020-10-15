@@ -1,7 +1,7 @@
 #ifndef MIACIS_TRANSFORMER_MODEL_HPP
 #define MIACIS_TRANSFORMER_MODEL_HPP
 
-#include "../api/include/modules/transformercoder.h"
+#include "../api/include/modules/transformer.h"
 #include "../state_encoder.hpp"
 
 class TransformerModelImpl : public torch::nn::Module {
@@ -51,8 +51,7 @@ private:
     StateEncoder encoder_{ nullptr };
 
     //Policy
-    torch::nn::TransformerDecoderLayer transformer_decoder_layer_{ nullptr };
-    torch::nn::TransformerDecoder transformer_decoder_{ nullptr };
+    torch::nn::Transformer transformer_{ nullptr };
 
     //探索の履歴
     std::vector<torch::Tensor> history_;

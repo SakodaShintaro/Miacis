@@ -14,13 +14,8 @@ TransformerModelImpl::TransformerModelImpl(const SearchOptions& search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
     encoder_ = register_module("encoder_", StateEncoder());
 
-    torch::nn::TransformerDecoderLayerOptions options(HIDDEN_DIM, 4);
-    options.dropout(0.1);
-    transformer_decoder_layer_ = register_module("transformer_decoder_layer_", torch::nn::TransformerDecoderLayer(options));
-
-    torch::nn::TransformerDecoderOptions decoder_options(transformer_decoder_layer_, 6);
-    //decoder_options.norm(torch::nn::LayerNorm(torch::nn::LayerNormOptions({ 2 })));
-    transformer_decoder_ = register_module("transformer_decoder_", torch::nn::TransformerDecoder(decoder_options));
+    torch::nn::TransformerOptions options(HIDDEN_DIM, 4);
+    transformer_ = register_module("transformer_", torch::nn::Transformer(options));
 }
 
 Move TransformerModelImpl::think(Position& root, int64_t time_limit) {
@@ -125,13 +120,13 @@ torch::Tensor TransformerModelImpl::embed(const std::vector<float>& inputs) {
 torch::Tensor TransformerModelImpl::simulationPolicy(const torch::Tensor& x) {
     //xをキーとして推論
     torch::Tensor memory = (history_.empty() ? torch::zeros({ 1, 1, HIDDEN_DIM }) : torch::stack(history_)).to(device_);
-    torch::Tensor policy = transformer_decoder_->forward(x, memory);
+    torch::Tensor policy = transformer_->forward(x, memory);
     return policy;
 }
 
 torch::Tensor TransformerModelImpl::readoutPolicy(const torch::Tensor& x) {
     //xをキーとして推論
     torch::Tensor memory = (history_.empty() ? torch::zeros({ 1, 1, HIDDEN_DIM }) : torch::stack(history_)).to(device_);
-    torch::Tensor policy = transformer_decoder_->forward(x, memory);
+    torch::Tensor policy = transformer_->forward(x, memory);
     return policy;
 }
