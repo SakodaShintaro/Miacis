@@ -131,7 +131,7 @@ torch::Tensor TransformerModelImpl::embed(const std::vector<Position>& positions
 
 torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history) {
     //xをキーとして推論
-    torch::Tensor memory = (history.empty() ? torch::zeros({ 1, 1, HIDDEN_DIM }) : torch::stack(history)).to(device_);
+    torch::Tensor memory = (history.empty() ? torch::zeros({ 1, 1, HIDDEN_DIM }) : torch::cat(history, 0)).to(device_);
     torch::Tensor policy = transformer_->forward(x, memory);
     return policy;
 }
