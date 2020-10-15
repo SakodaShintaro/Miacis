@@ -34,7 +34,7 @@ set(SRCS hash_table.cpp
         search_nn/simple_MLP/learn_simple_mlp.cpp
         search_nn/common.cpp
         search_nn/api/src/modules/transformer.cpp
-        search_nn/api/src/options/transformer.cpp)
+        search_nn/api/src/options/transformer.cpp search_nn/transformer/transformer_model.cpp search_nn/transformer/transformer_model.hpp)
 
 #将棋用のバイナリをコンパイルするのに必要なソース
 set(SHOGI_SRCS shogi/main.cpp

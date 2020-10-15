@@ -28,6 +28,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["testProposedModel"]  = [this] { testSearchNN<ProposedModel>(); };
     command_["testStackedLSTM"]    = [this] { testSearchNN<StackedLSTM>(); };
     command_["testSimpleMLP"]      = [this] { testSearchNN<SimpleMLP>(); };
+    command_["testTransformer"]    = [this] { testSearchNN<TransformerModel>(); };
 
     //メンバ関数以外
     command_["initParams"]         = initParams;
