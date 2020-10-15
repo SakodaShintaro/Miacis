@@ -4,8 +4,6 @@
 
 //ネットワークの設定
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
-static constexpr int32_t HIDDEN_SIZE = 512;
-static constexpr int32_t NUM_LAYERS = 1;
 
 const std::string TransformerModelImpl::MODEL_PREFIX = "transformer_model";
 const std::string TransformerModelImpl::DEFAULT_MODEL_NAME = TransformerModelImpl::MODEL_PREFIX + ".model";
