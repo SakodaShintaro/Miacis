@@ -38,6 +38,7 @@ private:
 
     //各部分の推論
     torch::Tensor embed(const std::vector<float>& inputs);
+    torch::Tensor embed(const std::vector<Position>& positions);
     torch::Tensor inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history);
 
     //探索全体

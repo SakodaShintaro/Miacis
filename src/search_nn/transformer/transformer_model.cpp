@@ -57,6 +57,9 @@ std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& p
 
     std::vector<torch::Tensor> history;
 
+    //ルート局面の特徴量
+    torch::Tensor root_x = embed(positions);
+
     for (int64_t m = 0; m <= search_options_.search_limit; m++) {
         //盤面を戻す
         if (m != 0 && m % RESET_NUM == 0) {
@@ -68,15 +71,10 @@ std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& p
         }
 
         //現局面の特徴を抽出
-        std::vector<float> features;
-        for (int64_t i = 0; i < batch_size; i++) {
-            std::vector<float> f = positions[i].makeFeature();
-            features.insert(features.end(), f.begin(), f.end());
-        }
-        torch::Tensor x = embed(features);
+        torch::Tensor x = embed(positions);
 
         //ここまでの探索から最終行動決定
-        policy_logits.push_back(inferPolicy(x, history));
+        policy_logits.push_back(inferPolicy(root_x, history));
 
         if (m == search_options_.search_limit) {
             break;
@@ -96,6 +94,9 @@ std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& p
             int64_t move_index = randomChoose(softmaxed);
             positions[i].doMove(moves[move_index]);
         }
+
+        //現在の特徴量を追加
+        history.push_back(x);
     }
 
     for (int64_t i = 0; i < batch_size; i++) {
@@ -117,6 +118,15 @@ torch::Tensor TransformerModelImpl::embed(const std::vector<float>& inputs) {
     torch::Tensor x = encoder_->embed(inputs, device_, fp16_, freeze_encoder_);
     x = x.view({ 1, -1, HIDDEN_DIM });
     return x;
+}
+
+torch::Tensor TransformerModelImpl::embed(const std::vector<Position>& positions) {
+    std::vector<float> features;
+    for (const auto& position : positions) {
+        std::vector<float> f = position.makeFeature();
+        features.insert(features.end(), f.begin(), f.end());
+    }
+    return embed(features);
 }
 
 torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history) {
