@@ -38,7 +38,7 @@ private:
 
     //各部分の推論
     torch::Tensor embed(const std::vector<float>& inputs);
-    torch::Tensor inferPolicy(const torch::Tensor& x);
+    torch::Tensor inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history);
 
     //探索全体
     std::vector<torch::Tensor> search(std::vector<Position>& positions);
@@ -51,9 +51,6 @@ private:
 
     //Policy
     torch::nn::Transformer transformer_{ nullptr };
-
-    //探索の履歴
-    std::vector<torch::Tensor> history_;
 
     //デバイスとfp16化
     torch::Device device_;

@@ -55,6 +55,8 @@ std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& p
     //何回探索したら戻すか
     constexpr int64_t RESET_NUM = 3;
 
+    std::vector<torch::Tensor> history;
+
     for (int64_t m = 0; m <= search_options_.search_limit; m++) {
         //盤面を戻す
         if (m != 0 && m % RESET_NUM == 0) {
@@ -74,14 +76,14 @@ std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& p
         torch::Tensor x = embed(features);
 
         //ここまでの探索から最終行動決定
-        policy_logits.push_back(inferPolicy(x));
+        policy_logits.push_back(inferPolicy(x, history));
 
         if (m == search_options_.search_limit) {
             break;
         }
 
         //探索行動を決定
-        torch::Tensor sim_policy_logit = inferPolicy(x);
+        torch::Tensor sim_policy_logit = inferPolicy(x, history);
 
         //行動をサンプリングして盤面を動かす
         for (int64_t i = 0; i < batch_size; i++) {
@@ -117,9 +119,9 @@ torch::Tensor TransformerModelImpl::embed(const std::vector<float>& inputs) {
     return x;
 }
 
-torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x) {
+torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history) {
     //xをキーとして推論
-    torch::Tensor memory = (history_.empty() ? torch::zeros({ 1, 1, HIDDEN_DIM }) : torch::stack(history_)).to(device_);
+    torch::Tensor memory = (history.empty() ? torch::zeros({ 1, 1, HIDDEN_DIM }) : torch::stack(history)).to(device_);
     torch::Tensor policy = transformer_->forward(x, memory);
     return policy;
 }
