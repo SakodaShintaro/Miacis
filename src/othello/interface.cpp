@@ -400,7 +400,7 @@ template<class T> void Interface::testSearchNN() {
     model->eval();
     torch::NoGradGuard no_grad_guard;
 
-    float score;
+    float score{};
     while (!root_.isFinish(score)) {
         Move best_move = model->think(root_, INT_MAX);
         root_.doMove(best_move);
