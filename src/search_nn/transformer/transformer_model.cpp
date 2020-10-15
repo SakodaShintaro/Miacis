@@ -74,14 +74,14 @@ std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& p
         torch::Tensor x = embed(features);
 
         //ここまでの探索から最終行動決定
-        policy_logits.push_back(readoutPolicy(x));
+        policy_logits.push_back(inferPolicy(x));
 
         if (m == search_options_.search_limit) {
             break;
         }
 
         //探索行動を決定
-        torch::Tensor sim_policy_logit = (search_options_.use_readout_only ? readoutPolicy(x) : simulationPolicy(x));
+        torch::Tensor sim_policy_logit = inferPolicy(x);
 
         //行動をサンプリングして盤面を動かす
         for (int64_t i = 0; i < batch_size; i++) {
@@ -117,14 +117,7 @@ torch::Tensor TransformerModelImpl::embed(const std::vector<float>& inputs) {
     return x;
 }
 
-torch::Tensor TransformerModelImpl::simulationPolicy(const torch::Tensor& x) {
-    //xをキーとして推論
-    torch::Tensor memory = (history_.empty() ? torch::zeros({ 1, 1, HIDDEN_DIM }) : torch::stack(history_)).to(device_);
-    torch::Tensor policy = transformer_->forward(x, memory);
-    return policy;
-}
-
-torch::Tensor TransformerModelImpl::readoutPolicy(const torch::Tensor& x) {
+torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x) {
     //xをキーとして推論
     torch::Tensor memory = (history_.empty() ? torch::zeros({ 1, 1, HIDDEN_DIM }) : torch::stack(history_)).to(device_);
     torch::Tensor policy = transformer_->forward(x, memory);
