@@ -14,8 +14,6 @@ TransformerModelImpl::TransformerModelImpl(const SearchOptions& search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
     encoder_ = register_module("encoder_", StateEncoder());
 
-    using torch::nn::Linear;
-
     torch::nn::TransformerDecoderLayerOptions options(HIDDEN_DIM, 4);
     options.dropout(0.1);
     transformer_decoder_layer_ = register_module("transformer_decoder_layer_", torch::nn::TransformerDecoderLayer(options));
