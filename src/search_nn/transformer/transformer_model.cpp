@@ -12,7 +12,7 @@ TransformerModelImpl::TransformerModelImpl(const SearchOptions& search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
     encoder_ = register_module("encoder_", StateEncoder());
 
-    torch::nn::TransformerOptions options(HIDDEN_DIM, 4);
+    torch::nn::TransformerOptions options(HIDDEN_DIM, 4, 3, 3);
     transformer_ = register_module("transformer_", torch::nn::Transformer(options));
 
     policy_head_ = register_module("policy_head_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
@@ -126,7 +126,9 @@ torch::Tensor TransformerModelImpl::embed(const std::vector<Position>& positions
         std::vector<float> f = position.makeFeature();
         features.insert(features.end(), f.begin(), f.end());
     }
-    return embed(features);
+    torch::Tensor x = encoder_->embed(features, device_, fp16_, freeze_encoder_);
+    x = x.view({ 1, (int64_t)positions.size(), HIDDEN_DIM });
+    return x;
 }
 
 torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history) {
