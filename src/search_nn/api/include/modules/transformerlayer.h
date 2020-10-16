@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../options/transformerlayer.h"
+#include "my_multiheadattention.h"
 #include <torch/nn/cloneable.h>
 #include <torch/nn/module.h>
 #include <torch/nn/modules/activation.h>
@@ -51,7 +52,7 @@ public:
     TransformerEncoderLayerOptions options;
 
     /// self attention
-    MultiheadAttention self_attn = nullptr;
+    MyMultiheadAttention self_attn = nullptr;
 
     /// feedforward first linear layer
     Linear linear1 = nullptr;
@@ -125,7 +126,7 @@ public:
     TransformerDecoderLayerOptions options;
 
     ///self attention
-    MultiheadAttention self_attn{ nullptr };
+    MyMultiheadAttention self_attn{ nullptr };
 
     ///Dropout, post self attention
     Dropout dropout1{ nullptr };
@@ -134,7 +135,7 @@ public:
     LayerNorm norm1{ nullptr };
 
     ///Multi-headed attention
-    MultiheadAttention multihead_attn{ nullptr };
+    MyMultiheadAttention multihead_attn{ nullptr };
 
     ///Dropout, post multi-headed attention
     Dropout dropout2{ nullptr };

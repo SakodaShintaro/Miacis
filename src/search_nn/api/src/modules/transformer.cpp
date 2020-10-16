@@ -21,7 +21,7 @@ void TransformerEncoderLayerImpl::reset() {
 
     self_attn = this->register_module(
         "self_attn",
-        MultiheadAttention(MultiheadAttentionOptions(options.d_model(), options.nhead()).dropout(options.dropout())));
+        MyMultiheadAttention(MultiheadAttentionOptions(options.d_model(), options.nhead()).dropout(options.dropout())));
 
     linear1 = this->register_module("linear1", Linear(options.d_model(), options.dim_feedforward()));
     dropout = this->register_module("dropout", Dropout(options.dropout()));
@@ -76,12 +76,12 @@ void TransformerDecoderLayerImpl::reset() {
     // initialize self attention
     self_attn = this->register_module(
         "self_attn",
-        MultiheadAttention(MultiheadAttentionOptions(options.d_model(), options.nhead()).dropout(options.dropout())));
+        MyMultiheadAttention(MultiheadAttentionOptions(options.d_model(), options.nhead()).dropout(options.dropout())));
 
     // initialize multihed attention
     multihead_attn = this->register_module(
         "multihead_attn",
-        MultiheadAttention(MultiheadAttentionOptions(options.d_model(), options.nhead()).dropout(options.dropout())));
+        MyMultiheadAttention(MultiheadAttentionOptions(options.d_model(), options.nhead()).dropout(options.dropout())));
 
     // Initialize Feed forward first linear layer
     linear1 = this->register_module("linear1", Linear(options.d_model(), options.dim_feedforward()));
