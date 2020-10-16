@@ -50,8 +50,11 @@ private:
     //Encoder
     StateEncoder encoder_{ nullptr };
 
-    //Policy
+    //transformer
     torch::nn::Transformer transformer_{ nullptr };
+
+    //policy head
+    torch::nn::Linear policy_head_{ nullptr };
 
     //デバイスとfp16化
     torch::Device device_;

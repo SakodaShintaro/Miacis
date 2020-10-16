@@ -14,6 +14,8 @@ TransformerModelImpl::TransformerModelImpl(const SearchOptions& search_options)
 
     torch::nn::TransformerOptions options(HIDDEN_DIM, 4);
     transformer_ = register_module("transformer_", torch::nn::Transformer(options));
+
+    policy_head_ = register_module("policy_head_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
 }
 
 Move TransformerModelImpl::think(Position& root, int64_t time_limit) {
@@ -129,7 +131,8 @@ torch::Tensor TransformerModelImpl::embed(const std::vector<Position>& positions
 
 torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history) {
     //xをキーとして推論
-    torch::Tensor memory = (history.empty() ? torch::zeros({ 1, 1, HIDDEN_DIM }) : torch::cat(history, 0)).to(device_);
-    torch::Tensor policy = transformer_->forward(x, memory);
-    return policy;
+    torch::Tensor src = (history.empty() ? torch::zeros({ 1, 1, HIDDEN_DIM }) : torch::cat(history, 0)).to(device_);
+    torch::Tensor y = transformer_->forward(src, x);
+    y = policy_head_->forward(y);
+    return y;
 }
