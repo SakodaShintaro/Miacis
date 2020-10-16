@@ -11,36 +11,37 @@ namespace Othello {
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
     // clang-format off
-    command_["printOption"]        = [this] { printOption(); };
-    command_["set"]                = [this] { set(); };
-    command_["think"]              = [this] { think(); };
-    command_["test"]               = [this] { test(); };
-    command_["infiniteTest"]       = [this] { infiniteTest(); };
-    command_["battle"]             = [this] { battle(); };
-    command_["battleVSRandom"]     = [this] { battleVSRandom(); };
-    command_["outputValue"]        = [this] { outputValue(); };
-    command_["init"]               = [this] { init(); };
-    command_["play"]               = [this] { play(); };
-    command_["go"]                 = [this] { go(); };
-    command_["stop"]               = [this] { stop(); };
-    command_["quit"]               = [this] { quit(); };
-    command_["testMCTSNet"]        = [this] { testSearchNN<MCTSNet>(); };
-    command_["testProposedModel"]  = [this] { testSearchNN<ProposedModel>(); };
-    command_["testStackedLSTM"]    = [this] { testSearchNN<StackedLSTM>(); };
-    command_["testSimpleMLP"]      = [this] { testSearchNN<SimpleMLP>(); };
-    command_["testTransformer"]    = [this] { testSearchNN<TransformerModel>(); };
+    command_["printOption"]           = [this] { printOption(); };
+    command_["set"]                   = [this] { set(); };
+    command_["think"]                 = [this] { think(); };
+    command_["test"]                  = [this] { test(); };
+    command_["infiniteTest"]          = [this] { infiniteTest(); };
+    command_["battle"]                = [this] { battle(); };
+    command_["battleVSRandom"]        = [this] { battleVSRandom(); };
+    command_["outputValue"]           = [this] { outputValue(); };
+    command_["init"]                  = [this] { init(); };
+    command_["play"]                  = [this] { play(); };
+    command_["go"]                    = [this] { go(); };
+    command_["stop"]                  = [this] { stop(); };
+    command_["quit"]                  = [this] { quit(); };
+    command_["testMCTSNet"]           = [this] { testSearchNN<MCTSNet>(); };
+    command_["testProposedModel"]     = [this] { testSearchNN<ProposedModel>(); };
+    command_["testStackedLSTM"]       = [this] { testSearchNN<StackedLSTM>(); };
+    command_["testSimpleMLP"]         = [this] { testSearchNN<SimpleMLP>(); };
+    command_["testTransformerModel"]  = [this] { testSearchNN<TransformerModel>(); };
 
     //メンバ関数以外
-    command_["initParams"]         = initParams;
-    command_["supervisedLearn"]    = supervisedLearn;
-    command_["alphaZero"]          = alphaZero;
-    command_["pretrain"]           = pretrainSimpleMLP;
-    command_["learnMCTSNet"]       = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
-    command_["learnProposedModel"] = [](){ learnSearchNN<ProposedModel>("proposed_model"); };
-    command_["learnStackedLSTM"]   = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
-    command_["validMCTSNet"]       = [](){ validSearchNN<MCTSNet>("mcts_net"); };
-    command_["validProposedModel"] = [](){ validSearchNN<ProposedModel>("proposed_model"); };
-    command_["validStackedLSTM"]   = [](){ validSearchNN<StackedLSTM>("stacked_lstm"); };
+    command_["initParams"]            = initParams;
+    command_["supervisedLearn"]       = supervisedLearn;
+    command_["alphaZero"]             = alphaZero;
+    command_["pretrain"]              = pretrainSimpleMLP;
+    command_["learnMCTSNet"]          = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
+    command_["learnProposedModel"]    = [](){ learnSearchNN<ProposedModel>("proposed_model"); };
+    command_["learnStackedLSTM"]      = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
+    command_["learnTransformerModel"] = [](){ learnSearchNN<TransformerModel>("transformer_model"); };
+    command_["validMCTSNet"]          = [](){ validSearchNN<MCTSNet>("mcts_net"); };
+    command_["validProposedModel"]    = [](){ validSearchNN<ProposedModel>("proposed_model"); };
+    command_["validStackedLSTM"]      = [](){ validSearchNN<StackedLSTM>("stacked_lstm"); };
     // clang-format on
 }
 

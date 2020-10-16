@@ -131,8 +131,58 @@ torch::Tensor TransformerModelImpl::embed(const std::vector<Position>& positions
 
 torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history) {
     //xをキーとして推論
-    torch::Tensor src = (history.empty() ? torch::zeros({ 1, 1, HIDDEN_DIM }) : torch::cat(history, 0)).to(device_);
+    torch::Tensor src = (history.empty() ? torch::zeros({ 1, x.size(1), HIDDEN_DIM }) : torch::cat(history, 0)).to(device_);
     torch::Tensor y = transformer_->forward(src, x);
     y = policy_head_->forward(y);
     return y;
 }
+
+std::vector<torch::Tensor> TransformerModelImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
+    if (use_policy_gradient) {
+        std::cout << "TransformerModel is not compatible with use_policy_gradient." << std::endl;
+        std::exit(1);
+    }
+
+    //バッチサイズを取得しておく
+    const int64_t batch_size = data.size();
+
+    //盤面を復元
+    std::vector<Position> positions(batch_size);
+    for (int64_t i = 0; i < batch_size; i++) {
+        positions[i].fromStr(data[i].position_str);
+    }
+
+    //探索をして出力方策の系列を得る
+    std::vector<torch::Tensor> policy_logits = search(positions);
+
+    //policyの教師信号
+    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
+
+    //探索回数
+    const int64_t M = search_options_.search_limit;
+
+    //各探索後の損失を計算
+    std::vector<torch::Tensor> loss(M + 1);
+    for (int64_t m = 0; m <= M; m++) {
+        torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
+        loss[m] = policyLoss(policy_logit, policy_teacher);
+    }
+
+    //エントロピー正則化
+    loss.push_back(entropyLoss(policy_logits[0][0]));
+
+    return loss;
+}
+
+void TransformerModelImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
+    std::ifstream encoder_file(encoder_path);
+    if (encoder_file.is_open()) {
+        torch::load(encoder_, encoder_path);
+    }
+    std::ifstream policy_head_file(policy_head_path);
+    if (policy_head_file.is_open()) {
+        torch::load(policy_head_, policy_head_path);
+    }
+}
+
+void TransformerModelImpl::setOption(bool freeze_encoder, float gamma) { freeze_encoder_ = freeze_encoder; }
