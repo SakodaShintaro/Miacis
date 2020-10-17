@@ -40,6 +40,7 @@ private:
     torch::Tensor embed(const std::vector<float>& inputs);
     torch::Tensor embed(const std::vector<Position>& positions);
     torch::Tensor inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history);
+    torch::Tensor positionalEncoding(int64_t pos) const;
 
     //探索全体
     std::vector<torch::Tensor> search(std::vector<Position>& positions);

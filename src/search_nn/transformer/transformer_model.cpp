@@ -95,8 +95,11 @@ std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& p
             positions[i].doMove(moves[move_index]);
         }
 
+        //positional encodingを取得
+        torch::Tensor pe = positionalEncoding(m);
+
         //現在の特徴量を追加
-        history.push_back(x);
+        history.push_back(x + pe);
     }
 
     for (int64_t i = 0; i < batch_size; i++) {
@@ -188,3 +191,16 @@ void TransformerModelImpl::loadPretrain(const std::string& encoder_path, const s
 }
 
 void TransformerModelImpl::setOption(bool freeze_encoder, float gamma) { freeze_encoder_ = freeze_encoder; }
+
+torch::Tensor TransformerModelImpl::positionalEncoding(int64_t pos) const {
+    //参考1) https://pytorch.org/tutorials/beginner/transformer_tutorial.html
+    //参考2) https://qiita.com/omiita/items/07e69aef6c156d23c538
+    //shape (HIDDEN_DIM)のものを返す
+    torch::Tensor pe = torch::zeros({ HIDDEN_DIM });
+    for (int64_t i = 0; i < HIDDEN_DIM; i++) {
+        float exponent = static_cast<float>(i / 2 * 2) / HIDDEN_DIM;
+        float div = std::pow(10000, exponent);
+        pe[i] = (i % 2 == 0 ? std::sin(pos / div) : std::cos(pos / div));
+    }
+    return pe.to(device_);
+}
