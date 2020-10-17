@@ -39,6 +39,7 @@ public:
         check_options.emplace("use_mcts_net",          CheckOption(use_mcts_net = false));
         check_options.emplace("use_proposed_model",    CheckOption(use_proposed_model = false));
         check_options.emplace("use_stacked_lstm",      CheckOption(use_stacked_lstm = false));
+        check_options.emplace("use_transformer_model", CheckOption(use_transformer_model = false));
         check_options.emplace("use_readout_only",      CheckOption(use_readout_only = false));
         spin_options.emplace("USI_Hash",               SpinOption(USI_Hash                 =   256,    0,  MAX));
         spin_options.emplace("byoyomi_margin",         SpinOption(byoyomi_margin           =     0,    0,  MAX));
@@ -78,6 +79,7 @@ public:
     bool use_mcts_net;
     bool use_proposed_model;
     bool use_stacked_lstm;
+    bool use_transformer_model;
     bool use_readout_only;
     int64_t byoyomi_margin;
     int64_t random_turn;

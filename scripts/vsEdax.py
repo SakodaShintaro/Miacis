@@ -105,6 +105,7 @@ def main():
     parser.add_argument("--mcts_net", action="store_true")
     parser.add_argument("--proposed_model", action="store_true")
     parser.add_argument("--stacked_lstm", action="store_true")
+    parser.add_argument("--transformer_model", action="store_true")
     parser.add_argument("--use_readout_only", action="store_true")
     args = parser.parse_args()
 
@@ -140,6 +141,8 @@ def main():
         miacis_manager.send_option("use_proposed_model", "true")
     elif args.stacked_lstm:
         miacis_manager.send_option("use_stacked_lstm", "true")
+    elif args.transformer_model:
+        miacis_manager.send_option("use_transformer_model", "true")
 
     if args.use_readout_only:
         miacis_manager.send_option("use_readout_only", "true")

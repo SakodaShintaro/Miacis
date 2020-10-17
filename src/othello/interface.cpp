@@ -285,6 +285,10 @@ void Interface::init() {
         stacked_lstm_ = StackedLSTM(options_);
         torch::load(stacked_lstm_, options_.model_name);
         stacked_lstm_->eval();
+    } else if (options_.use_transformer_model) {
+        transformer_model_ = TransformerModel(options_);
+        torch::load(transformer_model_, options_.model_name);
+        transformer_model_->eval();
     } else {
         searcher_ = std::make_unique<SearcherForPlay>(options_);
     }
@@ -311,6 +315,11 @@ void Interface::go() {
     } else if (options_.use_stacked_lstm) {
         torch::NoGradGuard no_grad_guard;
         Move best_move = stacked_lstm_->think(root_, options_.byoyomi_margin);
+        std::cout << "best_move " << best_move << std::endl;
+        root_.doMove(best_move);
+    } else if (options_.use_transformer_model) {
+        torch::NoNamesGuard no_grad_guard;
+        Move best_move = transformer_model_->think(root_, options_.byoyomi_margin);
         std::cout << "best_move " << best_move << std::endl;
         root_.doMove(best_move);
     } else {

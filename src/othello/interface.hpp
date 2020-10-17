@@ -56,6 +56,7 @@ private:
     MCTSNet mcts_net_;
     ProposedModel proposed_model_;
     StackedLSTM stacked_lstm_;
+    TransformerModel transformer_model_;
     std::thread thread_;
     SearchOptions options_;
 };
