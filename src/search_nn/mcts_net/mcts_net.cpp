@@ -58,8 +58,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit) {
 
                 const HashEntryForMCTSNet& entry = hash_table_[index];
                 torch::Tensor h = entry.embedding_vector.to(device_);
-                torch::Tensor policy_logit =
-                    (search_options_.use_readout_only ? readout_policy_->forward(h) : sim_policy_head_->forward(h));
+                torch::Tensor policy_logit = sim_policy_head_->forward(h);
 
                 //合法手だけマスクをかける
                 std::vector<Move> moves = root.generateAllMoves();
@@ -233,8 +232,7 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
 
             //GPUで計算
             torch::Tensor h = torch::stack(embedding_vectors);
-            torch::Tensor policy_logit =
-                (search_options_.use_readout_only ? readout_policy_->forward(h) : sim_policy_head_->forward(h));
+            torch::Tensor policy_logit = sim_policy_head_->forward(h);
             torch::Tensor log_policy = torch::log_softmax(policy_logit, 1);
             torch::Tensor clipped_log_policy = torch::clamp_min(log_policy, LOG_SOFTMAX_THRESHOLD);
 

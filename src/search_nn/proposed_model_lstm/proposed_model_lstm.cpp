@@ -143,7 +143,7 @@ std::vector<torch::Tensor> ProposedModelLSTMImpl::search(std::vector<Position>& 
         }
 
         //探索行動を決定
-        torch::Tensor sim_policy_logit = (search_options_.use_readout_only ? readoutPolicy(x) : simulationPolicy(x));
+        torch::Tensor sim_policy_logit = simulationPolicy(x);
 
         //行動をサンプリングして盤面を動かす
         for (int64_t i = 0; i < batch_size; i++) {

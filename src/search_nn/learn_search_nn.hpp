@@ -21,7 +21,6 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     float valid_rate_threshold   = settings.get<float>("valid_rate_threshold");
     bool data_augmentation       = settings.get<bool>("data_augmentation");
     bool freeze_encoder          = settings.get<bool>("freeze_encoder");
-    options.use_readout_only     = settings.get<bool>("use_readout_only");
     bool use_only_last_loss      = settings.get<bool>("use_only_last_loss");
     int64_t batch_size           = settings.get<int64_t>("batch_size");
     options.search_limit         = settings.get<int64_t>("search_limit");
@@ -200,8 +199,6 @@ template<class T> void validSearchNN(const std::string& model_name) {
     std::cin >> batch_size;
     std::cout << "search_limit: ";
     std::cin >> options.search_limit;
-    std::cout << "use_readout_only: ";
-    std::cin >> options.use_readout_only;
 
     std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
     std::cout << "valid_data_size = " << valid_data.size() << std::endl;
