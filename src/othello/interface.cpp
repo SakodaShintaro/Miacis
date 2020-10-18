@@ -25,7 +25,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["stop"]                  = [this] { stop(); };
     command_["quit"]                  = [this] { quit(); };
     command_["testMCTSNet"]           = [this] { testSearchNN<MCTSNet>(); };
-    command_["testProposedModel"]     = [this] { testSearchNN<ProposedModel>(); };
+    command_["testProposedModel"]     = [this] { testSearchNN<ProposedModelLSTM>(); };
     command_["testStackedLSTM"]       = [this] { testSearchNN<StackedLSTM>(); };
     command_["testSimpleMLP"]         = [this] { testSearchNN<SimpleMLP>(); };
     command_["testTransformerModel"]  = [this] { testSearchNN<TransformerModel>(); };
@@ -36,11 +36,11 @@ Interface::Interface() : searcher_(nullptr) {
     command_["alphaZero"]             = alphaZero;
     command_["pretrain"]              = pretrainSimpleMLP;
     command_["learnMCTSNet"]          = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
-    command_["learnProposedModel"]    = [](){ learnSearchNN<ProposedModel>("proposed_model"); };
+    command_["learnProposedModel"]    = [](){ learnSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
     command_["learnStackedLSTM"]      = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
     command_["learnTransformerModel"] = [](){ learnSearchNN<TransformerModel>("transformer_model"); };
     command_["validMCTSNet"]          = [](){ validSearchNN<MCTSNet>("mcts_net"); };
-    command_["validProposedModel"]    = [](){ validSearchNN<ProposedModel>("proposed_model"); };
+    command_["validProposedModel"]    = [](){ validSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
     command_["validStackedLSTM"]      = [](){ validSearchNN<StackedLSTM>("stacked_lstm"); };
     // clang-format on
 }
@@ -278,9 +278,9 @@ void Interface::init() {
         torch::load(mcts_net_, options_.model_name);
         mcts_net_->eval();
     } else if (options_.use_proposed_model) {
-        proposed_model_ = ProposedModel(options_);
-        torch::load(proposed_model_, options_.model_name);
-        proposed_model_->eval();
+        proposed_model_lstm_ = ProposedModelLSTM(options_);
+        torch::load(proposed_model_lstm_, options_.model_name);
+        proposed_model_lstm_->eval();
     } else if (options_.use_stacked_lstm) {
         stacked_lstm_ = StackedLSTM(options_);
         torch::load(stacked_lstm_, options_.model_name);
@@ -309,7 +309,7 @@ void Interface::go() {
         root_.doMove(best_move);
     } else if (options_.use_proposed_model) {
         torch::NoGradGuard no_grad_guard;
-        Move best_move = proposed_model_->think(root_, options_.byoyomi_margin);
+        Move best_move = proposed_model_lstm_->think(root_, options_.byoyomi_margin);
         std::cout << "best_move " << best_move << std::endl;
         root_.doMove(best_move);
     } else if (options_.use_stacked_lstm) {

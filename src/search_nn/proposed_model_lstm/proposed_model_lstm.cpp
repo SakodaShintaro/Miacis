@@ -1,4 +1,4 @@
-#include "proposed_model.hpp"
+#include "proposed_model_lstm.hpp"
 #include "../../common.hpp"
 #include "../common.hpp"
 
@@ -6,14 +6,14 @@
 static constexpr int32_t HIDDEN_SIZE = 512;
 static constexpr int32_t NUM_LAYERS = 1;
 
-ProposedModelImpl::ProposedModelImpl(SearchOptions search_options) : BaseModel(search_options) {
+ProposedModelLSTMImpl::ProposedModelLSTMImpl(SearchOptions search_options) : BaseModel(search_options) {
     torch::nn::LSTMOptions option(StateEncoderImpl::HIDDEN_DIM, HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
     readout_lstm_ = register_module("readout_lstm_", torch::nn::LSTM(option));
     readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM));
 }
 
-Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
+Move ProposedModelLSTMImpl::think(Position& root, int64_t time_limit) {
     //バッチ化している関数と共通化している都合上、盤面をvector化
     std::vector<Position> positions;
     positions.push_back(root);
@@ -40,7 +40,7 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
     }
 }
 
-torch::Tensor ProposedModelImpl::embed(const std::vector<Position>& positions) {
+torch::Tensor ProposedModelLSTMImpl::embed(const std::vector<Position>& positions) {
     std::vector<float> features;
     for (const auto& position : positions) {
         std::vector<float> f = position.makeFeature();
@@ -51,9 +51,9 @@ torch::Tensor ProposedModelImpl::embed(const std::vector<Position>& positions) {
     return x;
 }
 
-torch::Tensor ProposedModelImpl::simulationPolicy(const torch::Tensor& x) { return sim_policy_head_->forward(x); }
+torch::Tensor ProposedModelLSTMImpl::simulationPolicy(const torch::Tensor& x) { return sim_policy_head_->forward(x); }
 
-torch::Tensor ProposedModelImpl::readoutPolicy(const torch::Tensor& x) {
+torch::Tensor ProposedModelLSTMImpl::readoutPolicy(const torch::Tensor& x) {
     //lstmは入力(input, (h_0, c_0))
     //inputのshapeは(seq_len, batch, input_size)
     //h_0, c_0は任意の引数で、状態を初期化できる
@@ -69,7 +69,7 @@ torch::Tensor ProposedModelImpl::readoutPolicy(const torch::Tensor& x) {
     return policy;
 }
 
-std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningData>& data) {
+std::vector<torch::Tensor> ProposedModelLSTMImpl::loss(const std::vector<LearningData>& data) {
     //バッチサイズを取得しておく
     const int64_t batch_size = data.size();
 
@@ -107,7 +107,7 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
     return loss;
 }
 
-std::vector<torch::Tensor> ProposedModelImpl::search(std::vector<Position>& positions) {
+std::vector<torch::Tensor> ProposedModelLSTMImpl::search(std::vector<Position>& positions) {
     //探索をして出力方策の系列を得る
     std::vector<torch::Tensor> policy_logits;
 

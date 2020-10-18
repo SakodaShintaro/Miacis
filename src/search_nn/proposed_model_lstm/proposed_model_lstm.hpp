@@ -1,12 +1,12 @@
-#ifndef MIACIS_PROPOSED_MODEL_HPP
-#define MIACIS_PROPOSED_MODEL_HPP
+#ifndef MIACIS_PROPOSED_MODEL_LSTM_HPP
+#define MIACIS_PROPOSED_MODEL_LSTM_HPP
 
 #include "../base_model/base_model.hpp"
 
-class ProposedModelImpl : public BaseModel {
+class ProposedModelLSTMImpl : public BaseModel {
 public:
-    ProposedModelImpl() : ProposedModelImpl(SearchOptions()) {}
-    explicit ProposedModelImpl(SearchOptions search_options);
+    ProposedModelLSTMImpl() : ProposedModelLSTMImpl(SearchOptions()) {}
+    explicit ProposedModelLSTMImpl(SearchOptions search_options);
 
     //root局面について探索を行って一番良い指し手を返す関数
     Move think(Position& root, int64_t time_limit) override;
@@ -15,7 +15,7 @@ public:
     std::vector<torch::Tensor> loss(const std::vector<LearningData>& data) override;
 
     //インタンスから下のクラス変数を参照するための関数
-    std::string modelPrefix() override { return "proposed_model"; }
+    std::string modelPrefix() override { return "proposed_model_lstm"; }
 
 private:
     //探索
@@ -34,6 +34,6 @@ private:
     torch::Tensor readout_h_;
     torch::Tensor readout_c_;
 };
-TORCH_MODULE(ProposedModel);
+TORCH_MODULE(ProposedModelLSTM);
 
-#endif //MIACIS_PROPOSED_MODEL_HPP
+#endif //MIACIS_PROPOSED_MODEL_LSTM_HPP

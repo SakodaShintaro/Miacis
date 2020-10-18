@@ -7,7 +7,7 @@ import pandas as pd
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--method", type=(lambda x: x.split()),
-                    default=["mcts_net", "proposed_model", "stacked_lstm"])
+                    default=["mcts_net", "proposed_model_lstm", "stacked_lstm"])
 args = parser.parse_args()
 
 PLOT_NUM = 20

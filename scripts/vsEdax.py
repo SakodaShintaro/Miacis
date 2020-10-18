@@ -103,7 +103,7 @@ def main():
     parser.add_argument("--temperature_x1000", type=int, default=75)
     parser.add_argument("--exp_search", action="store_true")
     parser.add_argument("--mcts_net", action="store_true")
-    parser.add_argument("--proposed_model", action="store_true")
+    parser.add_argument("--proposed_model_lstm", action="store_true")
     parser.add_argument("--stacked_lstm", action="store_true")
     parser.add_argument("--transformer_model", action="store_true")
     parser.add_argument("--use_readout_only", action="store_true")

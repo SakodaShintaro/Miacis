@@ -15,7 +15,7 @@ namespace nn {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Transformer ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-/// A transformer model. User is able to modify the attributes as needed. The architecture
+/// A proposed_model_transformer model. User is able to modify the attributes as needed. The architecture
 /// is based on the paper "Attention Is All You Need". Ashish Vaswani, Noam Shazeer,
 /// Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Lukasz Kaiser, and
 /// Illia Polosukhin. 2017. Attention is all you need. In Advances in Neural Information
@@ -23,7 +23,7 @@ namespace nn {
 /// model with corresponding parameters.
 ///
 /// See https://pytorch.org/docs/stable/generated/torch.nn.Transformer.html to
-/// learn about the exact behavior of this transformer model
+/// learn about the exact behavior of this proposed_model_transformer model
 ///
 /// See the documentation for `torch::nn::Transformer` class to learn what
 /// constructor arguments are supported for this encoder layer model
@@ -73,8 +73,8 @@ public:
     ///   output: `(T, N, E)`
     ///
     ///   Note:
-    ///     Due to the multi-head attention architecture in the transformer model,
-    ///     the output sequence length of a transformer is same as the input sequence
+    ///     Due to the multi-head attention architecture in the proposed_model_transformer model,
+    ///     the output sequence length of a proposed_model_transformer is same as the input sequence
     ///     (i.e. target) length of the decode.
     ///
     ///   where

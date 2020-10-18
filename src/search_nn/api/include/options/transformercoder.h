@@ -24,7 +24,7 @@ struct TORCH_API TransformerEncoderOptions {
     // This constructor will create a new TransformerEncoderLayer obj based on passed in encoder_layer_options.
     TransformerEncoderOptions(const TransformerEncoderLayerOptions& encoder_layer_options, int64_t num_layers);
 
-    /// transformer Encoder Layer
+    /// proposed_model_transformer Encoder Layer
     TORCH_ARG(TransformerEncoderLayer, encoder_layer) = nullptr;
 
     /// number of encoder layers
