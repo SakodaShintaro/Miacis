@@ -5,9 +5,6 @@
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
 static constexpr int64_t ACTION_FEATURE_CHANNEL_NUM = 10;
 
-const std::string MuZeroImpl::MODEL_PREFIX = "muzero";
-const std::string MuZeroImpl::DEFAULT_MODEL_NAME = MuZeroImpl::MODEL_PREFIX + ".model";
-
 MuZeroImpl::MuZeroImpl(SearchOptions search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
     encoder = register_module("encoder", StateEncoder());

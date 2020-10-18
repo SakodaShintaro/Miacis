@@ -2,9 +2,6 @@
 #include "../common.hpp"
 #include <stack>
 
-const std::string MCTSNetImpl::MODEL_PREFIX = "mcts_net";
-const std::string MCTSNetImpl::DEFAULT_MODEL_NAME = MCTSNetImpl::MODEL_PREFIX + ".model";
-
 static const float LOG_SOFTMAX_THRESHOLD = std::log(1.0 / POLICY_DIM);
 
 MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)

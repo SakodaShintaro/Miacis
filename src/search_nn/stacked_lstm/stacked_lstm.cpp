@@ -8,9 +8,6 @@ static constexpr int32_t LSTM_HIDDEN_SIZE = 512;
 static constexpr int32_t ABSTRACT_ACTION_DIM = 512;
 static constexpr int32_t NUM_LAYERS = 2;
 
-const std::string StackedLSTMImpl::MODEL_PREFIX = "stacked_lstm";
-const std::string StackedLSTMImpl::DEFAULT_MODEL_NAME = StackedLSTMImpl::MODEL_PREFIX + ".model";
-
 StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options)
     : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
     encoder_ = register_module("encoder_", StateEncoder());

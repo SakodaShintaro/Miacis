@@ -18,8 +18,8 @@ public:
     void setGPU(int16_t gpu_id, bool fp16 = false);
 
     //インタンスから下のクラス変数を参照するための関数
-    static std::string modelPrefix() { return MODEL_PREFIX; }
-    static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
+    static std::string modelPrefix() { return "simple_mlp"; }
+    static std::string defaultModelName() { return modelPrefix() + ".model"; }
 
     //Encoder
     StateEncoder encoder{ nullptr };
@@ -30,12 +30,6 @@ public:
 private:
     //入力として局面の特徴量を並べたvectorを受け取ってPolicyとValueに対応するTensorを返す関数
     torch::Tensor forward(const torch::Tensor& x);
-
-    //評価パラメータを読み書きするファイルのprefix
-    static const std::string MODEL_PREFIX;
-
-    //デフォルトで読み書きするファイル名
-    static const std::string DEFAULT_MODEL_NAME;
 
     //1局面について方策を推論する関数
     torch::Tensor inferPolicy(const Position& pos);

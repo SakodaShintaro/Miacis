@@ -18,8 +18,8 @@ public:
     void setGPU(int16_t gpu_id, bool fp16 = false);
 
     //インタンスから下のクラス変数を参照するための関数
-    static std::string modelPrefix() { return MODEL_PREFIX; }
-    static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
+    static std::string modelPrefix() { return "muzero"; }
+    static std::string defaultModelName() { return modelPrefix() + ".model"; }
 
     //---------------
     //    Encoder
@@ -27,12 +27,6 @@ public:
     StateEncoder encoder{ nullptr };
 
 private:
-    //評価パラメータを読み書きするファイルのprefix
-    static const std::string MODEL_PREFIX;
-
-    //デフォルトで読み書きするファイル名
-    static const std::string DEFAULT_MODEL_NAME;
-
     //行動をtorch::Tensorにする関数
     torch::Tensor encodeAction(Move move);
 

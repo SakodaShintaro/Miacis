@@ -6,9 +6,6 @@
 static constexpr int32_t HIDDEN_SIZE = 512;
 static constexpr int32_t NUM_LAYERS = 1;
 
-const std::string ProposedModelImpl::MODEL_PREFIX = "proposed_model";
-const std::string ProposedModelImpl::DEFAULT_MODEL_NAME = ProposedModelImpl::MODEL_PREFIX + ".model";
-
 ProposedModelImpl::ProposedModelImpl(SearchOptions search_options) : BaseModel(search_options) {
     torch::nn::LSTMOptions option(StateEncoderImpl::HIDDEN_DIM, HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);

@@ -2,9 +2,6 @@
 #include "../../common.hpp"
 #include "../common.hpp"
 
-const std::string TransformerModelImpl::MODEL_PREFIX = "transformer_model";
-const std::string TransformerModelImpl::DEFAULT_MODEL_NAME = TransformerModelImpl::MODEL_PREFIX + ".model";
-
 TransformerModelImpl::TransformerModelImpl(const SearchOptions& search_options) : BaseModel(search_options) {
     torch::nn::TransformerOptions options(StateEncoderImpl::HIDDEN_DIM, 4, 3, 3);
     transformer_ = register_module("transformer_", torch::nn::Transformer(options));

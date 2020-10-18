@@ -21,19 +21,13 @@ public:
     void loadPretrain(const std::string& encoder_path, const std::string& policy_head_path);
 
     //インタンスから下のクラス変数を参照するための関数
-    static std::string modelPrefix() { return MODEL_PREFIX; }
-    static std::string defaultModelName() { return DEFAULT_MODEL_NAME; }
+    static std::string modelPrefix() { return "stacked_lstm"; }
+    static std::string defaultModelName() { return modelPrefix() + ".model"; }
 
     //学習の設定を定める関数
     void setOption(bool freeze_encoder, float gamma);
 
 private:
-    //評価パラメータを読み書きするファイルのprefix
-    static const std::string MODEL_PREFIX;
-
-    //デフォルトで読み書きするファイル名
-    static const std::string DEFAULT_MODEL_NAME;
-
     //各部分の推論
     torch::Tensor embed(const std::vector<float>& inputs);
     torch::Tensor simulationPolicy(const torch::Tensor& x);

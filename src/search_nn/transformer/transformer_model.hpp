@@ -16,16 +16,9 @@ public:
     std::vector<torch::Tensor> loss(const std::vector<LearningData>& data) override;
 
     //インタンスから下のクラス変数を参照するための関数
-    std::string modelPrefix() override { return MODEL_PREFIX; }
-    std::string defaultModelName() override { return DEFAULT_MODEL_NAME; }
+    std::string modelPrefix() override { return "transformer_model"; }
 
 private:
-    //評価パラメータを読み書きするファイルのprefix
-    static const std::string MODEL_PREFIX;
-
-    //デフォルトで読み書きするファイル名
-    static const std::string DEFAULT_MODEL_NAME;
-
     //各部分の推論
     torch::Tensor embed(const std::vector<float>& inputs);
     torch::Tensor embed(const std::vector<Position>& positions);
