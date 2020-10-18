@@ -27,6 +27,7 @@ set(SRCS hash_table.cpp
         search_nn/mcts_net/mcts_net.cpp
         search_nn/mcts_net/hash_table_for_mcts_net.cpp
         search_nn/proposed_model_lstm/proposed_model_lstm.cpp
+        search_nn/proposed_model_transformer/proposed_model_transformer.cpp
         search_nn/stacked_lstm/stacked_lstm.cpp
         search_nn/state_encoder.cpp
         search_nn/simple_MLP/simple_mlp.cpp
@@ -35,7 +36,6 @@ set(SRCS hash_table.cpp
         search_nn/common.cpp
         search_nn/api/src/modules/transformer.cpp
         search_nn/api/src/options/transformer.cpp
-        search_nn/proposed_model_transformer/proposed_model_transformer.cpp
         search_nn/api/src/modules/my_multiheadattention.cpp
         search_nn/base_model/base_model.cpp)
 
