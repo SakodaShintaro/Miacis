@@ -15,7 +15,6 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     float min_learn_rate         = settings.get<float>("min_learn_rate");
     float momentum               = settings.get<float>("momentum");
     float weight_decay           = settings.get<float>("weight_decay");
-    float gamma                  = settings.get<float>("gamma");
     float entropy_coeff          = settings.get<float>("entropy_coeff");
     float train_rate_threshold   = settings.get<float>("train_rate_threshold");
     float valid_rate_threshold   = settings.get<float>("valid_rate_threshold");
@@ -60,7 +59,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     //モデル作成
     T model(options);
     model->setGPU(0);
-    model->setOption(freeze_encoder, gamma);
+    model->setOption(freeze_encoder);
 
     //encoderを既存のパラメータから読み込み
     model->loadPretrain(encoder_path, policy_head_path);
@@ -206,7 +205,7 @@ template<class T> void validSearchNN(const std::string& model_name) {
     //モデル作成
     T model(options);
     model->setGPU(0);
-    model->setOption(true, 1.0);
+    model->setOption(true);
     torch::load(model, model->defaultModelName());
     model->eval();
     torch::NoGradGuard no_grad_guard;

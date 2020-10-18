@@ -25,7 +25,7 @@ public:
     void loadPretrain(const std::string& encoder_path, const std::string& policy_head_path);
 
     //学習の設定を定める関数
-    void setOption(bool freeze_encoder, float gamma);
+    void setOption(bool freeze_encoder);
 
 protected:
     //探索に関するオプション

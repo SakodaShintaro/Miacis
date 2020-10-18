@@ -186,4 +186,4 @@ void StackedLSTMImpl::loadPretrain(const std::string& encoder_path, const std::s
     }
 }
 
-void StackedLSTMImpl::setOption(bool freeze_encoder, float gamma) { freeze_encoder_ = freeze_encoder; }
+void StackedLSTMImpl::setOption(bool freeze_encoder) { freeze_encoder_ = freeze_encoder; }

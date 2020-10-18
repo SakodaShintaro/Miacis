@@ -2,7 +2,6 @@ learn_rate           0.005
 min_learn_rate       0.0005
 momentum             0.9
 weight_decay         0.0
-gamma                0.7
 entropy_coeff        0.0
 data_augmentation    1
 freeze_encoder       0

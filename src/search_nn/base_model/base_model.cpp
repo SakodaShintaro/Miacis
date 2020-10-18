@@ -23,4 +23,4 @@ void BaseModel::loadPretrain(const std::string& encoder_path, const std::string&
     }
 }
 
-void BaseModel::setOption(bool freeze_encoder, float gamma) { freeze_encoder_ = freeze_encoder; }
+void BaseModel::setOption(bool freeze_encoder) { freeze_encoder_ = freeze_encoder; }

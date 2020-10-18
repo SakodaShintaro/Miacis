@@ -25,7 +25,7 @@ public:
     static std::string defaultModelName() { return modelPrefix() + ".model"; }
 
     //学習の設定を定める関数
-    void setOption(bool freeze_encoder, float gamma);
+    void setOption(bool freeze_encoder);
 
 private:
     //各部分の推論
