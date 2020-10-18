@@ -2,21 +2,13 @@
 #include "../../common.hpp"
 #include "../common.hpp"
 
-//ネットワークの設定
-static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
-
 const std::string TransformerModelImpl::MODEL_PREFIX = "transformer_model";
 const std::string TransformerModelImpl::DEFAULT_MODEL_NAME = TransformerModelImpl::MODEL_PREFIX + ".model";
 
-TransformerModelImpl::TransformerModelImpl(const SearchOptions& search_options)
-    : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
-    encoder_ = register_module("encoder_", StateEncoder());
-
-    torch::nn::TransformerOptions options(HIDDEN_DIM, 4, 3, 3);
+TransformerModelImpl::TransformerModelImpl(const SearchOptions& search_options) : BaseModel(search_options) {
+    torch::nn::TransformerOptions options(StateEncoderImpl::HIDDEN_DIM, 4, 3, 3);
     transformer_ = register_module("transformer_", torch::nn::Transformer(options));
-    policy_head_ = register_module("policy_head_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
-
-    sim_policy_head_ = register_module("sim_policy_head_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
+    policy_head_ = register_module("policy_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, POLICY_DIM));
 }
 
 Move TransformerModelImpl::think(Position& root, int64_t time_limit) {
@@ -112,15 +104,9 @@ std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& p
     return policy_logits;
 }
 
-void TransformerModelImpl::setGPU(int16_t gpu_id, bool fp16) {
-    device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-    fp16_ = fp16;
-    (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
-}
-
 torch::Tensor TransformerModelImpl::embed(const std::vector<float>& inputs) {
     torch::Tensor x = encoder_->embed(inputs, device_, fp16_, freeze_encoder_);
-    x = x.view({ 1, -1, HIDDEN_DIM });
+    x = x.view({ 1, -1, StateEncoderImpl::HIDDEN_DIM });
     return x;
 }
 
@@ -131,13 +117,14 @@ torch::Tensor TransformerModelImpl::embed(const std::vector<Position>& positions
         features.insert(features.end(), f.begin(), f.end());
     }
     torch::Tensor x = encoder_->embed(features, device_, fp16_, freeze_encoder_);
-    x = x.view({ 1, (int64_t)positions.size(), HIDDEN_DIM });
+    x = x.view({ 1, (int64_t)positions.size(), StateEncoderImpl::HIDDEN_DIM });
     return x;
 }
 
 torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history) {
     //xをキーとして推論
-    torch::Tensor src = (history.empty() ? torch::zeros({ 1, x.size(1), HIDDEN_DIM }) : torch::cat(history, 0)).to(device_);
+    torch::Tensor src =
+        (history.empty() ? torch::zeros({ 1, x.size(1), StateEncoderImpl::HIDDEN_DIM }) : torch::cat(history, 0)).to(device_);
     torch::Tensor y = transformer_->forward(src, x);
     y = policy_head_->forward(y);
     return y;
@@ -180,26 +167,13 @@ std::vector<torch::Tensor> TransformerModelImpl::loss(const std::vector<Learning
     return loss;
 }
 
-void TransformerModelImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
-    std::ifstream encoder_file(encoder_path);
-    if (encoder_file.is_open()) {
-        torch::load(encoder_, encoder_path);
-    }
-    std::ifstream policy_head_file(policy_head_path);
-    if (policy_head_file.is_open()) {
-        torch::load(sim_policy_head_, policy_head_path);
-    }
-}
-
-void TransformerModelImpl::setOption(bool freeze_encoder, float gamma) { freeze_encoder_ = freeze_encoder; }
-
 torch::Tensor TransformerModelImpl::positionalEncoding(int64_t pos) const {
     //参考1) https://pytorch.org/tutorials/beginner/transformer_tutorial.html
     //参考2) https://qiita.com/omiita/items/07e69aef6c156d23c538
-    //shape (HIDDEN_DIM)のものを返す
-    torch::Tensor pe = torch::zeros({ HIDDEN_DIM });
-    for (int64_t i = 0; i < HIDDEN_DIM; i++) {
-        float exponent = static_cast<float>(i / 2 * 2) / HIDDEN_DIM;
+    //shape (StateEncoderImpl::HIDDEN_DIM)のものを返す
+    torch::Tensor pe = torch::zeros({ StateEncoderImpl::HIDDEN_DIM });
+    for (int64_t i = 0; i < StateEncoderImpl::HIDDEN_DIM; i++) {
+        float exponent = static_cast<float>(i / 2 * 2) / StateEncoderImpl::HIDDEN_DIM;
         float div = std::pow(10000, exponent);
         pe[i] = (i % 2 == 0 ? std::sin(pos / div) : std::cos(pos / div));
     }
