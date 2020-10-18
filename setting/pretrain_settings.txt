@@ -7,7 +7,6 @@ data_augmentation    1
 batch_size           512
 max_step             2000000
 validation_interval  200000
-save_interval        2000001
 lr_decay_mode        1
 lr_decay_step1       1000000
 lr_decay_step2       1500000

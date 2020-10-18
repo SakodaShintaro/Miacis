@@ -21,7 +21,6 @@ void pretrainSimpleMLP() {
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
-    int64_t save_interval       = settings.get<int64_t>("save_interval");
     int64_t lr_decay_mode       = settings.get<int64_t>("lr_decay_mode");
     int64_t lr_decay_step1      = settings.get<int64_t>("lr_decay_step1");
     int64_t lr_decay_step2      = settings.get<int64_t>("lr_decay_step2");
@@ -115,12 +114,6 @@ void pretrainSimpleMLP() {
                 }
                 dout(std::cout, valid_log) << std::endl;
             }
-            if (global_step % save_interval == 0) {
-                //学習中のパラメータを書き出す
-                torch::save(model, "pretrain_" + std::to_string(global_step) + ".model");
-                torch::save(model->encoder, "encoder_" + std::to_string(global_step) + ".model");
-                torch::save(model->policy_head, "sim_policy_head_" + std::to_string(global_step) + ".model");
-            }
 
             if (lr_decay_mode == 1) {
                 if (global_step == lr_decay_step1 || global_step == lr_decay_step2) {
@@ -134,9 +127,7 @@ void pretrainSimpleMLP() {
         }
     }
 
-    torch::save(model, "pretrain.model");
-    torch::save(model->encoder, "encoder.model");
-    torch::save(model->policy_head, "policy_head.model");
+    model->save();
 
     std::cout << "finish learnSearchNN" << std::endl;
 }

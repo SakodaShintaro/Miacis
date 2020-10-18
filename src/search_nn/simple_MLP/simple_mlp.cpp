@@ -5,11 +5,7 @@
 //ネットワークの設定
 static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
 
-SimpleMLPImpl::SimpleMLPImpl(SearchOptions search_options)
-    : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
-    encoder = register_module("encoder", StateEncoder());
-    policy_head = register_module("policy_head", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
-}
+SimpleMLPImpl::SimpleMLPImpl(SearchOptions search_options) : BaseModel(search_options) {}
 
 Move SimpleMLPImpl::think(Position& root, int64_t time_limit) {
     //この局面を推論して探索せずにそのまま出力
@@ -75,15 +71,14 @@ torch::Tensor SimpleMLPImpl::inferPolicy(const Position& pos) {
     return forward(x);
 }
 
-void SimpleMLPImpl::setGPU(int16_t gpu_id, bool fp16) {
-    device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-    fp16_ = fp16;
-    (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
-}
-
 torch::Tensor SimpleMLPImpl::forward(const torch::Tensor& x) {
     torch::Tensor y = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    y = encoder->forward(y);
+    y = encoder_->forward(y);
     y = y.view({ -1, HIDDEN_DIM });
-    return policy_head->forward(y);
+    return sim_policy_head_->forward(y);
+}
+
+void SimpleMLPImpl::save() {
+    torch::save(encoder_, "encoder.model");
+    torch::save(sim_policy_head_, "policy_head.model");
 }
