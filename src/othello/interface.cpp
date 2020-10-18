@@ -25,10 +25,10 @@ Interface::Interface() : searcher_(nullptr) {
     command_["stop"]                  = [this] { stop(); };
     command_["quit"]                  = [this] { quit(); };
     command_["testMCTSNet"]           = [this] { testSearchNN<MCTSNet>(); };
-    command_["testProposedModel"]     = [this] { testSearchNN<ProposedModelLSTM>(); };
+    command_["testProposedModelLSTM"] = [this] { testSearchNN<ProposedModelLSTM>(); };
+    command_["testProposedModelTransformer"] = [this] { testSearchNN<ProposedModelTransformer>(); };
     command_["testStackedLSTM"]       = [this] { testSearchNN<StackedLSTM>(); };
     command_["testSimpleMLP"]         = [this] { testSearchNN<SimpleMLP>(); };
-    command_["testTransformerModel"]  = [this] { testSearchNN<TransformerModel>(); };
 
     //メンバ関数以外
     command_["initParams"]            = initParams;
@@ -36,11 +36,12 @@ Interface::Interface() : searcher_(nullptr) {
     command_["alphaZero"]             = alphaZero;
     command_["pretrain"]              = pretrainSimpleMLP;
     command_["learnMCTSNet"]          = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
-    command_["learnProposedModel"]    = [](){ learnSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
+    command_["learnProposedModelLSTM"] = [](){ learnSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
+    command_["learnProposedModelTransformer"] = [](){ learnSearchNN<ProposedModelTransformer>("proposed_model_transformer"); };
     command_["learnStackedLSTM"]      = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
-    command_["learnTransformerModel"] = [](){ learnSearchNN<TransformerModel>("transformer_model"); };
     command_["validMCTSNet"]          = [](){ validSearchNN<MCTSNet>("mcts_net"); };
-    command_["validProposedModel"]    = [](){ validSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
+    command_["validProposedModelLSTM"] = [](){ validSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
+    command_["validProposedModelTransformer"] = [](){ validSearchNN<ProposedModelLSTM>("proposed_model_transformer"); };
     command_["validStackedLSTM"]      = [](){ validSearchNN<StackedLSTM>("stacked_lstm"); };
     // clang-format on
 }
@@ -277,18 +278,18 @@ void Interface::init() {
         mcts_net_ = MCTSNet(options_);
         torch::load(mcts_net_, options_.model_name);
         mcts_net_->eval();
-    } else if (options_.use_proposed_model) {
+    } else if (options_.use_proposed_model_lstm) {
         proposed_model_lstm_ = ProposedModelLSTM(options_);
         torch::load(proposed_model_lstm_, options_.model_name);
         proposed_model_lstm_->eval();
+    } else if (options_.use_proposed_model_transformer) {
+        transformer_model_ = ProposedModelTransformer(options_);
+        torch::load(transformer_model_, options_.model_name);
+        transformer_model_->eval();
     } else if (options_.use_stacked_lstm) {
         stacked_lstm_ = StackedLSTM(options_);
         torch::load(stacked_lstm_, options_.model_name);
         stacked_lstm_->eval();
-    } else if (options_.use_transformer_model) {
-        transformer_model_ = TransformerModel(options_);
-        torch::load(transformer_model_, options_.model_name);
-        transformer_model_->eval();
     } else {
         searcher_ = std::make_unique<SearcherForPlay>(options_);
     }
@@ -307,7 +308,7 @@ void Interface::go() {
         Move best_move = mcts_net_->think(root_, options_.byoyomi_margin);
         std::cout << "best_move " << best_move << std::endl;
         root_.doMove(best_move);
-    } else if (options_.use_proposed_model) {
+    } else if (options_.use_proposed_model_lstm) {
         torch::NoGradGuard no_grad_guard;
         Move best_move = proposed_model_lstm_->think(root_, options_.byoyomi_margin);
         std::cout << "best_move " << best_move << std::endl;
@@ -317,7 +318,7 @@ void Interface::go() {
         Move best_move = stacked_lstm_->think(root_, options_.byoyomi_margin);
         std::cout << "best_move " << best_move << std::endl;
         root_.doMove(best_move);
-    } else if (options_.use_transformer_model) {
+    } else if (options_.use_proposed_model_transformer) {
         torch::NoNamesGuard no_grad_guard;
         Move best_move = transformer_model_->think(root_, options_.byoyomi_margin);
         std::cout << "best_move " << best_move << std::endl;

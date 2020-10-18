@@ -1,14 +1,14 @@
-#include "transformer_model.hpp"
+#include "proposed_model_transformer.hpp"
 #include "../../common.hpp"
 #include "../common.hpp"
 
-TransformerModelImpl::TransformerModelImpl(const SearchOptions& search_options) : BaseModel(search_options) {
+ProposedModelTransformerImpl::ProposedModelTransformerImpl(const SearchOptions& search_options) : BaseModel(search_options) {
     torch::nn::TransformerOptions options(StateEncoderImpl::HIDDEN_DIM, 4, 3, 3);
     transformer_ = register_module("transformer_", torch::nn::Transformer(options));
     policy_head_ = register_module("policy_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, POLICY_DIM));
 }
 
-Move TransformerModelImpl::think(Position& root, int64_t time_limit) {
+Move ProposedModelTransformerImpl::think(Position& root, int64_t time_limit) {
     //バッチ化している関数と共通化している都合上、盤面をvector化
     std::vector<Position> positions;
     positions.push_back(root);
@@ -35,7 +35,7 @@ Move TransformerModelImpl::think(Position& root, int64_t time_limit) {
     }
 }
 
-std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& positions) {
+std::vector<torch::Tensor> ProposedModelTransformerImpl::search(std::vector<Position>& positions) {
     //探索をして出力方策の系列を得る
     std::vector<torch::Tensor> policy_logits;
 
@@ -101,7 +101,7 @@ std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& p
     return policy_logits;
 }
 
-torch::Tensor TransformerModelImpl::embed(const std::vector<Position>& positions) {
+torch::Tensor ProposedModelTransformerImpl::embed(const std::vector<Position>& positions) {
     std::vector<float> features;
     for (const auto& position : positions) {
         std::vector<float> f = position.makeFeature();
@@ -112,7 +112,7 @@ torch::Tensor TransformerModelImpl::embed(const std::vector<Position>& positions
     return x;
 }
 
-torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history) {
+torch::Tensor ProposedModelTransformerImpl::inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history) {
     //xをキーとして推論
     torch::Tensor src =
         (history.empty() ? torch::zeros({ 1, x.size(1), StateEncoderImpl::HIDDEN_DIM }) : torch::cat(history, 0)).to(device_);
@@ -121,7 +121,7 @@ torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x, const st
     return y;
 }
 
-std::vector<torch::Tensor> TransformerModelImpl::loss(const std::vector<LearningData>& data) {
+std::vector<torch::Tensor> ProposedModelTransformerImpl::loss(const std::vector<LearningData>& data) {
     //バッチサイズを取得しておく
     const int64_t batch_size = data.size();
 
@@ -153,7 +153,7 @@ std::vector<torch::Tensor> TransformerModelImpl::loss(const std::vector<Learning
     return loss;
 }
 
-torch::Tensor TransformerModelImpl::positionalEncoding(int64_t pos) const {
+torch::Tensor ProposedModelTransformerImpl::positionalEncoding(int64_t pos) const {
     //参考1) https://pytorch.org/tutorials/beginner/transformer_tutorial.html
     //参考2) https://qiita.com/omiita/items/07e69aef6c156d23c538
     //shape (StateEncoderImpl::HIDDEN_DIM)のものを返す

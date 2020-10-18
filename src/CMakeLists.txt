@@ -35,7 +35,7 @@ set(SRCS hash_table.cpp
         search_nn/common.cpp
         search_nn/api/src/modules/transformer.cpp
         search_nn/api/src/options/transformer.cpp
-        search_nn/proposed_model_transformer/transformer_model.cpp
+        search_nn/proposed_model_transformer/proposed_model_transformer.cpp
         search_nn/api/src/modules/my_multiheadattention.cpp
         search_nn/base_model/base_model.cpp)
 
