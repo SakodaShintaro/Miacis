@@ -39,9 +39,6 @@ private:
 
     //readout network
     torch::nn::Linear readout_policy_{ nullptr };
-
-    //方策勾配法におけるハイパーパラメータ
-    float gamma_;
 };
 TORCH_MODULE(MCTSNet);
 
