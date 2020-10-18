@@ -14,8 +14,9 @@ TransformerModelImpl::TransformerModelImpl(const SearchOptions& search_options)
 
     torch::nn::TransformerOptions options(HIDDEN_DIM, 4, 3, 3);
     transformer_ = register_module("transformer_", torch::nn::Transformer(options));
-
     policy_head_ = register_module("policy_head_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
+
+    sim_policy_head_ = register_module("sim_policy_head_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
 }
 
 Move TransformerModelImpl::think(Position& root, int64_t time_limit) {
@@ -81,7 +82,7 @@ std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& p
         }
 
         //探索行動を決定
-        torch::Tensor sim_policy_logit = inferPolicy(x, history);
+        torch::Tensor sim_policy_logit = sim_policy_head_->forward(x);
 
         //行動をサンプリングして盤面を動かす
         for (int64_t i = 0; i < batch_size; i++) {
@@ -186,7 +187,7 @@ void TransformerModelImpl::loadPretrain(const std::string& encoder_path, const s
     }
     std::ifstream policy_head_file(policy_head_path);
     if (policy_head_file.is_open()) {
-        torch::load(policy_head_, policy_head_path);
+        torch::load(sim_policy_head_, policy_head_path);
     }
 }
 

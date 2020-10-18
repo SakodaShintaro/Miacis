@@ -119,7 +119,7 @@ void pretrainSimpleMLP() {
                 //学習中のパラメータを書き出す
                 torch::save(model, "pretrain_" + std::to_string(global_step) + ".model");
                 torch::save(model->encoder, "encoder_" + std::to_string(global_step) + ".model");
-                torch::save(model->policy_head, "policy_head_" + std::to_string(global_step) + ".model");
+                torch::save(model->policy_head, "sim_policy_head_" + std::to_string(global_step) + ".model");
             }
 
             if (lr_decay_mode == 1) {

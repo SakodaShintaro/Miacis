@@ -53,9 +53,10 @@ private:
 
     //transformer
     torch::nn::Transformer transformer_{ nullptr };
-
-    //policy head
     torch::nn::Linear policy_head_{ nullptr };
+
+    //Simulationで使うもの
+    torch::nn::Linear sim_policy_head_{ nullptr };
 
     //デバイスとfp16化
     torch::Device device_;
