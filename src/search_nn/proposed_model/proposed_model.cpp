@@ -67,12 +67,7 @@ torch::Tensor ProposedModelImpl::readoutPolicy(const torch::Tensor& x) {
     return policy;
 }
 
-std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
-    if (use_policy_gradient) {
-        std::cout << "ProposedModel is not compatible with use_policy_gradient." << std::endl;
-        std::exit(1);
-    }
-
+std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningData>& data) {
     //バッチサイズを取得しておく
     const int64_t batch_size = data.size();
 

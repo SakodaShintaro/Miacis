@@ -130,12 +130,7 @@ torch::Tensor StackedLSTMImpl::predictNextState(const torch::Tensor& pre_state, 
     return pre_state + x;
 }
 
-std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
-    if (use_policy_gradient) {
-        std::cout << "StackedLSTM is not compatible with use_policy_gradient." << std::endl;
-        std::exit(1);
-    }
-
+std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>& data) {
     //バッチサイズを取得しておく
     const int64_t batch_size = data.size();
 

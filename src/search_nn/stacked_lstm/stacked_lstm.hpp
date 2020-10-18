@@ -12,8 +12,7 @@ public:
     Move think(Position& root, int64_t time_limit);
 
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
-    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool use_policy_gradient);
-    std::vector<torch::Tensor> validationLoss(const std::vector<LearningData>& data) { return loss(data, true); }
+    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
 
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);

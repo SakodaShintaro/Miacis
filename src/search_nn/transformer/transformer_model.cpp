@@ -130,12 +130,7 @@ torch::Tensor TransformerModelImpl::inferPolicy(const torch::Tensor& x, const st
     return y;
 }
 
-std::vector<torch::Tensor> TransformerModelImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
-    if (use_policy_gradient) {
-        std::cout << "TransformerModel is not compatible with use_policy_gradient." << std::endl;
-        std::exit(1);
-    }
-
+std::vector<torch::Tensor> TransformerModelImpl::loss(const std::vector<LearningData>& data) {
     //バッチサイズを取得しておく
     const int64_t batch_size = data.size();
 

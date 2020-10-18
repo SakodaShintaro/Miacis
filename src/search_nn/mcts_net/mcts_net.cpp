@@ -154,7 +154,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit) {
     }
 }
 
-std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& data, bool use_policy_gradient) {
+std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& data) {
     //バッチサイズを取得しておく
     const uint64_t batch_size = data.size();
 

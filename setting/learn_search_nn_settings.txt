@@ -7,7 +7,6 @@ entropy_coeff        0.0
 data_augmentation    1
 freeze_encoder       0
 use_readout_only     0
-use_policy_gradient  0
 use_only_last_loss   0
 batch_size           512
 search_limit         10

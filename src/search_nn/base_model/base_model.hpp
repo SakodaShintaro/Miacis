@@ -12,7 +12,7 @@ public:
     virtual Move think(Position& root, int64_t time_limit) = 0;
 
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
-    virtual std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool use_policy_gradient) = 0;
+    virtual std::vector<torch::Tensor> loss(const std::vector<LearningData>& data) = 0;
 
     //モデル名に関する関数
     virtual std::string modelPrefix() = 0;

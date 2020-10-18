@@ -22,7 +22,6 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     bool data_augmentation       = settings.get<bool>("data_augmentation");
     bool freeze_encoder          = settings.get<bool>("freeze_encoder");
     options.use_readout_only     = settings.get<bool>("use_readout_only");
-    bool use_policy_gradient     = settings.get<bool>("use_policy_gradient");
     bool use_only_last_loss      = settings.get<bool>("use_only_last_loss");
     int64_t batch_size           = settings.get<int64_t>("batch_size");
     options.search_limit         = settings.get<int64_t>("search_limit");
@@ -96,7 +95,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
 
             //損失計算
             optimizer.zero_grad();
-            std::vector<torch::Tensor> loss = model->loss(curr_data, use_policy_gradient);
+            std::vector<torch::Tensor> loss = model->loss(curr_data);
             global_step++;
 
             //表示
@@ -143,7 +142,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                         curr_valid_data.push_back(valid_data[j + b]);
                     }
 
-                    std::vector<torch::Tensor> valid_loss = model->loss(curr_valid_data, false);
+                    std::vector<torch::Tensor> valid_loss = model->loss(curr_valid_data);
                     for (uint64_t i = 0; i < valid_loss_sum.size(); i++) {
                         valid_loss_sum[i] += valid_loss[i].item<float>() * curr_valid_data.size();
                     }
@@ -222,7 +221,7 @@ template<class T> void validSearchNN(const std::string& model_name) {
         while (curr_data.size() < batch_size && i < valid_data.size()) {
             curr_data.push_back(valid_data[i++]);
         }
-        std::vector<torch::Tensor> valid_loss = model->loss(curr_data, false);
+        std::vector<torch::Tensor> valid_loss = model->loss(curr_data);
         for (uint64_t j = 0; j < valid_loss_sum.size(); j++) {
             valid_loss_sum[j] += valid_loss[j].item<float>() * curr_data.size();
         }

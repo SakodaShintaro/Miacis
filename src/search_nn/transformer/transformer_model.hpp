@@ -13,8 +13,7 @@ public:
     Move think(Position& root, int64_t time_limit) override;
 
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
-    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data, bool use_policy_gradient) override;
-    std::vector<torch::Tensor> validationLoss(const std::vector<LearningData>& data) { return loss(data, true); }
+    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data) override;
 
     //インタンスから下のクラス変数を参照するための関数
     std::string modelPrefix() override { return MODEL_PREFIX; }
