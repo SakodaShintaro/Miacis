@@ -16,7 +16,7 @@ public:
 
     //モデル名に関する関数
     virtual std::string modelPrefix() = 0;
-    std::string defaultModelName() { modelPrefix() + ".model"; };
+    std::string defaultModelName() { return modelPrefix() + ".model"; };
 
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
