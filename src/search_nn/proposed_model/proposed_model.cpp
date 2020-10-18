@@ -40,9 +40,14 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
     }
 }
 
-torch::Tensor ProposedModelImpl::embed(const std::vector<float>& inputs) {
-    torch::Tensor x = encoder_->embed(inputs, device_, fp16_, freeze_encoder_);
-    x = x.view({ 1, -1, StateEncoderImpl::HIDDEN_DIM });
+torch::Tensor ProposedModelImpl::embed(const std::vector<Position>& positions) {
+    std::vector<float> features;
+    for (const auto& position : positions) {
+        std::vector<float> f = position.makeFeature();
+        features.insert(features.end(), f.begin(), f.end());
+    }
+    torch::Tensor x = encoder_->embed(features, device_, fp16_, freeze_encoder_);
+    x = x.view({ 1, (int64_t)positions.size(), StateEncoderImpl::HIDDEN_DIM });
     return x;
 }
 
@@ -92,12 +97,7 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
 
     //Simulation Policyの損失
     //現局面の特徴を抽出
-    std::vector<float> features;
-    for (int64_t i = 0; i < batch_size; i++) {
-        std::vector<float> f = positions[i].makeFeature();
-        features.insert(features.end(), f.begin(), f.end());
-    }
-    torch::Tensor x = embed(features);
+    torch::Tensor x = embed(positions);
     torch::Tensor sim_policy_logit = simulationPolicy(x)[0];
     loss.push_back(policyLoss(sim_policy_logit, policy_teacher));
 
@@ -133,12 +133,7 @@ std::vector<torch::Tensor> ProposedModelImpl::search(std::vector<Position>& posi
         }
 
         //現局面の特徴を抽出
-        std::vector<float> features;
-        for (int64_t i = 0; i < batch_size; i++) {
-            std::vector<float> f = positions[i].makeFeature();
-            features.insert(features.end(), f.begin(), f.end());
-        }
-        torch::Tensor x = embed(features);
+        torch::Tensor x = embed(positions);
 
         //ここまでの探索から最終行動決定
         policy_logits.push_back(readoutPolicy(x));

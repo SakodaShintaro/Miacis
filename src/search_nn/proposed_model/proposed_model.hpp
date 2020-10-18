@@ -22,7 +22,7 @@ private:
     std::vector<torch::Tensor> search(std::vector<Position>& positions);
 
     //各部分の推論
-    torch::Tensor embed(const std::vector<float>& inputs);
+    torch::Tensor embed(const std::vector<Position>& positions);
     torch::Tensor simulationPolicy(const torch::Tensor& x);
     torch::Tensor readoutPolicy(const torch::Tensor& x);
 

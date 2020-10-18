@@ -101,12 +101,6 @@ std::vector<torch::Tensor> TransformerModelImpl::search(std::vector<Position>& p
     return policy_logits;
 }
 
-torch::Tensor TransformerModelImpl::embed(const std::vector<float>& inputs) {
-    torch::Tensor x = encoder_->embed(inputs, device_, fp16_, freeze_encoder_);
-    x = x.view({ 1, -1, StateEncoderImpl::HIDDEN_DIM });
-    return x;
-}
-
 torch::Tensor TransformerModelImpl::embed(const std::vector<Position>& positions) {
     std::vector<float> features;
     for (const auto& position : positions) {
