@@ -8,13 +8,9 @@ const std::string MCTSNetImpl::DEFAULT_MODEL_NAME = MCTSNetImpl::MODEL_PREFIX + 
 static const float LOG_SOFTMAX_THRESHOLD = std::log(1.0 / POLICY_DIM);
 
 MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
-    : search_options_(search_options),
-      hash_table_(std::min(search_options.USI_Hash * 1024 * 1024 / 10000, search_options.search_limit * 10)),
-      device_(torch::kCUDA), fp16_(false), freeze_encoder_(true), gamma_(1.0) {
+    : BaseModel(search_options),
+      hash_table_(std::min(search_options.USI_Hash * 1024 * 1024 / 10000, search_options.search_limit * 10)), gamma_(1.0) {
     constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
-    simulation_policy_ =
-        register_module("simulation_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
-    encoder_ = register_module("encoder_", StateEncoder());
 
     backup_update_ = register_module("backup_update_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
     backup_gate_ = register_module("backup_gate_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
@@ -66,7 +62,7 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit) {
                 const HashEntryForMCTSNet& entry = hash_table_[index];
                 torch::Tensor h = entry.embedding_vector.to(device_);
                 torch::Tensor policy_logit =
-                    (search_options_.use_readout_only ? readout_policy_->forward(h) : simulation_policy_->forward(h));
+                    (search_options_.use_readout_only ? readout_policy_->forward(h) : sim_policy_head_->forward(h));
 
                 //合法手だけマスクをかける
                 std::vector<Move> moves = root.generateAllMoves();
@@ -241,7 +237,7 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
             //GPUで計算
             torch::Tensor h = torch::stack(embedding_vectors);
             torch::Tensor policy_logit =
-                (search_options_.use_readout_only ? readout_policy_->forward(h) : simulation_policy_->forward(h));
+                (search_options_.use_readout_only ? readout_policy_->forward(h) : sim_policy_head_->forward(h));
             torch::Tensor log_policy = torch::log_softmax(policy_logit, 1);
             torch::Tensor clipped_log_policy = torch::clamp_min(log_policy, LOG_SOFTMAX_THRESHOLD);
 
@@ -375,27 +371,4 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     }
     l.push_back(entropy);
     return l;
-}
-
-void MCTSNetImpl::setGPU(int16_t gpu_id, bool fp16) {
-    device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-    fp16_ = fp16;
-    (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
-}
-
-void MCTSNetImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
-    std::ifstream encoder_file(encoder_path);
-    if (encoder_file.is_open()) {
-        torch::load(encoder_, encoder_path);
-    }
-    std::ifstream policy_head_file(policy_head_path);
-    if (policy_head_file.is_open()) {
-        torch::load(simulation_policy_, policy_head_path);
-        torch::load(readout_policy_, policy_head_path);
-    }
-}
-
-void MCTSNetImpl::setOption(bool freeze_encoder, float gamma) {
-    freeze_encoder_ = freeze_encoder;
-    gamma_ = gamma;
 }
