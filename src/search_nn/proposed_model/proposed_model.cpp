@@ -3,20 +3,15 @@
 #include "../common.hpp"
 
 //ネットワークの設定
-static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
 static constexpr int32_t HIDDEN_SIZE = 512;
 static constexpr int32_t NUM_LAYERS = 1;
 
 const std::string ProposedModelImpl::MODEL_PREFIX = "proposed_model";
 const std::string ProposedModelImpl::DEFAULT_MODEL_NAME = ProposedModelImpl::MODEL_PREFIX + ".model";
 
-ProposedModelImpl::ProposedModelImpl(SearchOptions search_options)
-    : search_options_(std::move(search_options)), device_(torch::kCUDA), fp16_(false) {
-    encoder_ = register_module("encoder_", StateEncoder());
-
-    torch::nn::LSTMOptions option(HIDDEN_DIM, HIDDEN_SIZE);
+ProposedModelImpl::ProposedModelImpl(SearchOptions search_options) : BaseModel(search_options) {
+    torch::nn::LSTMOptions option(StateEncoderImpl::HIDDEN_DIM, HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
-    simulation_policy_head_ = register_module("simulation_policy_head_", torch::nn::Linear(HIDDEN_DIM, POLICY_DIM));
     readout_lstm_ = register_module("readout_lstm_", torch::nn::LSTM(option));
     readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM));
 }
@@ -50,11 +45,11 @@ Move ProposedModelImpl::think(Position& root, int64_t time_limit) {
 
 torch::Tensor ProposedModelImpl::embed(const std::vector<float>& inputs) {
     torch::Tensor x = encoder_->embed(inputs, device_, fp16_, freeze_encoder_);
-    x = x.view({ 1, -1, HIDDEN_DIM });
+    x = x.view({ 1, -1, StateEncoderImpl::HIDDEN_DIM });
     return x;
 }
 
-torch::Tensor ProposedModelImpl::simulationPolicy(const torch::Tensor& x) { return simulation_policy_head_->forward(x); }
+torch::Tensor ProposedModelImpl::simulationPolicy(const torch::Tensor& x) { return sim_policy_head_->forward(x); }
 
 torch::Tensor ProposedModelImpl::readoutPolicy(const torch::Tensor& x) {
     //lstmは入力(input, (h_0, c_0))
@@ -119,25 +114,6 @@ std::vector<torch::Tensor> ProposedModelImpl::loss(const std::vector<LearningDat
 
     return loss;
 }
-
-void ProposedModelImpl::setGPU(int16_t gpu_id, bool fp16) {
-    device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-    fp16_ = fp16;
-    (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
-}
-
-void ProposedModelImpl::loadPretrain(const std::string& encoder_path, const std::string& policy_head_path) {
-    std::ifstream encoder_file(encoder_path);
-    if (encoder_file.is_open()) {
-        torch::load(encoder_, encoder_path);
-    }
-    std::ifstream policy_head_file(policy_head_path);
-    if (policy_head_file.is_open()) {
-        torch::load(simulation_policy_head_, policy_head_path);
-    }
-}
-
-void ProposedModelImpl::setOption(bool freeze_encoder, float gamma) { freeze_encoder_ = freeze_encoder; }
 
 std::vector<torch::Tensor> ProposedModelImpl::search(std::vector<Position>& positions) {
     //探索をして出力方策の系列を得る
