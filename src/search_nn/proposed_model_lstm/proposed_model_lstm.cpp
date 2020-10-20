@@ -13,7 +13,7 @@ ProposedModelLSTMImpl::ProposedModelLSTMImpl(SearchOptions search_options) : Bas
     readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM));
 }
 
-torch::Tensor ProposedModelLSTMImpl::readoutPolicy(const torch::Tensor& x) {
+torch::Tensor ProposedModelLSTMImpl::readoutPolicy(const torch::Tensor& x, bool update_hidden_state) {
     //lstmは入力(input, (h_0, c_0))
     //inputのshapeは(seq_len, batch, input_size)
     //h_0, c_0は任意の引数で、状態を初期化できる
@@ -22,11 +22,12 @@ torch::Tensor ProposedModelLSTMImpl::readoutPolicy(const torch::Tensor& x) {
     //出力はoutput, (h_n, c_n)
     //outputのshapeは(seq_len, batch, num_directions * hidden_size)
     auto [output, h_and_c] = readout_lstm_->forward(x, std::make_tuple(readout_h_, readout_c_));
-    std::tie(readout_h_, readout_c_) = h_and_c;
 
-    torch::Tensor policy = readout_policy_head_->forward(output);
+    if (update_hidden_state) {
+        std::tie(readout_h_, readout_c_) = h_and_c;
+    }
 
-    return policy;
+    return readout_policy_head_->forward(output);
 }
 
 std::vector<torch::Tensor> ProposedModelLSTMImpl::search(std::vector<Position>& positions) {
@@ -44,6 +45,9 @@ std::vector<torch::Tensor> ProposedModelLSTMImpl::search(std::vector<Position>& 
     //何回探索したら戻すか
     constexpr int64_t RESET_NUM = 3;
 
+    //ルート局面の特徴量
+    torch::Tensor root_x = embed(positions);
+
     for (int64_t m = 0; m <= search_options_.search_limit; m++) {
         //盤面を戻す
         if (m != 0 && m % RESET_NUM == 0) {
@@ -58,11 +62,14 @@ std::vector<torch::Tensor> ProposedModelLSTMImpl::search(std::vector<Position>& 
         torch::Tensor x = embed(positions);
 
         //ここまでの探索から最終行動決定
-        policy_logits.push_back(readoutPolicy(x));
+        policy_logits.push_back(readoutPolicy(root_x, false));
 
         if (m == search_options_.search_limit) {
             break;
         }
+
+        //現在の特徴を用いてLSTMの隠れ状態を更新
+        readoutPolicy(x, true);
 
         //探索行動を決定
         torch::Tensor sim_policy_logit = sim_policy_head_->forward(x);

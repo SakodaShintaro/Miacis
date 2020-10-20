@@ -16,7 +16,7 @@ private:
     std::vector<torch::Tensor> search(std::vector<Position>& positions) override;
 
     //各部分の推論
-    torch::Tensor readoutPolicy(const torch::Tensor& x);
+    torch::Tensor readoutPolicy(const torch::Tensor& x, bool update_hidden_state);
 
     //----------------------
     //    Readout Policy
