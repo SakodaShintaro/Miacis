@@ -41,6 +41,7 @@ torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
     x = first_encoding_->forward(x);
     x = activation(x);
     x = encoder_->forward(x);
+    x = x.permute({ 1, 2, 0 }); //(batch_size, CHANNEL_NUM, seq)に直す
     x = x.view({ -1, CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     return x;
 }
