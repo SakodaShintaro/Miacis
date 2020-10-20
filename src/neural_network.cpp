@@ -22,8 +22,10 @@ const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MOD
 
 NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false) {
     first_encoding_ = register_module("first_encoding_", torch::nn::Linear(INPUT_CHANNEL_NUM, CHANNEL_NUM));
-    torch::nn::TransformerEncoderLayer encoderLayer(torch::nn::TransformerEncoderLayerOptions(CHANNEL_NUM, 8).dropout(0.1));
-    transformer_ = register_module("transformer_", torch::nn::TransformerEncoder(encoderLayer, LAYER_NUM));
+    encoder_layer_ = register_module(
+        "encoder_layer_",
+        torch::nn::TransformerEncoderLayer(torch::nn::TransformerEncoderLayerOptions(CHANNEL_NUM, 8).dropout(0.1)));
+    encoder_ = register_module("encoder_", torch::nn::TransformerEncoder(encoder_layer_, LAYER_NUM));
 
     policy_conv_ = register_module(
         "policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).bias(true)));
@@ -38,7 +40,7 @@ torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
     x = x.permute({ 2, 0, 1 }); //(seq, batch_size, INPUT_CHANNEL_NUM)
     x = first_encoding_->forward(x);
     x = activation(x);
-    x = transformer_->forward(x);
+    x = encoder_->forward(x);
     x = x.view({ -1, CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     return x;
 }

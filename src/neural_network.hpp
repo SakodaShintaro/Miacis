@@ -71,7 +71,8 @@ private:
     bool fp16_;
 
     torch::nn::Linear first_encoding_{ nullptr };
-    torch::nn::TransformerEncoder transformer_{ nullptr };
+    torch::nn::TransformerEncoderLayer encoder_layer_{ nullptr };
+    torch::nn::TransformerEncoder encoder_{ nullptr };
 
     torch::nn::Conv2d policy_conv_{ nullptr };
     Conv2DwithBatchNorm value_conv_and_norm_{ nullptr };
