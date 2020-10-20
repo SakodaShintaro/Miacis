@@ -4,34 +4,27 @@
 
 //ネットワークの設定
 #ifdef SHOGI
-static constexpr int32_t BLOCK_NUM = 10;
+static constexpr int32_t LAYER_NUM = 6;
 static constexpr int32_t CHANNEL_NUM = 128;
 #elif defined(OTHELLO)
-static constexpr int32_t BLOCK_NUM = 5;
+static constexpr int32_t LAYER_NUM = 5;
 static constexpr int32_t CHANNEL_NUM = 64;
 #endif
-static constexpr int32_t KERNEL_SIZE = 3;
-static constexpr int32_t REDUCTION = 8;
 static constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
 #ifdef USE_CATEGORICAL
-const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_lay" + std::to_string(LAYER_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 #else
-const std::string NeuralNetworkImpl::MODEL_PREFIX = "sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+const std::string NeuralNetworkImpl::MODEL_PREFIX = "sca_lay" + std::to_string(LAYER_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 #endif
 //デフォルトで読み書きするファイル名
 const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MODEL_PREFIX + ".model";
 
-NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), state_blocks_(BLOCK_NUM, nullptr) {
-    state_first_conv_and_norm_ =
-        register_module("state_first_conv_and_norm_", Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
-    for (int32_t i = 0; i < BLOCK_NUM; i++) {
-        state_blocks_[i] =
-            register_module("state_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
-    }
-#ifdef REPRESENTATION_DROPOUT
-    representation_dropout_ = register_module("representation_dropout_", torch::nn::Dropout2d());
-#endif
+NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false) {
+    first_encoding_ = register_module("first_encoding_", torch::nn::Linear(INPUT_CHANNEL_NUM, CHANNEL_NUM));
+    torch::nn::TransformerEncoderLayer encoderLayer(torch::nn::TransformerEncoderLayerOptions(CHANNEL_NUM, 8).dropout(0.1));
+    transformer_ = register_module("transformer_", torch::nn::TransformerEncoder(encoderLayer, LAYER_NUM));
+
     policy_conv_ = register_module(
         "policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).bias(true)));
     value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
@@ -41,17 +34,12 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), st
 
 torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    x = state_first_conv_and_norm_->forward(x);
+    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH * BOARD_WIDTH });
+    x = x.permute({ 2, 0, 1 }); //(seq, batch_size, INPUT_CHANNEL_NUM)
+    x = first_encoding_->forward(x);
     x = activation(x);
-
-    for (ResidualBlock& block : state_blocks_) {
-        x = block->forward(x);
-    }
-
-#ifdef REPRESENTATION_DROPOUT
-    x = representation_dropout_->forward(x);
-#endif
+    x = transformer_->forward(x);
+    x = x.view({ -1, CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     return x;
 }
 

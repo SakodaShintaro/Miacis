@@ -1,6 +1,7 @@
 ﻿#ifndef MIACIS_NEURAL_NETWORK_HPP
 #define MIACIS_NEURAL_NETWORK_HPP
 
+#include "api/include/modules/transformercoder.h"
 #include "neural_network_modules.hpp"
 #include "types.hpp"
 
@@ -69,12 +70,8 @@ private:
     torch::Device device_;
     bool fp16_;
 
-    Conv2DwithBatchNorm state_first_conv_and_norm_{ nullptr };
-    std::vector<ResidualBlock> state_blocks_;
-
-#ifdef REPRESENTATION_DROPOUT
-    torch::nn::Dropout2d representation_dropout_{ nullptr };
-#endif
+    torch::nn::Linear first_encoding_{ nullptr };
+    torch::nn::TransformerEncoder transformer_{ nullptr };
 
     torch::nn::Conv2d policy_conv_{ nullptr };
     Conv2DwithBatchNorm value_conv_and_norm_{ nullptr };
