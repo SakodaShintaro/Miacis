@@ -21,14 +21,14 @@ const std::string NeuralNetworkImpl::MODEL_PREFIX = "sca_lay" + std::to_string(L
 const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MODEL_PREFIX + ".model";
 
 NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false) {
+    using namespace torch::nn;
     first_encoding_ = register_module("first_encoding_", torch::nn::Linear(INPUT_CHANNEL_NUM, CHANNEL_NUM));
     encoder_layer_ = register_module(
         "encoder_layer_",
         torch::nn::TransformerEncoderLayer(torch::nn::TransformerEncoderLayerOptions(CHANNEL_NUM, 8).dropout(0.1)));
     encoder_ = register_module("encoder_", torch::nn::TransformerEncoder(encoder_layer_, LAYER_NUM));
 
-    policy_conv_ = register_module(
-        "policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).bias(true)));
+    policy_head_ = register_module("policy_head_", Linear(CHANNEL_NUM * BOARD_WIDTH * BOARD_WIDTH, POLICY_DIM));
     value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
     value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
@@ -47,8 +47,10 @@ torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
 }
 
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::decode(const torch::Tensor& representation) {
+    torch::Tensor fattened = representation.flatten(1);
+
     //policy
-    torch::Tensor policy = policy_conv_->forward(representation);
+    torch::Tensor policy = policy_head_->forward(fattened);
 
     //value
     torch::Tensor value = value_conv_and_norm_->forward(representation);

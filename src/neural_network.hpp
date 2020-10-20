@@ -73,7 +73,7 @@ private:
     torch::nn::TransformerEncoderLayer encoder_layer_{ nullptr };
     torch::nn::TransformerEncoder encoder_{ nullptr };
 
-    torch::nn::Conv2d policy_conv_{ nullptr };
+    torch::nn::Linear policy_head_{ nullptr };
     Conv2DwithBatchNorm value_conv_and_norm_{ nullptr };
     torch::nn::Linear value_linear0_{ nullptr };
     torch::nn::Linear value_linear1_{ nullptr };
