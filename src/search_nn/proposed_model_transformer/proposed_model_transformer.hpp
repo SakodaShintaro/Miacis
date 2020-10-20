@@ -1,7 +1,6 @@
 #ifndef MIACIS_PROPOSED_MODEL_TRANSFORMER_HPP
 #define MIACIS_PROPOSED_MODEL_TRANSFORMER_HPP
 
-#include "../api/include/modules/transformer.h"
 #include "../base_model/base_model.hpp"
 
 class ProposedModelTransformerImpl : public BaseModel {
