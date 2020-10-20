@@ -1,4 +1,4 @@
-cd `dirname $0`
+cd $(dirname $0)
 
 # どこに保存するかの基準位置
 root_dir=../..
