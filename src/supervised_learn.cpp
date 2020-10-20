@@ -113,11 +113,13 @@ void supervisedLearn() {
             global_step++;
 
             //表示
-            dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, train_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
+            if (global_step % std::max(validation_interval / 1000, (int64_t)1) == 0) {
+                dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
+                for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+                    dout(std::cout, train_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
+                }
+                dout(std::cout, train_log) << std::flush;
             }
-            dout(std::cout, train_log) << std::flush;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
