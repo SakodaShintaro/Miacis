@@ -13,8 +13,6 @@ ProposedModelLSTMImpl::ProposedModelLSTMImpl(SearchOptions search_options) : Bas
     readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM));
 }
 
-torch::Tensor ProposedModelLSTMImpl::simulationPolicy(const torch::Tensor& x) { return sim_policy_head_->forward(x); }
-
 torch::Tensor ProposedModelLSTMImpl::readoutPolicy(const torch::Tensor& x) {
     //lstmは入力(input, (h_0, c_0))
     //inputのshapeは(seq_len, batch, input_size)
@@ -67,7 +65,7 @@ std::vector<torch::Tensor> ProposedModelLSTMImpl::search(std::vector<Position>& 
         }
 
         //探索行動を決定
-        torch::Tensor sim_policy_logit = simulationPolicy(x);
+        torch::Tensor sim_policy_logit = sim_policy_head_->forward(x);
 
         //行動をサンプリングして盤面を動かす
         for (int64_t i = 0; i < batch_size; i++) {
