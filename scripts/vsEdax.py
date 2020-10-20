@@ -137,9 +137,9 @@ def main():
     if args.mcts_net:
         miacis_manager.send_option("use_mcts_net", "true")
     elif args.proposed_model_lstm:
-        miacis_manager.send_option("use_proposed_model", "true")
+        miacis_manager.send_option("use_proposed_model_lstm", "true")
     elif args.proposed_model_transformer:
-        miacis_manager.send_option("use_transformer_model", "true")
+        miacis_manager.send_option("use_proposed_model_transformer", "true")
     elif args.stacked_lstm:
         miacis_manager.send_option("use_stacked_lstm", "true")
 
