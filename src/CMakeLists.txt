@@ -14,29 +14,32 @@ set(SRCS hash_table.cpp
          replay_buffer.cpp
          game_generator.cpp
          neural_network.cpp
-         neural_network_modules.cpp
-         supervised_learn.cpp
-         learn.cpp
-         alphazero_learn.cpp
-         searcher.cpp
-         searcher_for_play.cpp
-         searcher_for_mate.cpp
-         hyperparameter_loader.cpp
-         segment_tree.cpp
-         common.cpp
-         )
+        neural_network_modules.cpp
+        supervised_learn.cpp
+        learn.cpp
+        alphazero_learn.cpp
+        searcher.cpp
+        searcher_for_play.cpp
+        searcher_for_mate.cpp
+        hyperparameter_loader.cpp
+        segment_tree.cpp
+        common.cpp
+        api/src/modules/my_multiheadattention.cpp
+        api/src/modules/transformer.cpp
+        api/src/options/transformer.cpp
+        )
 
 #将棋用のバイナリをコンパイルするのに必要なソース
 set(SHOGI_SRCS shogi/main.cpp
-               shogi/test.cpp
-               shogi/bitboard.cpp
-               shogi/move.cpp
-               shogi/piece.cpp
-               shogi/position.cpp
-               shogi/square.cpp
+        shogi/test.cpp
+        shogi/bitboard.cpp
+        shogi/move.cpp
+        shogi/piece.cpp
+        shogi/position.cpp
+        shogi/square.cpp
         shogi/interface.cpp
         shogi/game.cpp
-               shogi/book.cpp)
+        shogi/book.cpp)
 
 #オセロ用のバイナリをコンパイルするのに必要なソース
 set(OTHELLO_SRCS othello/main.cpp
