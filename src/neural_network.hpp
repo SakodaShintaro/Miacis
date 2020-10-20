@@ -1,7 +1,6 @@
 ﻿#ifndef MIACIS_NEURAL_NETWORK_HPP
 #define MIACIS_NEURAL_NETWORK_HPP
 
-#include "api/include/modules/transformercoder.h"
 #include "neural_network_modules.hpp"
 #include "types.hpp"
 

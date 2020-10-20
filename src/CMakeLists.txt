@@ -11,9 +11,9 @@ find_package(Torch REQUIRED)
 
 #各ゲームで共通する部分のソース
 set(SRCS hash_table.cpp
-         replay_buffer.cpp
-         game_generator.cpp
-         neural_network.cpp
+        replay_buffer.cpp
+        game_generator.cpp
+        neural_network.cpp
         neural_network_modules.cpp
         supervised_learn.cpp
         learn.cpp
@@ -24,9 +24,6 @@ set(SRCS hash_table.cpp
         hyperparameter_loader.cpp
         segment_tree.cpp
         common.cpp
-        api/src/modules/my_multiheadattention.cpp
-        api/src/modules/transformer.cpp
-        api/src/options/transformer.cpp
         )
 
 #将棋用のバイナリをコンパイルするのに必要なソース
