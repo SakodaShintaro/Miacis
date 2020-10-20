@@ -32,7 +32,7 @@ Move SimpleMLPImpl::think(Position& root, int64_t time_limit) {
     }
 }
 
-std::vector<torch::Tensor> SimpleMLPImpl::loss(const std::vector<LearningData>& data) {
+std::vector<torch::Tensor> SimpleMLPImpl::lossFunc(const std::vector<LearningData>& data) {
     const uint64_t batch_size = data.size();
     std::vector<float> inputs;
     std::vector<float> policy_teachers(POLICY_DIM * batch_size, 0.0);
@@ -81,4 +81,9 @@ torch::Tensor SimpleMLPImpl::forward(const torch::Tensor& x) {
 void SimpleMLPImpl::save() {
     torch::save(encoder_, "encoder.model");
     torch::save(sim_policy_head_, "policy_head.model");
+}
+
+std::vector<torch::Tensor> SimpleMLPImpl::search(std::vector<Position>& positions) {
+    std::cerr << "SimpleMLPではsearch関数は使わない" << std::endl;
+    std::exit(1);
 }

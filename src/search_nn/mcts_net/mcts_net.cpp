@@ -150,38 +150,6 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit) {
     }
 }
 
-std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& data) {
-    //バッチサイズを取得しておく
-    const int64_t batch_size = data.size();
-
-    //盤面を復元
-    std::vector<Position> positions(batch_size);
-    for (int64_t i = 0; i < batch_size; i++) {
-        positions[i].fromStr(data[i].position_str);
-    }
-
-    //探索をして出力方策の系列を得る
-    std::vector<torch::Tensor> policy_logits = search(positions);
-
-    //policyの教師信号
-    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
-
-    //探索回数
-    const int64_t M = search_options_.search_limit;
-
-    //各探索後の損失を計算
-    std::vector<torch::Tensor> loss(M + 1);
-    for (int64_t m = 0; m <= M; m++) {
-        torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
-        loss[m] = policyLoss(policy_logit, policy_teacher);
-    }
-
-    //エントロピー正則化
-    loss.push_back(entropyLoss(policy_logits[0][0]));
-
-    return loss;
-}
-
 std::vector<torch::Tensor> MCTSNetImpl::search(std::vector<Position>& positions) {
     //バッチサイズを取得しておく
     const uint64_t batch_size = positions.size();

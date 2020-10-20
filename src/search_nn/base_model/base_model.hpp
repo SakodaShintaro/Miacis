@@ -12,7 +12,7 @@ public:
     virtual Move think(Position& root, int64_t time_limit) = 0;
 
     //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
-    virtual std::vector<torch::Tensor> loss(const std::vector<LearningData>& data) = 0;
+    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
 
     //モデル名に関する関数
     virtual std::string modelPrefix() = 0;
@@ -28,6 +28,9 @@ public:
     void setOption(bool freeze_encoder);
 
 protected:
+    //探索
+    virtual std::vector<torch::Tensor> search(std::vector<Position>& positions) = 0;
+
     //探索に関するオプション
     SearchOptions search_options_;
 

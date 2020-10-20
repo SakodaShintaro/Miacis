@@ -69,44 +69,6 @@ torch::Tensor ProposedModelLSTMImpl::readoutPolicy(const torch::Tensor& x) {
     return policy;
 }
 
-std::vector<torch::Tensor> ProposedModelLSTMImpl::loss(const std::vector<LearningData>& data) {
-    //バッチサイズを取得しておく
-    const int64_t batch_size = data.size();
-
-    //盤面を復元
-    std::vector<Position> positions(batch_size);
-    for (int64_t i = 0; i < batch_size; i++) {
-        positions[i].fromStr(data[i].position_str);
-    }
-
-    //探索をして出力方策の系列を得る
-    std::vector<torch::Tensor> policy_logits = search(positions);
-
-    //policyの教師信号
-    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
-
-    //探索回数
-    const int64_t M = search_options_.search_limit;
-
-    //各探索後の損失を計算
-    std::vector<torch::Tensor> loss(M + 1);
-    for (int64_t m = 0; m <= M; m++) {
-        torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
-        loss[m] = policyLoss(policy_logit, policy_teacher);
-    }
-
-    //Simulation Policyの損失
-    //現局面の特徴を抽出
-    torch::Tensor x = embed(positions);
-    torch::Tensor sim_policy_logit = simulationPolicy(x)[0];
-    loss.push_back(policyLoss(sim_policy_logit, policy_teacher));
-
-    //エントロピー正則化(Simulation Policyにかける)
-    loss.push_back(entropyLoss(sim_policy_logit));
-
-    return loss;
-}
-
 std::vector<torch::Tensor> ProposedModelLSTMImpl::search(std::vector<Position>& positions) {
     //探索をして出力方策の系列を得る
     std::vector<torch::Tensor> policy_logits;

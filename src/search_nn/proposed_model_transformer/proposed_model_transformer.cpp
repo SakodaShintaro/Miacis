@@ -121,38 +121,6 @@ torch::Tensor ProposedModelTransformerImpl::inferPolicy(const torch::Tensor& x, 
     return y;
 }
 
-std::vector<torch::Tensor> ProposedModelTransformerImpl::loss(const std::vector<LearningData>& data) {
-    //バッチサイズを取得しておく
-    const int64_t batch_size = data.size();
-
-    //盤面を復元
-    std::vector<Position> positions(batch_size);
-    for (int64_t i = 0; i < batch_size; i++) {
-        positions[i].fromStr(data[i].position_str);
-    }
-
-    //探索をして出力方策の系列を得る
-    std::vector<torch::Tensor> policy_logits = search(positions);
-
-    //policyの教師信号
-    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
-
-    //探索回数
-    const int64_t M = search_options_.search_limit;
-
-    //各探索後の損失を計算
-    std::vector<torch::Tensor> loss(M + 1);
-    for (int64_t m = 0; m <= M; m++) {
-        torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
-        loss[m] = policyLoss(policy_logit, policy_teacher);
-    }
-
-    //エントロピー正則化
-    loss.push_back(entropyLoss(policy_logits[0][0]));
-
-    return loss;
-}
-
 torch::Tensor ProposedModelTransformerImpl::positionalEncoding(int64_t pos) const {
     //参考1) https://pytorch.org/tutorials/beginner/transformer_tutorial.html
     //参考2) https://qiita.com/omiita/items/07e69aef6c156d23c538
