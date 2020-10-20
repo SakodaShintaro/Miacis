@@ -75,6 +75,8 @@ private:
     torch::nn::Linear policy_head_{ nullptr };
     torch::nn::Linear value_linear0_{ nullptr };
     torch::nn::Linear value_linear1_{ nullptr };
+
+    torch::Tensor positional_encoding_;
 };
 TORCH_MODULE(NeuralNetwork);
 

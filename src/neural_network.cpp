@@ -29,14 +29,24 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false) {
     policy_head_ = register_module("policy_head_", Linear(SQUARE_NUM * CHANNEL_NUM, POLICY_DIM));
     value_linear0_ = register_module("value_linear0_", Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_linear1_ = register_module("value_linear1_", Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
+
+    positional_encoding_ = torch::zeros({ SQUARE_NUM, CHANNEL_NUM });
+    for (int64_t pos = 0; pos < SQUARE_NUM; pos++) {
+        for (int64_t i = 0; i < CHANNEL_NUM / 2; i += 2) {
+            float term = pos / (std::pow(10000.0, 2.0 * i / CHANNEL_NUM));
+            positional_encoding_[pos][i] = std::sin(term);
+            positional_encoding_[pos][i + 1] = std::cos(term);
+        }
+    }
 }
 
 torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH * BOARD_WIDTH });
-    x = x.permute({ 2, 0, 1 }); //(seq, batch_size, INPUT_CHANNEL_NUM)
-    x = first_encoding_->forward(x);
+    x = x.permute({ 2, 0, 1 });      //(seq, batch_size, INPUT_CHANNEL_NUM)
+    x = first_encoding_->forward(x); //(seq, batch_size, CHANNEL_NUM)
     x = activation(x);
+    x = x + positional_encoding_;
     x = encoder_->forward(x);
     x = x.permute({ 1, 2, 0 }); //(batch_size, CHANNEL_NUM, seq)に直す
     x = x.view({ -1, CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
@@ -343,4 +353,5 @@ void NeuralNetworkImpl::setGPU(int16_t gpu_id, bool fp16) {
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     fp16_ = fp16;
     (fp16_ ? to(device_, torch::kHalf) : to(device_, torch::kFloat));
+    positional_encoding_ = positional_encoding_.to(device_, (fp16_ ? torch::kHalf : torch::kFloat));
 }
