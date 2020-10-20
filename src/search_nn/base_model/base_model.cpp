@@ -67,3 +67,14 @@ std::vector<torch::Tensor> BaseModel::loss(const std::vector<LearningData>& data
      */
     return loss;
 }
+
+torch::Tensor BaseModel::embed(const std::vector<Position>& positions) {
+    std::vector<float> features;
+    for (const auto& position : positions) {
+        std::vector<float> f = position.makeFeature();
+        features.insert(features.end(), f.begin(), f.end());
+    }
+    torch::Tensor x = encoder_->embed(features, device_, fp16_, freeze_encoder_);
+    x = x.view({ 1, (int64_t)positions.size(), StateEncoderImpl::HIDDEN_DIM });
+    return x;
+}

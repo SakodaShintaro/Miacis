@@ -16,13 +16,12 @@ public:
     std::string modelPrefix() override { return "proposed_model_transformer"; }
 
 private:
-    //各部分の推論
-    torch::Tensor embed(const std::vector<Position>& positions);
-    torch::Tensor inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history);
-    torch::Tensor positionalEncoding(int64_t pos) const;
-
     //探索全体
     std::vector<torch::Tensor> search(std::vector<Position>& positions) override;
+
+    //各部分の推論
+    torch::Tensor inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history);
+    torch::Tensor positionalEncoding(int64_t pos) const;
 
     //transformer
     torch::nn::Transformer transformer_{ nullptr };

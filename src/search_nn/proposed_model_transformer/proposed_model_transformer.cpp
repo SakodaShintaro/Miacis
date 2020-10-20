@@ -101,17 +101,6 @@ std::vector<torch::Tensor> ProposedModelTransformerImpl::search(std::vector<Posi
     return policy_logits;
 }
 
-torch::Tensor ProposedModelTransformerImpl::embed(const std::vector<Position>& positions) {
-    std::vector<float> features;
-    for (const auto& position : positions) {
-        std::vector<float> f = position.makeFeature();
-        features.insert(features.end(), f.begin(), f.end());
-    }
-    torch::Tensor x = encoder_->embed(features, device_, fp16_, freeze_encoder_);
-    x = x.view({ 1, (int64_t)positions.size(), StateEncoderImpl::HIDDEN_DIM });
-    return x;
-}
-
 torch::Tensor ProposedModelTransformerImpl::inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history) {
     //xをキーとして推論
     torch::Tensor src =
