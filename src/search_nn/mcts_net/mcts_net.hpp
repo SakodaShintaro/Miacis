@@ -19,6 +19,9 @@ public:
     std::string modelPrefix() override { return "mcts_net"; }
 
 private:
+    //探索
+    std::vector<torch::Tensor> search(std::vector<Position>& positions);
+
     //各部分の推論
     torch::Tensor backup(const torch::Tensor& h1, const torch::Tensor& h2);
 

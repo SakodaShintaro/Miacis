@@ -152,7 +152,39 @@ Move MCTSNetImpl::think(Position& root, int64_t time_limit) {
 
 std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& data) {
     //バッチサイズを取得しておく
-    const uint64_t batch_size = data.size();
+    const int64_t batch_size = data.size();
+
+    //盤面を復元
+    std::vector<Position> positions(batch_size);
+    for (int64_t i = 0; i < batch_size; i++) {
+        positions[i].fromStr(data[i].position_str);
+    }
+
+    //探索をして出力方策の系列を得る
+    std::vector<torch::Tensor> policy_logits = search(positions);
+
+    //policyの教師信号
+    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
+
+    //探索回数
+    const int64_t M = search_options_.search_limit;
+
+    //各探索後の損失を計算
+    std::vector<torch::Tensor> loss(M + 1);
+    for (int64_t m = 0; m <= M; m++) {
+        torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
+        loss[m] = policyLoss(policy_logit, policy_teacher);
+    }
+
+    //エントロピー正則化
+    loss.push_back(entropyLoss(policy_logits[0][0]));
+
+    return loss;
+}
+
+std::vector<torch::Tensor> MCTSNetImpl::search(std::vector<Position>& positions) {
+    //バッチサイズを取得しておく
+    const uint64_t batch_size = positions.size();
 
     //探索回数
     const int64_t M = search_options_.search_limit;
@@ -162,9 +194,7 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
 
     //盤面を復元
     std::vector<float> root_features;
-    std::vector<Position> positions(batch_size);
     for (uint64_t i = 0; i < batch_size; i++) {
-        positions[i].fromStr(data[i].position_str);
         hash_tables[i].root_index = hash_tables[i].findSameHashIndex(positions[i]);
         if (hash_tables[i].root_index == (Index)hash_tables[i].size()) {
             hash_tables[i].root_index = hash_tables[i].searchEmptyIndex(positions[i]);
@@ -175,16 +205,17 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
     }
 
     //GPUで計算
-    torch::Tensor root_embed = encoder_->embed(root_features, device_, fp16_, freeze_encoder_).cpu();
+    torch::Tensor root_embed = encoder_->embed(root_features, device_, fp16_, freeze_encoder_);
 
-    //探索中に情報を落としておかなきゃいけないもの
-    std::vector<std::vector<torch::Tensor>> root_hs(batch_size), log_probs(batch_size);
+    torch::Tensor p = readout_policy_->forward(root_embed).view({ 1, (int64_t)batch_size, POLICY_DIM });
+
+    //各探索後のpolicy_logits
+    std::vector<torch::Tensor> policy_logits;
+    policy_logits.push_back(p);
 
     //0回目の情報
     for (uint64_t i = 0; i < batch_size; i++) {
         hash_tables[i][hash_tables[i].root_index].embedding_vector = root_embed[i];
-        root_hs[i].push_back(hash_tables[i][hash_tables[i].root_index].embedding_vector.to(device_));
-        log_probs[i].push_back(torch::zeros({ 1 }).to(device_));
     }
 
     //探索の履歴
@@ -192,11 +223,6 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
 
     //規定回数探索
     for (int64_t m = 1; m <= M; m++) {
-        //log_probの領域を確保
-        for (uint64_t i = 0; i < batch_size; i++) {
-            log_probs[i].push_back(torch::zeros({ 1 }).to(device_));
-        }
-
         //(1)select
         while (true) {
             //今回の評価要求
@@ -249,7 +275,6 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
                 std::vector<float> masked_policy = softmax(logits, 1.0f);
                 int32_t move_id = randomChoose(masked_policy);
                 positions[i].doMove(moves[move_id]);
-                log_probs[i][m] += clipped_log_policy[j][moves[move_id].toLabel()];
             }
         }
 
@@ -306,39 +331,13 @@ std::vector<torch::Tensor> MCTSNetImpl::loss(const std::vector<LearningData>& da
             }
         }
 
+        std::vector<torch::Tensor> root_hs;
         for (uint64_t i = 0; i < batch_size; i++) {
-            //ルートノードの現状態を保存しておく
-            root_hs[i].push_back(hash_tables[i][hash_tables[i].root_index].embedding_vector.to(device_));
+            root_hs.push_back(hash_tables[i][hash_tables[i].root_index].embedding_vector.to(device_));
         }
+        torch::Tensor root_h = torch::stack(root_hs);
+        policy_logits.push_back(readout_policy_->forward(root_h).view({ 1, (int64_t)batch_size, POLICY_DIM }));
     }
 
-    //policyの教師信号 [batch_size, POLICY_DIM]
-    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
-
-    std::vector<torch::Tensor> result(batch_size);
-    for (uint64_t i = 0; i < batch_size; i++) {
-        result[i] = torch::stack(root_hs[i]);
-    }
-    torch::Tensor root_h = torch::stack(result, 1); //[M + 1, batch_size, HIDDEN_DIM]
-
-    //各探索後の損失を計算
-    std::vector<torch::Tensor> loss(M + 1);
-
-    //エントロピー正則化
-    torch::Tensor entropy;
-
-    //各探索での損失を求める
-    for (int64_t m = 0; m <= M; m++) {
-        torch::Tensor policy_logit = readout_policy_->forward(root_h[m]);
-        loss[m] = policyLoss(policy_logit, policy_teacher);
-
-        //探索なしの直接推論についてエントロピーも求めておく
-        if (m == 0) {
-            entropy = entropyLoss(policy_logit);
-        }
-    }
-
-    //方策勾配法による勾配計算を行わないならここでそのままlossを返す
-    loss.push_back(entropy);
-    return loss;
+    return policy_logits;
 }
