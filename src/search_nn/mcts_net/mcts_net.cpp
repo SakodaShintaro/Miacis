@@ -2,8 +2,6 @@
 #include "../common.hpp"
 #include <stack>
 
-static const float LOG_SOFTMAX_THRESHOLD = std::log(1.0 / POLICY_DIM);
-
 MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
     : BaseModel(search_options),
       hash_table_(std::min(search_options.USI_Hash * 1024 * 1024 / 10000, search_options.search_limit * 10)) {
@@ -201,11 +199,11 @@ std::vector<torch::Tensor> MCTSNetImpl::search(std::vector<Position>& positions)
     //GPUで計算
     torch::Tensor root_embed = encoder_->embed(root_features, device_, fp16_, freeze_encoder_);
 
-    torch::Tensor p = readout_policy_->forward(root_embed).view({ 1, (int64_t)batch_size, POLICY_DIM });
-
     //各探索後のpolicy_logits
     std::vector<torch::Tensor> policy_logits;
-    policy_logits.push_back(p);
+
+    //0回目
+    policy_logits.push_back(readout_policy_->forward(root_embed).view({ 1, (int64_t)batch_size, POLICY_DIM }));
 
     //0回目の情報
     for (uint64_t i = 0; i < batch_size; i++) {
@@ -253,8 +251,6 @@ std::vector<torch::Tensor> MCTSNetImpl::search(std::vector<Position>& positions)
             //GPUで計算
             torch::Tensor h = torch::stack(embedding_vectors);
             torch::Tensor policy_logit = sim_policy_head_->forward(h);
-            torch::Tensor log_policy = torch::log_softmax(policy_logit, 1);
-            torch::Tensor clipped_log_policy = torch::clamp_min(log_policy, LOG_SOFTMAX_THRESHOLD);
 
             //計算結果を反映
             for (uint64_t j = 0; j < ids.size(); j++) {
