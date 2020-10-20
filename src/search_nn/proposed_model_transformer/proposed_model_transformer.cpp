@@ -8,33 +8,6 @@ ProposedModelTransformerImpl::ProposedModelTransformerImpl(const SearchOptions& 
     policy_head_ = register_module("policy_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, POLICY_DIM));
 }
 
-Move ProposedModelTransformerImpl::think(Position& root, int64_t time_limit) {
-    //バッチ化している関数と共通化している都合上、盤面をvector化
-    std::vector<Position> positions;
-    positions.push_back(root);
-
-    //出力方策の系列を取得
-    std::vector<torch::Tensor> policy_logits = search(positions);
-
-    //合法手だけマスクをかける
-    std::vector<Move> moves = root.generateAllMoves();
-    std::vector<float> logits;
-    for (const Move& move : moves) {
-        logits.push_back(policy_logits.back()[0][0][move.toLabel()].item<float>());
-    }
-
-    if (root.turnNumber() <= search_options_.random_turn) {
-        //Softmaxの確率に従って選択
-        std::vector<float> masked_policy = softmax(logits, 1.0f);
-        int32_t move_id = randomChoose(masked_policy);
-        return moves[move_id];
-    } else {
-        //最大のlogitを持つ行動を選択
-        int32_t move_id = std::max_element(logits.begin(), logits.end()) - logits.begin();
-        return moves[move_id];
-    }
-}
-
 std::vector<torch::Tensor> ProposedModelTransformerImpl::search(std::vector<Position>& positions) {
     //探索をして出力方策の系列を得る
     std::vector<torch::Tensor> policy_logits;

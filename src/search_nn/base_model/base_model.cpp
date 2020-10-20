@@ -1,4 +1,5 @@
 #include "base_model.hpp"
+#include "../../common.hpp"
 #include "../common.hpp"
 
 BaseModel::BaseModel(const SearchOptions& options)
@@ -77,4 +78,39 @@ torch::Tensor BaseModel::embed(const std::vector<Position>& positions) {
     torch::Tensor x = encoder_->embed(features, device_, fp16_, freeze_encoder_);
     x = x.view({ 1, (int64_t)positions.size(), StateEncoderImpl::HIDDEN_DIM });
     return x;
+}
+
+Move BaseModel::think(Position& root, int64_t time_limit) {
+    //思考を行う
+
+    //投了判定
+    float score{};
+    if (root.isFinish(score) && score == MIN_SCORE) {
+        return NULL_MOVE;
+    }
+
+    //バッチ化している関数と共通化している都合上、盤面をvector化
+    std::vector<Position> positions;
+    positions.push_back(root);
+
+    //出力方策の系列を取得
+    std::vector<torch::Tensor> policy_logits = search(positions);
+
+    //合法手だけマスクをかける
+    std::vector<Move> moves = root.generateAllMoves();
+    std::vector<float> logits;
+    for (const Move& move : moves) {
+        logits.push_back(policy_logits.back()[0][0][move.toLabel()].item<float>());
+    }
+
+    if (root.turnNumber() <= search_options_.random_turn) {
+        //Softmaxの確率に従って選択
+        std::vector<float> masked_policy = softmax(logits, 1.0f);
+        int32_t move_id = randomChoose(masked_policy);
+        return moves[move_id];
+    } else {
+        //最大のlogitを持つ行動を選択
+        int32_t move_id = std::max_element(logits.begin(), logits.end()) - logits.begin();
+        return moves[move_id];
+    }
 }
