@@ -70,7 +70,6 @@ private:
     bool fp16_;
 
     torch::nn::Linear first_encoding_{ nullptr };
-    torch::nn::TransformerEncoderLayer encoder_layer_{ nullptr };
     torch::nn::TransformerEncoder encoder_{ nullptr };
 
     torch::nn::Linear policy_head_{ nullptr };
