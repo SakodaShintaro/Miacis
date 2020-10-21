@@ -61,6 +61,9 @@ void pretrainSimpleMLP() {
         std::shuffle(train_data.begin(), train_data.end(), engine);
 
         for (uint64_t step = 0; (step + 1) * batch_size <= train_data.size() && global_step < max_step; step++) {
+            //学習モードに切り替え
+            model->train();
+
             //バッチサイズ分データを確保
             std::vector<LearningData> curr_data;
             for (int64_t b = 0; b < batch_size; b++) {
@@ -105,7 +108,6 @@ void pretrainSimpleMLP() {
                 for (float& v : valid_loss_sum) {
                     v /= valid_data.size();
                 }
-                model->train();
 
                 //表示
                 dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
@@ -113,10 +115,9 @@ void pretrainSimpleMLP() {
                     dout(std::cout, valid_log) << "\t" << v;
                 }
                 dout(std::cout, valid_log) << std::endl;
-            }
 
-            if (global_step == max_step) {
-                torch::save(model, model->defaultModelName());
+                //セーブ
+                torch::save(model, model->modelPrefix() + "_" + std::to_string(global_step) + ".model");
             }
 
             if (lr_decay_mode == 1) {
