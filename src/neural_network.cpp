@@ -30,14 +30,8 @@ NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false) {
     value_linear0_ = register_module("value_linear0_", Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
     value_linear1_ = register_module("value_linear1_", Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
 
-    positional_encoding_ = torch::zeros({ SQUARE_NUM, 1, CHANNEL_NUM });
-    for (int64_t pos = 0; pos < SQUARE_NUM; pos++) {
-        for (int64_t i = 0; i < CHANNEL_NUM / 2; i += 2) {
-            float term = pos / (std::pow(10000.0, 2.0 * i / CHANNEL_NUM));
-            positional_encoding_[pos][0][i] = std::sin(term);
-            positional_encoding_[pos][0][i + 1] = std::cos(term);
-        }
-    }
+    positional_encoding_ = register_parameter(
+        "positional_encoding_", torch::randn({ SQUARE_NUM, 1, CHANNEL_NUM }, torch::TensorOptions().requires_grad(true)));
 }
 
 torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
