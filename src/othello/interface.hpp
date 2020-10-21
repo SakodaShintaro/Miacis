@@ -53,6 +53,7 @@ private:
     std::unordered_map<std::string, std::function<void()>> command_;
     Position root_;
     std::unique_ptr<SearcherForPlay> searcher_;
+    SimpleMLP simple_mlp_;
     MCTSNet mcts_net_;
     ProposedModelLSTM proposed_model_lstm_;
     ProposedModelTransformer transformer_model_;

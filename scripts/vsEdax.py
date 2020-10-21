@@ -102,6 +102,7 @@ def main():
     parser.add_argument("--search_batch_size", type=int, default=4)
     parser.add_argument("--temperature_x1000", type=int, default=75)
     parser.add_argument("--exp_search", action="store_true")
+    parser.add_argument("--simple_mlp", action="store_true")
     parser.add_argument("--mcts_net", action="store_true")
     parser.add_argument("--proposed_model_lstm", action="store_true")
     parser.add_argument("--proposed_model_transformer", action="store_true")
@@ -116,6 +117,7 @@ def main():
 
     # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
     model_names = natsorted(glob.glob(curr_path + "*0.model"))
+    print(model_names)
 
     # プロセスmanagerを準備
     edax_manager = EdaxManager()
@@ -134,7 +136,9 @@ def main():
     miacis_manager.send_option("thread_num_per_gpu", 1)
     miacis_manager.send_option("random_turn", 30)
 
-    if args.mcts_net:
+    if args.simple_mlp:
+        miacis_manager.send_option("use_simple_mlp", "true")
+    elif args.mcts_net:
         miacis_manager.send_option("use_mcts_net", "true")
     elif args.proposed_model_lstm:
         miacis_manager.send_option("use_proposed_model_lstm", "true")

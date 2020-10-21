@@ -115,6 +115,10 @@ void pretrainSimpleMLP() {
                 dout(std::cout, valid_log) << std::endl;
             }
 
+            if (global_step == max_step) {
+                torch::save(model, model->defaultModelName());
+            }
+
             if (lr_decay_mode == 1) {
                 if (global_step == lr_decay_step1 || global_step == lr_decay_step2) {
                     (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
