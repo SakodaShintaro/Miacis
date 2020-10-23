@@ -15,6 +15,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     float min_learn_rate         = settings.get<float>("min_learn_rate");
     float momentum               = settings.get<float>("momentum");
     float weight_decay           = settings.get<float>("weight_decay");
+    float sim_policy_coeff       = settings.get<float>("sim_policy_coeff");
     float entropy_coeff          = settings.get<float>("entropy_coeff");
     float train_rate_threshold   = settings.get<float>("train_rate_threshold");
     float valid_rate_threshold   = settings.get<float>("valid_rate_threshold");
@@ -53,7 +54,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             dout(train_log, valid_log) << "\tloss_" << i;
         }
     }
-    tout(std::cout, train_log, valid_log) << "\tentropy" << std::endl;
+    tout(std::cout, train_log, valid_log) << "\tsim_policy\tentropy" << std::endl;
     std::cout << std::setprecision(4);
 
     //モデル作成
@@ -124,7 +125,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                     loss[i] /= (options.search_limit + 1);
                 }
             }
-            loss.back() *= entropy_coeff;
+            loss[loss.size() - 2] *= sim_policy_coeff;
+            loss[loss.size() - 1] *= entropy_coeff;
             torch::Tensor loss_sum = torch::stack(loss).sum();
             loss_sum.mean().backward();
             optimizer.step();

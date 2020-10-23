@@ -53,19 +53,14 @@ std::vector<torch::Tensor> BaseModel::loss(const std::vector<LearningData>& data
         loss[m] = policyLoss(policy_logit, policy_teacher);
     }
 
-    //エントロピー正則化
-    loss.push_back(entropyLoss(policy_logits[0][0]));
-
-    /*
     //Simulation Policyの損失
     //現局面の特徴を抽出
     torch::Tensor x = embed(positions);
-    torch::Tensor sim_policy_logit = simulationPolicy(x)[0];
+    torch::Tensor sim_policy_logit = sim_policy_head_->forward(x)[0];
     loss.push_back(policyLoss(sim_policy_logit, policy_teacher));
 
     //エントロピー正則化(Simulation Policyにかける)
     loss.push_back(entropyLoss(sim_policy_logit));
-     */
     return loss;
 }
 
