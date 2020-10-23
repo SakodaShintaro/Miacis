@@ -5,18 +5,18 @@
 //ネットワークの設定
 #ifdef SHOGI
 static constexpr int32_t BLOCK_NUM = 10;
-static constexpr int32_t CHANNEL_NUM = 256;
+static constexpr int32_t HIDDEN_DIM = 256;
 #elif defined(OTHELLO)
 static constexpr int32_t BLOCK_NUM = 5;
-static constexpr int32_t CHANNEL_NUM = 64;
+static constexpr int32_t HIDDEN_DIM = 64;
 #endif
 static constexpr int32_t POLICY_BLOCK_NUM = 1;
 static constexpr int32_t VALUE_BLOCK_NUM = 1;
 
 #ifdef USE_CATEGORICAL
-const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_dim" + std::to_string(HIDDEN_DIM);
 #else
-const std::string NeuralNetworkImpl::MODEL_PREFIX = "sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+const std::string NeuralNetworkImpl::MODEL_PREFIX = "sca_bl" + std::to_string(BLOCK_NUM) + "_dim" + std::to_string(HIDDEN_DIM);
 #endif
 //デフォルトで読み書きするファイル名
 const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MODEL_PREFIX + ".model";
@@ -24,19 +24,19 @@ const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MOD
 NeuralNetworkImpl::NeuralNetworkImpl()
     : device_(torch::kCUDA), fp16_(false), state_blocks_(BLOCK_NUM, nullptr), policy_blocks_(POLICY_BLOCK_NUM, nullptr),
       value_blocks_(VALUE_BLOCK_NUM, nullptr) {
-    first_layer_ = register_module("first_layer_", FCwithBatchNorm(INPUT_CHANNEL_NUM * SQUARE_NUM, CHANNEL_NUM));
+    first_layer_ = register_module("first_layer_", FCwithBatchNorm(INPUT_CHANNEL_NUM * SQUARE_NUM, HIDDEN_DIM));
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
-        state_blocks_[i] = register_module("state_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM));
+        state_blocks_[i] = register_module("state_blocks_" + std::to_string(i), ResidualBlock(HIDDEN_DIM));
     }
     for (int32_t i = 0; i < POLICY_BLOCK_NUM; i++) {
-        policy_blocks_[i] = register_module("policy_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM));
+        policy_blocks_[i] = register_module("policy_blocks_" + std::to_string(i), ResidualBlock(HIDDEN_DIM));
     }
     for (int32_t i = 0; i < VALUE_BLOCK_NUM; i++) {
-        value_blocks_[i] = register_module("value_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM));
+        value_blocks_[i] = register_module("value_blocks_" + std::to_string(i), ResidualBlock(HIDDEN_DIM));
     }
 
-    policy_head_ = register_module("policy_head_", torch::nn::Linear(CHANNEL_NUM, POLICY_CHANNEL_NUM * SQUARE_NUM));
-    value_head_ = register_module("value_head_", torch::nn::Linear(CHANNEL_NUM, BIN_SIZE));
+    policy_head_ = register_module("policy_head_", torch::nn::Linear(HIDDEN_DIM, POLICY_CHANNEL_NUM * SQUARE_NUM));
+    value_head_ = register_module("value_head_", torch::nn::Linear(HIDDEN_DIM, BIN_SIZE));
 }
 
 torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
