@@ -72,7 +72,9 @@ private:
     FCwithBatchNorm first_layer_{ nullptr };
     std::vector<ResidualBlock> state_blocks_;
 
+    std::vector<ResidualBlock> policy_blocks_;
     torch::nn::Linear policy_head_{ nullptr };
+    std::vector<ResidualBlock> value_blocks_;
     torch::nn::Linear value_head_{ nullptr };
 };
 TORCH_MODULE(NeuralNetwork);

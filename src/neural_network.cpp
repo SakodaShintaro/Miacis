@@ -10,6 +10,8 @@ static constexpr int32_t CHANNEL_NUM = 256;
 static constexpr int32_t BLOCK_NUM = 5;
 static constexpr int32_t CHANNEL_NUM = 64;
 #endif
+static constexpr int32_t POLICY_BLOCK_NUM = 1;
+static constexpr int32_t VALUE_BLOCK_NUM = 1;
 
 #ifdef USE_CATEGORICAL
 const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
@@ -19,11 +21,20 @@ const std::string NeuralNetworkImpl::MODEL_PREFIX = "sca_bl" + std::to_string(BL
 //デフォルトで読み書きするファイル名
 const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MODEL_PREFIX + ".model";
 
-NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), state_blocks_(BLOCK_NUM, nullptr) {
+NeuralNetworkImpl::NeuralNetworkImpl()
+    : device_(torch::kCUDA), fp16_(false), state_blocks_(BLOCK_NUM, nullptr), policy_blocks_(POLICY_BLOCK_NUM, nullptr),
+      value_blocks_(VALUE_BLOCK_NUM, nullptr) {
     first_layer_ = register_module("first_layer_", FCwithBatchNorm(INPUT_CHANNEL_NUM * SQUARE_NUM, CHANNEL_NUM));
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
         state_blocks_[i] = register_module("state_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM));
     }
+    for (int32_t i = 0; i < POLICY_BLOCK_NUM; i++) {
+        policy_blocks_[i] = register_module("policy_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM));
+    }
+    for (int32_t i = 0; i < VALUE_BLOCK_NUM; i++) {
+        value_blocks_[i] = register_module("value_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM));
+    }
+
     policy_head_ = register_module("policy_head_", torch::nn::Linear(CHANNEL_NUM, POLICY_CHANNEL_NUM * SQUARE_NUM));
     value_head_ = register_module("value_head_", torch::nn::Linear(CHANNEL_NUM, BIN_SIZE));
 }
@@ -43,10 +54,18 @@ torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
 
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::decode(const torch::Tensor& representation) {
     //policy
-    torch::Tensor policy = policy_head_->forward(representation);
+    torch::Tensor policy = representation;
+    for (int32_t i = 0; i < POLICY_BLOCK_NUM; i++) {
+        policy = policy_blocks_[i]->forward(policy);
+    }
+    policy = policy_head_->forward(policy);
 
     //value
-    torch::Tensor value = value_head_->forward(representation);
+    torch::Tensor value = representation;
+    for (int32_t i = 0; i < VALUE_BLOCK_NUM; i++) {
+        value = value_blocks_[i]->forward(value);
+    }
+    value = value_head_->forward(value);
 
 #ifndef USE_CATEGORICAL
 #ifdef USE_SIGMOID
