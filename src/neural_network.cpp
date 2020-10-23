@@ -5,14 +5,11 @@
 //ネットワークの設定
 #ifdef SHOGI
 static constexpr int32_t BLOCK_NUM = 10;
-static constexpr int32_t CHANNEL_NUM = 128;
+static constexpr int32_t CHANNEL_NUM = 256;
 #elif defined(OTHELLO)
 static constexpr int32_t BLOCK_NUM = 5;
 static constexpr int32_t CHANNEL_NUM = 64;
 #endif
-static constexpr int32_t KERNEL_SIZE = 3;
-static constexpr int32_t REDUCTION = 8;
-static constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
 #ifdef USE_CATEGORICAL
 const std::string NeuralNetworkImpl::MODEL_PREFIX = "cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
@@ -23,49 +20,33 @@ const std::string NeuralNetworkImpl::MODEL_PREFIX = "sca_bl" + std::to_string(BL
 const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MODEL_PREFIX + ".model";
 
 NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false), state_blocks_(BLOCK_NUM, nullptr) {
-    state_first_conv_and_norm_ =
-        register_module("state_first_conv_and_norm_", Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
+    first_layer_ = register_module("first_layer_", FCwithBatchNorm(INPUT_CHANNEL_NUM * SQUARE_NUM, CHANNEL_NUM));
     for (int32_t i = 0; i < BLOCK_NUM; i++) {
-        state_blocks_[i] =
-            register_module("state_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
+        state_blocks_[i] = register_module("state_blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM));
     }
-#ifdef REPRESENTATION_DROPOUT
-    representation_dropout_ = register_module("representation_dropout_", torch::nn::Dropout2d());
-#endif
-    policy_conv_ = register_module(
-        "policy_conv_", torch::nn::Conv2d(torch::nn::Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).bias(true)));
-    value_conv_and_norm_ = register_module("value_conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
-    value_linear0_ = register_module("value_linear0_", torch::nn::Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
-    value_linear1_ = register_module("value_linear1_", torch::nn::Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
+    policy_head_ = register_module("policy_head_", torch::nn::Linear(CHANNEL_NUM, POLICY_CHANNEL_NUM * SQUARE_NUM));
+    value_head_ = register_module("value_head_", torch::nn::Linear(CHANNEL_NUM, BIN_SIZE));
 }
 
 torch::Tensor NeuralNetworkImpl::encode(const std::vector<float>& inputs) {
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    x = state_first_conv_and_norm_->forward(x);
+    x = x.view({ -1, INPUT_CHANNEL_NUM * SQUARE_NUM });
+    x = first_layer_->forward(x);
     x = activation(x);
 
     for (ResidualBlock& block : state_blocks_) {
         x = block->forward(x);
     }
 
-#ifdef REPRESENTATION_DROPOUT
-    x = representation_dropout_->forward(x);
-#endif
     return x;
 }
 
 std::pair<torch::Tensor, torch::Tensor> NeuralNetworkImpl::decode(const torch::Tensor& representation) {
     //policy
-    torch::Tensor policy = policy_conv_->forward(representation);
+    torch::Tensor policy = policy_head_->forward(representation);
 
     //value
-    torch::Tensor value = value_conv_and_norm_->forward(representation);
-    value = activation(value);
-    value = value.view({ -1, SQUARE_NUM * CHANNEL_NUM });
-    value = value_linear0_->forward(value);
-    value = activation(value);
-    value = value_linear1_->forward(value);
+    torch::Tensor value = value_head_->forward(representation);
 
 #ifndef USE_CATEGORICAL
 #ifdef USE_SIGMOID
