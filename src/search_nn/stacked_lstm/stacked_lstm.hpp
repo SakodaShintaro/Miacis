@@ -1,49 +1,24 @@
 #ifndef MIACIS_STACKED_LSTM_HPP
 #define MIACIS_STACKED_LSTM_HPP
 
-#include "../state_encoder.hpp"
+#include "../base_model/base_model.hpp"
 
-class StackedLSTMImpl : public torch::nn::Module {
+class StackedLSTMImpl : public BaseModel {
 public:
     StackedLSTMImpl() : StackedLSTMImpl(SearchOptions()) {}
     explicit StackedLSTMImpl(SearchOptions search_options);
 
-    //root局面について探索を行って一番良い指し手を返す関数
-    Move think(Position& root, int64_t time_limit);
-
-    //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
-    std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
-
-    //GPUにネットワークを送る関数
-    void setGPU(int16_t gpu_id, bool fp16 = false);
-
-    //事前学習したモデルを読み込む関数
-    void loadPretrain(const std::string& encoder_path, const std::string& policy_head_path);
-
     //インタンスから下のクラス変数を参照するための関数
-    static std::string modelPrefix() { return "stacked_lstm"; }
-    static std::string defaultModelName() { return modelPrefix() + ".model"; }
-
-    //学習の設定を定める関数
-    void setOption(bool freeze_encoder);
+    std::string modelPrefix() override { return "stacked_lstm"; }
 
 private:
+    //探索
+    std::vector<torch::Tensor> search(std::vector<Position>& positions) override;
+
     //各部分の推論
-    torch::Tensor embed(const std::vector<float>& inputs);
     torch::Tensor simulationPolicy(const torch::Tensor& x);
     torch::Tensor readoutPolicy(const torch::Tensor& x);
     torch::Tensor predictNextState(const torch::Tensor& pre_state, const torch::Tensor& abstract_action);
-
-    //探索全体
-    std::vector<torch::Tensor> search(const std::vector<float>& inputs);
-
-    //探索に関するオプション
-    SearchOptions search_options_;
-
-    //---------------
-    //    Encoder
-    //---------------
-    StateEncoder encoder_{ nullptr };
 
     //-------------------------
     //    Environment Model
@@ -66,13 +41,6 @@ private:
     torch::nn::Linear readout_policy_head_{ nullptr };
     torch::Tensor readout_h_;
     torch::Tensor readout_c_;
-
-    //デバイスとfp16化
-    torch::Device device_;
-    bool fp16_;
-
-    //エンコーダを固定して学習するかどうか
-    bool freeze_encoder_;
 };
 TORCH_MODULE(StackedLSTM);
 
