@@ -30,13 +30,6 @@ StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options)
 Move StackedLSTMImpl::think(Position& root, int64_t time_limit) {
     //思考を行う
 
-    //状態を初期化
-    //(num_layers * num_directions, batch, hidden_size)
-    simulation_h_ = torch::zeros({ NUM_LAYERS, 1, LSTM_HIDDEN_SIZE }).to(device_);
-    simulation_c_ = torch::zeros({ NUM_LAYERS, 1, LSTM_HIDDEN_SIZE }).to(device_);
-    readout_h_ = torch::zeros({ NUM_LAYERS, 1, LSTM_HIDDEN_SIZE }).to(device_);
-    readout_c_ = torch::zeros({ NUM_LAYERS, 1, LSTM_HIDDEN_SIZE }).to(device_);
-
     //探索をして出力方策の系列を得る
     std::vector<torch::Tensor> policy_logits = search(root.makeFeature());
 
@@ -100,6 +93,16 @@ std::vector<torch::Tensor> StackedLSTMImpl::search(const std::vector<float>& inp
     //最初のエンコード
     torch::Tensor embed_vector = embed(inputs);
 
+    //バッチサイズを取得
+    int64_t batch_size = embed_vector.size(1);
+
+    //状態を初期化
+    //(num_layers * num_directions, batch, hidden_size)
+    simulation_h_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+    simulation_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+    readout_h_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+    readout_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
+
     //探索前の結果
     policy_logits.push_back(readoutPolicy(embed_vector));
 
@@ -137,13 +140,6 @@ std::vector<torch::Tensor> StackedLSTMImpl::loss(const std::vector<LearningData>
         std::vector<float> f = pos.makeFeature();
         root_features.insert(root_features.end(), f.begin(), f.end());
     }
-
-    //状態を初期化
-    //(num_layers * num_directions, batch, hidden_size)
-    simulation_h_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
-    simulation_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
-    readout_h_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
-    readout_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
 
     //探索をして出力方策の系列を得る
     std::vector<torch::Tensor> policy_logits = search(root_features);
