@@ -117,7 +117,6 @@ def main():
 
     # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
     model_names = natsorted(glob.glob(curr_path + "*0.model"))
-    print(model_names)
 
     # プロセスmanagerを準備
     edax_manager = EdaxManager()
