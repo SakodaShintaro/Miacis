@@ -47,8 +47,21 @@ std::vector<torch::Tensor> BaseModel::loss(const std::vector<LearningData>& data
     //探索をして出力方策の系列を得る
     std::vector<torch::Tensor> policy_logits = search(positions);
 
-    //policyの教師信号
-    torch::Tensor policy_teacher = getPolicyTeacher(data, device_);
+    //教師信号の構築
+    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
+    std::vector<float> value_teachers;
+
+    for (uint64_t i = 0; i < data.size(); i++) {
+        //policyの教師信号
+        for (const std::pair<int32_t, float>& e : data[i].policy) {
+            policy_teachers[i * POLICY_DIM + e.first] = e.second;
+        }
+
+        //valueの教師信号
+        value_teachers.push_back(data[i].value);
+    }
+    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ batch_size, POLICY_DIM });
+    torch::Tensor value_teacher = torch::tensor(value_teachers).to(device_).view({ batch_size, 1 });
 
     //探索回数
     const int64_t M = search_options_.search_limit;
@@ -60,11 +73,17 @@ std::vector<torch::Tensor> BaseModel::loss(const std::vector<LearningData>& data
         loss[m] = policyLoss(policy_logit, policy_teacher);
     }
 
-    //Base Policyの損失
+    //現局面に対するBaseの損失を計算する
     //現局面の特徴を抽出
     torch::Tensor x = embed(positions);
+
+    //Policy損失
     torch::Tensor base_policy_logit = base_policy_head_->forward(x)[0];
     loss.push_back(policyLoss(base_policy_logit, policy_teacher));
+
+    //Value損失
+    torch::Tensor value = base_value_head_->forward(x);
+    loss.push_back(torch::mse_loss(value, value_teacher));
 
     //エントロピー正則化(Base Policyにかける)
     loss.push_back(entropyLoss(base_policy_logit));
