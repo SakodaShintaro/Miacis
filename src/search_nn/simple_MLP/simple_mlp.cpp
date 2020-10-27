@@ -2,31 +2,8 @@
 #include "../../common.hpp"
 #include "../common.hpp"
 
-SimpleMLPImpl::SimpleMLPImpl(const SearchOptions& search_options) : BaseModel(search_options) {}
-
-Move SimpleMLPImpl::think(Position& root, int64_t time_limit) {
-    //この局面を推論して探索せずにそのまま出力
-
-    //ニューラルネットワークによる推論
-    torch::Tensor policy = inferPolicy(root);
-
-    //合法手だけマスクをかける
-    std::vector<Move> moves = root.generateAllMoves();
-    std::vector<float> logits;
-    for (const Move& move : moves) {
-        logits.push_back(policy[0][move.toLabel()].item<float>());
-    }
-
-    if (root.turnNumber() <= search_options_.random_turn) {
-        //Softmaxの確率に従って選択
-        std::vector<float> masked_policy = softmax(logits, 1.0f);
-        int32_t move_id = randomChoose(masked_policy);
-        return moves[move_id];
-    } else {
-        //最大のlogitを持つ行動を選択
-        int32_t move_id = std::max_element(logits.begin(), logits.end()) - logits.begin();
-        return moves[move_id];
-    }
+SimpleMLPImpl::SimpleMLPImpl(const SearchOptions& search_options) : BaseModel(search_options) {
+    search_options_.search_limit = 0;
 }
 
 torch::Tensor SimpleMLPImpl::inferPolicy(const Position& pos) {
