@@ -6,7 +6,7 @@
 class StackedLSTMImpl : public BaseModel {
 public:
     StackedLSTMImpl() : StackedLSTMImpl(SearchOptions()) {}
-    explicit StackedLSTMImpl(SearchOptions search_options);
+    explicit StackedLSTMImpl(const SearchOptions& search_options);
 
     //インタンスから下のクラス変数を参照するための関数
     std::string modelPrefix() override { return "stacked_lstm"; }

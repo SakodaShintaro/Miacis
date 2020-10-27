@@ -6,7 +6,7 @@
 class ProposedModelLSTMImpl : public BaseModel {
 public:
     ProposedModelLSTMImpl() : ProposedModelLSTMImpl(SearchOptions()) {}
-    explicit ProposedModelLSTMImpl(SearchOptions search_options);
+    explicit ProposedModelLSTMImpl(const SearchOptions& search_options);
 
     //インタンスから下のクラス変数を参照するための関数
     std::string modelPrefix() override { return "proposed_model_lstm"; }

@@ -6,7 +6,7 @@
 class SimpleMLPImpl : public BaseModel {
 public:
     SimpleMLPImpl() : SimpleMLPImpl(SearchOptions()) {}
-    explicit SimpleMLPImpl(SearchOptions search_options);
+    explicit SimpleMLPImpl(const SearchOptions& search_options);
 
     //root局面について探索を行って一番良い指し手を返す関数
     Move think(Position& root, int64_t time_limit) override;

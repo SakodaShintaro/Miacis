@@ -1,9 +1,10 @@
 #include "base_model.hpp"
 #include "../../common.hpp"
 #include "../common.hpp"
+#include <utility>
 
-BaseModel::BaseModel(const SearchOptions& options)
-    : search_options_(options), device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
+BaseModel::BaseModel(SearchOptions options)
+    : search_options_(std::move(options)), device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
     encoder_ = register_module("encoder_", StateEncoder());
     sim_policy_head_ = register_module("sim_policy_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, POLICY_DIM));
 }

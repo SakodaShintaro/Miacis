@@ -7,7 +7,7 @@ static constexpr int32_t LSTM_HIDDEN_SIZE = 512;
 static constexpr int32_t ABSTRACT_ACTION_DIM = 512;
 static constexpr int32_t NUM_LAYERS = 2;
 
-StackedLSTMImpl::StackedLSTMImpl(SearchOptions search_options) : BaseModel(search_options) {
+StackedLSTMImpl::StackedLSTMImpl(const SearchOptions& search_options) : BaseModel(search_options) {
     using namespace torch::nn;
 
     constexpr int64_t HIDDEN_DIM = StateEncoderImpl::HIDDEN_DIM;

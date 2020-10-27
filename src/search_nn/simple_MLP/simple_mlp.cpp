@@ -2,10 +2,7 @@
 #include "../../common.hpp"
 #include "../common.hpp"
 
-//ネットワークの設定
-static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
-
-SimpleMLPImpl::SimpleMLPImpl(SearchOptions search_options) : BaseModel(search_options) {}
+SimpleMLPImpl::SimpleMLPImpl(const SearchOptions& search_options) : BaseModel(search_options) {}
 
 Move SimpleMLPImpl::think(Position& root, int64_t time_limit) {
     //この局面を推論して探索せずにそのまま出力
@@ -74,7 +71,7 @@ torch::Tensor SimpleMLPImpl::inferPolicy(const Position& pos) {
 torch::Tensor SimpleMLPImpl::forward(const torch::Tensor& x) {
     torch::Tensor y = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     y = encoder_->forward(y);
-    y = y.view({ -1, HIDDEN_DIM });
+    y = y.view({ -1, StateEncoderImpl::HIDDEN_DIM });
     return sim_policy_head_->forward(y);
 }
 

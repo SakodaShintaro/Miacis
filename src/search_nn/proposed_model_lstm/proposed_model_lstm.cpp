@@ -6,7 +6,7 @@
 static constexpr int32_t HIDDEN_SIZE = 512;
 static constexpr int32_t NUM_LAYERS = 1;
 
-ProposedModelLSTMImpl::ProposedModelLSTMImpl(SearchOptions search_options) : BaseModel(search_options) {
+ProposedModelLSTMImpl::ProposedModelLSTMImpl(const SearchOptions& search_options) : BaseModel(search_options) {
     torch::nn::LSTMOptions option(StateEncoderImpl::HIDDEN_DIM, HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
     readout_lstm_ = register_module("readout_lstm_", torch::nn::LSTM(option));

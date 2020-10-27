@@ -6,7 +6,7 @@
 
 class BaseModel : public torch::nn::Module {
 public:
-    explicit BaseModel(const SearchOptions& options);
+    explicit BaseModel(SearchOptions options);
 
     //root局面について探索を行って一番良い指し手を返す関数
     virtual Move think(Position& root, int64_t time_limit);
