@@ -13,16 +13,17 @@ public:
 
 private:
     //探索
-    std::vector<torch::Tensor> search(std::vector<Position>& positions) override;
+    std::vector<std::tuple<torch::Tensor, torch::Tensor>> search(std::vector<Position>& positions) override;
 
     //各部分の推論
-    torch::Tensor readoutPolicy(const torch::Tensor& x, bool update_hidden_state);
+    std::tuple<torch::Tensor, torch::Tensor> readout(const torch::Tensor& x, bool update_hidden_state);
 
     //----------------------
     //    Readout Policy
     //----------------------
     torch::nn::LSTM readout_lstm_{ nullptr };
     torch::nn::Linear readout_policy_head_{ nullptr };
+    torch::nn::Linear readout_value_head_{ nullptr };
     torch::Tensor readout_h_;
     torch::Tensor readout_c_;
 };

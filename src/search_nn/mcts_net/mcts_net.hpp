@@ -14,7 +14,7 @@ public:
 
 private:
     //探索
-    std::vector<torch::Tensor> search(std::vector<Position>& positions) override;
+    std::vector<std::tuple<torch::Tensor, torch::Tensor>> search(std::vector<Position>& positions) override;
 
     //各部分の推論
     torch::Tensor backup(const torch::Tensor& h1, const torch::Tensor& h2);
@@ -29,6 +29,7 @@ private:
 
     //readout network
     torch::nn::Linear readout_policy_{ nullptr };
+    torch::nn::Linear readout_value_{ nullptr };
 };
 TORCH_MODULE(MCTSNet);
 

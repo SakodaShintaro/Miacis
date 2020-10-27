@@ -45,7 +45,7 @@ std::vector<torch::Tensor> BaseModel::loss(const std::vector<LearningData>& data
     }
 
     //探索をして出力方策の系列を得る
-    std::vector<torch::Tensor> policy_logits = search(positions);
+    std::vector<std::tuple<torch::Tensor, torch::Tensor>> policy_and_value = search(positions);
 
     //教師信号の構築
     std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
@@ -69,8 +69,9 @@ std::vector<torch::Tensor> BaseModel::loss(const std::vector<LearningData>& data
     //各探索後の損失を計算
     std::vector<torch::Tensor> loss;
     for (int64_t m = 0; m <= M; m++) {
-        torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
-        loss.push_back(policyLoss(policy_logit, policy_teacher));
+        auto [policy_logit, value] = policy_and_value[m];
+        loss.push_back(policyLoss(policy_logit[0], policy_teacher));
+        loss.push_back(torch::mse_loss(value, value_teacher));
     }
 
     //現局面に対するBaseの損失を計算する
@@ -82,7 +83,7 @@ std::vector<torch::Tensor> BaseModel::loss(const std::vector<LearningData>& data
     loss.push_back(policyLoss(base_policy_logit, policy_teacher));
 
     //Value損失
-    torch::Tensor value = base_value_head_->forward(x);
+    torch::Tensor value = torch::tanh(base_value_head_->forward(x));
     loss.push_back(torch::mse_loss(value, value_teacher));
 
     //エントロピー正則化(Base Policyにかける)
@@ -115,13 +116,14 @@ Move BaseModel::think(Position& root, int64_t time_limit) {
     positions.push_back(root);
 
     //出力方策の系列を取得
-    std::vector<torch::Tensor> policy_logits = search(positions);
+    std::vector<std::tuple<torch::Tensor, torch::Tensor>> policy_and_value = search(positions);
 
     //合法手だけマスクをかける
     std::vector<Move> moves = root.generateAllMoves();
     std::vector<float> logits;
     for (const Move& move : moves) {
-        logits.push_back(policy_logits.back()[0][0][move.toLabel()].item<float>());
+        auto [policy_logit, value] = policy_and_value.back();
+        logits.push_back(policy_logit[0][0][move.toLabel()].item<float>());
     }
 
     if (root.turnNumber() <= search_options_.random_turn) {

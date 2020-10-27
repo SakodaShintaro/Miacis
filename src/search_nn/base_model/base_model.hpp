@@ -29,7 +29,7 @@ public:
 
 protected:
     //探索
-    virtual std::vector<torch::Tensor> search(std::vector<Position>& positions) = 0;
+    virtual std::vector<std::tuple<torch::Tensor, torch::Tensor>> search(std::vector<Position>& positions) = 0;
 
     //局面のバッチを埋め込む関数
     torch::Tensor embed(const std::vector<Position>& positions);

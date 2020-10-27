@@ -6,11 +6,12 @@ ProposedModelTransformerImpl::ProposedModelTransformerImpl(const SearchOptions& 
     torch::nn::TransformerOptions options(StateEncoderImpl::HIDDEN_DIM, 4, 3, 3);
     transformer_ = register_module("transformer_", torch::nn::Transformer(options));
     policy_head_ = register_module("policy_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, POLICY_DIM));
+    value_head_ = register_module("value_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, 1));
 }
 
-std::vector<torch::Tensor> ProposedModelTransformerImpl::search(std::vector<Position>& positions) {
+std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelTransformerImpl::search(std::vector<Position>& positions) {
     //探索をして出力方策の系列を得る
-    std::vector<torch::Tensor> policy_logits;
+    std::vector<std::tuple<torch::Tensor, torch::Tensor>> policy_and_value;
 
     //バッチサイズを取得しておく
     const int64_t batch_size = positions.size();
@@ -37,7 +38,7 @@ std::vector<torch::Tensor> ProposedModelTransformerImpl::search(std::vector<Posi
         torch::Tensor x = embed(positions);
 
         //ここまでの探索から最終行動決定
-        policy_logits.push_back(inferPolicy(root_x, history));
+        policy_and_value.push_back(infer(root_x, history));
 
         if (m == search_options_.search_limit) {
             break;
@@ -71,16 +72,19 @@ std::vector<torch::Tensor> ProposedModelTransformerImpl::search(std::vector<Posi
         }
     }
 
-    return policy_logits;
+    return policy_and_value;
 }
 
-torch::Tensor ProposedModelTransformerImpl::inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history) {
+std::tuple<torch::Tensor, torch::Tensor> ProposedModelTransformerImpl::infer(const torch::Tensor& x,
+                                                                             const std::vector<torch::Tensor>& history) {
     //xをキーとして推論
     torch::Tensor src =
         (history.empty() ? torch::zeros({ 1, x.size(1), StateEncoderImpl::HIDDEN_DIM }) : torch::cat(history, 0)).to(device_);
     torch::Tensor y = transformer_->forward(src, x);
-    y = policy_head_->forward(y);
-    return y;
+
+    torch::Tensor policy_logit = policy_head_(y);
+    torch::Tensor value = torch::tanh(value_head_->forward(y));
+    return std::make_tuple(policy_logit, value);
 }
 
 torch::Tensor ProposedModelTransformerImpl::positionalEncoding(int64_t pos) const {

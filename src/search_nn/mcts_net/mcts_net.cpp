@@ -11,6 +11,7 @@ MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)
     backup_gate_ = register_module("backup_gate_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM * 2, HIDDEN_DIM)));
 
     readout_policy_ = register_module("readout_policy_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, POLICY_DIM)));
+    readout_value_ = register_module("readout_value_", torch::nn::Linear(torch::nn::LinearOptions(HIDDEN_DIM, 1)));
 }
 
 torch::Tensor MCTSNetImpl::backup(const torch::Tensor& h1, const torch::Tensor& h2) {
@@ -19,7 +20,7 @@ torch::Tensor MCTSNetImpl::backup(const torch::Tensor& h1, const torch::Tensor& 
     return h1 + gate * backup_update_->forward(cat_h);
 }
 
-std::vector<torch::Tensor> MCTSNetImpl::search(std::vector<Position>& positions) {
+std::vector<std::tuple<torch::Tensor, torch::Tensor>> MCTSNetImpl::search(std::vector<Position>& positions) {
     //バッチサイズを取得しておく
     const uint64_t batch_size = positions.size();
 
@@ -45,10 +46,11 @@ std::vector<torch::Tensor> MCTSNetImpl::search(std::vector<Position>& positions)
     torch::Tensor root_embed = encoder_->embed(root_features, device_, fp16_, freeze_encoder_);
 
     //各探索後のpolicy_logits
-    std::vector<torch::Tensor> policy_logits;
+    std::vector<std::tuple<torch::Tensor, torch::Tensor>> policy_and_value;
 
     //0回目
-    policy_logits.push_back(readout_policy_->forward(root_embed).view({ 1, (int64_t)batch_size, POLICY_DIM }));
+    policy_and_value.emplace_back(readout_policy_->forward(root_embed).view({ 1, (int64_t)batch_size, POLICY_DIM }),
+                                  torch::tanh(readout_value_->forward(root_embed)));
 
     //0回目の情報
     for (uint64_t i = 0; i < batch_size; i++) {
@@ -171,8 +173,9 @@ std::vector<torch::Tensor> MCTSNetImpl::search(std::vector<Position>& positions)
             root_hs.push_back(hash_tables[i][hash_tables[i].root_index].embedding_vector.to(device_));
         }
         torch::Tensor root_h = torch::stack(root_hs);
-        policy_logits.push_back(readout_policy_->forward(root_h).view({ 1, (int64_t)batch_size, POLICY_DIM }));
+        policy_and_value.emplace_back(readout_policy_->forward(root_h).view({ 1, (int64_t)batch_size, POLICY_DIM }),
+                                      torch::tanh(readout_value_->forward(root_h)));
     }
 
-    return policy_logits;
+    return policy_and_value;
 }

@@ -11,9 +11,10 @@ ProposedModelLSTMImpl::ProposedModelLSTMImpl(const SearchOptions& search_options
     option.num_layers(NUM_LAYERS);
     readout_lstm_ = register_module("readout_lstm_", torch::nn::LSTM(option));
     readout_policy_head_ = register_module("readout_policy_head_", torch::nn::Linear(HIDDEN_SIZE, POLICY_DIM));
+    readout_value_head_ = register_module("readout_value_head_", torch::nn::Linear(HIDDEN_SIZE, 1));
 }
 
-torch::Tensor ProposedModelLSTMImpl::readoutPolicy(const torch::Tensor& x, bool update_hidden_state) {
+std::tuple<torch::Tensor, torch::Tensor> ProposedModelLSTMImpl::readout(const torch::Tensor& x, bool update_hidden_state) {
     //lstmは入力(input, (h_0, c_0))
     //inputのshapeは(seq_len, batch, input_size)
     //h_0, c_0は任意の引数で、状態を初期化できる
@@ -27,12 +28,15 @@ torch::Tensor ProposedModelLSTMImpl::readoutPolicy(const torch::Tensor& x, bool 
         std::tie(readout_h_, readout_c_) = h_and_c;
     }
 
-    return readout_policy_head_->forward(output);
+    torch::Tensor policy = readout_policy_head_->forward(output);
+    torch::Tensor value = torch::tanh(readout_value_head_->forward(output));
+
+    return std::make_tuple(policy, value);
 }
 
-std::vector<torch::Tensor> ProposedModelLSTMImpl::search(std::vector<Position>& positions) {
+std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelLSTMImpl::search(std::vector<Position>& positions) {
     //探索をして出力方策の系列を得る
-    std::vector<torch::Tensor> policy_logits;
+    std::vector<std::tuple<torch::Tensor, torch::Tensor>> policy_and_value;
 
     //バッチサイズを取得しておく
     const int64_t batch_size = positions.size();
@@ -62,14 +66,14 @@ std::vector<torch::Tensor> ProposedModelLSTMImpl::search(std::vector<Position>& 
         torch::Tensor x = embed(positions);
 
         //ここまでの探索から最終行動決定
-        policy_logits.push_back(readoutPolicy(root_x, false));
+        policy_and_value.push_back(readout(root_x, false));
 
         if (m == search_options_.search_limit) {
             break;
         }
 
         //現在の特徴を用いてLSTMの隠れ状態を更新
-        readoutPolicy(x, true);
+        readout(x, true);
 
         //探索行動を決定
         torch::Tensor sim_policy_logit = base_policy_head_->forward(x);
@@ -93,5 +97,5 @@ std::vector<torch::Tensor> ProposedModelLSTMImpl::search(std::vector<Position>& 
         }
     }
 
-    return policy_logits;
+    return policy_and_value;
 }

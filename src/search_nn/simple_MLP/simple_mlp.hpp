@@ -16,7 +16,7 @@ public:
 
 private:
     //探索
-    std::vector<torch::Tensor> search(std::vector<Position>& positions) override;
+    std::vector<std::tuple<torch::Tensor, torch::Tensor>> search(std::vector<Position>& positions) override;
 };
 TORCH_MODULE(SimpleMLP);
 

@@ -13,15 +13,16 @@ public:
 
 private:
     //探索全体
-    std::vector<torch::Tensor> search(std::vector<Position>& positions) override;
+    std::vector<std::tuple<torch::Tensor, torch::Tensor>> search(std::vector<Position>& positions) override;
 
     //各部分の推論
-    torch::Tensor inferPolicy(const torch::Tensor& x, const std::vector<torch::Tensor>& history);
+    std::tuple<torch::Tensor, torch::Tensor> infer(const torch::Tensor& x, const std::vector<torch::Tensor>& history);
     torch::Tensor positionalEncoding(int64_t pos) const;
 
     //transformer
     torch::nn::Transformer transformer_{ nullptr };
     torch::nn::Linear policy_head_{ nullptr };
+    torch::nn::Linear value_head_{ nullptr };
 };
 TORCH_MODULE(ProposedModelTransformer);
 

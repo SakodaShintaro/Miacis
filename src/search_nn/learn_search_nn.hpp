@@ -15,7 +15,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     float min_learn_rate         = settings.get<float>("min_learn_rate");
     float momentum               = settings.get<float>("momentum");
     float weight_decay           = settings.get<float>("weight_decay");
-    float sim_policy_coeff       = settings.get<float>("sim_policy_coeff");
+    float base_policy_coeff      = settings.get<float>("base_policy_coeff");
+    float base_value_coeff       = settings.get<float>("base_value_coeff");
     float entropy_coeff          = settings.get<float>("entropy_coeff");
     float train_rate_threshold   = settings.get<float>("train_rate_threshold");
     float valid_rate_threshold   = settings.get<float>("valid_rate_threshold");
@@ -55,7 +56,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             dout(train_log, valid_log) << "\tloss_" << i;
         }
     }
-    tout(std::cout, train_log, valid_log) << "\tbase_policy\tentropy" << std::endl;
+    tout(std::cout, train_log, valid_log) << "\tbase_policy\tbase_value\tentropy" << std::endl;
     std::cout << std::setprecision(4);
 
     //モデル作成
@@ -102,7 +103,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
                 dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
                 for (uint64_t m = 0; m < loss.size(); m++) {
-                    if (m % print_interval == 0 || m > (uint64_t)options.search_limit) {
+                    if (m / 2 % print_interval == 0 || m > (uint64_t)options.search_limit * 2) {
                         //標準出力にも表示
                         dout(std::cout, train_log) << "\t" << loss[m].item<float>();
                     } else {
@@ -126,7 +127,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                     loss[i] /= (options.search_limit + 1);
                 }
             }
-            loss[loss.size() - 2] *= sim_policy_coeff;
+            loss[loss.size() - 3] *= base_policy_coeff;
+            loss[loss.size() - 2] *= base_value_coeff;
             loss[loss.size() - 1] *= entropy_coeff;
             torch::Tensor loss_sum = torch::stack(loss).sum();
             loss_sum.mean().backward();

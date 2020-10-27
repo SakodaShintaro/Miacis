@@ -14,12 +14,13 @@ StackedLSTMImpl::StackedLSTMImpl(const SearchOptions& search_options) : BaseMode
     env_model0_ = register_module("env_model0_", Linear(HIDDEN_DIM + ABSTRACT_ACTION_DIM, HIDDEN_DIM));
     env_model1_ = register_module("env_model1_", Linear(HIDDEN_DIM, HIDDEN_DIM));
 
-    LSTMOptions option(HIDDEN_DIM + 1, LSTM_HIDDEN_SIZE);
+    LSTMOptions option(HIDDEN_DIM, LSTM_HIDDEN_SIZE);
     option.num_layers(NUM_LAYERS);
     simulation_lstm_ = register_module("simulation_lstm_", LSTM(option));
     simulation_policy_head_ = register_module("simulation_policy_head_", Linear(LSTM_HIDDEN_SIZE, ABSTRACT_ACTION_DIM));
     readout_lstm_ = register_module("readout_lstm_", LSTM(option));
     readout_policy_head_ = register_module("readout_policy_head_", Linear(LSTM_HIDDEN_SIZE, POLICY_DIM));
+    readout_value_head_ = register_module("readout_value_head_", Linear(LSTM_HIDDEN_SIZE, 1));
 }
 
 torch::Tensor StackedLSTMImpl::simulationPolicy(const torch::Tensor& x) {
@@ -36,7 +37,7 @@ torch::Tensor StackedLSTMImpl::simulationPolicy(const torch::Tensor& x) {
     return simulation_policy_head_->forward(output);
 }
 
-torch::Tensor StackedLSTMImpl::readoutPolicy(const torch::Tensor& x) {
+std::tuple<torch::Tensor, torch::Tensor> StackedLSTMImpl::readout(const torch::Tensor& x) {
     //lstmは入力(input, (h_0, c_0))
     //inputのshapeは(seq_len, batch, input_size)
     //h_0, c_0は任意の引数で、状態を初期化できる
@@ -47,7 +48,9 @@ torch::Tensor StackedLSTMImpl::readoutPolicy(const torch::Tensor& x) {
     auto [output, h_and_c] = readout_lstm_->forward(x, std::make_tuple(readout_h_, readout_c_));
     std::tie(readout_h_, readout_c_) = h_and_c;
 
-    return readout_policy_head_->forward(output);
+    torch::Tensor policy_logit = readout_policy_head_->forward(output);
+    torch::Tensor value = torch::tanh(readout_value_head_->forward(output));
+    return std::make_tuple(policy_logit, value);
 }
 
 torch::Tensor StackedLSTMImpl::predictNextState(const torch::Tensor& pre_state, const torch::Tensor& abstract_action) {
@@ -58,9 +61,9 @@ torch::Tensor StackedLSTMImpl::predictNextState(const torch::Tensor& pre_state, 
     return pre_state + x;
 }
 
-std::vector<torch::Tensor> StackedLSTMImpl::search(std::vector<Position>& positions) {
+std::vector<std::tuple<torch::Tensor, torch::Tensor>> StackedLSTMImpl::search(std::vector<Position>& positions) {
     //探索をして出力方策の系列を得る
-    std::vector<torch::Tensor> policy_logits;
+    std::vector<std::tuple<torch::Tensor, torch::Tensor>> policy_and_value;
 
     //バッチサイズを取得しておく
     const int64_t batch_size = positions.size();
@@ -76,7 +79,7 @@ std::vector<torch::Tensor> StackedLSTMImpl::search(std::vector<Position>& positi
     readout_c_ = torch::zeros({ NUM_LAYERS, batch_size, LSTM_HIDDEN_SIZE }).to(device_);
 
     //探索前の結果
-    policy_logits.push_back(readoutPolicy(embed_vector));
+    policy_and_value.push_back(readout(embed_vector));
 
     for (int64_t m = 1; m <= search_options_.search_limit; m++) {
         //Simulation Policyにより抽象的な行動を取得
@@ -86,8 +89,8 @@ std::vector<torch::Tensor> StackedLSTMImpl::search(std::vector<Position>& positi
         embed_vector = predictNextState(embed_vector, abstract_action);
 
         //今までの探索から現時点での結論を推論
-        policy_logits.push_back(readoutPolicy(embed_vector));
+        policy_and_value.push_back(readout(embed_vector));
     }
 
-    return policy_logits;
+    return policy_and_value;
 }
