@@ -8,12 +8,6 @@ public:
     SimpleMLPImpl() : SimpleMLPImpl(SearchOptions()) {}
     explicit SimpleMLPImpl(const SearchOptions& search_options);
 
-    //root局面について探索を行って一番良い指し手を返す関数
-    Move think(Position& root, int64_t time_limit) override;
-
-    //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
-    std::vector<torch::Tensor> lossFunc(const std::vector<LearningData>& data);
-
     //インタンスから下のクラス変数を参照するための関数
     std::string modelPrefix() override { return "simple_mlp"; }
 
@@ -23,12 +17,6 @@ public:
 private:
     //探索
     std::vector<torch::Tensor> search(std::vector<Position>& positions) override;
-
-    //入力として局面の特徴量を並べたvectorを受け取ってPolicyとValueに対応するTensorを返す関数
-    std::tuple<torch::Tensor, torch::Tensor> forward(const torch::Tensor& x);
-
-    //1局面について方策を推論する関数
-    std::tuple<torch::Tensor, torch::Tensor> infer(const Position& pos);
 };
 TORCH_MODULE(SimpleMLP);
 

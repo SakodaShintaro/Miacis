@@ -40,7 +40,9 @@ void pretrainSimpleMLP() {
     tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\tpolicy_loss\tvalue_loss\tentropy" << std::endl;
 
     //モデル作成
-    SimpleMLP model;
+    SearchOptions options;
+    options.search_limit = 0;
+    SimpleMLP model(options);
     model->setGPU(0);
 
     //optimizerの準備
@@ -72,7 +74,7 @@ void pretrainSimpleMLP() {
 
             //学習
             optimizer.zero_grad();
-            std::vector<torch::Tensor> loss = model->lossFunc(curr_data);
+            std::vector<torch::Tensor> loss = model->loss(curr_data);
             global_step++;
 
             //表示
@@ -100,7 +102,7 @@ void pretrainSimpleMLP() {
                     while (curr_valid_data.size() < (uint64_t)batch_size && i < valid_data.size()) {
                         curr_valid_data.push_back(valid_data[i++]);
                     }
-                    std::vector<torch::Tensor> valid_loss = model->lossFunc(curr_valid_data);
+                    std::vector<torch::Tensor> valid_loss = model->loss(curr_valid_data);
                     for (uint64_t j = 0; j < valid_loss_sum.size(); j++) {
                         valid_loss_sum[j] += valid_loss[j].item<float>() * curr_valid_data.size();
                     }
