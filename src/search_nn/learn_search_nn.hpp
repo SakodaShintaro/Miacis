@@ -15,14 +15,12 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     float min_learn_rate         = settings.get<float>("min_learn_rate");
     float momentum               = settings.get<float>("momentum");
     float weight_decay           = settings.get<float>("weight_decay");
-    float gamma                  = settings.get<float>("gamma");
+    float sim_policy_coeff       = settings.get<float>("sim_policy_coeff");
     float entropy_coeff          = settings.get<float>("entropy_coeff");
     float train_rate_threshold   = settings.get<float>("train_rate_threshold");
     float valid_rate_threshold   = settings.get<float>("valid_rate_threshold");
     bool data_augmentation       = settings.get<bool>("data_augmentation");
     bool freeze_encoder          = settings.get<bool>("freeze_encoder");
-    options.use_readout_only     = settings.get<bool>("use_readout_only");
-    bool use_policy_gradient     = settings.get<bool>("use_policy_gradient");
     bool use_only_last_loss      = settings.get<bool>("use_only_last_loss");
     int64_t batch_size           = settings.get<int64_t>("batch_size");
     options.search_limit         = settings.get<int64_t>("search_limit");
@@ -57,12 +55,13 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             dout(train_log, valid_log) << "\tloss_" << i;
         }
     }
-    tout(std::cout, train_log, valid_log) << "\tvalue_loss\tentropy" << std::endl;
+    tout(std::cout, train_log, valid_log) << "\tsim_policy\tentropy" << std::endl;
+    std::cout << std::setprecision(4);
 
     //モデル作成
     T model(options);
     model->setGPU(0);
-    model->setOption(freeze_encoder, gamma);
+    model->setOption(freeze_encoder);
 
     //encoderを既存のパラメータから読み込み
     model->loadPretrain(encoder_path, policy_head_path, value_head_path);
@@ -96,14 +95,14 @@ template<class T> void learnSearchNN(const std::string& model_name) {
 
             //損失計算
             optimizer.zero_grad();
-            std::vector<torch::Tensor> loss = model->loss(curr_data, use_policy_gradient);
+            std::vector<torch::Tensor> loss = model->loss(curr_data);
             global_step++;
 
             //表示
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
                 dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
-                for (int64_t m = 0; m <= options.search_limit; m++) {
-                    if (m % print_interval == 0) {
+                for (uint64_t m = 0; m < loss.size(); m++) {
+                    if (m % print_interval == 0 || m > (uint64_t)options.search_limit) {
                         //標準出力にも表示
                         dout(std::cout, train_log) << "\t" << loss[m].item<float>();
                     } else {
@@ -111,23 +110,26 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                         train_log << "\t" << loss[m].item<float>();
                     }
                 }
-                //value
-                dout(std::cout, train_log) << "\t" << loss[loss.size() - 2].item<float>();
-
-                //entropy
-                dout(std::cout, train_log) << "\t" << loss[loss.size() - 1].item<float>();
 
                 dout(std::cout, train_log) << "\r" << std::flush;
             }
 
             //勾配計算,パラメータ更新
             if (use_only_last_loss) {
-                for (uint64_t i = 0; i < loss.size() - 2; i++) {
+                //最後以外0にする
+                for (int64_t i = 0; i < options.search_limit; i++) {
                     loss[i] *= 0;
                 }
+            } else {
+                //平均化する
+                for (int64_t i = 0; i <= options.search_limit; i++) {
+                    loss[i] /= (options.search_limit + 1);
+                }
             }
-            loss.back() *= entropy_coeff;
-            torch::stack(loss).sum().backward();
+            loss[loss.size() - 2] *= sim_policy_coeff;
+            loss[loss.size() - 1] *= entropy_coeff;
+            torch::Tensor loss_sum = torch::stack(loss).sum();
+            loss_sum.mean().backward();
             optimizer.step();
 
             if (global_step % validation_interval == 0) {
@@ -141,7 +143,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                         curr_valid_data.push_back(valid_data[j + b]);
                     }
 
-                    std::vector<torch::Tensor> valid_loss = model->loss(curr_valid_data, false);
+                    std::vector<torch::Tensor> valid_loss = model->loss(curr_valid_data);
                     for (uint64_t i = 0; i < valid_loss_sum.size(); i++) {
                         valid_loss_sum[i] += valid_loss[i].item<float>() * curr_valid_data.size();
                     }
@@ -153,8 +155,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
 
                 //表示
                 dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
-                for (int64_t m = 0; m <= options.search_limit; m++) {
-                    if (m % print_interval == 0) {
+                for (uint64_t m = 0; m < loss.size(); m++) {
+                    if (m % print_interval == 0 || m > (uint64_t)options.search_limit) {
                         //標準出力にも表示
                         dout(std::cout, valid_log) << "\t" << valid_loss_sum[m];
                     } else {
@@ -162,12 +164,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                         valid_log << "\t" << valid_loss_sum[m];
                     }
                 }
-
-                //value
-                dout(std::cout, valid_log) << "\t" << valid_loss_sum[loss.size() - 2];
-
-                //entropy
-                dout(std::cout, valid_log) << "\t" << valid_loss_sum[loss.size() - 1] << std::endl;
+                dout(std::cout, valid_log) << std::endl;
             }
             if (global_step % save_interval == 0) {
                 //学習中のパラメータを書き出す
@@ -204,8 +201,6 @@ template<class T> void validSearchNN(const std::string& model_name) {
     std::cin >> batch_size;
     std::cout << "search_limit: ";
     std::cin >> options.search_limit;
-    std::cout << "use_readout_only: ";
-    std::cin >> options.use_readout_only;
 
     std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
     std::cout << "valid_data_size = " << valid_data.size() << std::endl;
@@ -213,7 +208,7 @@ template<class T> void validSearchNN(const std::string& model_name) {
     //モデル作成
     T model(options);
     model->setGPU(0);
-    model->setOption(true, 1.0);
+    model->setOption(true);
     torch::load(model, model->defaultModelName());
     model->eval();
     torch::NoGradGuard no_grad_guard;
@@ -225,7 +220,7 @@ template<class T> void validSearchNN(const std::string& model_name) {
         while (curr_data.size() < batch_size && i < valid_data.size()) {
             curr_data.push_back(valid_data[i++]);
         }
-        std::vector<torch::Tensor> valid_loss = model->loss(curr_data, false);
+        std::vector<torch::Tensor> valid_loss = model->loss(curr_data);
         for (uint64_t j = 0; j < valid_loss_sum.size(); j++) {
             valid_loss_sum[j] += valid_loss[j].item<float>() * curr_data.size();
         }

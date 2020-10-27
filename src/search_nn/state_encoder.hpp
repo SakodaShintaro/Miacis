@@ -10,7 +10,8 @@ public:
     explicit StateEncoderImpl(int64_t input_channel_num = INPUT_CHANNEL_NUM);
     torch::Tensor forward(const torch::Tensor& x);
     torch::Tensor embed(const std::vector<float>& inputs, torch::Device device, bool fp16, bool freeze);
-    static constexpr int32_t LAST_CHANNEL_NUM = 32;
+    static constexpr int32_t LAST_CHANNEL_NUM = 8;
+    static constexpr int64_t HIDDEN_DIM = BOARD_WIDTH * BOARD_WIDTH * StateEncoderImpl::LAST_CHANNEL_NUM;
 
 private:
     Conv2DwithBatchNorm first_conv_{ nullptr };

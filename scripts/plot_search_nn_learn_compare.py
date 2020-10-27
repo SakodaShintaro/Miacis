@@ -33,7 +33,7 @@ for dir, label in zip(args.dirs, args.labels):
     data_dict[label] = dict()
     for loss_name in ["train", "valid"]:
         df = None
-        for prefix in ["mcts_net", "proposed_model", "stacked_lstm"]:
+        for prefix in ["mcts_net", "proposed_model_lstm", "stacked_lstm"]:
             path = f"{dir}/{prefix}_{loss_name}_log.txt"
             print(path)
             if os.path.exists(path):
@@ -46,7 +46,6 @@ for dir, label in zip(args.dirs, args.labels):
         if loss_name == "train":
             step = transform(step)
 
-        loss_num = len(df.columns) - 4
         for i in range(loss_num):
             loss = df[f"loss_{i}"].to_numpy()
             if loss_name == "train":

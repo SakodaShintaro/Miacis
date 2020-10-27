@@ -11,33 +11,38 @@ namespace Othello {
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
     // clang-format off
-    command_["printOption"]       = [this] { printOption(); };
-    command_["set"]               = [this] { set(); };
-    command_["think"]             = [this] { think(); };
-    command_["test"]              = [this] { test(); };
-    command_["infiniteTest"]      = [this] { infiniteTest(); };
-    command_["battle"]            = [this] { battle(); };
-    command_["battleVSRandom"]    = [this] { battleVSRandom(); };
-    command_["outputValue"]       = [this] { outputValue(); };
-    command_["init"]              = [this] { init(); };
-    command_["play"]              = [this] { play(); };
-    command_["go"]                = [this] { go(); };
-    command_["stop"]              = [this] { stop(); };
-    command_["quit"]              = [this] { quit(); };
-    command_["testMCTSNet"]       = [this] { testSearchNN<MCTSNet>(); };
-    command_["testProposedModel"] = [this] { testSearchNN<ProposedModel>(); };
-    command_["testStackedLSTM"]   = [this] { testSearchNN<StackedLSTM>(); };
-    command_["testSimpleMLP"]     = [this] { testSearchNN<SimpleMLP>(); };
+    command_["printOption"]           = [this] { printOption(); };
+    command_["set"]                   = [this] { set(); };
+    command_["think"]                 = [this] { think(); };
+    command_["test"]                  = [this] { test(); };
+    command_["infiniteTest"]          = [this] { infiniteTest(); };
+    command_["battle"]                = [this] { battle(); };
+    command_["battleVSRandom"]        = [this] { battleVSRandom(); };
+    command_["outputValue"]           = [this] { outputValue(); };
+    command_["init"]                  = [this] { init(); };
+    command_["play"]                  = [this] { play(); };
+    command_["go"]                    = [this] { go(); };
+    command_["stop"]                  = [this] { stop(); };
+    command_["quit"]                  = [this] { quit(); };
+    command_["testMCTSNet"]           = [this] { testSearchNN<MCTSNet>(); };
+    command_["testProposedModelLSTM"] = [this] { testSearchNN<ProposedModelLSTM>(); };
+    command_["testProposedModelTransformer"] = [this] { testSearchNN<ProposedModelTransformer>(); };
+    command_["testStackedLSTM"]       = [this] { testSearchNN<StackedLSTM>(); };
+    command_["testSimpleMLP"]         = [this] { testSearchNN<SimpleMLP>(); };
 
     //メンバ関数以外
-    command_["initParams"]        = initParams;
-    command_["supervisedLearn"]   = supervisedLearn;
-    command_["alphaZero"]         = alphaZero;
-    command_["pretrain"]          = pretrainSimpleMLP;
-    command_["learnMCTSNet"]      = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
-    command_["learnStackedLSTM"]  = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
-    command_["validMCTSNet"]      = [](){ validSearchNN<MCTSNet>("mcts_net"); };
-    command_["validStackedLSTM"]  = [](){ validSearchNN<StackedLSTM>("stacked_lstm"); };
+    command_["initParams"]            = initParams;
+    command_["supervisedLearn"]       = supervisedLearn;
+    command_["alphaZero"]             = alphaZero;
+    command_["pretrain"]              = pretrainSimpleMLP;
+    command_["learnMCTSNet"]          = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
+    command_["learnProposedModelLSTM"] = [](){ learnSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
+    command_["learnProposedModelTransformer"] = [](){ learnSearchNN<ProposedModelTransformer>("proposed_model_transformer"); };
+    command_["learnStackedLSTM"]      = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
+    command_["validMCTSNet"]          = [](){ validSearchNN<MCTSNet>("mcts_net"); };
+    command_["validProposedModelLSTM"] = [](){ validSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
+    command_["validProposedModelTransformer"] = [](){ validSearchNN<ProposedModelLSTM>("proposed_model_transformer"); };
+    command_["validStackedLSTM"]      = [](){ validSearchNN<StackedLSTM>("stacked_lstm"); };
     // clang-format on
 }
 
@@ -269,10 +274,22 @@ void Interface::init() {
     root_.init();
 
     //対局の準備
-    if (options_.use_mcts_net) {
+    if (options_.use_simple_mlp) {
+        simple_mlp_ = SimpleMLP(options_);
+        torch::load(simple_mlp_, options_.model_name);
+        simple_mlp_->eval();
+    } else if (options_.use_mcts_net) {
         mcts_net_ = MCTSNet(options_);
         torch::load(mcts_net_, options_.model_name);
         mcts_net_->eval();
+    } else if (options_.use_proposed_model_lstm) {
+        proposed_model_lstm_ = ProposedModelLSTM(options_);
+        torch::load(proposed_model_lstm_, options_.model_name);
+        proposed_model_lstm_->eval();
+    } else if (options_.use_proposed_model_transformer) {
+        transformer_model_ = ProposedModelTransformer(options_);
+        torch::load(transformer_model_, options_.model_name);
+        transformer_model_->eval();
     } else if (options_.use_stacked_lstm) {
         stacked_lstm_ = StackedLSTM(options_);
         torch::load(stacked_lstm_, options_.model_name);
@@ -290,14 +307,25 @@ void Interface::play() {
 }
 
 void Interface::go() {
-    if (options_.use_mcts_net) {
-        torch::NoGradGuard no_grad_guard;
+    torch::NoGradGuard no_grad_guard;
+    if (options_.use_simple_mlp) {
+        Move best_move = simple_mlp_->think(root_, options_.byoyomi_margin);
+        std::cout << "best_move " << best_move << std::endl;
+        root_.doMove(best_move);
+    } else if (options_.use_mcts_net) {
         Move best_move = mcts_net_->think(root_, options_.byoyomi_margin);
         std::cout << "best_move " << best_move << std::endl;
         root_.doMove(best_move);
+    } else if (options_.use_proposed_model_lstm) {
+        Move best_move = proposed_model_lstm_->think(root_, options_.byoyomi_margin);
+        std::cout << "best_move " << best_move << std::endl;
+        root_.doMove(best_move);
     } else if (options_.use_stacked_lstm) {
-        torch::NoGradGuard no_grad_guard;
         Move best_move = stacked_lstm_->think(root_, options_.byoyomi_margin);
+        std::cout << "best_move " << best_move << std::endl;
+        root_.doMove(best_move);
+    } else if (options_.use_proposed_model_transformer) {
+        Move best_move = transformer_model_->think(root_, options_.byoyomi_margin);
         std::cout << "best_move " << best_move << std::endl;
         root_.doMove(best_move);
     } else {
@@ -388,7 +416,7 @@ template<class T> void Interface::testSearchNN() {
     model->eval();
     torch::NoGradGuard no_grad_guard;
 
-    float score;
+    float score{};
     while (!root_.isFinish(score)) {
         Move best_move = model->think(root_, INT_MAX);
         root_.doMove(best_move);

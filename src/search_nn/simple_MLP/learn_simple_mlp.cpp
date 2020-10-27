@@ -21,7 +21,6 @@ void pretrainSimpleMLP() {
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
     int64_t validation_interval = settings.get<int64_t>("validation_interval");
-    int64_t save_interval       = settings.get<int64_t>("save_interval");
     int64_t lr_decay_mode       = settings.get<int64_t>("lr_decay_mode");
     int64_t lr_decay_step1      = settings.get<int64_t>("lr_decay_step1");
     int64_t lr_decay_step2      = settings.get<int64_t>("lr_decay_step2");
@@ -62,6 +61,9 @@ void pretrainSimpleMLP() {
         std::shuffle(train_data.begin(), train_data.end(), engine);
 
         for (uint64_t step = 0; (step + 1) * batch_size <= train_data.size() && global_step < max_step; step++) {
+            //学習モードに切り替え
+            model->train();
+
             //バッチサイズ分データを確保
             std::vector<LearningData> curr_data;
             for (int64_t b = 0; b < batch_size; b++) {
@@ -70,7 +72,7 @@ void pretrainSimpleMLP() {
 
             //学習
             optimizer.zero_grad();
-            std::vector<torch::Tensor> loss = model->loss(curr_data);
+            std::vector<torch::Tensor> loss = model->lossFunc(curr_data);
             global_step++;
 
             //表示
@@ -84,7 +86,8 @@ void pretrainSimpleMLP() {
 
             //勾配を求めてパラメータ更新
             loss.back() *= entropy_coeff;
-            torch::stack(loss).sum().backward();
+            torch::Tensor loss_sum = torch::stack(loss).sum();
+            loss_sum.mean().backward();
             optimizer.step();
 
             if (global_step % validation_interval == 0) {
@@ -97,7 +100,7 @@ void pretrainSimpleMLP() {
                     while (curr_valid_data.size() < (uint64_t)batch_size && i < valid_data.size()) {
                         curr_valid_data.push_back(valid_data[i++]);
                     }
-                    std::vector<torch::Tensor> valid_loss = model->loss(curr_valid_data);
+                    std::vector<torch::Tensor> valid_loss = model->lossFunc(curr_valid_data);
                     for (uint64_t j = 0; j < valid_loss_sum.size(); j++) {
                         valid_loss_sum[j] += valid_loss[j].item<float>() * curr_valid_data.size();
                     }
@@ -105,7 +108,6 @@ void pretrainSimpleMLP() {
                 for (float& v : valid_loss_sum) {
                     v /= valid_data.size();
                 }
-                model->train();
 
                 //表示
                 dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
@@ -113,12 +115,9 @@ void pretrainSimpleMLP() {
                     dout(std::cout, valid_log) << "\t" << v;
                 }
                 dout(std::cout, valid_log) << std::endl;
-            }
-            if (global_step % save_interval == 0) {
-                //学習中のパラメータを書き出す
-                torch::save(model, "pretrain_" + std::to_string(global_step) + ".model");
-                torch::save(model->encoder, "encoder_" + std::to_string(global_step) + ".model");
-                torch::save(model->policy_head, "policy_head_" + std::to_string(global_step) + ".model");
+
+                //セーブ
+                torch::save(model, model->modelPrefix() + "_" + std::to_string(global_step) + ".model");
             }
 
             if (lr_decay_mode == 1) {
@@ -133,10 +132,7 @@ void pretrainSimpleMLP() {
         }
     }
 
-    torch::save(model, "pretrain.model");
-    torch::save(model->encoder, "encoder.model");
-    torch::save(model->policy_head, "policy_head.model");
-    torch::save(model->value_head, "value_head.model");
+    model->save();
 
     std::cout << "finish learnSearchNN" << std::endl;
 }

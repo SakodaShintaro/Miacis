@@ -7,7 +7,7 @@ import pandas as pd
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--method", type=(lambda x: x.split()),
-                    default=["mcts_net", "proposed_model", "stacked_lstm"])
+                    default=["mcts_net", "proposed_model_lstm", "stacked_lstm"])
 args = parser.parse_args()
 
 PLOT_NUM = 20
@@ -35,7 +35,6 @@ for prefix in args.method:
         if loss_name == "train":
             step = transform(step)
 
-        loss_num = len(df.columns) - 4
         for i in range(loss_num):
             loss = df[f"loss_{i}"].to_numpy()
             if loss_name == "train":

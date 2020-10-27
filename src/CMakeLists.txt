@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.6.0)
+list(APPEND CMAKE_PREFIX_PATH ../../libtorch-latest)
 find_package(Torch REQUIRED)
 
 #各ゲームで共通する部分のソース
@@ -26,13 +26,14 @@ set(SRCS hash_table.cpp
         common.cpp
         search_nn/mcts_net/mcts_net.cpp
         search_nn/mcts_net/hash_table_for_mcts_net.cpp
-        search_nn/proposed_model/proposed_model.cpp
+        search_nn/proposed_model_lstm/proposed_model_lstm.cpp
+        search_nn/proposed_model_transformer/proposed_model_transformer.cpp
         search_nn/stacked_lstm/stacked_lstm.cpp
         search_nn/state_encoder.cpp
         search_nn/simple_MLP/simple_mlp.cpp
-        search_nn/muzero/muzero.cpp
         search_nn/simple_MLP/learn_simple_mlp.cpp
-        search_nn/common.cpp search_nn/common.hpp)
+        search_nn/common.cpp
+        search_nn/base_model/base_model.cpp)
 
 #将棋用のバイナリをコンパイルするのに必要なソース
 set(SHOGI_SRCS shogi/main.cpp
