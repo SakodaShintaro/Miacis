@@ -48,10 +48,10 @@ std::vector<torch::Tensor> BaseModel::loss(const std::vector<LearningData>& data
     const int64_t M = search_options_.search_limit;
 
     //各探索後の損失を計算
-    std::vector<torch::Tensor> loss(M + 1);
+    std::vector<torch::Tensor> loss;
     for (int64_t m = 0; m <= M; m++) {
         torch::Tensor policy_logit = policy_logits[m][0]; //(batch_size, POLICY_DIM)
-        loss[m] = policyLoss(policy_logit, policy_teacher);
+        loss.push_back(policyLoss(policy_logit, policy_teacher));
     }
 
     //Base Policyの損失

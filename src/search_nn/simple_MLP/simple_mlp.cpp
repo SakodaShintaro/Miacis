@@ -29,39 +29,6 @@ Move SimpleMLPImpl::think(Position& root, int64_t time_limit) {
     }
 }
 
-std::vector<torch::Tensor> SimpleMLPImpl::lossFunc(const std::vector<LearningData>& data) {
-    const uint64_t batch_size = data.size();
-    std::vector<float> inputs;
-    std::vector<float> policy_teachers(POLICY_DIM * batch_size, 0.0);
-
-    static Position pos;
-    for (uint64_t i = 0; i < batch_size; i++) {
-        //入力
-        pos.fromStr(data[i].position_str);
-        std::vector<float> curr_feature = pos.makeFeature();
-        inputs.insert(inputs.end(), curr_feature.begin(), curr_feature.end());
-
-        //policyの教師信号
-        for (const std::pair<int32_t, float>& e : data[i].policy) {
-            policy_teachers[i * POLICY_DIM + e.first] = e.second;
-        }
-    }
-
-    torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
-    torch::Tensor policy_logit = forward(x);
-    torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
-
-    std::vector<torch::Tensor> loss;
-
-    //教師との交差エントロピー
-    loss.push_back(policyLoss(policy_logit, policy_teacher));
-
-    //エントロピー正則化
-    loss.push_back(entropyLoss(policy_logit));
-
-    return loss;
-}
-
 torch::Tensor SimpleMLPImpl::inferPolicy(const Position& pos) {
     std::vector<float> inputs = pos.makeFeature();
     torch::Tensor x = (fp16_ ? torch::tensor(inputs).to(device_, torch::kHalf) : torch::tensor(inputs).to(device_));
@@ -81,6 +48,11 @@ void SimpleMLPImpl::save() {
 }
 
 std::vector<torch::Tensor> SimpleMLPImpl::search(std::vector<Position>& positions) {
-    std::cerr << "SimpleMLPではsearch関数は使わない" << std::endl;
-    std::exit(1);
+    if (search_options_.search_limit != 0) {
+        std::cerr << "SimpleMLPではsearch_options.search_limitは0でなければならない" << std::endl;
+        std::exit(1);
+    }
+    torch::Tensor x = embed(positions);
+    torch::Tensor y = base_policy_head_->forward(x);
+    return { y };
 }
