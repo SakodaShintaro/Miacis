@@ -17,12 +17,6 @@ public:
 private:
     //探索
     std::vector<torch::Tensor> search(std::vector<Position>& positions) override;
-
-    //入力として局面の特徴量を並べたvectorを受け取ってPolicyとValueに対応するTensorを返す関数
-    torch::Tensor forward(const torch::Tensor& x);
-
-    //1局面について方策を推論する関数
-    torch::Tensor inferPolicy(const Position& pos);
 };
 TORCH_MODULE(SimpleMLP);
 
