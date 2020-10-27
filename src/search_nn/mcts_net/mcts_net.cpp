@@ -95,7 +95,7 @@ std::vector<torch::Tensor> MCTSNetImpl::search(std::vector<Position>& positions)
 
             //GPUで計算
             torch::Tensor h = torch::stack(embedding_vectors);
-            torch::Tensor policy_logit = sim_policy_head_->forward(h);
+            torch::Tensor policy_logit = base_policy_head_->forward(h);
 
             //計算結果を反映
             for (uint64_t j = 0; j < ids.size(); j++) {

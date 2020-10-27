@@ -72,12 +72,12 @@ torch::Tensor SimpleMLPImpl::forward(const torch::Tensor& x) {
     torch::Tensor y = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     y = encoder_->forward(y);
     y = y.view({ -1, StateEncoderImpl::HIDDEN_DIM });
-    return sim_policy_head_->forward(y);
+    return base_policy_head_->forward(y);
 }
 
 void SimpleMLPImpl::save() {
     torch::save(encoder_, "encoder.model");
-    torch::save(sim_policy_head_, "policy_head.model");
+    torch::save(base_policy_head_, "policy_head.model");
 }
 
 std::vector<torch::Tensor> SimpleMLPImpl::search(std::vector<Position>& positions) {

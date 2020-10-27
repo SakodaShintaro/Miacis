@@ -54,7 +54,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             dout(train_log, valid_log) << "\tloss_" << i;
         }
     }
-    tout(std::cout, train_log, valid_log) << "\tsim_policy\tentropy" << std::endl;
+    tout(std::cout, train_log, valid_log) << "\tbase_policy\tentropy" << std::endl;
     std::cout << std::setprecision(4);
 
     //モデル作成

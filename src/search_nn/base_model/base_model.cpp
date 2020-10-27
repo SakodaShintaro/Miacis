@@ -6,7 +6,7 @@
 BaseModel::BaseModel(SearchOptions options)
     : search_options_(std::move(options)), device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
     encoder_ = register_module("encoder_", StateEncoder());
-    sim_policy_head_ = register_module("sim_policy_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, POLICY_DIM));
+    base_policy_head_ = register_module("base_policy_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, POLICY_DIM));
 }
 
 void BaseModel::setGPU(int16_t gpu_id, bool fp16) {
@@ -22,7 +22,7 @@ void BaseModel::loadPretrain(const std::string& encoder_path, const std::string&
     }
     std::ifstream policy_head_file(policy_head_path);
     if (policy_head_file.is_open()) {
-        torch::load(sim_policy_head_, policy_head_path);
+        torch::load(base_policy_head_, policy_head_path);
     }
 }
 
@@ -54,14 +54,14 @@ std::vector<torch::Tensor> BaseModel::loss(const std::vector<LearningData>& data
         loss[m] = policyLoss(policy_logit, policy_teacher);
     }
 
-    //Simulation Policyの損失
+    //Base Policyの損失
     //現局面の特徴を抽出
     torch::Tensor x = embed(positions);
-    torch::Tensor sim_policy_logit = sim_policy_head_->forward(x)[0];
-    loss.push_back(policyLoss(sim_policy_logit, policy_teacher));
+    torch::Tensor base_policy_logit = base_policy_head_->forward(x)[0];
+    loss.push_back(policyLoss(base_policy_logit, policy_teacher));
 
-    //エントロピー正則化(Simulation Policyにかける)
-    loss.push_back(entropyLoss(sim_policy_logit));
+    //エントロピー正則化(Base Policyにかける)
+    loss.push_back(entropyLoss(base_policy_logit));
     return loss;
 }
 

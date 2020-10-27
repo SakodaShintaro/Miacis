@@ -39,7 +39,7 @@ protected:
 
     //Simulation用のネットワーク
     StateEncoder encoder_{ nullptr };
-    torch::nn::Linear sim_policy_head_{ nullptr };
+    torch::nn::Linear base_policy_head_{ nullptr };
 
     //デバイスとfp16化
     torch::Device device_;
