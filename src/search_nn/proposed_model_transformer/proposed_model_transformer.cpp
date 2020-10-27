@@ -44,7 +44,7 @@ std::vector<torch::Tensor> ProposedModelTransformerImpl::search(std::vector<Posi
         }
 
         //探索行動を決定
-        torch::Tensor sim_policy_logit = sim_policy_head_->forward(x);
+        torch::Tensor sim_policy_logit = base_policy_head_->forward(x);
 
         //行動をサンプリングして盤面を動かす
         for (int64_t i = 0; i < batch_size; i++) {

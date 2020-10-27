@@ -83,12 +83,12 @@ std::tuple<torch::Tensor, torch::Tensor> SimpleMLPImpl::forward(const torch::Ten
     torch::Tensor y = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     y = encoder_->forward(y);
     y = y.view({ -1, StateEncoderImpl::HIDDEN_DIM });
-    return std::make_tuple(sim_policy_head_->forward(y), base_value_head_->forward(y));
+    return std::make_tuple(base_policy_head_->forward(y), base_value_head_->forward(y));
 }
 
 void SimpleMLPImpl::save() {
     torch::save(encoder_, "encoder.model");
-    torch::save(sim_policy_head_, "policy_head.model");
+    torch::save(base_policy_head_, "policy_head.model");
     torch::save(base_value_head_, "value_head.model");
 }
 
