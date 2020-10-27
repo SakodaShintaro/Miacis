@@ -158,7 +158,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
                 //表示
                 dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
                 for (uint64_t m = 0; m < loss.size(); m++) {
-                    if (m % print_interval == 0 || m > (uint64_t)options.search_limit) {
+                    if (m / 2 % print_interval == 0 || m > (uint64_t)options.search_limit * 2) {
                         //標準出力にも表示
                         dout(std::cout, valid_log) << "\t" << valid_loss_sum[m];
                     } else {
