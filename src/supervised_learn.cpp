@@ -22,6 +22,7 @@ void supervisedLearn() {
     int64_t lr_decay_mode       = settings.get<int64_t>("lr_decay_mode");
     int64_t lr_decay_step1      = settings.get<int64_t>("lr_decay_step1");
     int64_t lr_decay_step2      = settings.get<int64_t>("lr_decay_step2");
+    int64_t lr_decay_step3      = settings.get<int64_t>("lr_decay_step3");
     int64_t lr_decay_period     = settings.get<int64_t>("lr_decay_period");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
@@ -39,10 +40,14 @@ void supervisedLearn() {
         train_kifu_path = dir_paths[0];
     }
 
+    //学習設定などに関するログ。現状はすぐ下のところで使っているだけ
+    std::ofstream other_log("other_log.txt");
+
     //データを取得
     std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation, train_rate_threshold);
     std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
-    std::cout << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size() << std::endl;
+    dout(std::cout, other_log) << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size()
+                               << ", dir_paths.size() = " << dir_paths.size() << std::endl;
 
     //学習推移のログファイル
     std::ofstream train_log("supervised_train_log.txt");
@@ -108,11 +113,13 @@ void supervisedLearn() {
             global_step++;
 
             //表示
-            dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                dout(std::cout, train_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
+            if (global_step % std::max(validation_interval / 1000, (int64_t)1) == 0) {
+                dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
+                for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+                    dout(std::cout, train_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
+                }
+                dout(std::cout, train_log) << std::flush;
             }
-            dout(std::cout, train_log) << std::flush;
 
             if (global_step % validation_interval == 0) {
                 //validation_lossを計算
@@ -136,7 +143,7 @@ void supervisedLearn() {
             }
 
             if (lr_decay_mode == 1) {
-                if (global_step == lr_decay_step1 || global_step == lr_decay_step2) {
+                if (global_step == lr_decay_step1 || global_step == lr_decay_step2 || global_step == lr_decay_step3) {
                     (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
                 }
             } else if (lr_decay_mode == 2) {
@@ -147,10 +154,7 @@ void supervisedLearn() {
         }
 
         if (load_multi_dir) {
-            if ((uint64_t)epoch >= dir_paths.size()) {
-                break;
-            }
-            train_data = loadData(dir_paths[epoch], data_augmentation, train_rate_threshold);
+            train_data = loadData(dir_paths[epoch % dir_paths.size()], data_augmentation, train_rate_threshold);
         }
     }
 
