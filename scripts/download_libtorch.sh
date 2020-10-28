@@ -1,9 +1,9 @@
-cd `dirname $0`
+cd $(dirname $0)
 
 # どこに保存するかの基準位置
 root_dir=../..
 
-version=1.6.0
+version=1.7.0
 file_name=libtorch-cxx11-abi-shared-with-deps-${version}.zip
 
 wget -P ${root_dir}/ https://download.pytorch.org/libtorch/cu102/${file_name}
