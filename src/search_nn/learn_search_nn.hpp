@@ -51,9 +51,9 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep";
     for (int64_t i = 0; i <= options.search_limit; i++) {
         if (i % print_interval == 0) {
-            tout(std::cout, train_log, valid_log) << "\tloss_" << i;
+            tout(std::cout, train_log, valid_log) << "\tpolicy_loss_" << i << "\tvalue_loss_" << i;
         } else {
-            dout(train_log, valid_log) << "\tloss_" << i;
+            dout(train_log, valid_log) << "\tpolicy_loss_" << i << "\tvalue_loss_" << i;
         }
     }
     tout(std::cout, train_log, valid_log) << "\tbase_policy\tbase_value\tentropy" << std::endl;
