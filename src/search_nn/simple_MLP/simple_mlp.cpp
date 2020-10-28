@@ -6,7 +6,7 @@ SimpleMLPImpl::SimpleMLPImpl(const SearchOptions& search_options) : BaseModel(se
     search_options_.search_limit = 0;
 }
 
-void SimpleMLPImpl::save() {
+void SimpleMLPImpl::saveParts() {
     torch::save(encoder_, "encoder.model");
     torch::save(base_policy_head_, "policy_head.model");
 }

@@ -179,6 +179,9 @@ template<class T> void learnSearchNN(const std::string& model_name) {
         }
     }
 
+    //SimpleMLPのときはencoder部分などを保存したいのでここで保存
+    model->saveParts();
+
     std::cout << "finish learnSearchNN" << std::endl;
 }
 

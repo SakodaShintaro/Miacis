@@ -134,7 +134,7 @@ void pretrainSimpleMLP() {
         }
     }
 
-    model->save();
+    model->saveParts();
 
     std::cout << "finish learnSearchNN" << std::endl;
 }
