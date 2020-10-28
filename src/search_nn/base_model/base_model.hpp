@@ -27,6 +27,9 @@ public:
     //学習の設定を定める関数
     void setOption(bool freeze_encoder);
 
+    //ネットワークを部分ごとに保存する関数
+    void saveParts(){};
+
 protected:
     //探索
     virtual std::vector<std::tuple<torch::Tensor, torch::Tensor>> search(std::vector<Position>& positions) = 0;

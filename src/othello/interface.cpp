@@ -24,24 +24,31 @@ Interface::Interface() : searcher_(nullptr) {
     command_["go"]                    = [this] { go(); };
     command_["stop"]                  = [this] { stop(); };
     command_["quit"]                  = [this] { quit(); };
-    command_["testMCTSNet"]           = [this] { testSearchNN<MCTSNet>(); };
-    command_["testProposedModelLSTM"] = [this] { testSearchNN<ProposedModelLSTM>(); };
-    command_["testProposedModelTransformer"] = [this] { testSearchNN<ProposedModelTransformer>(); };
-    command_["testStackedLSTM"]       = [this] { testSearchNN<StackedLSTM>(); };
-    command_["testSimpleMLP"]         = [this] { testSearchNN<SimpleMLP>(); };
 
     //メンバ関数以外
     command_["initParams"]            = initParams;
     command_["supervisedLearn"]       = supervisedLearn;
     command_["alphaZero"]             = alphaZero;
     command_["pretrain"]              = pretrainSimpleMLP;
+
+    command_["testMCTSNet"]           = [this] { testSearchNN<MCTSNet>(); };
     command_["learnMCTSNet"]          = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
-    command_["learnProposedModelLSTM"] = [](){ learnSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
-    command_["learnProposedModelTransformer"] = [](){ learnSearchNN<ProposedModelTransformer>("proposed_model_transformer"); };
-    command_["learnStackedLSTM"]      = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
     command_["validMCTSNet"]          = [](){ validSearchNN<MCTSNet>("mcts_net"); };
+
+    command_["testProposedModelLSTM"]  = [this] { testSearchNN<ProposedModelLSTM>(); };
+    command_["learnProposedModelLSTM"] = [](){ learnSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
     command_["validProposedModelLSTM"] = [](){ validSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
-    command_["validProposedModelTransformer"] = [](){ validSearchNN<ProposedModelLSTM>("proposed_model_transformer"); };
+
+    command_["testProposedModelTransformer"]  = [this] { testSearchNN<ProposedModelTransformer>(); };
+    command_["learnProposedModelTransformer"] = [](){ learnSearchNN<ProposedModelTransformer>("proposed_model_transformer"); };
+    command_["validProposedModelTransformer"] = [](){ validSearchNN<ProposedModelTransformer>("proposed_model_transformer"); };
+
+    command_["testSimpleMLP"]         = [this] { testSearchNN<SimpleMLP>(); };
+    command_["learnSimpleMLP"]        = [](){ learnSearchNN<SimpleMLP>("simple_mlp"); };
+    command_["validSimpleMLP"]        = [](){ validSearchNN<SimpleMLP>("simple_mlp"); };
+
+    command_["testStackedLSTM"]       = [this] { testSearchNN<StackedLSTM>(); };
+    command_["learnStackedLSTM"]      = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
     command_["validStackedLSTM"]      = [](){ validSearchNN<StackedLSTM>("stacked_lstm"); };
     // clang-format on
 }

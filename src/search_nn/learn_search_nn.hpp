@@ -45,9 +45,14 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
     std::cout << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size() << std::endl;
 
+    //モデル作成
+    T model(options);
+    model->setGPU(0);
+    model->setOption(freeze_encoder);
+
     //学習推移のログファイル
-    std::ofstream train_log(model_name + "_train_log.txt");
-    std::ofstream valid_log(model_name + "_valid_log.txt");
+    std::ofstream train_log(model->modelPrefix() + "_train_log.txt");
+    std::ofstream valid_log(model->modelPrefix() + "_valid_log.txt");
     tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep";
     for (int64_t i = 0; i <= options.search_limit; i++) {
         if (i % print_interval == 0) {
@@ -59,16 +64,8 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     tout(std::cout, train_log, valid_log) << "\tbase_policy\tbase_value\tentropy" << std::endl;
     std::cout << std::setprecision(4);
 
-    //モデル作成
-    T model(options);
-    model->setGPU(0);
-    model->setOption(freeze_encoder);
-
     //encoderを既存のパラメータから読み込み
     model->loadPretrain(encoder_path, policy_head_path, value_head_path);
-
-    //学習前のパラメータを出力
-    torch::save(model, model->modelPrefix() + "_before_learn.model");
 
     //optimizerの準備
     torch::optim::SGDOptions sgd_option(learn_rate);
@@ -184,6 +181,9 @@ template<class T> void learnSearchNN(const std::string& model_name) {
             }
         }
     }
+
+    //SimpleMLPのときはencoder部分などを保存したいのでここで保存
+    model->saveParts();
 
     std::cout << "finish learnSearchNN" << std::endl;
 }

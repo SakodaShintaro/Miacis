@@ -12,7 +12,7 @@ public:
     std::string modelPrefix() override { return "simple_mlp"; }
 
     //encoderとsim_policyをそれぞれ保存する関数
-    void save();
+    void saveParts();
 
 private:
     //探索
