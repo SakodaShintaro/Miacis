@@ -46,8 +46,8 @@ void alphaZero() {
     int64_t noise_mode                = settings.get<int64_t>("noise_mode");
     bool data_augmentation            = settings.get<bool>("data_augmentation");
     bool Q_search                     = settings.get<bool>("Q_search");
-    std::string training_kifu_path    = settings.get<std::string>("training_kifu_path");
-    std::string validation_kifu_path  = settings.get<std::string>("validation_kifu_path");
+    std::string train_kifu_path       = settings.get<std::string>("train_kifu_path");
+    std::string valid_kifu_path       = settings.get<std::string>("valid_kifu_path");
     // clang-format on
 
     std::array<float, LOSS_TYPE_NUM> coefficients{};
@@ -68,11 +68,11 @@ void alphaZero() {
     ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, alpha, data_augmentation);
 
     if (init_buffer_by_kifu) {
-        replay_buffer.fillByKifu(training_kifu_path, train_rate_threshold);
+        replay_buffer.fillByKifu(train_kifu_path, train_rate_threshold);
     }
 
     //validation用のデータを取得
-    std::vector<LearningData> validation_data = loadData(validation_kifu_path, false, valid_rate_threshold);
+    std::vector<LearningData> validation_data = loadData(valid_kifu_path, false, valid_rate_threshold);
     std::cout << "validation_data.size() = " << validation_data.size() << std::endl;
 
     //ログファイルの設定
