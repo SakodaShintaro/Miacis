@@ -7,7 +7,7 @@
 #include <iostream>
 #include <random>
 
-template<class T> void learnSearchNN(const std::string& model_name) {
+template<class T> void learnSearchNN() {
     // clang-format off
     SearchOptions options;
     HyperparameterLoader settings("learn_search_nn_settings.txt");
@@ -188,7 +188,7 @@ template<class T> void learnSearchNN(const std::string& model_name) {
     std::cout << "finish learnSearchNN" << std::endl;
 }
 
-template<class T> void validSearchNN(const std::string& model_name) {
+template<class T> void validSearchNN() {
     SearchOptions options;
 
     //データを取得

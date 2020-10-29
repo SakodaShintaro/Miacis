@@ -38,11 +38,11 @@ Interface::Interface() : searcher_(nullptr) {
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
     command_["convertModelToCPU"]  = convertModelToCPU;
-    command_["learnMCTSNet"]       = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
-    command_["validMCTSNet"]       = [](){ validSearchNN<MCTSNet>("mcts_net"); };
-    command_["learnProposedModelLSTM"] = [](){ learnSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
-    command_["learnProposedModelTransformer"] = [](){ learnSearchNN<ProposedModelTransformer>("proposed_model_transformer"); };
-    command_["learnStackedLSTM"]   = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
+    command_["learnMCTSNet"]       = [](){ learnSearchNN<MCTSNet>(); };
+    command_["validMCTSNet"]       = [](){ validSearchNN<MCTSNet>(); };
+    command_["learnProposedModelLSTM"] = [](){ learnSearchNN<ProposedModelLSTM>(); };
+    command_["learnProposedModelTransformer"] = [](){ learnSearchNN<ProposedModelTransformer>(); };
+    command_["learnStackedLSTM"]   = [](){ learnSearchNN<StackedLSTM>(); };
     command_["testMCTSNet"]        = testMCTSNet;
     // clang-format on
 }

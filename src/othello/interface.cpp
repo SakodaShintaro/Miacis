@@ -30,24 +30,24 @@ Interface::Interface() : searcher_(nullptr) {
     command_["alphaZero"]             = alphaZero;
 
     command_["testMCTSNet"]           = [this] { testSearchNN<MCTSNet>(); };
-    command_["learnMCTSNet"]          = [](){ learnSearchNN<MCTSNet>("mcts_net"); };
-    command_["validMCTSNet"]          = [](){ validSearchNN<MCTSNet>("mcts_net"); };
+    command_["learnMCTSNet"]          = [](){ learnSearchNN<MCTSNet>(); };
+    command_["validMCTSNet"]          = [](){ validSearchNN<MCTSNet>(); };
 
     command_["testProposedModelLSTM"]  = [this] { testSearchNN<ProposedModelLSTM>(); };
-    command_["learnProposedModelLSTM"] = [](){ learnSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
-    command_["validProposedModelLSTM"] = [](){ validSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
+    command_["learnProposedModelLSTM"] = [](){ learnSearchNN<ProposedModelLSTM>(); };
+    command_["validProposedModelLSTM"] = [](){ validSearchNN<ProposedModelLSTM>(); };
 
     command_["testProposedModelTransformer"]  = [this] { testSearchNN<ProposedModelTransformer>(); };
-    command_["learnProposedModelTransformer"] = [](){ learnSearchNN<ProposedModelTransformer>("proposed_model_transformer"); };
-    command_["validProposedModelTransformer"] = [](){ validSearchNN<ProposedModelTransformer>("proposed_model_transformer"); };
+    command_["learnProposedModelTransformer"] = [](){ learnSearchNN<ProposedModelTransformer>(); };
+    command_["validProposedModelTransformer"] = [](){ validSearchNN<ProposedModelTransformer>(); };
 
     command_["testSimpleMLP"]         = [this] { testSearchNN<SimpleMLP>(); };
-    command_["learnSimpleMLP"]        = [](){ learnSearchNN<SimpleMLP>("simple_mlp"); };
-    command_["validSimpleMLP"]        = [](){ validSearchNN<SimpleMLP>("simple_mlp"); };
+    command_["learnSimpleMLP"]        = [](){ learnSearchNN<SimpleMLP>(); };
+    command_["validSimpleMLP"]        = [](){ validSearchNN<SimpleMLP>(); };
 
     command_["testStackedLSTM"]       = [this] { testSearchNN<StackedLSTM>(); };
-    command_["learnStackedLSTM"]      = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
-    command_["validStackedLSTM"]      = [](){ validSearchNN<StackedLSTM>("stacked_lstm"); };
+    command_["learnStackedLSTM"]      = [](){ learnSearchNN<StackedLSTM>(); };
+    command_["validStackedLSTM"]      = [](){ validSearchNN<StackedLSTM>(); };
     // clang-format on
 }
 
