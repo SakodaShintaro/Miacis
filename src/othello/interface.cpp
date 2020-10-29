@@ -313,31 +313,14 @@ void Interface::play() {
 
 void Interface::go() {
     torch::NoGradGuard no_grad_guard;
-    if (options_.use_simple_mlp) {
-        Move best_move = simple_mlp_->think(root_, options_.byoyomi_margin);
-        std::cout << "best_move " << best_move << std::endl;
-        root_.doMove(best_move);
-    } else if (options_.use_mcts_net) {
-        Move best_move = mcts_net_->think(root_, options_.byoyomi_margin);
-        std::cout << "best_move " << best_move << std::endl;
-        root_.doMove(best_move);
-    } else if (options_.use_proposed_model_lstm) {
-        Move best_move = proposed_model_lstm_->think(root_, options_.byoyomi_margin);
-        std::cout << "best_move " << best_move << std::endl;
-        root_.doMove(best_move);
-    } else if (options_.use_stacked_lstm) {
-        Move best_move = stacked_lstm_->think(root_, options_.byoyomi_margin);
-        std::cout << "best_move " << best_move << std::endl;
-        root_.doMove(best_move);
-    } else if (options_.use_proposed_model_transformer) {
-        Move best_move = transformer_model_->think(root_, options_.byoyomi_margin);
-        std::cout << "best_move " << best_move << std::endl;
-        root_.doMove(best_move);
-    } else {
-        Move best_move = searcher_->think(root_, options_.byoyomi_margin);
-        std::cout << "best_move " << best_move << std::endl;
-        root_.doMove(best_move);
-    }
+    Move best_move = (options_.use_simple_mlp                   ? simple_mlp_->think(root_, options_.byoyomi_margin)
+                      : options_.use_mcts_net                   ? mcts_net_->think(root_, options_.byoyomi_margin)
+                      : options_.use_proposed_model_lstm        ? proposed_model_lstm_->think(root_, options_.byoyomi_margin)
+                      : options_.use_proposed_model_transformer ? transformer_model_->think(root_, options_.byoyomi_margin)
+                      : options_.use_stacked_lstm               ? stacked_lstm_->think(root_, options_.byoyomi_margin)
+                                                                : searcher_->think(root_, options_.byoyomi_margin));
+    std::cout << "best_move " << best_move << std::endl;
+    root_.doMove(best_move);
 }
 
 void Interface::stop() {
