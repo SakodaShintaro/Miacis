@@ -37,6 +37,7 @@ public:
         check_options.emplace("print_info",            CheckOption(print_info = true));
         check_options.emplace("output_log_file",       CheckOption(output_log_file = false));
         check_options.emplace("use_simple_mlp",        CheckOption(use_simple_mlp = false));
+        check_options.emplace("use_simple_lstm",       CheckOption(use_simple_lstm = false));
         check_options.emplace("use_mcts_net",          CheckOption(use_mcts_net = false));
         check_options.emplace("use_proposed_model_lstm",    CheckOption(use_proposed_model_lstm = false));
         check_options.emplace("use_proposed_model_transformer", CheckOption(use_proposed_model_transformer = false));
@@ -77,6 +78,7 @@ public:
     bool print_info;
     bool output_log_file;
     bool use_simple_mlp;
+    bool use_simple_lstm;
     bool use_mcts_net;
     bool use_proposed_model_lstm;
     bool use_proposed_model_transformer;

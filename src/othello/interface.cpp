@@ -41,6 +41,10 @@ Interface::Interface() : searcher_(nullptr) {
     command_["learnProposedModelTransformer"] = [](){ learnSearchNN<ProposedModelTransformer>(); };
     command_["validProposedModelTransformer"] = [](){ validSearchNN<ProposedModelTransformer>(); };
 
+    command_["testSimpleLSTM"]         = [this] { testSearchNN<SimpleLSTM>(); };
+    command_["learnSimpleLSTM"]        = [](){ learnSearchNN<SimpleLSTM>(); };
+    command_["validSimpleLSTM"]        = [](){ validSearchNN<SimpleLSTM>(); };
+
     command_["testSimpleMLP"]         = [this] { testSearchNN<SimpleMLP>(); };
     command_["learnSimpleMLP"]        = [](){ learnSearchNN<SimpleMLP>(); };
     command_["validSimpleMLP"]        = [](){ validSearchNN<SimpleMLP>(); };
@@ -283,6 +287,10 @@ void Interface::init() {
         simple_mlp_ = SimpleMLP(options_);
         torch::load(simple_mlp_, options_.model_name);
         simple_mlp_->eval();
+    } else if (options_.use_simple_lstm) {
+        simple_lstm_ = SimpleLSTM(options_);
+        torch::load(simple_lstm_, options_.model_name);
+        simple_lstm_->eval();
     } else if (options_.use_mcts_net) {
         mcts_net_ = MCTSNet(options_);
         torch::load(mcts_net_, options_.model_name);
@@ -314,6 +322,7 @@ void Interface::play() {
 void Interface::go() {
     torch::NoGradGuard no_grad_guard;
     Move best_move = (options_.use_simple_mlp                   ? simple_mlp_->think(root_, options_.byoyomi_margin)
+                      : options_.use_simple_lstm                ? simple_lstm_->think(root_, options_.byoyomi_margin)
                       : options_.use_mcts_net                   ? mcts_net_->think(root_, options_.byoyomi_margin)
                       : options_.use_proposed_model_lstm        ? proposed_model_lstm_->think(root_, options_.byoyomi_margin)
                       : options_.use_proposed_model_transformer ? transformer_model_->think(root_, options_.byoyomi_margin)

@@ -103,6 +103,7 @@ def main():
     parser.add_argument("--temperature_x1000", type=int, default=75)
     parser.add_argument("--exp_search", action="store_true")
     parser.add_argument("--simple_mlp", action="store_true")
+    parser.add_argument("--simple_lstm", action="store_true")
     parser.add_argument("--mcts_net", action="store_true")
     parser.add_argument("--proposed_model_lstm", action="store_true")
     parser.add_argument("--proposed_model_transformer", action="store_true")
@@ -137,6 +138,8 @@ def main():
 
     if args.simple_mlp:
         miacis_manager.send_option("use_simple_mlp", "true")
+    elif args.simple_lstm:
+        miacis_manager.send_option("use_simple_lstm", "true")
     elif args.mcts_net:
         miacis_manager.send_option("use_mcts_net", "true")
     elif args.proposed_model_lstm:

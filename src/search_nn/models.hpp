@@ -5,6 +5,7 @@
 #include "proposed_model_lstm/proposed_model_lstm.hpp"
 #include "proposed_model_transformer/proposed_model_transformer.hpp"
 #include "simple_MLP/simple_mlp.hpp"
+#include "simple_lstm/simple_lstm.hpp"
 #include "stacked_lstm/stacked_lstm.hpp"
 
 #endif //MIACIS_MODELS_HPP
