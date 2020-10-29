@@ -1,5 +1,5 @@
-learn_rate           0.005
-min_learn_rate       0.0005
+learn_rate           0.01
+min_learn_rate       0.001
 momentum             0.9
 weight_decay         0.0
 base_policy_coeff    1.0
@@ -10,13 +10,13 @@ freeze_encoder       0
 use_only_last_loss   0
 batch_size           512
 search_limit         10
-max_step             80000
-validation_interval  4000
-save_interval        80000
+max_step             400000
+validation_interval  20000
+save_interval        400000
 lr_decay_mode        1
-lr_decay_step1       40000
-lr_decay_step2       80000
-lr_decay_period      4000
+lr_decay_step1       200000
+lr_decay_step2       400000
+lr_decay_period      20000
 print_interval       2
 encoder_path         encoder.model
 policy_head_path     policy_head.model
