@@ -4,7 +4,6 @@
 #include "../neural_network.hpp"
 #include "../search_nn/learn_search_nn.hpp"
 #include "../search_nn/models.hpp"
-#include "../search_nn/simple_MLP/learn_simple_mlp.hpp"
 
 namespace Othello {
 
@@ -29,7 +28,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["initParams"]            = initParams;
     command_["supervisedLearn"]       = supervisedLearn;
     command_["alphaZero"]             = alphaZero;
-    command_["pretrain"]              = pretrainSimpleMLP;
 
     command_["testMCTSNet"]           = [this] { testSearchNN<MCTSNet>(); };
     command_["learnMCTSNet"]          = [](){ learnSearchNN<MCTSNet>("mcts_net"); };

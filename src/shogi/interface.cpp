@@ -3,7 +3,6 @@
 #include "../learn.hpp"
 #include "../search_nn/learn_search_nn.hpp"
 #include "../search_nn/models.hpp"
-#include "../search_nn/simple_MLP/learn_simple_mlp.hpp"
 #include "test.hpp"
 
 namespace Shogi {
@@ -44,7 +43,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["learnProposedModelLSTM"] = [](){ learnSearchNN<ProposedModelLSTM>("proposed_model_lstm"); };
     command_["learnProposedModelTransformer"] = [](){ learnSearchNN<ProposedModelTransformer>("proposed_model_transformer"); };
     command_["learnStackedLSTM"]   = [](){ learnSearchNN<StackedLSTM>("stacked_lstm"); };
-    command_["pretrain"]           = pretrainSimpleMLP;
     command_["testMCTSNet"]        = testMCTSNet;
     // clang-format on
 }
