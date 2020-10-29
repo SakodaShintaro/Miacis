@@ -17,7 +17,7 @@ lr_decay_mode        1
 lr_decay_step1       40000
 lr_decay_step2       80000
 lr_decay_period      4000
-print_interval       1
+print_interval       2
 encoder_path         encoder.model
 policy_head_path     policy_head.model
 value_head_path      value_head.model
