@@ -24,6 +24,9 @@ public:
     void quit();
     void gameover();
 
+    //探索系のNNを用いて自己対局が正常に動くか検証する関数
+    template<class T> void testSearchNN();
+
 private:
     std::unordered_map<std::string, std::function<void()>> command_;
     Position root_;

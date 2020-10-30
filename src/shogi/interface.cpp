@@ -38,12 +38,30 @@ Interface::Interface() : searcher_(nullptr) {
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
     command_["convertModelToCPU"]  = convertModelToCPU;
-    command_["learnMCTSNet"]       = [](){ learnSearchNN<MCTSNet>(); };
-    command_["validMCTSNet"]       = [](){ validSearchNN<MCTSNet>(); };
+
+    command_["testMCTSNet"]           = [this] { testSearchNN<MCTSNet>(); };
+    command_["learnMCTSNet"]          = [](){ learnSearchNN<MCTSNet>(); };
+    command_["validMCTSNet"]          = [](){ validSearchNN<MCTSNet>(); };
+
+    command_["testProposedModelLSTM"]  = [this] { testSearchNN<ProposedModelLSTM>(); };
     command_["learnProposedModelLSTM"] = [](){ learnSearchNN<ProposedModelLSTM>(); };
+    command_["validProposedModelLSTM"] = [](){ validSearchNN<ProposedModelLSTM>(); };
+
+    command_["testProposedModelTransformer"]  = [this] { testSearchNN<ProposedModelTransformer>(); };
     command_["learnProposedModelTransformer"] = [](){ learnSearchNN<ProposedModelTransformer>(); };
-    command_["learnStackedLSTM"]   = [](){ learnSearchNN<StackedLSTM>(); };
-    command_["testMCTSNet"]        = testMCTSNet;
+    command_["validProposedModelTransformer"] = [](){ validSearchNN<ProposedModelTransformer>(); };
+
+    command_["testSimpleLSTM"]         = [this] { testSearchNN<SimpleLSTM>(); };
+    command_["learnSimpleLSTM"]        = [](){ learnSearchNN<SimpleLSTM>(); };
+    command_["validSimpleLSTM"]        = [](){ validSearchNN<SimpleLSTM>(); };
+
+    command_["testSimpleMLP"]         = [this] { testSearchNN<SimpleMLP>(); };
+    command_["learnSimpleMLP"]        = [](){ learnSearchNN<SimpleMLP>(); };
+    command_["validSimpleMLP"]        = [](){ validSearchNN<SimpleMLP>(); };
+
+    command_["testStackedLSTM"]       = [this] { testSearchNN<StackedLSTM>(); };
+    command_["learnStackedLSTM"]      = [](){ learnSearchNN<StackedLSTM>(); };
+    command_["validStackedLSTM"]      = [](){ validSearchNN<StackedLSTM>(); };
     // clang-format on
 }
 
@@ -245,6 +263,30 @@ void Interface::gameover() {
     std::string input;
     std::cin >> input;
     //"win" or "lose" or "draw" が来るらしいが、特にするべきことが見当たらない
+}
+
+template<class T> void Interface::testSearchNN() {
+    root_.init();
+
+    search_options_.search_limit = 10;
+    search_options_.print_interval = INT_MAX;
+    search_options_.print_policy_num = 800;
+    search_options_.search_batch_size = 1;
+    search_options_.thread_num_per_gpu = 1;
+    T model(search_options_);
+    model->setGPU(0);
+    model->eval();
+    torch::NoGradGuard no_grad_guard;
+
+    float score{};
+    while (!root_.isFinish(score, false)) {
+        Move best_move = model->think(root_, INT_MAX);
+        std::cout << best_move.toPrettyStr() << std::endl;
+        root_.doMove(best_move);
+        root_.print();
+    }
+
+    std::cout << "finish testSearchNN" << std::endl;
 }
 
 } // namespace Shogi
