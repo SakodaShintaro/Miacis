@@ -273,6 +273,7 @@ template<class T> void Interface::testSearchNN() {
     search_options_.print_policy_num = 800;
     search_options_.search_batch_size = 1;
     search_options_.thread_num_per_gpu = 1;
+    search_options_.random_turn = 512;
     T model(search_options_);
     model->setGPU(0);
     model->eval();
