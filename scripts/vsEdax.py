@@ -101,6 +101,7 @@ def main():
     parser.add_argument("--init_model_step", type=int, default=0)
     parser.add_argument("--search_batch_size", type=int, default=4)
     parser.add_argument("--temperature_x1000", type=int, default=75)
+    parser.add_argument("--random_turn", type=int, default=1000)
     parser.add_argument("--exp_search", action="store_true")
     parser.add_argument("--simple_mlp", action="store_true")
     parser.add_argument("--simple_lstm", action="store_true")
@@ -134,7 +135,7 @@ def main():
         miacis_manager.send_option("Q_coeff_x1000", 1000)
         miacis_manager.send_option("P_coeff_x1000", 0)
     miacis_manager.send_option("thread_num_per_gpu", 1)
-    miacis_manager.send_option("random_turn", 30)
+    miacis_manager.send_option("random_turn", args.random_turn)
 
     if args.simple_mlp:
         miacis_manager.send_option("use_simple_mlp", "true")
