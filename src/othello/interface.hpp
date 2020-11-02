@@ -32,6 +32,9 @@ public:
     //ランダムプレイヤーと対局する関数
     void battleVSRandom();
 
+    //パラメータを読み込んで対局
+    void battleSelf();
+
     //盤面を初期状態に戻す関数
     void init();
 

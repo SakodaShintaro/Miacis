@@ -17,6 +17,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["infiniteTest"]          = [this] { infiniteTest(); };
     command_["battle"]                = [this] { battle(); };
     command_["battleVSRandom"]        = [this] { battleVSRandom(); };
+    command_["battleSelf"]            = [this] { battleSelf(); };
     command_["outputValue"]           = [this] { outputValue(); };
     command_["init"]                  = [this] { init(); };
     command_["play"]                  = [this] { play(); };
@@ -419,6 +420,113 @@ template<class T> void Interface::testSearchNN() {
         root_.doMove(best_move);
         root_.print();
     }
+}
+
+void Interface::battleSelf() {
+    constexpr int64_t game_num = 1000;
+    constexpr int64_t random_turn = 300;
+
+    //player0から見た勝敗[勝ち,引分,負け]
+    std::array<int64_t, 3> result{};
+    auto print = [&](bool final) {
+        double win_rate = (result[0] + 0.5 * result[1]) / (result[0] + result[1] + result[2]);
+        std::cout << result[0] << " " << result[1] << " " << result[2] << " " << win_rate << (final ? "\n" : "\r") << std::flush;
+    };
+    std::cout << std::fixed << std::setprecision(4);
+
+    //使うもの
+    std::vector<std::string> method_name(2);
+    std::vector<SearchOptions> option(2);
+
+    //まず全て用意
+    std::vector<SimpleMLP> simple_mlp(2);
+    std::vector<SimpleLSTM> simple_lstm(2);
+    std::vector<MCTSNet> mcts_net(2);
+    std::vector<ProposedModelLSTM> proposed_model_lstm(2);
+    std::vector<ProposedModelTransformer> proposed_model_transformer(2);
+    std::vector<StackedLSTM> stacked_lstm(2);
+
+    for (int64_t i = 0; i < 2; i++) {
+        std::cout << "player" << i << std::endl;
+        //入力
+        std::cin >> method_name[i];
+        std::cin >> option[i].search_limit;
+        std::cin >> option[i].model_name;
+
+        option[i].random_turn = random_turn;
+
+        if (method_name[i] == "simple_mlp") {
+            simple_mlp[i] = SimpleMLP(option[i]);
+            torch::load(simple_mlp[i], option[i].model_name);
+            simple_mlp[i]->eval();
+        } else if (method_name[i] == "simple_lstm") {
+            simple_lstm[i] = SimpleLSTM(option[i]);
+            torch::load(simple_lstm[i], option[i].model_name);
+            simple_lstm[i]->eval();
+        } else if (method_name[i] == "mcts_net") {
+            mcts_net[i] = MCTSNet(option[i]);
+            torch::load(mcts_net[i], option[i].model_name);
+            mcts_net[i]->eval();
+        } else if (method_name[i] == "proposed_model_lstm") {
+            proposed_model_lstm[i] = ProposedModelLSTM(option[i]);
+            torch::load(proposed_model_lstm[i], option[i].model_name);
+            proposed_model_lstm[i]->eval();
+        } else if (method_name[i] == "proposed_model_transformer") {
+            proposed_model_transformer[i] = ProposedModelTransformer(option[i]);
+            torch::load(proposed_model_transformer[i], option[i].model_name);
+            proposed_model_transformer[i]->eval();
+        } else if (method_name[i] == "stacked_lstm") {
+            stacked_lstm[i] = StackedLSTM(option[i]);
+            torch::load(stacked_lstm[i], option[i].model_name);
+            stacked_lstm[i]->eval();
+        }
+    }
+
+    torch::NoGradGuard no_grad_guard;
+    int64_t time_limit = 100000;
+
+    for (int64_t i = 0; i < game_num; i++) {
+        Position pos;
+        float score{};
+        while (!pos.isFinish(score)) {
+            //pos.print();
+
+            int64_t player = (pos.turnNumber() + i) % 2;
+
+            Move best_move = (method_name[player] == "simple_mlp"            ? simple_mlp[player]->think(pos, time_limit)
+                              : method_name[player] == "simple_lstm"         ? simple_lstm[player]->think(pos, time_limit)
+                              : method_name[player] == "mcts_net"            ? mcts_net[player]->think(pos, time_limit)
+                              : method_name[player] == "proposed_model_lstm" ? proposed_model_lstm[player]->think(pos, time_limit)
+                              : method_name[player] == "proposed_model_transformer"
+                                  ? proposed_model_transformer[player]->think(pos, time_limit)
+                              : method_name[player] == "stacked_lstm" ? stacked_lstm[player]->think(pos, time_limit)
+                                                                      : NULL_MOVE);
+            pos.doMove(best_move);
+        }
+
+        //先手から見たスコアに変換
+        score = (pos.color() == BLACK ? score : MAX_SCORE + MIN_SCORE - score);
+
+        if (score == MAX_SCORE) {
+            if (i % 2 == 0) {
+                result[0]++;
+            } else {
+                result[2]++;
+            }
+        } else if (score == MIN_SCORE) {
+            if (i % 2 == 0) {
+                result[2]++;
+            } else {
+                result[0]++;
+            }
+        } else {
+            result[1]++;
+        }
+
+        print(false);
+    }
+
+    print(true);
 }
 
 } // namespace Othello
