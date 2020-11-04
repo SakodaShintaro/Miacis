@@ -204,7 +204,10 @@ void Interface::go() {
         std::cout << "bestmove " << best_move << std::endl;
         if (search_options_.USI_Ponder && best_move != NULL_MOVE) {
             root_.doMove(best_move);
-            searcher_->think(root_, LLONG_MAX);
+            float score{};
+            if (!root_.isFinish(score) && root_.turnNumber() <= search_options_.draw_turn) {
+                searcher_->think(root_, LLONG_MAX);
+            }
         }
     });
 }
