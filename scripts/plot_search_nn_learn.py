@@ -2,16 +2,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import japanize_matplotlib
-import argparse
 import pandas as pd
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--method", type=(lambda x: x.split()),
-                    default=["mcts_net", "proposed_model_lstm", "stacked_lstm"])
-args = parser.parse_args()
+import glob
 
 PLOT_NUM = 20
-loss_num = 11
 
 
 def transform(arr):
@@ -21,23 +15,23 @@ def transform(arr):
     return arr.mean(1)
 
 
-data_dict = dict()
+suffix = "_train_log.txt"
+files = glob.glob("*" + suffix)
+prefix = files[0].replace(suffix, "")
+loss_num = (1 if prefix == "simple_mlp" else 11)
 
 # まずデータを取得しつつ各損失単体をプロット
-for prefix in args.method:
-    data_dict[prefix] = dict()
-    for loss_name in ["train", "valid"]:
-        df = pd.read_csv(f"./{prefix}_{loss_name}_log.txt", delimiter="\t")
-
-        data_dict[prefix][loss_name] = df
+for pol_or_val in ["policy", "value"]:
+    for train_or_valid in ["train", "valid"]:
+        df = pd.read_csv(f"./{prefix}_{train_or_valid}_log.txt", delimiter="\t")
 
         step = df["step"].to_numpy()
-        if loss_name == "train":
+        if train_or_valid == "train":
             step = transform(step)
 
         for i in range(loss_num):
-            loss = df[f"loss_{i}"].to_numpy()
-            if loss_name == "train":
+            loss = df[f"{pol_or_val}_loss_{i}"].to_numpy()
+            if train_or_valid == "train":
                 loss = transform(loss)
             color = [0.0, 0.5, i / loss_num]
             # plt.plot(step, loss, color=color, label=f"{i}回探索後" if loss_name == "valid" else (
@@ -49,60 +43,15 @@ for prefix in args.method:
         plt.legend()
         # plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.15))
         plt.xlabel("学習ステップ数")
-        plt.ylabel("Policy損失")
-        plt.savefig(f"{prefix}_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
+        plt.ylabel(f"{pol_or_val}損失")
+        plt.savefig(f"{prefix}_{train_or_valid}_{pol_or_val}.png", bbox_inches="tight", pad_inches=0.05)
         plt.clf()
 
         # 最終損失だけをプロット
         x = [i for i in range(loss_num)]
-        y = [df[f"loss_{i}"].to_numpy()[-1] for i in range(loss_num)]
+        y = [df[f"{pol_or_val}_loss_{i}"].to_numpy()[-1] for i in range(loss_num)]
         plt.plot(x, y, marker=".")
         plt.xlabel("探索回数")
-        plt.ylabel("Policy損失")
-        plt.savefig(f"{prefix}_{loss_name}_final.png", bbox_inches="tight", pad_inches=0.05)
+        plt.ylabel(f"{pol_or_val}損失")
+        plt.savefig(f"{prefix}_{train_or_valid}_{pol_or_val}_final.png", bbox_inches="tight", pad_inches=0.05)
         plt.clf()
-
-# 全体をまとめてプロット
-for loss_name in ["train", "valid"]:
-    for i, prefix in enumerate(args.method):
-        df = data_dict[prefix][loss_name]
-        step = df["step"].to_numpy()
-        if loss_name == "train":
-            step = transform(step)
-        last_index = loss_num - 1
-        loss = df[f"loss_{last_index}"].to_numpy()
-        if loss_name == "train":
-            loss = transform(loss)
-        plt.plot(step, loss)
-        plt.text(step[-1], loss[-1], f"{prefix}({last_index}回探索)", color=plt.get_cmap("tab10")(i))
-    plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.5))
-    plt.xlabel("学習ステップ数")
-    plt.ylabel("Policy損失")
-    plt.savefig(f"all_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
-    plt.clf()
-
-
-def time_str2time_int(time_str):
-    h, m, s = time_str.split(':')
-    return int(h) + int(m) / 60 + int(s) / 3600
-
-
-for loss_name in ["train", "valid"]:
-    for i, prefix in enumerate(args.method):
-        df = data_dict[prefix][loss_name]
-        time = df["time"].to_numpy()
-        time = [time_str2time_int(v) for v in time]
-        if loss_name == "train":
-            time = transform(time)
-        last_index = loss_num - 1
-        loss = df[f"loss_{last_index}"].to_numpy()
-        if loss_name == "train":
-            loss = transform(loss)
-        plt.plot(time, loss, label=f"{prefix}({last_index}回探索)")
-        # plt.text(time[-1], loss[-1], f"{prefix}({last_index + 1}回探索)", color=plt.get_cmap("tab10")(i))
-    # plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.5))
-    plt.legend()
-    plt.xlabel("学習時間(h)")
-    plt.ylabel("Policy損失")
-    plt.savefig(f"all_time_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
-    plt.clf()
