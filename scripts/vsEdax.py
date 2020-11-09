@@ -109,6 +109,7 @@ def main():
     parser.add_argument("--proposed_model_lstm", action="store_true")
     parser.add_argument("--proposed_model_transformer", action="store_true")
     parser.add_argument("--stacked_lstm", action="store_true")
+    parser.add_argument("--method_name", type=str, default="None")
     args = parser.parse_args()
 
     # カレントディレクトリ内にある{prefix}_{step}.modelを評価する
@@ -149,6 +150,8 @@ def main():
         miacis_manager.send_option("use_proposed_model_transformer", "true")
     elif args.stacked_lstm:
         miacis_manager.send_option("use_stacked_lstm", "true")
+
+    miacis_manager.send_option("method_name", args.method_name)
 
     # 結果を書き込むファイルを取得
     f = open(curr_path + "result.txt", mode="a")

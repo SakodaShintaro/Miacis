@@ -62,6 +62,7 @@ private:
     ProposedModelLSTM proposed_model_lstm_;
     ProposedModelTransformer transformer_model_;
     StackedLSTM stacked_lstm_;
+    LoopLSTM loop_lstm_{ nullptr };
     std::thread thread_;
     SearchOptions options_;
 };
