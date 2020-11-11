@@ -116,12 +116,14 @@ template<class T> void learnSearchNN() {
             if (use_only_last_loss) {
                 //最後以外0にする
                 for (int64_t i = 0; i < options.search_limit; i++) {
-                    loss[i] *= 0;
+                    loss[2 * i] *= 0;
+                    loss[2 * i + 1] *= 0;
                 }
             } else {
                 //平均化する
                 for (int64_t i = 0; i <= options.search_limit; i++) {
-                    loss[i] /= (options.search_limit + 1);
+                    loss[2 * i] /= (options.search_limit + 1);
+                    loss[2 * i + 1] /= (options.search_limit + 1);
                 }
             }
             loss[loss.size() - 3] *= base_policy_coeff;
