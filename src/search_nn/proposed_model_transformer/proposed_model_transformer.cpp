@@ -3,6 +3,7 @@
 #include "../common.hpp"
 
 constexpr int64_t COMPRESSED_DIM = 512;
+constexpr int64_t MAX_PE_LENGTH = 50;
 
 ProposedModelTransformerImpl::ProposedModelTransformerImpl(const SearchOptions& search_options) : BaseModel(search_options) {
     first_compressor_ = register_module("first_compressor_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, COMPRESSED_DIM));
@@ -10,6 +11,8 @@ ProposedModelTransformerImpl::ProposedModelTransformerImpl(const SearchOptions& 
     transformer_ = register_module("transformer_", torch::nn::Transformer(options));
     policy_head_ = register_module("policy_head_", torch::nn::Linear(COMPRESSED_DIM, POLICY_DIM));
     value_head_ = register_module("value_head_", torch::nn::Linear(COMPRESSED_DIM, 1));
+    positional_encoding_ = register_parameter(
+        "positional_encoding_", torch::randn({ MAX_PE_LENGTH, COMPRESSED_DIM }, torch::TensorOptions().requires_grad(true)));
 }
 
 std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelTransformerImpl::search(std::vector<Position>& positions) {
@@ -90,6 +93,7 @@ std::tuple<torch::Tensor, torch::Tensor> ProposedModelTransformerImpl::infer(con
 }
 
 torch::Tensor ProposedModelTransformerImpl::positionalEncoding(int64_t pos) const {
+    return positional_encoding_[pos];
     //参考1) https://pytorch.org/tutorials/beginner/transformer_tutorial.html
     //参考2) https://qiita.com/omiita/items/07e69aef6c156d23c538
     //shape (COMPRESSED_DIM)のものを返す
