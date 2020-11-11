@@ -84,7 +84,7 @@ std::tuple<torch::Tensor, torch::Tensor> ProposedModelTransformerImpl::infer(con
     torch::Tensor src = (history.empty() ? torch::zeros({ 1, x.size(1), COMPRESSED_DIM }) : torch::cat(history, 0)).to(device_);
     torch::Tensor y = transformer_->forward(src, x);
 
-    torch::Tensor policy_logit = policy_head_(y);
+    torch::Tensor policy_logit = policy_head_->forward(y);
     torch::Tensor value = torch::tanh(value_head_->forward(y));
     return std::make_tuple(policy_logit, value);
 }
