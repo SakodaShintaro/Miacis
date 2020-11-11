@@ -2,11 +2,14 @@
 #include "../../common.hpp"
 #include "../common.hpp"
 
+constexpr int64_t COMPRESSED_DIM = 512;
+
 ProposedModelTransformerImpl::ProposedModelTransformerImpl(const SearchOptions& search_options) : BaseModel(search_options) {
-    torch::nn::TransformerOptions options(StateEncoderImpl::HIDDEN_DIM, 4, 3, 3);
+    first_compressor_ = register_module("first_compressor_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, COMPRESSED_DIM));
+    torch::nn::TransformerOptions options(COMPRESSED_DIM, 4, 3, 3);
     transformer_ = register_module("transformer_", torch::nn::Transformer(options));
-    policy_head_ = register_module("policy_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, POLICY_DIM));
-    value_head_ = register_module("value_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, 1));
+    policy_head_ = register_module("policy_head_", torch::nn::Linear(COMPRESSED_DIM, POLICY_DIM));
+    value_head_ = register_module("value_head_", torch::nn::Linear(COMPRESSED_DIM, 1));
 }
 
 std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelTransformerImpl::search(std::vector<Position>& positions) {
@@ -38,7 +41,7 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelTransformerIm
         torch::Tensor x = embed(positions);
 
         //ここまでの探索から最終行動決定
-        policy_and_value.push_back(infer(root_x, history));
+        policy_and_value.push_back(infer(first_compressor_->forward(root_x), history));
 
         if (m == search_options_.search_limit) {
             break;
@@ -63,7 +66,7 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelTransformerIm
         torch::Tensor pe = positionalEncoding(m);
 
         //現在の特徴量を追加
-        history.push_back(x + pe);
+        history.push_back(first_compressor_->forward(x) + pe);
     }
 
     for (int64_t i = 0; i < batch_size; i++) {
@@ -78,8 +81,7 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelTransformerIm
 std::tuple<torch::Tensor, torch::Tensor> ProposedModelTransformerImpl::infer(const torch::Tensor& x,
                                                                              const std::vector<torch::Tensor>& history) {
     //xをキーとして推論
-    torch::Tensor src =
-        (history.empty() ? torch::zeros({ 1, x.size(1), StateEncoderImpl::HIDDEN_DIM }) : torch::cat(history, 0)).to(device_);
+    torch::Tensor src = (history.empty() ? torch::zeros({ 1, x.size(1), COMPRESSED_DIM }) : torch::cat(history, 0)).to(device_);
     torch::Tensor y = transformer_->forward(src, x);
 
     torch::Tensor policy_logit = policy_head_(y);
@@ -90,10 +92,10 @@ std::tuple<torch::Tensor, torch::Tensor> ProposedModelTransformerImpl::infer(con
 torch::Tensor ProposedModelTransformerImpl::positionalEncoding(int64_t pos) const {
     //参考1) https://pytorch.org/tutorials/beginner/transformer_tutorial.html
     //参考2) https://qiita.com/omiita/items/07e69aef6c156d23c538
-    //shape (StateEncoderImpl::HIDDEN_DIM)のものを返す
-    torch::Tensor pe = torch::zeros({ StateEncoderImpl::HIDDEN_DIM });
-    for (int64_t i = 0; i < StateEncoderImpl::HIDDEN_DIM; i++) {
-        float exponent = static_cast<float>(i / 2 * 2) / StateEncoderImpl::HIDDEN_DIM;
+    //shape (COMPRESSED_DIM)のものを返す
+    torch::Tensor pe = torch::zeros({ COMPRESSED_DIM });
+    for (int64_t i = 0; i < COMPRESSED_DIM; i++) {
+        float exponent = static_cast<float>(i / 2 * 2) / COMPRESSED_DIM;
         float div = std::pow(10000, exponent);
         pe[i] = (i % 2 == 0 ? std::sin(pos / div) : std::cos(pos / div));
     }

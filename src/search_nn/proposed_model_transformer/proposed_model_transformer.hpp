@@ -20,6 +20,7 @@ private:
     torch::Tensor positionalEncoding(int64_t pos) const;
 
     //transformer
+    torch::nn::Linear first_compressor_{ nullptr };
     torch::nn::Transformer transformer_{ nullptr };
     torch::nn::Linear policy_head_{ nullptr };
     torch::nn::Linear value_head_{ nullptr };
