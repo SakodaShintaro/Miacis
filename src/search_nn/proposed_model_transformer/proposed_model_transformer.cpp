@@ -51,7 +51,7 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelTransformerIm
         }
 
         //探索行動を決定
-        torch::Tensor sim_policy_logit = base_policy_head_->forward(x);
+        torch::Tensor sim_policy_logit = base_policy_head_->forward(x).cpu();
 
         //行動をサンプリングして盤面を動かす
         for (int64_t i = 0; i < batch_size; i++) {
