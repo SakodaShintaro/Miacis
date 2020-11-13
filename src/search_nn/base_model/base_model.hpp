@@ -11,7 +11,7 @@ public:
     //root局面について探索を行って一番良い指し手を返す関数
     virtual Move think(Position& root, int64_t time_limit);
 
-    //ミニバッチデータに対して損失を計算する関数(現在のところバッチサイズは1のみに対応)
+    //ミニバッチデータに対して損失を計算する関数
     std::vector<torch::Tensor> loss(const std::vector<LearningData>& data);
 
     //モデル名に関する関数
