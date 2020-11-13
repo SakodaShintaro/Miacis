@@ -117,8 +117,7 @@ template<class T> void learnSearchNN() {
             }
 
             //勾配計算,パラメータ更新
-            if (use_only_last_loss) {
-            } else {
+            if (!use_only_last_loss) {
                 //平均化する
                 for (int64_t i = 0; i <= options.search_limit; i++) {
                     loss[2 * i] /= (options.search_limit + 1);
