@@ -44,7 +44,9 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelTransformerIm
         torch::Tensor x = embed(positions);
 
         //ここまでの探索から最終行動決定
-        policy_and_value.push_back(infer(first_compressor_->forward(root_x), history));
+        if (!last_only_ || m == search_options_.search_limit) {
+            policy_and_value.push_back(infer(first_compressor_->forward(root_x), history));
+        }
 
         if (m == search_options_.search_limit) {
             break;

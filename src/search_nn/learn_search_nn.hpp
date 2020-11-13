@@ -48,17 +48,21 @@ template<class T> void learnSearchNN() {
     //モデル作成
     T model(options);
     model->setGPU(0);
-    model->setOption(freeze_encoder);
+    model->setOption(freeze_encoder, use_only_last_loss);
 
     //学習推移のログファイル
     std::ofstream train_log(model->modelPrefix() + "_train_log.txt");
     std::ofstream valid_log(model->modelPrefix() + "_valid_log.txt");
     tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep";
-    for (int64_t i = 0; i <= options.search_limit; i++) {
-        if (i % print_interval == 0) {
-            tout(std::cout, train_log, valid_log) << "\tpolicy_loss_" << i << "\tvalue_loss_" << i;
-        } else {
-            dout(train_log, valid_log) << "\tpolicy_loss_" << i << "\tvalue_loss_" << i;
+    if (use_only_last_loss) {
+        tout(std::cout, train_log, valid_log) << "\tlast_policy_loss\tlast_value_loss";
+    } else {
+        for (int64_t i = 0; i <= options.search_limit; i++) {
+            if (i % print_interval == 0) {
+                tout(std::cout, train_log, valid_log) << "\tpolicy_loss_" << i << "\tvalue_loss_" << i;
+            } else {
+                dout(train_log, valid_log) << "\tpolicy_loss_" << i << "\tvalue_loss_" << i;
+            }
         }
     }
     tout(std::cout, train_log, valid_log) << "\tbase_policy\tbase_value\tentropy" << std::endl;
@@ -100,7 +104,7 @@ template<class T> void learnSearchNN() {
             if (global_step % std::max(validation_interval / 100, (int64_t)1) == 0) {
                 dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
                 for (uint64_t m = 0; m < loss.size(); m++) {
-                    if (m / 2 % print_interval == 0 || m > (uint64_t)options.search_limit * 2) {
+                    if (use_only_last_loss || m / 2 % print_interval == 0 || m > (uint64_t)options.search_limit * 2) {
                         //標準出力にも表示
                         dout(std::cout, train_log) << "\t" << loss[m].item<float>();
                     } else {
@@ -114,11 +118,6 @@ template<class T> void learnSearchNN() {
 
             //勾配計算,パラメータ更新
             if (use_only_last_loss) {
-                //最後以外0にする
-                for (int64_t i = 0; i < options.search_limit; i++) {
-                    loss[2 * i] *= 0;
-                    loss[2 * i + 1] *= 0;
-                }
             } else {
                 //平均化する
                 for (int64_t i = 0; i <= options.search_limit; i++) {
@@ -157,7 +156,7 @@ template<class T> void learnSearchNN() {
                 //表示
                 dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step;
                 for (uint64_t m = 0; m < loss.size(); m++) {
-                    if (m / 2 % print_interval == 0 || m > (uint64_t)options.search_limit * 2) {
+                    if (use_only_last_loss || m / 2 % print_interval == 0 || m > (uint64_t)options.search_limit * 2) {
                         //標準出力にも表示
                         dout(std::cout, valid_log) << "\t" << valid_loss_sum[m];
                     } else {
@@ -212,7 +211,7 @@ template<class T> void validSearchNN() {
     //モデル作成
     T model(options);
     model->setGPU(0);
-    model->setOption(true);
+    model->setOption(true, true);
     torch::load(model, model->defaultModelName());
     model->eval();
     torch::NoGradGuard no_grad_guard;

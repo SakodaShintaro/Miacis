@@ -4,7 +4,7 @@
 #include <utility>
 
 BaseModel::BaseModel(SearchOptions options)
-    : search_options_(std::move(options)), device_(torch::kCUDA), fp16_(false), freeze_encoder_(true) {
+    : search_options_(std::move(options)), device_(torch::kCUDA), fp16_(false), freeze_encoder_(true), last_only_(true) {
     encoder_ = register_module("encoder_", StateEncoder());
     base_policy_head_ = register_module("base_policy_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, POLICY_DIM));
     base_value_head_ = register_module("base_value_head_", torch::nn::Linear(StateEncoderImpl::HIDDEN_DIM, 1));
@@ -32,7 +32,10 @@ void BaseModel::loadPretrain(const std::string& encoder_path, const std::string&
     }
 }
 
-void BaseModel::setOption(bool freeze_encoder) { freeze_encoder_ = freeze_encoder; }
+void BaseModel::setOption(bool freeze_encoder, bool last_only) {
+    freeze_encoder_ = freeze_encoder;
+    last_only_ = last_only;
+}
 
 std::vector<torch::Tensor> BaseModel::loss(const std::vector<LearningData>& data) {
     //バッチサイズを取得しておく
@@ -63,13 +66,10 @@ std::vector<torch::Tensor> BaseModel::loss(const std::vector<LearningData>& data
     torch::Tensor policy_teacher = torch::tensor(policy_teachers).to(device_).view({ batch_size, POLICY_DIM });
     torch::Tensor value_teacher = torch::tensor(value_teachers).to(device_).view({ batch_size, 1 });
 
-    //探索回数
-    const int64_t M = search_options_.search_limit;
-
     //各探索後の損失を計算
     std::vector<torch::Tensor> loss;
-    for (int64_t m = 0; m <= M; m++) {
-        auto [policy_logit, value] = policy_and_value[m];
+    for (const auto& p_and_v : policy_and_value) {
+        const auto& [policy_logit, value] = p_and_v;
         loss.push_back(policyLoss(policy_logit[0], policy_teacher));
         loss.push_back(torch::mse_loss(value, value_teacher));
     }

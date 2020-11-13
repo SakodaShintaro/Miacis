@@ -25,7 +25,7 @@ public:
     void loadPretrain(const std::string& encoder_path, const std::string& policy_head_path, const std::string& value_head_path);
 
     //学習の設定を定める関数
-    void setOption(bool freeze_encoder);
+    void setOption(bool freeze_encoder, bool last_only);
 
     //ネットワークを部分ごとに保存する関数
     void saveParts(){};
@@ -51,6 +51,9 @@ protected:
 
     //エンコーダを固定して学習するかどうか
     bool freeze_encoder_;
+
+    //探索の最後の部分だけ計算するかどうか
+    bool last_only_;
 };
 
 #endif //MIACIS_BASE_MODEL_HPP
