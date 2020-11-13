@@ -56,12 +56,12 @@ private:
     std::unordered_map<std::string, std::function<void()>> command_;
     Position root_;
     std::unique_ptr<SearcherForPlay> searcher_;
-    SimpleMLP simple_mlp_;
-    SimpleLSTM simple_lstm_;
-    MCTSNet mcts_net_;
-    ProposedModelLSTM proposed_model_lstm_;
-    ProposedModelTransformer transformer_model_;
-    StackedLSTM stacked_lstm_;
+    SimpleMLP simple_mlp_{ nullptr };
+    SimpleLSTM simple_lstm_{ nullptr };
+    MCTSNet mcts_net_{ nullptr };
+    ProposedModelLSTM proposed_model_lstm_{ nullptr };
+    ProposedModelTransformer transformer_model_{ nullptr };
+    StackedLSTM stacked_lstm_{ nullptr };
     LoopLSTM loop_lstm_{ nullptr };
     std::thread thread_;
     SearchOptions options_;

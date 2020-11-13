@@ -226,7 +226,7 @@ void Interface::go() {
     //予想手を決めなくとも置換表を埋めていくだけで強くなるはず
     thread_ = std::thread([this, time_limit]() {
         Move best_move;
-        if (search_options_.use_mcts_net) {
+        if (search_options_.method_name == "mcts_net") {
             MCTSNet mcts_net(search_options_);
             torch::load(mcts_net, mcts_net->defaultModelName());
             mcts_net->eval();

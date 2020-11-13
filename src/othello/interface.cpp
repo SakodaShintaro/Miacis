@@ -288,27 +288,27 @@ void Interface::init() {
     root_.init();
 
     //対局の準備
-    if (options_.use_simple_mlp) {
+    if (options_.method_name == "simple_mlp") {
         simple_mlp_ = SimpleMLP(options_);
         torch::load(simple_mlp_, options_.model_name);
         simple_mlp_->eval();
-    } else if (options_.use_simple_lstm) {
+    } else if (options_.method_name == "simple_lstm") {
         simple_lstm_ = SimpleLSTM(options_);
         torch::load(simple_lstm_, options_.model_name);
         simple_lstm_->eval();
-    } else if (options_.use_mcts_net) {
+    } else if (options_.method_name == "mcts_net") {
         mcts_net_ = MCTSNet(options_);
         torch::load(mcts_net_, options_.model_name);
         mcts_net_->eval();
-    } else if (options_.use_proposed_model_lstm) {
+    } else if (options_.method_name == "proposed_model_lstm") {
         proposed_model_lstm_ = ProposedModelLSTM(options_);
         torch::load(proposed_model_lstm_, options_.model_name);
         proposed_model_lstm_->eval();
-    } else if (options_.use_proposed_model_transformer) {
+    } else if (options_.method_name == "proposed_model_transformer") {
         transformer_model_ = ProposedModelTransformer(options_);
         torch::load(transformer_model_, options_.model_name);
         transformer_model_->eval();
-    } else if (options_.use_stacked_lstm) {
+    } else if (options_.method_name == "stacked_lstm") {
         stacked_lstm_ = StackedLSTM(options_);
         torch::load(stacked_lstm_, options_.model_name);
         stacked_lstm_->eval();
@@ -330,13 +330,14 @@ void Interface::play() {
 
 void Interface::go() {
     torch::NoGradGuard no_grad_guard;
-    Move best_move = (options_.use_simple_mlp                   ? simple_mlp_->think(root_, options_.byoyomi_margin)
-                      : options_.use_simple_lstm                ? simple_lstm_->think(root_, options_.byoyomi_margin)
-                      : options_.use_mcts_net                   ? mcts_net_->think(root_, options_.byoyomi_margin)
-                      : options_.use_proposed_model_lstm        ? proposed_model_lstm_->think(root_, options_.byoyomi_margin)
-                      : options_.use_proposed_model_transformer ? transformer_model_->think(root_, options_.byoyomi_margin)
-                      : options_.use_stacked_lstm               ? stacked_lstm_->think(root_, options_.byoyomi_margin)
-                      : options_.method_name == "loop_lstm"     ? loop_lstm_->think(root_, options_.byoyomi_margin)
+    Move best_move =
+        (options_.method_name == "simple_mlp"                   ? simple_mlp_->think(root_, options_.byoyomi_margin)
+         : options_.method_name == "simple_lstm"                ? simple_lstm_->think(root_, options_.byoyomi_margin)
+         : options_.method_name == "mcts_net"                   ? mcts_net_->think(root_, options_.byoyomi_margin)
+         : options_.method_name == "proposed_model_lstm"        ? proposed_model_lstm_->think(root_, options_.byoyomi_margin)
+         : options_.method_name == "proposed_model_transformer" ? transformer_model_->think(root_, options_.byoyomi_margin)
+         : options_.method_name == "stacked_lstm"               ? stacked_lstm_->think(root_, options_.byoyomi_margin)
+         : options_.method_name == "loop_lstm"                  ? loop_lstm_->think(root_, options_.byoyomi_margin)
                                                                 : searcher_->think(root_, options_.byoyomi_margin));
     std::cout << "best_move " << best_move << std::endl;
     root_.doMove(best_move);
