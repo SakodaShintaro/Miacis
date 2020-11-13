@@ -1,9 +1,7 @@
 #include "interface.hpp"
 #include "../game.hpp"
 #include "../learn.hpp"
-#include "../neural_network.hpp"
 #include "../search_nn/learn_search_nn.hpp"
-#include "../search_nn/models.hpp"
 
 namespace Othello {
 
