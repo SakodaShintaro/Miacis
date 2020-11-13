@@ -66,7 +66,9 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelLSTMImpl::sea
         torch::Tensor x = embed(positions);
 
         //ここまでの探索から最終行動決定
-        policy_and_value.push_back(readout(root_x, false));
+        if (!last_only_ || m == search_options_.search_limit) {
+            policy_and_value.push_back(readout(root_x, false));
+        }
 
         if (m == search_options_.search_limit) {
             break;
