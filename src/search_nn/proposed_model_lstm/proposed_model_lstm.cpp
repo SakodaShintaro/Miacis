@@ -1,6 +1,5 @@
 #include "proposed_model_lstm.hpp"
 #include "../../common.hpp"
-#include "../common.hpp"
 
 //ネットワークの設定
 static constexpr int32_t HIDDEN_SIZE = 512;

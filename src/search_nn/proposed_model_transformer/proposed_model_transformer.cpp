@@ -1,6 +1,5 @@
 #include "proposed_model_transformer.hpp"
 #include "../../common.hpp"
-#include "../common.hpp"
 
 constexpr int64_t COMPRESSED_DIM = 512;
 constexpr int64_t MAX_PE_LENGTH = 50;

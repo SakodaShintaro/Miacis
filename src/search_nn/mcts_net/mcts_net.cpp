@@ -1,5 +1,4 @@
 #include "mcts_net.hpp"
-#include "../common.hpp"
 #include <stack>
 
 MCTSNetImpl::MCTSNetImpl(const SearchOptions& search_options)

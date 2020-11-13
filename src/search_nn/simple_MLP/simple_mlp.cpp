@@ -1,6 +1,5 @@
 #include "simple_mlp.hpp"
 #include "../../common.hpp"
-#include "../common.hpp"
 
 SimpleMLPImpl::SimpleMLPImpl(const SearchOptions& search_options) : BaseModel(search_options) {
     search_options_.search_limit = 0;

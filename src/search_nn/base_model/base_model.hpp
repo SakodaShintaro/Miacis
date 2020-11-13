@@ -54,6 +54,10 @@ protected:
 
     //探索の最後の部分だけ計算するかどうか
     bool last_only_;
+
+private:
+    torch::Tensor policyLoss(const torch::Tensor& policy_logit, const torch::Tensor& policy_teacher);
+    torch::Tensor entropyLoss(const torch::Tensor& policy_logit);
 };
 
 #endif //MIACIS_BASE_MODEL_HPP
