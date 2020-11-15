@@ -210,13 +210,13 @@ template<class T> void validSearchNN() {
     //モデル作成
     T model(options);
     model->setGPU(0);
-    model->setOption(true, true);
+    model->setOption(true, false);
     torch::load(model, model->defaultModelName());
     model->eval();
     torch::NoGradGuard no_grad_guard;
 
     //validation_lossを計算
-    std::vector<float> valid_loss_sum(options.search_limit + 1, 0);
+    std::vector<float> valid_loss_sum(2 * (options.search_limit + 1) + 3, 0);
     for (uint64_t i = 0; i < valid_data.size();) {
         std::vector<LearningData> curr_data;
         while (curr_data.size() < batch_size && i < valid_data.size()) {
