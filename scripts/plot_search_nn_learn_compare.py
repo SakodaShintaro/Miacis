@@ -13,8 +13,6 @@ args = parser.parse_args()
 if args.labels is None:
     args.labels = [""]
 
-args = parser.parse_args()
-
 PLOT_NUM = 20
 loss_num = 11
 
