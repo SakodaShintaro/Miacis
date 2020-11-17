@@ -203,6 +203,8 @@ template<class T> void validSearchNN() {
     std::cin >> batch_size;
     std::cout << "search_limit: ";
     std::cin >> options.search_limit;
+    std::cout << "model_name: ";
+    std::cin >> options.model_name;
 
     std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
     std::cout << "valid_data_size = " << valid_data.size() << std::endl;
@@ -211,7 +213,7 @@ template<class T> void validSearchNN() {
     T model(options);
     model->setGPU(0);
     model->setOption(true, false);
-    torch::load(model, model->defaultModelName());
+    torch::load(model, options.model_name);
     model->eval();
     torch::NoGradGuard no_grad_guard;
 
@@ -226,7 +228,7 @@ template<class T> void validSearchNN() {
         for (uint64_t j = 0; j < valid_loss_sum.size(); j++) {
             valid_loss_sum[j] += valid_loss[j].item<float>() * curr_data.size();
         }
-        std::cout << "finish " << std::setw(4) << i << " / " << valid_data.size() << "\r";
+        std::cout << "finish " << std::setw(4) << i << " / " << valid_data.size() << std::endl;
     }
     for (float& v : valid_loss_sum) {
         v /= valid_data.size();
