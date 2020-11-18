@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import numpy as np
 import japanize_matplotlib
 import argparse
-import pandas as pd
 import glob
 import os
 from natsort import natsorted
@@ -14,8 +12,7 @@ import subprocess
 
 # 引数の設定
 parser = argparse.ArgumentParser()
-parser.add_argument("--method_name", type=str, required=True)
-parser.add_argument("--search_limit", type=int, required=True)
+parser.add_argument("--search_limit", type=int, default=20)
 parser.add_argument("--rate_threshold", type=int, default=2290)
 parser.add_argument("--print_start", type=int, default=1)
 args = parser.parse_args()
@@ -86,8 +83,10 @@ value_loss = [float(elements[i * 2 + 1]) for i in range(args.search_limit + 1)]
 base_policy_loss = float(elements[-3])
 base_value_loss = float(elements[-2])
 
-for i in range(args.search_limit + 1):
-    print(x[i], policy_loss[i], value_loss[i])
+with open("valid_with_search.txt", "w") as f:
+    for i in range(args.search_limit + 1):
+        print(x[i], policy_loss[i], value_loss[i])
+        f.write(f"{x[i]},{policy_loss[i]},{value_loss[i]}\n")
 
 x = x[args.print_start:]
 policy_loss = policy_loss[args.print_start:]
