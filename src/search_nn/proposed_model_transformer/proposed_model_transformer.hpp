@@ -24,8 +24,6 @@ private:
     torch::nn::Transformer transformer_{ nullptr };
     torch::nn::Linear policy_head_{ nullptr };
     torch::nn::Linear value_head_{ nullptr };
-
-    torch::Tensor positional_encoding_;
 };
 TORCH_MODULE(ProposedModelTransformer);
 
