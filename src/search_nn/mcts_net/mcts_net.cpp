@@ -48,8 +48,10 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> MCTSNetImpl::search(std::v
     std::vector<std::tuple<torch::Tensor, torch::Tensor>> policy_and_value;
 
     //0回目
-    policy_and_value.emplace_back(readout_policy_->forward(root_embed).view({ 1, (int64_t)batch_size, POLICY_DIM }),
-                                  torch::tanh(readout_value_->forward(root_embed)));
+    if (!last_only_) {
+        policy_and_value.emplace_back(readout_policy_->forward(root_embed).view({ 1, (int64_t)batch_size, POLICY_DIM }),
+                                      torch::tanh(readout_value_->forward(root_embed)));
+    }
 
     //0回目の情報
     for (uint64_t i = 0; i < batch_size; i++) {
@@ -172,8 +174,10 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> MCTSNetImpl::search(std::v
             root_hs.push_back(hash_tables[i][hash_tables[i].root_index].embedding_vector.to(device_));
         }
         torch::Tensor root_h = torch::stack(root_hs);
-        policy_and_value.emplace_back(readout_policy_->forward(root_h).view({ 1, (int64_t)batch_size, POLICY_DIM }),
-                                      torch::tanh(readout_value_->forward(root_h)));
+        if (!last_only_ || m == search_options_.search_limit) {
+            policy_and_value.emplace_back(readout_policy_->forward(root_h).view({ 1, (int64_t)batch_size, POLICY_DIM }),
+                                          torch::tanh(readout_value_->forward(root_h)));
+        }
     }
 
     return policy_and_value;
