@@ -45,7 +45,9 @@ command_name = model_name.split("/")
 command_name = command_name[-1]
 command_name = command_name.split("_")
 command_name = command_name[0:-1]
-command_name = "".join([word.capitalize() for word in command_name])
+command_name = [word.capitalize() for word in command_name]
+command_name = [("LSTM" if word == "Lstm" else word) for word in command_name]
+command_name = "".join(command_name)
 command_name = "valid" + command_name
 
 message = command_name
