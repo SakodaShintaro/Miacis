@@ -103,11 +103,6 @@ def main():
     parser.add_argument("--temperature_x1000", type=int, default=75)
     parser.add_argument("--random_turn", type=int, default=1000)
     parser.add_argument("--exp_search", action="store_true")
-    parser.add_argument("--simple_mlp", action="store_true")
-    parser.add_argument("--simple_lstm", action="store_true")
-    parser.add_argument("--mcts_net", action="store_true")
-    parser.add_argument("--proposed_model_lstm", action="store_true")
-    parser.add_argument("--proposed_model_transformer", action="store_true")
     parser.add_argument("--method_name", type=str, default="None")
     args = parser.parse_args()
 
@@ -136,17 +131,6 @@ def main():
         miacis_manager.send_option("P_coeff_x1000", 0)
     miacis_manager.send_option("thread_num_per_gpu", 1)
     miacis_manager.send_option("random_turn", args.random_turn)
-
-    if args.simple_mlp:
-        miacis_manager.send_option("use_simple_mlp", "true")
-    elif args.simple_lstm:
-        miacis_manager.send_option("use_simple_lstm", "true")
-    elif args.mcts_net:
-        miacis_manager.send_option("use_mcts_net", "true")
-    elif args.proposed_model_lstm:
-        miacis_manager.send_option("use_proposed_model_lstm", "true")
-    elif args.proposed_model_transformer:
-        miacis_manager.send_option("use_proposed_model_transformer", "true")
 
     miacis_manager.send_option("method_name", args.method_name)
 

@@ -31,8 +31,7 @@ set(SRCS hash_table.cpp
         search_nn/state_encoder.cpp
         search_nn/simple_MLP/simple_mlp.cpp
         search_nn/base_model/base_model.cpp
-        search_nn/simple_lstm/simple_lstm.cpp
-        search_nn/loop_lstm/loop_lstm.cpp)
+        search_nn/simple_lstm/simple_lstm.cpp)
 
 #将棋用のバイナリをコンパイルするのに必要なソース
 set(SHOGI_SRCS shogi/main.cpp

@@ -47,10 +47,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["testSimpleMLP"]         = [this] { testSearchNN<SimpleMLP>(); };
     command_["learnSimpleMLP"]        = [](){ learnSearchNN<SimpleMLP>(); };
     command_["validSimpleMLP"]        = [](){ validSearchNN<SimpleMLP>(); };
-
-    command_["testLoopLSTM"]       = [this] { testSearchNN<LoopLSTM>(); };
-    command_["learnLoopLSTM"]      = [](){ learnSearchNN<LoopLSTM>(); };
-    command_["validLoopLSTM"]      = [](){ validSearchNN<LoopLSTM>(); };
     // clang-format on
 }
 
@@ -302,10 +298,6 @@ void Interface::init() {
         transformer_model_ = ProposedModelTransformer(options_);
         torch::load(transformer_model_, options_.model_name);
         transformer_model_->eval();
-    } else if (options_.method_name == "loop_lstm") {
-        loop_lstm_ = LoopLSTM(options_);
-        torch::load(loop_lstm_, options_.model_name);
-        loop_lstm_->eval();
     } else {
         searcher_ = std::make_unique<SearcherForPlay>(options_);
     }
@@ -326,7 +318,6 @@ void Interface::go() {
          : options_.method_name == "mcts_net"                   ? mcts_net_->think(root_, options_.byoyomi_margin)
          : options_.method_name == "proposed_model_lstm"        ? proposed_model_lstm_->think(root_, options_.byoyomi_margin)
          : options_.method_name == "proposed_model_transformer" ? transformer_model_->think(root_, options_.byoyomi_margin)
-         : options_.method_name == "loop_lstm"                  ? loop_lstm_->think(root_, options_.byoyomi_margin)
                                                                 : searcher_->think(root_, options_.byoyomi_margin));
     std::cout << "best_move " << best_move << std::endl;
     root_.doMove(best_move);
