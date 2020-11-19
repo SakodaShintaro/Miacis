@@ -73,9 +73,6 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelLSTMImpl::sea
             break;
         }
 
-        //現在の特徴を用いてLSTMの隠れ状態を更新
-        readout(x, true);
-
         //探索行動を決定
         torch::Tensor sim_policy_logit = base_policy_head_->forward(x).cpu();
 
@@ -90,6 +87,9 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelLSTMImpl::sea
             int64_t move_index = randomChoose(softmaxed);
             positions[i].doMove(moves[move_index]);
         }
+
+        //現在の特徴を用いてLSTMの隠れ状態を更新
+        readout(embed(positions), true);
     }
 
     for (int64_t i = 0; i < batch_size; i++) {

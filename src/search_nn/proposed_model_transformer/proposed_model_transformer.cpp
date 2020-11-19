@@ -67,7 +67,7 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> ProposedModelTransformerIm
         torch::Tensor pe = positionalEncoding(m);
 
         //現在の特徴量を追加
-        history.push_back(first_compressor_->forward(x) + pe);
+        history.push_back(first_compressor_->forward(embed(positions)) + pe);
     }
 
     for (int64_t i = 0; i < batch_size; i++) {
