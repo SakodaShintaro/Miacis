@@ -46,7 +46,9 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> SimpleLSTMImpl::search(std
 
     for (int64_t m = 0; m <= search_options_.search_limit; m++) {
         //常にルート局面の表現ベクトルを入力として推論
-        policy_and_value.push_back(readout(embed_vector));
+        if (!last_only_ || m == search_options_.search_limit) {
+            policy_and_value.push_back(readout(embed_vector));
+        }
     }
 
     return policy_and_value;
