@@ -48,10 +48,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["learnSimpleMLP"]        = [](){ learnSearchNN<SimpleMLP>(); };
     command_["validSimpleMLP"]        = [](){ validSearchNN<SimpleMLP>(); };
 
-    command_["testStackedLSTM"]       = [this] { testSearchNN<StackedLSTM>(); };
-    command_["learnStackedLSTM"]      = [](){ learnSearchNN<StackedLSTM>(); };
-    command_["validStackedLSTM"]      = [](){ validSearchNN<StackedLSTM>(); };
-
     command_["testLoopLSTM"]       = [this] { testSearchNN<LoopLSTM>(); };
     command_["learnLoopLSTM"]      = [](){ learnSearchNN<LoopLSTM>(); };
     command_["validLoopLSTM"]      = [](){ validSearchNN<LoopLSTM>(); };
@@ -306,10 +302,6 @@ void Interface::init() {
         transformer_model_ = ProposedModelTransformer(options_);
         torch::load(transformer_model_, options_.model_name);
         transformer_model_->eval();
-    } else if (options_.method_name == "stacked_lstm") {
-        stacked_lstm_ = StackedLSTM(options_);
-        torch::load(stacked_lstm_, options_.model_name);
-        stacked_lstm_->eval();
     } else if (options_.method_name == "loop_lstm") {
         loop_lstm_ = LoopLSTM(options_);
         torch::load(loop_lstm_, options_.model_name);
@@ -334,7 +326,6 @@ void Interface::go() {
          : options_.method_name == "mcts_net"                   ? mcts_net_->think(root_, options_.byoyomi_margin)
          : options_.method_name == "proposed_model_lstm"        ? proposed_model_lstm_->think(root_, options_.byoyomi_margin)
          : options_.method_name == "proposed_model_transformer" ? transformer_model_->think(root_, options_.byoyomi_margin)
-         : options_.method_name == "stacked_lstm"               ? stacked_lstm_->think(root_, options_.byoyomi_margin)
          : options_.method_name == "loop_lstm"                  ? loop_lstm_->think(root_, options_.byoyomi_margin)
                                                                 : searcher_->think(root_, options_.byoyomi_margin));
     std::cout << "best_move " << best_move << std::endl;
@@ -452,7 +443,6 @@ void Interface::battleSelf() {
     std::vector<MCTSNet> mcts_net(2);
     std::vector<ProposedModelLSTM> proposed_model_lstm(2);
     std::vector<ProposedModelTransformer> proposed_model_transformer(2);
-    std::vector<StackedLSTM> stacked_lstm(2);
 
     for (int64_t i = 0; i < 2; i++) {
         std::cout << "player" << i << std::endl;
@@ -483,10 +473,6 @@ void Interface::battleSelf() {
             proposed_model_transformer[i] = ProposedModelTransformer(option[i]);
             torch::load(proposed_model_transformer[i], option[i].model_name);
             proposed_model_transformer[i]->eval();
-        } else if (method_name[i] == "stacked_lstm") {
-            stacked_lstm[i] = StackedLSTM(option[i]);
-            torch::load(stacked_lstm[i], option[i].model_name);
-            stacked_lstm[i]->eval();
         }
     }
 
@@ -507,7 +493,6 @@ void Interface::battleSelf() {
                               : method_name[player] == "proposed_model_lstm" ? proposed_model_lstm[player]->think(pos, time_limit)
                               : method_name[player] == "proposed_model_transformer"
                                   ? proposed_model_transformer[player]->think(pos, time_limit)
-                              : method_name[player] == "stacked_lstm" ? stacked_lstm[player]->think(pos, time_limit)
                                                                       : NULL_MOVE);
             pos.doMove(best_move);
         }

@@ -58,10 +58,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["testSimpleMLP"]         = [this] { testSearchNN<SimpleMLP>(); };
     command_["learnSimpleMLP"]        = [](){ learnSearchNN<SimpleMLP>(); };
     command_["validSimpleMLP"]        = [](){ validSearchNN<SimpleMLP>(); };
-
-    command_["testStackedLSTM"]       = [this] { testSearchNN<StackedLSTM>(); };
-    command_["learnStackedLSTM"]      = [](){ learnSearchNN<StackedLSTM>(); };
-    command_["validStackedLSTM"]      = [](){ validSearchNN<StackedLSTM>(); };
     // clang-format on
 }
 

@@ -61,7 +61,6 @@ private:
     MCTSNet mcts_net_{ nullptr };
     ProposedModelLSTM proposed_model_lstm_{ nullptr };
     ProposedModelTransformer transformer_model_{ nullptr };
-    StackedLSTM stacked_lstm_{ nullptr };
     LoopLSTM loop_lstm_{ nullptr };
     std::thread thread_;
     SearchOptions options_;
