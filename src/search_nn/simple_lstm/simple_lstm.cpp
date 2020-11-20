@@ -3,7 +3,7 @@
 
 //ネットワークの設定
 static constexpr int32_t LSTM_HIDDEN_SIZE = 512;
-static constexpr int32_t NUM_LAYERS = 2;
+static constexpr int32_t NUM_LAYERS = 1;
 
 SimpleLSTMImpl::SimpleLSTMImpl(const SearchOptions& search_options) : BaseModel(search_options) {
     using namespace torch::nn;
@@ -48,6 +48,8 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> SimpleLSTMImpl::search(std
         //常にルート局面の表現ベクトルを入力として推論
         if (!last_only_ || m == search_options_.search_limit) {
             policy_and_value.push_back(readout(embed_vector));
+        } else {
+            readout(embed_vector);
         }
     }
 
