@@ -18,7 +18,6 @@ def transform(arr):
 suffix = "_train_log.txt"
 files = glob.glob("*" + suffix)
 prefix = files[0].replace(suffix, "")
-loss_num = (1 if prefix == "simple_mlp" else 11)
 
 # まずデータを取得しつつ各損失単体をプロット
 for pol_or_val in ["policy", "value"]:
@@ -35,12 +34,12 @@ for pol_or_val in ["policy", "value"]:
         # plt.plot(step, loss, color=color, label=f"{i}回探索後" if loss_name == "valid" else (
         #     f"{loss_num - 1}回探索後の損失" if i == 0 else f"{i}回目探索の寄与と確率の積"),
         #          linestyle=("dashed" if i == 0 else "solid"))
-        plt.plot(step, loss, label="Transformer(入力長=10)")
+        plt.plot(step, loss, label=f"{prefix}(入力長=12)")
 
         base_loss = df[f"base_{pol_or_val}"].to_numpy()
         if train_or_valid == "train":
             base_loss = transform(base_loss)
-        plt.plot(step, base_loss, label="探索なし")
+        plt.plot(step, base_loss, label="Policyネットワーク")
 
         # plt.text(step[-1], loss[-1], f"{i + 1}回探索後", color=color)
         plt.legend()
