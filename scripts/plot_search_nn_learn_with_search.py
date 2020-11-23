@@ -12,7 +12,7 @@ import subprocess
 
 # 引数の設定
 parser = argparse.ArgumentParser()
-parser.add_argument("--search_limit", type=int, default=20)
+parser.add_argument("--search_limit", type=int, default=24)
 parser.add_argument("--rate_threshold", type=int, default=2290)
 parser.add_argument("--print_start", type=int, default=1)
 args = parser.parse_args()
