@@ -47,6 +47,7 @@ command_name = command_name.split("_")
 command_name = command_name[0:-1]
 command_name = [word.capitalize() for word in command_name]
 command_name = [("LSTM" if word == "Lstm" else word) for word in command_name]
+command_name = [("MCTS" if word == "Mcts" else word) for word in command_name]
 command_name = "".join(command_name)
 command_name = "valid" + command_name
 
@@ -86,6 +87,7 @@ base_policy_loss = float(elements[-3])
 base_value_loss = float(elements[-2])
 
 with open("valid_with_search.txt", "w") as f:
+    print("探索回数,policy_loss,value_loss")
     for i in range(args.search_limit + 1):
         print(x[i], policy_loss[i], value_loss[i])
         f.write(f"{x[i]},{policy_loss[i]},{value_loss[i]}\n")

@@ -5,6 +5,7 @@ import japanize_matplotlib
 import argparse
 import pandas as pd
 import os
+import glob
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-dirs", type=(lambda x: x.split()))
@@ -26,71 +27,47 @@ def transform(arr):
 
 data_dict = dict()
 
-# まずデータを取得しつつ各損失単体をプロット
+suffixes = ["_train_log.txt", "_valid_log.txt"]
+# suffixes = ["_train_log.txt", "_valid_log.txt", "valid_with_search.txt"]
+
+# まずデータを取得
 for dir, label in zip(args.dirs, args.labels):
     data_dict[label] = dict()
-    for loss_name in ["train", "valid"]:
-        df = None
-        for prefix in ["mcts_net", "proposed_model_lstm", "stacked_lstm"]:
-            path = f"{dir}/{prefix}_{loss_name}_log.txt"
-            print(path)
-            if os.path.exists(path):
-                df = pd.read_csv(path, delimiter="\t")
-                break
-
-        data_dict[label][loss_name] = df
-
-        step = df["step"].to_numpy()
-        if loss_name == "train":
-            step = transform(step)
-
-        for i in range(loss_num):
-            loss = df[f"loss_{i}"].to_numpy()
-            if loss_name == "train":
-                loss = transform(loss)
-            color = [0.0, 0.5, i / loss_num]
-            # plt.plot(step, loss, color=color, label=f"{i}回探索後" if loss_name == "valid" else (
-            #     f"{loss_num - 1}回探索後の損失" if i == 0 else f"{i}回目探索の寄与と確率の積"),
-            #          linestyle=("dashed" if i == 0 else "solid"))
-            plt.plot(step, loss, color=color, label=f"{i}回探索後",
-                     linestyle=("dashed" if i == 0 else "solid"))
-            # plt.text(step[-1], loss[-1], f"{i + 1}回探索後", color=color)
-        plt.legend()
-        # plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.15))
-        plt.xlabel("学習ステップ数")
-        plt.ylabel("Policy損失")
-        plt.savefig(f"{label}_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
-        plt.clf()
+    for suffix in suffixes:
+        files = glob.glob(f"{dir}/*{suffix}")
+        path = files[0]
+        print(path)
+        if os.path.exists(path):
+            df = pd.read_csv(path, delimiter="\t")
+            data_dict[label][suffix] = df
 
 # 全体をまとめてプロット
-for loss_name in ["train", "valid"]:
+for suffix in suffixes:
     for i, label in enumerate(args.labels):
-        df = data_dict[label][loss_name]
+        df = data_dict[label][suffix]
         step = df["step"].to_numpy()
-        if loss_name == "train":
+        # time = df["time"].to_numpy()
+        # time = [time_str2time_int(v) for v in time]
+        loss = df[f"last_policy_loss"].to_numpy()
+
+        if suffix == suffixes[0]:
             step = transform(step)
-        last_index = loss_num - 1
-        loss = df[f"loss_{last_index}"].to_numpy()
-        if loss_name == "train":
             loss = transform(loss)
+
         plt.plot(step, loss)
-        plt.text(step[-1], loss[-1], f"{label}({last_index}回探索)", color=plt.get_cmap("tab10")(i))
-    plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.5))
+        plt.text(step[-1], loss[-1], f"{label}", color=plt.get_cmap("tab10")(i))
+
+    # base_policyを取得
+    base_policy_loss = data_dict[args.labels[0]][suffix]
+    step = df["step"].to_numpy()
+    loss = df["base_policy"].to_numpy()
+    plt.plot(step, loss, linestyle="dashed")
+    plt.text(step[-1], loss[-1], f"Policyネットワーク", color=plt.get_cmap("tab10")(len(args.labels)))
+
+    plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.4))
     plt.xlabel("学習ステップ数")
     plt.ylabel("Policy損失")
-    plt.savefig(f"all_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
-    plt.clf()
-
-    # 最終損失だけをプロット
-    for i, label in enumerate(args.labels):
-        df = data_dict[label][loss_name]
-        x = [i for i in range(loss_num)]
-        y = [df[f"loss_{i}"].to_numpy()[-1] for i in range(loss_num)]
-        plt.plot(x, y, marker=".", label=label)
-    plt.xlabel("探索回数")
-    plt.ylabel("Policy損失")
-    plt.legend()
-    plt.savefig(f"{loss_name}_final.png", bbox_inches="tight", pad_inches=0.05)
+    plt.savefig(f"all_policy.png", bbox_inches="tight", pad_inches=0.05)
     plt.clf()
 
 
@@ -99,22 +76,31 @@ def time_str2time_int(time_str):
     return int(h) + int(m) / 60 + int(s) / 3600
 
 
-for loss_name in ["train", "valid"]:
-    for i, label in enumerate(args.labels):
-        df = data_dict[label][loss_name]
-        time = df["time"].to_numpy()
-        time = [time_str2time_int(v) for v in time]
-        if loss_name == "train":
-            time = transform(time)
-        last_index = loss_num - 1
-        loss = df[f"loss_{last_index}"].to_numpy()
-        if loss_name == "train":
-            loss = transform(loss)
-        plt.plot(time, loss, label=f"{label}({last_index}回探索)")
-        # plt.text(time[-1], loss[-1], f"{prefix}({last_index + 1}回探索)", color=plt.get_cmap("tab10")(i))
-    # plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.5))
-    plt.legend()
-    plt.xlabel("学習時間(h)")
-    plt.ylabel("Policy損失")
-    plt.savefig(f"all_time_{loss_name}.png", bbox_inches="tight", pad_inches=0.05)
-    plt.clf()
+# 探索結果の方を描画
+# まずデータを取得
+for dir, label in zip(args.dirs, args.labels):
+    files = glob.glob(f"{dir}/valid_with_search.txt")
+
+    if len(files) == 0:
+        continue
+
+    path = files[0]
+    df = pd.read_csv(path, delimiter=",")
+
+    step = df["探索回数"].to_numpy()
+    loss = df[f"policy_loss"].to_numpy()
+
+    step = step[1:]
+    loss = loss[1:]
+
+    plt.plot(step, loss, label=label, marker=".")
+
+    if label == args.labels[-1]:
+        loss = base_policy_loss["base_policy"].to_numpy()
+        plt.plot(step, [loss[0] for _ in range(len(step))], label="Policyネットワーク", linestyle="dashed")
+
+plt.legend()
+plt.xlabel("探索回数")
+plt.ylabel("Policy損失")
+plt.ylim((0.625, 0.925))
+plt.savefig(f"all_policy_with_search.png", bbox_inches="tight", pad_inches=0.05)
