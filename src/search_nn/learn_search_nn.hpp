@@ -217,6 +217,9 @@ template<class T> void validSearchNN() {
     model->eval();
     torch::NoGradGuard no_grad_guard;
 
+    //開始時間の設定
+    auto start_time = std::chrono::steady_clock::now();
+
     //validation_lossを計算
     std::vector<float> valid_loss_sum(2 * (options.search_limit + 1) + 3, 0);
     for (uint64_t i = 0; i < valid_data.size();) {
@@ -233,6 +236,14 @@ template<class T> void validSearchNN() {
     for (float& v : valid_loss_sum) {
         v /= valid_data.size();
     }
+
+    std::ofstream validation_time("validation_time.txt");
+    auto elapsed = std::chrono::steady_clock::now() - start_time;
+    int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+    validation_time << "seconds = " << seconds << std::endl;
+    validation_time << "valid_data_size = " << valid_data.size() << std::endl;
+    validation_time << "speed = " << (double)valid_data.size() / seconds << std::endl;
+    validation_time.close();
 
     //表示
     std::cout << std::endl;

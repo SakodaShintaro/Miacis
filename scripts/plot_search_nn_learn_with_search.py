@@ -105,3 +105,5 @@ plt.xlabel("入力系列長")
 plt.ylabel("Policy損失")
 plt.legend()
 plt.savefig("search_num-policy_loss.png", bbox_inches="tight", pad_inches=0.05)
+
+subprocess.call(f"mv {script_dir}/../src/cmake-build-release/validation_time.txt .", shell=True)
