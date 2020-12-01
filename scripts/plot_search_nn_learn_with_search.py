@@ -88,6 +88,7 @@ base_value_loss = float(elements[-2])
 
 with open("valid_with_search.txt", "w") as f:
     print("探索回数,policy_loss,value_loss")
+    f.write("探索回数,policy_loss,value_loss\n")
     for i in range(args.search_limit + 1):
         print(x[i], policy_loss[i], value_loss[i])
         f.write(f"{x[i]},{policy_loss[i]},{value_loss[i]}\n")
