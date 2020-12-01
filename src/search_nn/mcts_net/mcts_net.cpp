@@ -41,15 +41,31 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> MCTSNetImpl::search(std::v
                                       torch::tanh(readout_value_->forward(root_embed)));
     }
 
-    //埋め込みを置換表に保存
-    for (uint64_t i = 0; i < batch_size; i++) {
-        hash_tables[i].root_index = hash_tables[i].findSameHashIndex(positions[i]);
-        if (hash_tables[i].root_index == (Index)hash_tables[i].size()) {
-            hash_tables[i].root_index = hash_tables[i].searchEmptyIndex(positions[i]);
-        }
+    auto save = [&](const torch::Tensor& embed_vector, bool root) {
+        torch::Tensor policy_logit = base_policy_head_->forward(embed_vector).cpu();
 
-        hash_tables[i][hash_tables[i].root_index].embedding_vector = root_embed[i];
-    }
+        //埋め込みを置換表に保存
+        for (uint64_t i = 0; i < batch_size; i++) {
+            HashTableForMCTSNet& table = hash_tables[i];
+            Index index = table.searchEmptyIndex(positions[i]);
+            if (root) {
+                table.root_index = index;
+            }
+
+            HashEntryForMCTSNet& entry = table[index];
+
+            entry.embedding_vector = embed_vector[i];
+            entry.moves = positions[i].generateAllMoves();
+            entry.nn_policy.resize(entry.moves.size());
+            for (uint64_t j = 0; j < entry.moves.size(); j++) {
+                entry.nn_policy[j] = policy_logit[i][entry.moves[j].toLabel()].item<float>();
+            }
+            entry.nn_policy = softmax(entry.nn_policy);
+        }
+    };
+
+    //埋め込みを置換表に保存
+    save(root_embed, true);
 
     //探索の履歴
     std::vector<std::stack<Index>> indices(batch_size);
@@ -57,71 +73,21 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> MCTSNetImpl::search(std::v
     //規定回数探索
     for (int64_t m = 1; m <= M; m++) {
         //(1)select
-        while (true) {
-            //今回の評価要求
-            std::vector<torch::Tensor> embedding_vectors;
-            std::vector<uint64_t> ids;
-
-            //評価要求を貯める
-            for (uint64_t i = 0; i < batch_size; i++) {
-                //各局面でselectをしていく
-                Position& pos = positions[i];
-
-                Index index = hash_tables[i].findSameHashIndex(pos);
-                float score{};
-                if (index == (Index)hash_tables[i].size() || pos.isFinish(score)) {
-                    //リーフノードまで達しているのでスキップ
-                    continue;
-                }
-
+        //各局面で置換表に登録されていない状態まで降りる
+        for (uint64_t i = 0; i < batch_size; i++) {
+            Index index = hash_tables[i].findSameHashIndex(positions[i]);
+            while (index != hash_tables[i].size()) {
+                HashEntryForMCTSNet& curr_entry = hash_tables[i][index];
                 indices[i].push(index);
-
-                const HashEntryForMCTSNet& entry = hash_tables[i][index];
-                torch::Tensor h = entry.embedding_vector.to(device_);
-
-                //評価要求に貯める
-                embedding_vectors.push_back(h);
-                ids.push_back(i);
-            }
-
-            //全ての局面がリーフノードに達していたら終わり
-            if (embedding_vectors.empty()) {
-                break;
-            }
-
-            //GPUで計算
-            torch::Tensor h = torch::stack(embedding_vectors);
-            torch::Tensor policy_logit = base_policy_head_->forward(h);
-
-            //計算結果を反映
-            for (uint64_t j = 0; j < ids.size(); j++) {
-                uint64_t i = ids[j];
-
-                //合法手だけマスクをかける
-                std::vector<Move> moves = positions[i].generateAllMoves();
-                std::vector<float> logits;
-                for (const Move& move : moves) {
-                    logits.push_back(policy_logit[j][move.toLabel()].item<float>());
-                }
-                std::vector<float> masked_policy = softmax(logits, 1.0f);
-                int32_t move_id = randomChoose(masked_policy);
-                positions[i].doMove(moves[move_id]);
+                int32_t move_id = randomChoose(curr_entry.nn_policy);
+                positions[i].doMove(curr_entry.moves[move_id]);
+                index = hash_tables[i].findSameHashIndex(positions[i]);
             }
         }
 
         //(2)評価
-        std::vector<float> features;
-        for (uint64_t i = 0; i < batch_size; i++) {
-            std::vector<float> f = positions[i].makeFeature();
-            features.insert(features.end(), f.begin(), f.end());
-        }
-        torch::Tensor h = encoder_->embed(features, device_, fp16_, freeze_encoder_);
-        for (uint64_t i = 0; i < batch_size; i++) {
-            std::vector<float> f = positions[i].makeFeature();
-            features.insert(features.end(), f.begin(), f.end());
-            Index index = hash_tables[i].searchEmptyIndex(positions[i]);
-            hash_tables[i][index].embedding_vector = h[i].cpu();
-        }
+        torch::Tensor h = embed(positions)[0];
+        save(h, false);
 
         std::vector<Index> next_indices(batch_size, -1);
 

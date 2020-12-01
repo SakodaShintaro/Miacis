@@ -56,18 +56,6 @@ void Position::print() const {
 }
 
 void Position::doMove(const Move move) {
-#if DEBUG
-    if (!isLegalMove(move)) {
-        printForDebug();
-        std::cout << "違法だった手:";
-        move.print();
-        isLegalMove(move);
-        undo();
-        printAllMoves();
-        assert(false);
-    }
-#endif
-
     //現在の状態を残しておく
     //盤面
     board_history_.emplace_back(board_);

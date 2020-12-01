@@ -11,6 +11,12 @@ struct HashEntryForMCTSNet {
     //埋め込みベクトル
     torch::Tensor embedding_vector;
 
+    //合法手
+    std::vector<Move> moves;
+
+    //base_policyの出力方策に合法手でマスクしたもの
+    std::vector<float> nn_policy;
+
     //局面に対応するハッシュ値
     int64_t hash;
 
