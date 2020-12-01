@@ -29,20 +29,8 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> MCTSNetImpl::search(std::v
     //置換表を準備
     std::vector<HashTableForMCTSNet> hash_tables(batch_size, HashTableForMCTSNet(M * 10));
 
-    //盤面を復元
-    std::vector<float> root_features;
-    for (uint64_t i = 0; i < batch_size; i++) {
-        hash_tables[i].root_index = hash_tables[i].findSameHashIndex(positions[i]);
-        if (hash_tables[i].root_index == (Index)hash_tables[i].size()) {
-            hash_tables[i].root_index = hash_tables[i].searchEmptyIndex(positions[i]);
-        }
-
-        std::vector<float> f = positions[i].makeFeature();
-        root_features.insert(root_features.end(), f.begin(), f.end());
-    }
-
-    //GPUで計算
-    torch::Tensor root_embed = encoder_->embed(root_features, device_, fp16_, freeze_encoder_);
+    //GPUで最初の埋め込みを計算
+    torch::Tensor root_embed = embed(positions)[0];
 
     //各探索後のpolicy_logits
     std::vector<std::tuple<torch::Tensor, torch::Tensor>> policy_and_value;
@@ -53,8 +41,13 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> MCTSNetImpl::search(std::v
                                       torch::tanh(readout_value_->forward(root_embed)));
     }
 
-    //0回目の情報
+    //埋め込みを置換表に保存
     for (uint64_t i = 0; i < batch_size; i++) {
+        hash_tables[i].root_index = hash_tables[i].findSameHashIndex(positions[i]);
+        if (hash_tables[i].root_index == (Index)hash_tables[i].size()) {
+            hash_tables[i].root_index = hash_tables[i].searchEmptyIndex(positions[i]);
+        }
+
         hash_tables[i][hash_tables[i].root_index].embedding_vector = root_embed[i];
     }
 
