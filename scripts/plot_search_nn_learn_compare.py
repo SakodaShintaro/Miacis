@@ -28,9 +28,13 @@ def transform(arr):
 data_dict = dict()
 
 suffixes = ["_train_log.txt", "_valid_log.txt"]
-# suffixes = ["_train_log.txt", "_valid_log.txt", "valid_with_search.txt"]
 
-# まずデータを取得
+
+def time_str2time_int(time_str):
+    h, m, s = time_str.split(':')
+    return int(h) + int(m) / 60 + int(s) / 3600
+
+
 for dir, label in zip(args.dirs, args.labels):
     data_dict[label] = dict()
     for suffix in suffixes:
@@ -46,8 +50,8 @@ for suffix in suffixes:
     for i, label in enumerate(args.labels):
         df = data_dict[label][suffix]
         step = df["step"].to_numpy()
-        # time = df["time"].to_numpy()
-        # time = [time_str2time_int(v) for v in time]
+        # step = df["time"].to_numpy()
+        # step = [time_str2time_int(v) for v in step]
         loss = df[f"last_policy_loss"].to_numpy()
 
         if suffix == suffixes[0]:
@@ -60,6 +64,7 @@ for suffix in suffixes:
     # base_policyを取得
     base_policy_loss = data_dict[args.labels[0]][suffix]
     step = df["step"].to_numpy()
+    # step = df["time"].to_numpy()
     loss = df["base_policy"].to_numpy()
     plt.plot(step, loss, linestyle="dashed")
     plt.text(step[-1], loss[-1], f"Policyネットワーク", color=plt.get_cmap("tab10")(len(args.labels)))
@@ -69,11 +74,6 @@ for suffix in suffixes:
     plt.ylabel("Policy損失")
     plt.savefig(f"all_policy.png", bbox_inches="tight", pad_inches=0.05)
     plt.clf()
-
-
-def time_str2time_int(time_str):
-    h, m, s = time_str.split(':')
-    return int(h) + int(m) / 60 + int(s) / 3600
 
 
 # 探索結果の方を描画
@@ -102,5 +102,5 @@ for dir, label in zip(args.dirs, args.labels):
 plt.legend()
 plt.xlabel("探索回数")
 plt.ylabel("Policy損失")
-plt.ylim((0.625, 0.925))
+plt.ylim((0.6, 0.925))
 plt.savefig(f"all_policy_with_search.png", bbox_inches="tight", pad_inches=0.05)
