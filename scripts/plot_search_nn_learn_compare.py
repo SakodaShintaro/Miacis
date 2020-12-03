@@ -7,6 +7,9 @@ import pandas as pd
 import os
 import glob
 
+# markers = [".", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p", "*", "h", "H", "+", "x", "D"]
+markers = ["None", ".", "v", "s", "x"]
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-dirs", type=(lambda x: x.split()))
 parser.add_argument("--labels", type=(lambda x: x.split()), default=None)
@@ -47,6 +50,15 @@ for dir, label in zip(args.dirs, args.labels):
 
 # 全体をまとめてプロット
 for suffix in suffixes:
+    # base_policyを取得
+    base_policy_loss = data_dict[args.labels[0]][suffix]
+    df = data_dict[args.labels[0]][suffix]
+    step = df["step"].to_numpy()
+    # step = df["time"].to_numpy()
+    loss = df["base_policy"].to_numpy()
+    plt.plot(step, loss, linestyle="dashed", label="Policyネットワーク")
+    # plt.text(step[-1], loss[-1], f"Policyネットワーク", color=plt.get_cmap("tab10")(len(args.labels)))
+
     for i, label in enumerate(args.labels):
         df = data_dict[label][suffix]
         step = df["step"].to_numpy()
@@ -58,18 +70,11 @@ for suffix in suffixes:
             step = transform(step)
             loss = transform(loss)
 
-        plt.plot(step, loss)
-        plt.text(step[-1], loss[-1], f"{label}", color=plt.get_cmap("tab10")(i))
+        plt.plot(step, loss, label=f"{label}", marker=markers[i + 1])
+        # plt.text(step[-1], loss[-1], f"{label}", color=plt.get_cmap("tab10")(i))
 
-    # base_policyを取得
-    base_policy_loss = data_dict[args.labels[0]][suffix]
-    step = df["step"].to_numpy()
-    # step = df["time"].to_numpy()
-    loss = df["base_policy"].to_numpy()
-    plt.plot(step, loss, linestyle="dashed")
-    plt.text(step[-1], loss[-1], f"Policyネットワーク", color=plt.get_cmap("tab10")(len(args.labels)))
-
-    plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.4))
+    plt.legend()
+    # plt.xlim((plt.xlim()[0], plt.xlim()[1] * 1.4))
     plt.xlabel("学習ステップ数")
     plt.ylabel("Policy損失")
     plt.savefig(f"all_policy.png", bbox_inches="tight", pad_inches=0.05)
@@ -78,6 +83,7 @@ for suffix in suffixes:
 
 # 探索結果の方を描画
 # まずデータを取得
+i = 0
 for dir, label in zip(args.dirs, args.labels):
     files = glob.glob(f"{dir}/valid_with_search.txt")
 
@@ -93,11 +99,13 @@ for dir, label in zip(args.dirs, args.labels):
     step = step[1:]
     loss = loss[1:]
 
-    plt.plot(step, loss, label=label, marker=".")
+    if label == args.labels[0]:
+        base_loss = base_policy_loss["base_policy"].to_numpy()
+        plt.plot(step, [base_loss[0] for _ in range(len(step))], label="Policyネットワーク", linestyle="dashed",
+                 color=plt.get_cmap("tab10")(0))
 
-    if label == args.labels[-1]:
-        loss = base_policy_loss["base_policy"].to_numpy()
-        plt.plot(step, [loss[0] for _ in range(len(step))], label="Policyネットワーク", linestyle="dashed")
+    i += 1
+    plt.plot(step, loss, label=label, marker=markers[i], color=plt.get_cmap("tab10")(i))
 
 plt.legend()
 plt.xlabel("探索回数")
