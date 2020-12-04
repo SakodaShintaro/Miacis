@@ -13,6 +13,8 @@ markers = ["None", ".", "v", "s", "x"]
 parser = argparse.ArgumentParser()
 parser.add_argument("-dirs", type=(lambda x: x.split()))
 parser.add_argument("--labels", type=(lambda x: x.split()), default=None)
+parser.add_argument("--max_length", type=int, default=24)
+parser.add_argument("--fix", action="store_true")
 args = parser.parse_args()
 if args.labels is None:
     args.labels = [""]
@@ -100,8 +102,9 @@ for dir, label in zip(args.dirs, args.labels):
     loss = loss[1:]
 
     if label == args.labels[0]:
+        x = [i for i in range(1, args.max_length + 1)]
         base_loss = base_policy_loss["base_policy"].to_numpy()
-        plt.plot(step, [base_loss[0] for _ in range(len(step))], label="Policyネットワーク", linestyle="dashed",
+        plt.plot(x, [base_loss[0] for _ in range(args.max_length)], label="Policyネットワーク", linestyle="dashed",
                  color=plt.get_cmap("tab10")(0))
 
     i += 1
@@ -110,5 +113,6 @@ for dir, label in zip(args.dirs, args.labels):
 plt.legend()
 plt.xlabel("探索回数")
 plt.ylabel("Policy損失")
-plt.ylim((0.6, 0.925))
+if args.fix:
+    plt.ylim((0.6, 0.925))
 plt.savefig(f"all_policy_with_search.png", bbox_inches="tight", pad_inches=0.05)
