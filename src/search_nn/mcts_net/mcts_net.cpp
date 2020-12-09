@@ -36,7 +36,7 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> MCTSNetImpl::search(std::v
     std::vector<std::tuple<torch::Tensor, torch::Tensor>> policy_and_value;
 
     //0回目
-    if (!last_only_) {
+    if (!last_only_ || search_options_.search_limit == 0) {
         policy_and_value.emplace_back(readout_policy_->forward(root_embed).view({ 1, (int64_t)batch_size, POLICY_DIM }),
                                       torch::tanh(readout_value_->forward(root_embed)));
     }
