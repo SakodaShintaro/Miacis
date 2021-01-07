@@ -57,6 +57,7 @@ private:
     Position root_;
     std::unique_ptr<SearcherForPlay> searcher_;
     SimpleMLP simple_mlp_{ nullptr };
+    SimpleMLPWithMCTS simple_mlp_with_mcts_{ nullptr };
     SimpleLSTM simple_lstm_{ nullptr };
     MCTSNet mcts_net_{ nullptr };
     ProposedModelLSTM proposed_model_lstm_{ nullptr };
