@@ -86,22 +86,25 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
     //各入力が対応する置換表の適切なエントリーに計算結果を書き込んでいく
     for (uint64_t i = 0; i < gpu_queues_[thread_id].hash_tables.size(); i++) {
         //何番目のworkerが持つハッシュテーブルのどの位置に書き込むかを取得
-        HashEntry& curr_node = gpu_queues_[thread_id].hash_tables[i].get()[gpu_queues_[thread_id].indices[i]];
+        HashTable& curr_table = gpu_queues_[thread_id].hash_tables[i].get();
+        Index curr_index = gpu_queues_[thread_id].indices[i];
+        HashEntry& curr_node = curr_table[curr_index];
 
         //policyを設定
         //合法手だけ取ってからsoftmax関数にかける
-        std::vector<float> legal_moves_policy(curr_node.moves.size());
+        curr_node.nn_policy.resize(curr_node.moves.size());
         for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-            legal_moves_policy[j] = policies[i][curr_node.moves[j].toLabel()];
-            assert(!std::isnan(legal_moves_policy[j]));
+            curr_node.nn_policy[j] = policies[i][curr_node.moves[j].toLabel()];
         }
-        curr_node.nn_policy = softmax(legal_moves_policy);
+        curr_node.nn_policy = softmax(curr_node.nn_policy);
 
-        //policyにディリクレノイズを付与
-        std::vector<float> noise = (noise_mode_ == DIRICHLET ? dirichletDistribution(curr_node.moves.size(), noise_alpha_)
-                                                             : onehotNoise(curr_node.moves.size()));
-        for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
-            curr_node.nn_policy[j] = (float)((1.0 - noise_epsilon_) * curr_node.nn_policy[j] + noise_epsilon_ * noise[j]);
+        //今回の位置がroot_indexだった場合のみpolicyにノイズを付与
+        if (curr_index == curr_table.root_index) {
+            std::vector<float> noise = (noise_mode_ == DIRICHLET ? dirichletDistribution(curr_node.moves.size(), noise_alpha_)
+                                                                 : onehotNoise(curr_node.moves.size()));
+            for (uint64_t j = 0; j < curr_node.moves.size(); j++) {
+                curr_node.nn_policy[j] = (float)((1.0 - noise_epsilon_) * curr_node.nn_policy[j] + noise_epsilon_ * noise[j]);
+            }
         }
 
         //valueを設定
