@@ -10,6 +10,9 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> SimpleMLPWithMCTSImpl::sea
         std::exit(1);
     }
 
+    std::ofstream ofs("positions.txt", std::ios::app);
+    ofs << positions[0].toStr() << std::endl;
+
     HashTable hash_table(search_options_.search_limit * 2);
 
     GPUQueue gpu_queue;
@@ -63,24 +66,29 @@ std::vector<std::tuple<torch::Tensor, torch::Tensor>> SimpleMLPWithMCTSImpl::sea
     eval();
     torch::NoGradGuard no_grad_guard;
 
-    for (int64_t _ = 0; _ < search_options_.search_limit; _++) {
-        //選択
-        searcher.select(positions[0]);
+    HashEntry& root_node = hash_table[hash_table.root_index];
 
-        //展開
-        gpu_func();
+    if (root_node.moves.size() == 1) {
+        root_node.N[0] = search_options_.search_limit;
+    } else {
+        for (int64_t _ = 0; _ < search_options_.search_limit; _++) {
+            //選択
+            searcher.select(positions[0]);
 
-        //バックアップ
-        searcher.backupAll();
+            //展開
+            gpu_func();
+
+            //バックアップ
+            searcher.backupAll();
+        }
     }
 
     std::vector<std::tuple<torch::Tensor, torch::Tensor>> result;
     torch::Tensor policy = torch::zeros({ 1, 1, POLICY_DIM });
     torch::Tensor value;
-    HashEntry& curr_node = hash_table[hash_table.root_index];
 
-    for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
-        policy[0][0][curr_node.moves[i].toLabel()] = curr_node.N[i];
+    for (uint64_t i = 0; i < root_node.moves.size(); i++) {
+        policy[0][0][root_node.moves[i].toLabel()] = root_node.N[i];
     }
 
     result.emplace_back(policy, value);
