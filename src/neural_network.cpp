@@ -23,8 +23,10 @@ const std::string NeuralNetworkImpl::DEFAULT_MODEL_NAME = NeuralNetworkImpl::MOD
 NeuralNetworkImpl::NeuralNetworkImpl() : device_(torch::kCUDA), fp16_(false) {
     using namespace torch::nn;
     first_encoding_ = register_module("first_encoding_", Linear(INPUT_CHANNEL_NUM, CHANNEL_NUM));
-    TransformerEncoderLayer encoder_layer(TransformerEncoderLayerOptions(CHANNEL_NUM, 8).dropout(0.1));
-    encoder_ = register_module("encoder_", TransformerEncoder(encoder_layer, LAYER_NUM));
+    TransformerEncoderLayerOptions encoder_layer_options(CHANNEL_NUM, 8);
+    encoder_layer_options.dropout(0.1);
+    TransformerEncoderOptions encoder_options(encoder_layer_options, LAYER_NUM);
+    encoder_ = register_module("encoder_", TransformerEncoder(encoder_options));
 
     policy_head_ = register_module("policy_head_", Linear(SQUARE_NUM * CHANNEL_NUM, POLICY_DIM));
     value_linear0_ = register_module("value_linear0_", Linear(SQUARE_NUM * CHANNEL_NUM, VALUE_HIDDEN_NUM));
