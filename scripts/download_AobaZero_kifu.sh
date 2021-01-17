@@ -4,7 +4,8 @@
 root_dir=$(dirname "$0")/../../data/aobazero_kifu
 mkdir -p "${root_dir}/train"
 
-THRESHOLD=000020000000
+START_FILE_ID=000011500000
+END_FILE_ID=000014300001
 
 while read row; do
   file_name=$(echo ${row} | cut -d , -f 1)
@@ -26,7 +27,7 @@ while read row; do
 
   # THRESHOLDより大きいものだけをダウンロード
   # 2重にダウンロードしないように存在判定を入れる
-  if [ "${file_number}" -ge ${THRESHOLD} ] && [ ! -f "${root_dir}/${file_name}" ]; then
+  if [ "${file_number}" -ge ${START_FILE_ID} ] && [ "${file_number}" -lt ${START_FILE_ID} ] && [ ! -f "${root_dir}/${file_name}" ]; then
     # ダウンロード
     curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${file_id}" >/dev/null
     CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
