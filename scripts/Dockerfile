@@ -13,6 +13,7 @@ RUN set -x && \
     sudo apt-get install p7zip-full -y && \
     sudo apt-get install wget -y && \
     sudo apt-get install curl -y && \
+    sudo apt-get install zip -y && \
     sudo apt-get install unzip -y && \
     pip3 install natsort && \
     : "日本語の導入" && \
