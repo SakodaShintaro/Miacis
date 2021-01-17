@@ -108,12 +108,12 @@ void checkGenSpeed() {
     std::ofstream ofs("check_gen_speed.txt", std::ios::app);
     ofs << "thread batch_size worker pos sec speed(pos/sec)" << std::fixed << std::endl;
 
-    constexpr int64_t sec = 120;
+    constexpr int64_t sec = 1200;
     constexpr int64_t num = 10;
 
-    for (search_options.thread_num_per_gpu = 2; search_options.thread_num_per_gpu <= 4; search_options.thread_num_per_gpu++) {
+    for (search_options.thread_num_per_gpu = 2; search_options.thread_num_per_gpu <= 3; search_options.thread_num_per_gpu++) {
         int64_t worker_num = total_worker_num / search_options.thread_num_per_gpu;
-        for (search_options.search_batch_size = 1; search_options.search_batch_size <= 4; search_options.search_batch_size *= 2) {
+        for (search_options.search_batch_size = 2; search_options.search_batch_size <= 4; search_options.search_batch_size *= 2) {
             ReplayBuffer buffer(0, buffer_size, 1, 1.0, 1.0, false);
             auto start = std::chrono::steady_clock::now();
             GameGenerator generator(search_options, worker_num, Q_dist_lambda, noise_mode, noise_epsilon, noise_alpha, buffer,

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.6.0)
+list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.7.0)
 find_package(Torch REQUIRED)
 
 #各ゲームで共通する部分のソース
@@ -28,15 +28,15 @@ set(SRCS hash_table.cpp
 
 #将棋用のバイナリをコンパイルするのに必要なソース
 set(SHOGI_SRCS shogi/main.cpp
-               shogi/test.cpp
-               shogi/bitboard.cpp
-               shogi/move.cpp
-               shogi/piece.cpp
-               shogi/position.cpp
-               shogi/square.cpp
+        shogi/test.cpp
+        shogi/bitboard.cpp
+        shogi/move.cpp
+        shogi/piece.cpp
+        shogi/position.cpp
+        shogi/square.cpp
         shogi/interface.cpp
         shogi/game.cpp
-               shogi/book.cpp)
+        shogi/book.cpp)
 
 #オセロ用のバイナリをコンパイルするのに必要なソース
 set(OTHELLO_SRCS othello/main.cpp
