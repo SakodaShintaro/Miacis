@@ -23,6 +23,7 @@ void supervisedLearn() {
     int64_t lr_decay_step1      = settings.get<int64_t>("lr_decay_step1");
     int64_t lr_decay_step2      = settings.get<int64_t>("lr_decay_step2");
     int64_t lr_decay_step3      = settings.get<int64_t>("lr_decay_step3");
+    int64_t lr_decay_step4      = settings.get<int64_t>("lr_decay_step4");
     int64_t lr_decay_period     = settings.get<int64_t>("lr_decay_period");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
     std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
@@ -143,7 +144,8 @@ void supervisedLearn() {
             }
 
             if (lr_decay_mode == 1) {
-                if (global_step == lr_decay_step1 || global_step == lr_decay_step2 || global_step == lr_decay_step3) {
+                if (global_step == lr_decay_step1 || global_step == lr_decay_step2 || global_step == lr_decay_step3 ||
+                    global_step == lr_decay_step4) {
                     (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
                 }
             } else if (lr_decay_mode == 2) {

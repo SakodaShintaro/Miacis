@@ -3,7 +3,7 @@ cd $(dirname $0)
 # どこに保存するかの基準位置
 root_dir=../..
 
-version=latest
+version=1.7.0
 file_name=libtorch-cxx11-abi-shared-with-deps-${version}.zip
 
 wget -P ${root_dir}/ https://download.pytorch.org/libtorch/nightly/cu102/${file_name}
