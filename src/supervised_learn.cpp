@@ -110,6 +110,60 @@ void supervisedLearn() {
                 loss_sum += coefficients[i] * loss[i].cpu();
             }
             loss_sum.mean().backward();
+
+            //normを計算する
+            std::vector<torch::Tensor> norms;
+            for (const auto& group : optimizer.param_groups()) {
+                for (const auto& p : group.params()) {
+                    if (p.requires_grad()) {
+                        norms.push_back(p.grad().norm(2));
+                    }
+                }
+            }
+            torch::Tensor norm = torch::norm(torch::stack(norms), 2);
+            const float rho = 0.05;
+            torch::Tensor scale = rho / (norm + 1e-12);
+
+            //勾配を上昇
+            auto& param_groups = optimizer.param_groups();
+            std::vector<std::vector<torch::Tensor>> diff(param_groups.size());
+            for (uint64_t i = 0; i < param_groups.size(); i++) {
+                auto& params = param_groups[i].params();
+                diff[i].resize(params.size());
+                for (int64_t j = 0; j < params.size(); j++) {
+                    if (!params[i].requires_grad()) {
+                        continue;
+                    }
+                    torch::Tensor e_w = params[i].grad() * scale;
+                    diff[i][j] = e_w;
+                    params[i].add(e_w);
+                }
+            }
+
+            //勾配を初期化
+            optimizer.zero_grad();
+
+            //再計算
+            loss = (mixup_alpha == 0 ? neural_network->loss(curr_data)
+                                     : neural_network->mixUpLossFinalLayer(curr_data, mixup_alpha));
+            loss_sum = torch::zeros({ batch_size });
+            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+                loss_sum += coefficients[i] * loss[i].cpu();
+            }
+            loss_sum.mean().backward();
+
+            //パラメータ変化を打ち消す
+            for (uint64_t i = 0; i < param_groups.size(); i++) {
+                auto& params = param_groups[i].params();
+                for (int64_t j = 0; j < params.size(); j++) {
+                    if (!params[i].requires_grad()) {
+                        continue;
+                    }
+                    params[i].sub(diff[i][j]);
+                }
+            }
+
+            //パラメータを更新
             optimizer.step();
             global_step++;
 
