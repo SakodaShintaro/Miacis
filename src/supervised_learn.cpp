@@ -131,12 +131,12 @@ void supervisedLearn() {
                 auto& params = param_groups[i].params();
                 diff[i].resize(params.size());
                 for (int64_t j = 0; j < params.size(); j++) {
-                    if (!params[i].requires_grad()) {
+                    if (!params[j].requires_grad()) {
                         continue;
                     }
-                    torch::Tensor e_w = params[i].grad() * scale;
+                    torch::Tensor e_w = params[j].grad() * scale;
                     diff[i][j] = e_w;
-                    params[i].add(e_w);
+                    params[j].add(e_w);
                 }
             }
 
@@ -156,10 +156,10 @@ void supervisedLearn() {
             for (uint64_t i = 0; i < param_groups.size(); i++) {
                 auto& params = param_groups[i].params();
                 for (int64_t j = 0; j < params.size(); j++) {
-                    if (!params[i].requires_grad()) {
+                    if (!params[j].requires_grad()) {
                         continue;
                     }
-                    params[i].sub(diff[i][j]);
+                    params[j].sub(diff[i][j]);
                 }
             }
 
