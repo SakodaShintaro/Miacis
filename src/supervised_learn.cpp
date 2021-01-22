@@ -111,32 +111,35 @@ void supervisedLearn() {
             }
             loss_sum.mean().backward();
 
-            //normを計算する
-            std::vector<torch::Tensor> norms;
-            for (const auto& group : optimizer.param_groups()) {
-                for (const auto& p : group.params()) {
-                    if (p.requires_grad()) {
-                        norms.push_back(p.grad().norm(2));
-                    }
-                }
-            }
-            torch::Tensor norm = torch::norm(torch::stack(norms), 2);
-            const float rho = 0.05;
-            torch::Tensor scale = rho / (norm + 1e-12);
-
-            //勾配を上昇
             auto& param_groups = optimizer.param_groups();
             std::vector<std::vector<torch::Tensor>> diff(param_groups.size());
-            for (uint64_t i = 0; i < param_groups.size(); i++) {
-                auto& params = param_groups[i].params();
-                diff[i].resize(params.size());
-                for (int64_t j = 0; j < params.size(); j++) {
-                    if (!params[j].requires_grad()) {
-                        continue;
+            {
+                torch::NoGradGuard no_grad_guard;
+                //normを計算する
+                std::vector<torch::Tensor> norms;
+                for (const auto& group : optimizer.param_groups()) {
+                    for (const auto& p : group.params()) {
+                        if (p.requires_grad()) {
+                            norms.push_back(p.grad().norm(2));
+                        }
                     }
-                    torch::Tensor e_w = params[j].grad() * scale;
-                    diff[i][j] = e_w;
-                    params[j].add(e_w);
+                }
+                torch::Tensor norm = torch::norm(torch::stack(norms), 2);
+                const float rho = 0.05;
+                torch::Tensor scale = rho / (norm + 1e-12);
+
+                //勾配を上昇
+                for (uint64_t i = 0; i < param_groups.size(); i++) {
+                    auto& params = param_groups[i].params();
+                    diff[i].resize(params.size());
+                    for (int64_t j = 0; j < params.size(); j++) {
+                        if (!params[j].requires_grad()) {
+                            continue;
+                        }
+                        torch::Tensor e_w = params[j].grad() * scale;
+                        diff[i][j] = e_w;
+                        params[j].add_(e_w);
+                    }
                 }
             }
 
@@ -152,14 +155,17 @@ void supervisedLearn() {
             }
             loss_sum.mean().backward();
 
-            //パラメータ変化を打ち消す
-            for (uint64_t i = 0; i < param_groups.size(); i++) {
-                auto& params = param_groups[i].params();
-                for (int64_t j = 0; j < params.size(); j++) {
-                    if (!params[j].requires_grad()) {
-                        continue;
+            {
+                torch::NoGradGuard no_grad_guard;
+                //パラメータ変化を打ち消す
+                for (uint64_t i = 0; i < param_groups.size(); i++) {
+                    auto& params = param_groups[i].params();
+                    for (int64_t j = 0; j < params.size(); j++) {
+                        if (!params[j].requires_grad()) {
+                            continue;
+                        }
+                        params[j].sub_(diff[i][j]);
                     }
-                    params[j].sub(diff[i][j]);
                 }
             }
 
