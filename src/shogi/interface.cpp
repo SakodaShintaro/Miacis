@@ -19,23 +19,23 @@ Interface::Interface() : searcher_(nullptr) {
     command_["gameover"]   = [this] { gameover(); };
 
     //メンバ関数以外
-    command_["initParams"]        = initParams;
-    command_["cleanGames"]        = cleanGames;
-    command_["supervisedLearn"]   = supervisedLearn;
-    command_["alphaZero"]         = alphaZero;
-    command_["test"]              = test;
-    command_["infiniteTest"]      = infiniteTest;
-    command_["checkSearchSpeed"]  = checkSearchSpeed;
-    command_["checkSearchSpeed2"] = checkSearchSpeed2;
-    command_["checkGenSpeed"]     = checkGenSpeed;
-    command_["checkPredictSpeed"] = checkPredictSpeed;
-    command_["checkVal"]          = checkVal;
-    command_["checkDoAndUndo"]    = checkDoAndUndo;
-    command_["checkMirror"]       = checkMirror;
-    command_["checkBook"]         = checkBook;
-    command_["makeBook"]          = makeBook;
-    command_["searchWithLog"]     = searchWithLog;
-    command_["convertModelToCPU"] = convertModelToCPU;
+    command_["initParams"]         = initParams;
+    command_["cleanGames"]         = cleanGames;
+    command_["supervisedLearn"]    = supervisedLearn;
+    command_["reinforcementLearn"] = reinforcementLearn;
+    command_["test"]               = test;
+    command_["infiniteTest"]       = infiniteTest;
+    command_["checkSearchSpeed"]   = checkSearchSpeed;
+    command_["checkSearchSpeed2"]  = checkSearchSpeed2;
+    command_["checkGenSpeed"]      = checkGenSpeed;
+    command_["checkPredictSpeed"]  = checkPredictSpeed;
+    command_["checkVal"]           = checkVal;
+    command_["checkDoAndUndo"]     = checkDoAndUndo;
+    command_["checkMirror"]        = checkMirror;
+    command_["checkBook"]          = checkBook;
+    command_["makeBook"]           = makeBook;
+    command_["searchWithLog"]      = searchWithLog;
+    command_["convertModelToCPU"]  = convertModelToCPU;
     // clang-format on
 }
 

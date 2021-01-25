@@ -70,6 +70,6 @@ void initParams();
 void supervisedLearn();
 
 //AlphaZero式の強化学習
-void alphaZero();
+void reinforcementLearn();
 
 #endif //MIACIS_LEARN_HPP

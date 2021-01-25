@@ -2,10 +2,10 @@
 #include "hyperparameter_loader.hpp"
 #include "learn.hpp"
 
-void alphaZero() {
+void reinforcementLearn() {
     // clang-format off
     SearchOptions search_options;
-    HyperparameterLoader settings("alphazero_settings.txt");
+    HyperparameterLoader settings("reinforcement_learn_settings.txt");
     float learn_rate                  = settings.get<float>("learn_rate");
     float min_learn_rate              = settings.get<float>("min_learn_rate");
     float momentum                    = settings.get<float>("momentum");
@@ -242,5 +242,5 @@ void alphaZero() {
         th.join();
     }
 
-    std::cout << "finish alphaZero" << std::endl;
+    std::cout << "finish reinforcementLearn" << std::endl;
 }

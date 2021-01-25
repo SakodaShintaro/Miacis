@@ -22,9 +22,9 @@ Interface::Interface() : searcher_(nullptr) {
     command_["quit"]           = [this] { quit(); };
 
     //メンバ関数以外
-    command_["initParams"]      = initParams;
-    command_["alphaZero"]       = alphaZero;
-    command_["supervisedLearn"] = supervisedLearn;
+    command_["initParams"]         = initParams;
+    command_["supervisedLearn"]    = supervisedLearn;
+    command_["reinforcementLearn"] = reinforcementLearn;
     // clang-format on
 }
 
