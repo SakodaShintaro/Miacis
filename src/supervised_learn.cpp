@@ -7,32 +7,14 @@
 void supervisedLearn() {
     // clang-format off
     HyperparameterLoader settings("supervised_learn_settings.txt");
-    float learn_rate            = settings.get<float>("learn_rate");
-    float min_learn_rate        = settings.get<float>("min_learn_rate");
-    float momentum              = settings.get<float>("momentum");
-    float weight_decay          = settings.get<float>("weight_decay");
     float mixup_alpha           = settings.get<float>("mixup_alpha");
     float train_rate_threshold  = settings.get<float>("train_rate_threshold");
-    float valid_rate_threshold  = settings.get<float>("valid_rate_threshold");
     bool data_augmentation      = settings.get<bool>("data_augmentation");
     bool load_multi_dir         = settings.get<bool>("load_multi_dir");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
-    int64_t validation_interval = settings.get<int64_t>("validation_interval");
-    int64_t lr_decay_mode       = settings.get<int64_t>("lr_decay_mode");
-    int64_t lr_decay_step1      = settings.get<int64_t>("lr_decay_step1");
-    int64_t lr_decay_step2      = settings.get<int64_t>("lr_decay_step2");
-    int64_t lr_decay_step3      = settings.get<int64_t>("lr_decay_step3");
-    int64_t lr_decay_step4      = settings.get<int64_t>("lr_decay_step4");
-    int64_t lr_decay_period     = settings.get<int64_t>("lr_decay_period");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
-    std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
     // clang-format on
-
-    std::array<float, LOSS_TYPE_NUM> coefficients{};
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        coefficients[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
-    }
 
     //ディレクトリを逐次的に展開していく場合、まず展開するパス名を取得する
     std::vector<std::string> dir_paths;
@@ -46,32 +28,9 @@ void supervisedLearn() {
 
     //データを取得
     std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation, train_rate_threshold);
-    std::vector<LearningData> valid_data = loadData(valid_kifu_path, false, valid_rate_threshold);
-    dout(std::cout, other_log) << "train_data_size = " << train_data.size() << ", valid_data_size = " << valid_data.size()
-                               << ", dir_paths.size() = " << dir_paths.size() << std::endl;
 
-    //学習推移のログファイル
-    std::ofstream train_log("supervised_train_log.txt");
-    std::ofstream valid_log("supervised_valid_log.txt");
-    tout(std::cout, train_log, valid_log) << std::fixed << "time\tepoch\tstep\t";
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        tout(std::cout, train_log, valid_log) << LOSS_TYPE_NAME[i] + "_loss"
-                                              << "\t\n"[i == LOSS_TYPE_NUM - 1];
-    }
-
-    //評価関数読み込み
-    NeuralNetwork neural_network;
-    torch::load(neural_network, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    neural_network->setGPU(0);
-
-    //学習前のパラメータを出力
-    torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_before_learn.model");
-
-    //optimizerの準備
-    torch::optim::SGDOptions sgd_option(learn_rate);
-    sgd_option.momentum(momentum);
-    sgd_option.weight_decay(weight_decay);
-    torch::optim::SGD optimizer(neural_network->parameters(), sgd_option);
+    //学習クラスを生成
+    LearnManager learn_manager("supervised");
 
     //エポックを超えたステップ数を初期化
     int64_t global_step = 0;
@@ -100,119 +59,7 @@ void supervisedLearn() {
                 }
             }
 
-            //学習
-            optimizer.zero_grad();
-            std::array<torch::Tensor, LOSS_TYPE_NUM> loss =
-                (mixup_alpha == 0 ? neural_network->loss(curr_data)
-                                  : neural_network->mixUpLossFinalLayer(curr_data, mixup_alpha));
-            torch::Tensor loss_sum = torch::zeros({ batch_size });
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                loss_sum += coefficients[i] * loss[i].cpu();
-            }
-            loss_sum.mean().backward();
-
-            auto& param_groups = optimizer.param_groups();
-            std::vector<std::vector<torch::Tensor>> diff(param_groups.size());
-            {
-                torch::NoGradGuard no_grad_guard;
-                //normを計算する
-                std::vector<torch::Tensor> norms;
-                for (const auto& group : optimizer.param_groups()) {
-                    for (const auto& p : group.params()) {
-                        if (p.requires_grad()) {
-                            norms.push_back(p.grad().norm(2));
-                        }
-                    }
-                }
-                torch::Tensor norm = torch::norm(torch::stack(norms), 2);
-                const float rho = 0.05;
-                torch::Tensor scale = rho / (norm + 1e-12);
-
-                //勾配を上昇
-                for (uint64_t i = 0; i < param_groups.size(); i++) {
-                    auto& params = param_groups[i].params();
-                    diff[i].resize(params.size());
-                    for (int64_t j = 0; j < params.size(); j++) {
-                        if (!params[j].requires_grad()) {
-                            continue;
-                        }
-                        torch::Tensor e_w = params[j].grad() * scale;
-                        diff[i][j] = e_w;
-                        params[j].add_(e_w);
-                    }
-                }
-            }
-
-            //勾配を初期化
-            optimizer.zero_grad();
-
-            //再計算
-            loss = (mixup_alpha == 0 ? neural_network->loss(curr_data)
-                                     : neural_network->mixUpLossFinalLayer(curr_data, mixup_alpha));
-            loss_sum = torch::zeros({ batch_size });
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                loss_sum += coefficients[i] * loss[i].cpu();
-            }
-            loss_sum.mean().backward();
-
-            {
-                torch::NoGradGuard no_grad_guard;
-                //パラメータ変化を打ち消す
-                for (uint64_t i = 0; i < param_groups.size(); i++) {
-                    auto& params = param_groups[i].params();
-                    for (int64_t j = 0; j < params.size(); j++) {
-                        if (!params[j].requires_grad()) {
-                            continue;
-                        }
-                        params[j].sub_(diff[i][j]);
-                    }
-                }
-            }
-
-            //パラメータを更新
-            optimizer.step();
-            global_step++;
-
-            //表示
-            if (global_step % std::max(validation_interval / 1000, (int64_t)1) == 0) {
-                dout(std::cout, train_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
-                for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                    dout(std::cout, train_log) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
-                }
-                dout(std::cout, train_log) << std::flush;
-            }
-
-            if (global_step % validation_interval == 0) {
-                //validation_lossを計算
-                neural_network->eval();
-                std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network, valid_data, batch_size);
-                neural_network->train();
-                float sum_loss = 0;
-                for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                    sum_loss += coefficients[i] * valid_loss[i];
-                }
-
-                //表示
-                dout(std::cout, valid_log) << elapsedTime(start_time) << "\t" << epoch << "\t" << global_step << "\t";
-                for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                    dout(std::cout, valid_log) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
-                }
-                dout(std::cout, valid_log) << std::flush;
-
-                //学習中のパラメータを書き出す
-                torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(global_step) + ".model");
-            }
-
-            if (lr_decay_mode == 1) {
-                if (global_step == lr_decay_step1 || global_step == lr_decay_step2 || global_step == lr_decay_step3 ||
-                    global_step == lr_decay_step4) {
-                    (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() /= 10;
-                }
-            } else if (lr_decay_mode == 2) {
-                int64_t curr_step = global_step % lr_decay_period;
-                (dynamic_cast<torch::optim::SGDOptions&>(optimizer.param_groups().front().options())).lr() =
-                    min_learn_rate + 0.5 * (learn_rate - min_learn_rate) * (1 + cos(acos(-1) * curr_step / lr_decay_period));
-            }
+            learn_manager.learnOneStep(curr_data, ++global_step);
         }
 
         if (load_multi_dir) {

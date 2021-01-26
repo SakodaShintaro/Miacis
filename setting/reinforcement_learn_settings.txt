@@ -22,6 +22,7 @@ learn_rate_decay_mode   1
 learn_rate_decay_step1  800000
 learn_rate_decay_step2  2000000
 learn_rate_decay_step3  2000000
+learn_rate_decay_step4  2000000
 learn_rate_decay_period 100000
 update_interval         500
 batch_size_per_gen      2
