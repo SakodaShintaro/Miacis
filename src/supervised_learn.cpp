@@ -1,4 +1,5 @@
 ﻿#include "common.hpp"
+#include "game.hpp"
 #include "hyperparameter_loader.hpp"
 #include "learn.hpp"
 
@@ -16,7 +17,15 @@ void supervisedLearn() {
     //ディレクトリを逐次的に展開していく場合、まず展開するパス名を取得する
     std::vector<std::string> dir_paths;
     if (load_multi_dir) {
-        dir_paths = childFiles(train_kifu_path);
+#ifdef _MSC_VER
+        namespace sys = std::filesystem;
+#elif __GNUC__
+        namespace sys = std::experimental::filesystem;
+#endif
+        const sys::path dir(train_kifu_path);
+        for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
+            dir_paths.push_back(p->path().string());
+        }
         train_kifu_path = dir_paths[0];
     }
 
