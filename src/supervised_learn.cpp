@@ -1,8 +1,6 @@
 ﻿#include "common.hpp"
 #include "hyperparameter_loader.hpp"
 #include "learn.hpp"
-#include <iostream>
-#include <random>
 
 void supervisedLearn() {
     // clang-format off
@@ -22,9 +20,6 @@ void supervisedLearn() {
         train_kifu_path = dir_paths[0];
     }
 
-    //学習設定などに関するログ。現状はすぐ下のところで使っているだけ
-    std::ofstream other_log("other_log.txt");
-
     //データを取得
     std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation, train_rate_threshold);
 
@@ -34,20 +29,15 @@ void supervisedLearn() {
     //エポックを超えたステップ数を初期化
     int64_t global_step = 0;
 
-    //学習開始時間の設定
-    auto start_time = std::chrono::steady_clock::now();
-
     //学習開始
     for (int64_t epoch = 1; global_step < max_step; epoch++) {
         //データをシャッフル
         std::shuffle(train_data.begin(), train_data.end(), engine);
 
-        for (uint64_t step = 0; (step + 1) * batch_size <= train_data.size() && global_step < max_step; step++) {
+        for (uint64_t step = 0; batch_size * (step + 1) <= train_data.size() && global_step < max_step; step++) {
             //バッチサイズ分データを確保
-            std::vector<LearningData> curr_data;
-            for (int64_t b = 0; b < batch_size; b++) {
-                curr_data.push_back(train_data[step * batch_size + b]);
-            }
+            std::vector<LearningData> curr_data(train_data.begin() + batch_size * step,
+                                                train_data.begin() + batch_size * (step + 1));
 
             learn_manager.learnOneStep(curr_data, ++global_step);
         }

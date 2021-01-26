@@ -34,7 +34,6 @@ void reinforcementLearn() {
     bool data_augmentation            = settings.get<bool>("data_augmentation");
     bool Q_search                     = settings.get<bool>("Q_search");
     std::string train_kifu_path       = settings.get<std::string>("train_kifu_path");
-    std::string valid_kifu_path       = settings.get<std::string>("valid_kifu_path");
     // clang-format on
 
     //学習クラスを生成
