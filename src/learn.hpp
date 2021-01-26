@@ -65,9 +65,6 @@ private:
     //Optimizer
     std::unique_ptr<torch::optim::SGD> optimizer_;
 
-    //mixupを行う場合の混合比
-    float mixup_alpha_;
-
     //検証データ
     std::vector<LearningData> valid_data_;
 

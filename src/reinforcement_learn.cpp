@@ -8,7 +8,6 @@ void reinforcementLearn() {
     HyperparameterLoader settings("reinforcement_learn_settings.txt");
     float lambda                      = settings.get<float>("lambda");
     float per_alpha                   = settings.get<float>("per_alpha");
-    float mixup_alpha                 = settings.get<float>("mixup_alpha");
     float Q_dist_lambda               = settings.get<float>("Q_dist_lambda");
     float noise_epsilon               = settings.get<float>("noise_epsilon");
     float noise_alpha                 = settings.get<float>("noise_alpha");
@@ -73,8 +72,7 @@ void reinforcementLearn() {
     //学習ループ
     for (int64_t step_num = 1; step_num <= max_step_num; step_num++) {
         //バッチサイズ分データを選択
-        //mixupをオンにしたとき(mixup_alpha_ != 0のとき)はバッチサイズの2倍取る
-        std::vector<LearningData> curr_data = replay_buffer.makeBatch(batch_size * (1 + (mixup_alpha != 0)));
+        std::vector<LearningData> curr_data = replay_buffer.makeBatch(batch_size);
 
         //1回目はmakeBatch内で十分棋譜が貯まるまで待ち時間が発生する.その生成速度を計算
         if (step_num == 1) {
@@ -94,16 +92,6 @@ void reinforcementLearn() {
 
         //replay_bufferのpriorityを更新
         std::vector<float> loss_vec(loss_sum.data_ptr<float>(), loss_sum.data_ptr<float>() + batch_size);
-
-        //mixupモードのときは損失を複製して2倍に拡張。これもうちょっと上手く書けないものか……
-        if (mixup_alpha != 0) {
-            std::vector<float> copy = loss_vec;
-            loss_vec.clear();
-            for (float v : copy) {
-                loss_vec.push_back(v);
-                loss_vec.push_back(v);
-            }
-        }
         replay_buffer.update(loss_vec);
 
         //一定間隔でActorのパラメータをLearnerと同期

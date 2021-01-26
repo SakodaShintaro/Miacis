@@ -136,9 +136,6 @@ LearnManager::LearnManager(const std::string& learn_name) {
     assert(learn_name == "supervised" || learn_name == "reinforcement");
     HyperparameterLoader settings(learn_name + "_learn_settings.txt");
 
-    //mixupの混合比
-    mixup_alpha_ = settings.get<float>("mixup_alpha");
-
     //検証を行う間隔
     validation_interval_ = settings.get<int64_t>("validation_interval");
 
@@ -197,8 +194,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     //学習
     optimizer_->zero_grad();
-    std::array<torch::Tensor, LOSS_TYPE_NUM> loss =
-        (mixup_alpha_ == 0 ? neural_network->loss(curr_data) : neural_network->mixUpLossFinalLayer(curr_data, mixup_alpha_));
+    std::array<torch::Tensor, LOSS_TYPE_NUM> loss = neural_network->loss(curr_data);
     torch::Tensor loss_sum = torch::zeros({ batch_size });
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         loss_sum += coefficients_[i] * loss[i].cpu();
@@ -241,7 +237,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
     optimizer_->zero_grad();
 
     //再計算
-    loss = (mixup_alpha_ == 0 ? neural_network->loss(curr_data) : neural_network->mixUpLossFinalLayer(curr_data, mixup_alpha_));
+    loss = neural_network->loss(curr_data);
     loss_sum = torch::zeros({ batch_size });
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         loss_sum += coefficients_[i] * loss[i].cpu();
