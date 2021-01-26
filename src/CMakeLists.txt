@@ -24,6 +24,7 @@ set(SRCS hash_table.cpp
          hyperparameter_loader.cpp
          segment_tree.cpp
          common.cpp
+        timer.cpp
          )
 
 #将棋用のバイナリをコンパイルするのに必要なソース

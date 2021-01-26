@@ -2,12 +2,7 @@
 #define MIACIS_LEARN_HPP
 
 #include "neural_network.hpp"
-#include <chrono>
-#include <string>
-
-//経過時間を取得する関数
-std::string elapsedTime(const std::chrono::steady_clock::time_point& start);
-float elapsedHours(const std::chrono::steady_clock::time_point& start);
+#include "timer.hpp"
 
 //標準出力とファイルストリームに同時に出力するためのクラス
 //参考)https://aki-yam.hatenablog.com/entry/20080630/1214801872
@@ -80,8 +75,8 @@ private:
     //学習,検証のログファイル
     std::ofstream train_log_, valid_log_;
 
-    //学習開始時点の時刻
-    std::chrono::steady_clock::time_point start_time_;
+    //学習時間計測器
+    Timer timer_;
 
     //初期学習率
     float learn_rate_;

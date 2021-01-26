@@ -53,7 +53,8 @@ void reinforcementLearn() {
     }
 
     //時間計測開始
-    auto start_time = std::chrono::steady_clock::now();
+    Timer timer;
+    timer.start();
 
     //GPUの数だけネットワーク,自己対局生成器を生成
     size_t gpu_num = torch::getNumGPUs();
@@ -75,7 +76,7 @@ void reinforcementLearn() {
 
         //1回目はmakeBatch内で十分棋譜が貯まるまで待ち時間が発生する.その生成速度を計算
         if (step_num == 1) {
-            float gen_speed = first_wait / (elapsedHours(start_time) * 3600);
+            float gen_speed = (float)first_wait / timer.elapsedSeconds();
             if (sleep_msec == -1) {
                 sleep_msec = (int64_t)(batch_size * 1000 / (batch_size_per_gen * gen_speed));
             }

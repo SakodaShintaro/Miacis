@@ -6,28 +6,6 @@
 #include <random>
 #include <sstream>
 
-std::string elapsedTime(const std::chrono::steady_clock::time_point& start) {
-    auto elapsed = std::chrono::steady_clock::now() - start;
-    int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
-
-    std::stringstream ss;
-
-    //hh:mm:ssで文字列化
-    int64_t minutes = seconds / 60;
-    seconds %= 60;
-    int64_t hours = minutes / 60;
-    minutes %= 60;
-    ss << std::setfill('0') << std::setw(3) << hours << ":" << std::setfill('0') << std::setw(2) << minutes << ":"
-       << std::setfill('0') << std::setw(2) << seconds;
-    return ss.str();
-}
-
-float elapsedHours(const std::chrono::steady_clock::time_point& start) {
-    auto elapsed = std::chrono::steady_clock::now() - start;
-    int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
-    return seconds / 3600.0;
-}
-
 std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<LearningData>& validation_data,
                                             uint64_t batch_size) {
     uint64_t index = 0;
@@ -185,7 +163,7 @@ LearnManager::LearnManager(const std::string& learn_name) {
     min_learn_rate_ = settings.get<float>("min_learn_rate");
 
     //学習開始時間の設定
-    start_time_ = std::chrono::steady_clock::now();
+    timer_.start();
 }
 
 torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_data, int64_t stem_num) {
@@ -263,7 +241,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     //表示
     if (stem_num % std::max(validation_interval_ / 1000, (int64_t)1) == 0) {
-        dout(std::cout, train_log_) << elapsedTime(start_time_) << "\t" << stem_num << "\t";
+        dout(std::cout, train_log_) << timer_.elapsedTimeStr() << "\t" << stem_num << "\t";
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             dout(std::cout, train_log_) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
         }
@@ -281,7 +259,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
         }
 
         //表示
-        dout(std::cout, valid_log_) << elapsedTime(start_time_) << "\t" << stem_num << "\t";
+        dout(std::cout, valid_log_) << timer_.elapsedTimeStr() << "\t" << stem_num << "\t";
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             dout(std::cout, valid_log_) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
         }
