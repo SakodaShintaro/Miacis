@@ -7,7 +7,7 @@ void reinforcementLearn() {
     SearchOptions search_options;
     HyperparameterLoader settings("reinforcement_learn_settings.txt");
     float lambda                      = settings.get<float>("lambda");
-    float alpha                       = settings.get<float>("alpha");
+    float per_alpha                   = settings.get<float>("per_alpha");
     float mixup_alpha                 = settings.get<float>("mixup_alpha");
     float Q_dist_lambda               = settings.get<float>("Q_dist_lambda");
     float noise_epsilon               = settings.get<float>("noise_epsilon");
@@ -48,7 +48,7 @@ void reinforcementLearn() {
     }
 
     //リプレイバッファの生成
-    ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, alpha, data_augmentation);
+    ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, per_alpha, data_augmentation);
 
     if (init_buffer_by_kifu) {
         replay_buffer.fillByKifu(train_kifu_path, train_rate_threshold);
