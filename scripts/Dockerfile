@@ -30,7 +30,7 @@ RUN set -x && \
     echo "git fetch" > update.sh && \
     echo "git reset --hard origin/master" >> update.sh && \
     echo "cmake -DCMAKE_BUILD_TYPE=Release .." >> update.sh && \
-    echo "make -j8" >> update.sh && \
+    echo "make -j$(nproc)" >> update.sh && \
     chmod +x update.sh && \
     ./update.sh && \
     : "dotfilesの取得" && \
