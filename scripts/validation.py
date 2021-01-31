@@ -4,6 +4,7 @@ import glob
 from natsort import natsorted
 import argparse
 import subprocess
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--kifu_path", type=str, default="/root/data/floodgate_kifu/valid")
@@ -27,6 +28,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 first = True
 
+start = time.time()
+
 # 各ステップの検証損失を計測
 for model_name in model_names:
     # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
@@ -43,13 +46,16 @@ for model_name in model_names:
     if first:
         print(result_sentences[1])
         f.write(result_sentences[1] + "\n")
-        f.write("step\tpolicy_loss\tvalue_loss\n")
+        f.write("time\tstep\tpolicy_loss\tvalue_loss\n")
         first = False
+
+    elapsed_time = int(time.time() - start)
+    time_str = f"{elapsed_time // 3600:02d}:{(elapsed_time % 3600) // 60:02d}:{elapsed_time % 60:02d}"
 
     policy_loss, value_loss = result_sentences[2].split()
 
     # ファイルに書き込み
-    tsv_str = f"{step}\t{policy_loss}\t{value_loss}"
+    tsv_str = f"{time_str}\t{step}\t{policy_loss}\t{value_loss}"
     print(tsv_str)
     f.write(f"{tsv_str}\n")
     f.flush()
