@@ -252,16 +252,23 @@ void checkVal() {
     std::string path;
     std::cout << "validation kifu path : ";
     std::cin >> path;
+    int64_t batch_size;
+    std::cout << "batch_size : ";
+    std::cin >> batch_size;
+    std::string model_file;
+    std::cout << "model_file : ";
+    std::cin >> model_file;
+
     std::vector<LearningData> data = loadData(path, false, 3000);
     std::cout << "data.size() = " << data.size() << std::endl;
 
     //ネットワークの準備
     NeuralNetwork nn;
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    torch::load(nn, model_file);
     nn->setGPU(0);
     nn->eval();
 
-    std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, 32);
+    std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, batch_size);
     std::cout << std::fixed << std::setprecision(4);
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
