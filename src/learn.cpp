@@ -147,6 +147,9 @@ LearnManager::LearnManager(const std::string& learn_name) {
     learn_rate_decay_period_ = settings.get<int64_t>("learn_rate_decay_period");
     min_learn_rate_ = settings.get<float>("min_learn_rate");
 
+    //SAM
+    use_sam_optim_ = settings.get<int64_t>("use_sam_optim");
+
     //学習開始時間の設定
     timer_.start();
 }
@@ -164,59 +167,61 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
     }
     loss_sum.mean().backward();
 
-    auto& param_groups = optimizer_->param_groups();
-    std::vector<std::vector<torch::Tensor>> diff(param_groups.size());
-    {
-        torch::NoGradGuard no_grad_guard;
-        //normを計算する
-        std::vector<torch::Tensor> norms;
-        for (const auto& group : optimizer_->param_groups()) {
-            for (const auto& p : group.params()) {
-                if (p.requires_grad()) {
-                    norms.push_back(p.grad().norm(2));
+    if (use_sam_optim_) {
+        auto& param_groups = optimizer_->param_groups();
+        std::vector<std::vector<torch::Tensor>> diff(param_groups.size());
+        {
+            torch::NoGradGuard no_grad_guard;
+            //normを計算する
+            std::vector<torch::Tensor> norms;
+            for (const auto& group : optimizer_->param_groups()) {
+                for (const auto& p : group.params()) {
+                    if (p.requires_grad()) {
+                        norms.push_back(p.grad().norm(2));
+                    }
+                }
+            }
+            torch::Tensor norm = torch::norm(torch::stack(norms), 2);
+            const float rho = 0.05;
+            torch::Tensor scale = rho / (norm + 1e-12);
+
+            //勾配を上昇
+            for (uint64_t i = 0; i < param_groups.size(); i++) {
+                auto& params = param_groups[i].params();
+                diff[i].resize(params.size());
+                for (int64_t j = 0; j < params.size(); j++) {
+                    if (!params[j].requires_grad()) {
+                        continue;
+                    }
+                    torch::Tensor e_w = params[j].grad() * scale;
+                    diff[i][j] = e_w;
+                    params[j].add_(e_w);
                 }
             }
         }
-        torch::Tensor norm = torch::norm(torch::stack(norms), 2);
-        const float rho = 0.05;
-        torch::Tensor scale = rho / (norm + 1e-12);
 
-        //勾配を上昇
-        for (uint64_t i = 0; i < param_groups.size(); i++) {
-            auto& params = param_groups[i].params();
-            diff[i].resize(params.size());
-            for (int64_t j = 0; j < params.size(); j++) {
-                if (!params[j].requires_grad()) {
-                    continue;
-                }
-                torch::Tensor e_w = params[j].grad() * scale;
-                diff[i][j] = e_w;
-                params[j].add_(e_w);
-            }
+        //勾配を初期化
+        optimizer_->zero_grad();
+
+        //再計算
+        loss = neural_network->loss(curr_data);
+        loss_sum = torch::zeros({ batch_size });
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            loss_sum += coefficients_[i] * loss[i].cpu();
         }
-    }
+        loss_sum.mean().backward();
 
-    //勾配を初期化
-    optimizer_->zero_grad();
-
-    //再計算
-    loss = neural_network->loss(curr_data);
-    loss_sum = torch::zeros({ batch_size });
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        loss_sum += coefficients_[i] * loss[i].cpu();
-    }
-    loss_sum.mean().backward();
-
-    {
-        torch::NoGradGuard no_grad_guard;
-        //パラメータ変化を打ち消す
-        for (uint64_t i = 0; i < param_groups.size(); i++) {
-            auto& params = param_groups[i].params();
-            for (int64_t j = 0; j < params.size(); j++) {
-                if (!params[j].requires_grad()) {
-                    continue;
+        {
+            torch::NoGradGuard no_grad_guard;
+            //パラメータ変化を打ち消す
+            for (uint64_t i = 0; i < param_groups.size(); i++) {
+                auto& params = param_groups[i].params();
+                for (int64_t j = 0; j < params.size(); j++) {
+                    if (!params[j].requires_grad()) {
+                        continue;
+                    }
+                    params[j].sub_(diff[i][j]);
                 }
-                params[j].sub_(diff[i][j]);
             }
         }
     }

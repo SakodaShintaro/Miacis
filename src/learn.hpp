@@ -95,6 +95,9 @@ private:
 
     //Cosine annealing時の最小値
     float min_learn_rate_;
+
+    //Sharpness-Aware Minimizationを行うかどうか
+    bool use_sam_optim_;
 };
 
 //教師データを読み込む関数
