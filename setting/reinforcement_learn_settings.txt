@@ -32,7 +32,7 @@ data_augmentation       1
 Q_search                0
 search_limit            800
 search_batch_size       4
-output_interval         100
+output_interval         1
 save_interval           50000
 validation_interval     50000
 sleep_msec              -1
