@@ -47,6 +47,9 @@ public:
     //学習データについて損失を返す関数
     std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
 
+    //データに対して検証損失を返す関数
+    std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data);
+
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
 
