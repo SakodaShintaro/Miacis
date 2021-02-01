@@ -16,7 +16,6 @@ void checkMirror();
 void checkBook();
 void makeBook();
 void searchWithLog();
-void convertModelToCPU();
 
 } // namespace Shogi
 

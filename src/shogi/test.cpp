@@ -1,5 +1,6 @@
 ﻿#include "test.hpp"
 #include "../game_generator.hpp"
+#include "../infer_model.hpp"
 #include "../searcher_for_play.hpp"
 #include "book.hpp"
 
@@ -12,10 +13,8 @@ void test() {
     search_options.thread_num_per_gpu = 1;
     search_options.search_batch_size = 1;
     search_options.output_log_file = true;
-    NeuralNetwork nn;
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    nn->setGPU(0);
-    nn->eval();
+    InferModel nn;
+    nn.load(DEFAULT_MODEL_NAME, 0);
     SearcherForPlay searcher(search_options);
 
     Position pos;
@@ -82,8 +81,8 @@ void infiniteTest() {
 }
 
 void checkGenSpeed() {
-    NeuralNetwork nn;
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+    InferModel nn;
+    nn.load(DEFAULT_MODEL_NAME, 0);
 
     constexpr int64_t buffer_size = 1048576;
     SearchOptions search_options;
@@ -95,9 +94,6 @@ void checkGenSpeed() {
     constexpr int64_t noise_mode = 0;
     constexpr float noise_epsilon = 0.25;
     constexpr float noise_alpha = 0.15;
-
-    nn->setGPU(0, search_options.use_fp16);
-    nn->eval();
 
     int64_t total_worker_num = 0;
     std::cout << "total_worker_num(デフォルトは128): ";
@@ -263,10 +259,9 @@ void checkVal() {
     std::cout << "data.size() = " << data.size() << std::endl;
 
     //ネットワークの準備
-    NeuralNetwork nn;
-    torch::load(nn, model_file);
-    nn->setGPU(0);
-    nn->eval();
+    LearningModel nn;
+    nn.load(model_file, 0);
+    nn.eval();
 
     std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, batch_size);
     std::cout << std::fixed << std::setprecision(4);
@@ -280,10 +275,8 @@ void checkPredictSpeed() {
     constexpr int64_t REPEAT_NUM = 1000;
     std::cout << std::fixed;
 
-    NeuralNetwork nn;
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    nn->setGPU(0);
-    nn->eval();
+    InferModel nn;
+    nn.load(DEFAULT_MODEL_NAME, 0);
 
     for (int64_t batch_size = 1; batch_size <= 4096; batch_size *= 2) {
         //バッチサイズ分入力を取得
@@ -307,7 +300,7 @@ void checkPredictSpeed() {
         for (int64_t i = 0; i < REPEAT_NUM; i++) {
             auto start = std::chrono::steady_clock::now();
             torch::NoGradGuard no_grad_guard;
-            nn->policyAndValueBatch(pos.makeFeature());
+            nn.policyAndValueBatch(pos.makeFeature());
             auto end = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
             time += elapsed.count();
@@ -462,15 +455,6 @@ void searchWithLog() {
         }
         std::cout << std::endl;
     }
-}
-
-void convertModelToCPU() {
-    //ネットワークの準備
-    NeuralNetwork nn;
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    nn->to(torch::kCPU);
-    torch::save(nn, NeuralNetworkImpl::MODEL_PREFIX + "_cpu.model");
-    std::cout << "finish convertModelToCPU" << std::endl;
 }
 
 } // namespace Shogi

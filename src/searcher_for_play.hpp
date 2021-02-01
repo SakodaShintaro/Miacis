@@ -4,6 +4,7 @@
 #include "neural_network.hpp"
 #include "searcher.hpp"
 #include "searcher_for_mate.hpp"
+#include "infer_model.hpp"
 #include <mutex>
 #include <stack>
 
@@ -46,7 +47,7 @@ private:
     HashTable hash_table_;
 
     //GPUは複数
-    std::vector<NeuralNetwork> neural_networks_;
+    std::vector<InferModel> neural_networks_;
     std::vector<std::mutex> gpu_mutexes_;
 
     //1つのGPUに対してgpu_queue,searcherを複数

@@ -19,7 +19,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["gameover"]   = [this] { gameover(); };
 
     //メンバ関数以外
-    command_["initParams"]         = initParams;
     command_["cleanGames"]         = cleanGames;
     command_["supervisedLearn"]    = supervisedLearn;
     command_["reinforcementLearn"] = reinforcementLearn;
@@ -35,7 +34,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["checkBook"]          = checkBook;
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
-    command_["convertModelToCPU"]  = convertModelToCPU;
     // clang-format on
 }
 

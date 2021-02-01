@@ -2,6 +2,7 @@
 #define MIACIS_LEARN_HPP
 
 #include "neural_network.hpp"
+#include "learning_model.hpp"
 #include "timer.hpp"
 
 //標準出力とファイルストリームに同時に出力するためのクラス
@@ -54,7 +55,7 @@ public:
     torch::Tensor learnOneStep(const std::vector<LearningData>& curr_data, int64_t stem_num);
 
     //学習するモデル。強化学習時に定期的な同期を挟むためにpublicに置く
-    NeuralNetwork neural_network;
+    LearningModel neural_network;
 
 private:
     //Optimizer
@@ -104,10 +105,7 @@ private:
 std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold);
 
 //validationを行う関数
-std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<LearningData>& valid_data, uint64_t batch_size);
-
-//パラメータを初期化
-void initParams();
+std::array<float, LOSS_TYPE_NUM> validation(LearningModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
 
 //棋譜からの教師あり学習
 void supervisedLearn();

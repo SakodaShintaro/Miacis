@@ -1,6 +1,8 @@
 ﻿#include "game_generator.hpp"
 #include "hyperparameter_loader.hpp"
 #include "learn.hpp"
+#include "infer_model.hpp"
+#include <torch/torch.h>
 
 void reinforcementLearn() {
     // clang-format off
@@ -58,12 +60,11 @@ void reinforcementLearn() {
 
     //GPUの数だけネットワーク,自己対局生成器を生成
     size_t gpu_num = torch::getNumGPUs();
-    std::vector<NeuralNetwork> neural_networks(gpu_num);
+    std::vector<InferModel> neural_networks(gpu_num);
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     std::vector<std::thread> gen_threads;
     for (uint64_t i = 0; i < gpu_num; i++) {
-        torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-        neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
+        neural_networks[i].load(DEFAULT_MODEL_NAME, static_cast<int16_t>(i));
         generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_thread, Q_dist_lambda, noise_mode,
                                                         noise_epsilon, noise_alpha, replay_buffer, neural_networks[i]);
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
@@ -97,7 +98,7 @@ void reinforcementLearn() {
         //一定間隔でActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
             //学習パラメータを保存
-            torch::save(learn_manager.neural_network, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+            learn_manager.neural_network.save(DEFAULT_MODEL_NAME);
 
             //各ネットワークで保存されたパラメータを読み込み
             for (uint64_t i = 0; i < gpu_num; i++) {
@@ -107,9 +108,7 @@ void reinforcementLearn() {
 
                 //ロードするときは一度fp32に直さないとエラーになる
                 //もっと良いやり方はありそうだがなぁ
-                neural_networks[i]->setGPU(i, false);
-                torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-                neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
+                neural_networks[i].load(DEFAULT_MODEL_NAME, static_cast<int16_t>(i));
                 if (i > 0) {
                     generators[i]->gpu_mutex.unlock();
                 }

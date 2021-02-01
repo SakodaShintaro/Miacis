@@ -6,6 +6,7 @@
 #include "search_options.hpp"
 #include "searcher.hpp"
 #include "searcher_for_mate.hpp"
+#include "infer_model.hpp"
 #include <atomic>
 #include <mutex>
 #include <stack>
@@ -16,11 +17,10 @@
 class GameGenerator {
 public:
     GameGenerator(const SearchOptions& search_options, int64_t worker_num, float Q_dist_lambda, int64_t noise_mode,
-                  float noise_epsilon, float noise_alpha, ReplayBuffer& rb, NeuralNetwork nn)
+                  float noise_epsilon, float noise_alpha, ReplayBuffer& rb, InferModel& nn)
         : stop_signal(false), search_options_(search_options), worker_num_(worker_num), Q_dist_lambda_(Q_dist_lambda),
           noise_mode_(noise_mode), noise_epsilon_(noise_epsilon), noise_alpha_(noise_alpha), replay_buffer_(rb),
-          neural_network_(std::move(nn)), gpu_queues_(search_options_.thread_num_per_gpu) {
-        neural_network_->eval();
+          neural_network_(nn), gpu_queues_(search_options_.thread_num_per_gpu) {
         assert(0 <= noise_mode_ && noise_mode_ < NOISE_MODE_SIZE);
     };
 
@@ -70,7 +70,7 @@ private:
     ReplayBuffer& replay_buffer_;
 
     //局面評価に用いるネットワーク
-    NeuralNetwork neural_network_;
+    InferModel& neural_network_;
 
     //評価要求を受け付けるQueue
     std::vector<GPUQueue> gpu_queues_;

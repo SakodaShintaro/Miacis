@@ -16,9 +16,7 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
     //GPUを準備
     for (int64_t i = 0; i < search_options.gpu_num; i++) {
         neural_networks_.emplace_back();
-        torch::load(neural_networks_[i], search_options_.model_name);
-        neural_networks_[i]->setGPU(i, search_options_.use_fp16);
-        neural_networks_[i]->eval();
+        neural_networks_[i].load(search_options_.model_name, i);
     }
 
     //GPUに対するmutexを準備
@@ -98,7 +96,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
         }
         torch::NoGradGuard no_grad_guard;
         std::pair<std::vector<PolicyType>, std::vector<ValueType>> y =
-            neural_networks_[0]->policyAndValueBatch(gpu_queues_[0][0].inputs);
+            neural_networks_[0].policyAndValueBatch(gpu_queues_[0][0].inputs);
 
         //ルートノードへ書き込み
         curr_node.nn_policy.resize(curr_node.moves.size());
@@ -256,7 +254,7 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
             torch::NoGradGuard no_grad_guard;
             gpu_mutexes_[gpu_id].lock();
             std::pair<std::vector<PolicyType>, std::vector<ValueType>> y =
-                neural_networks_[gpu_id]->policyAndValueBatch(gpu_queue.inputs);
+                neural_networks_[gpu_id].policyAndValueBatch(gpu_queue.inputs);
             gpu_mutexes_[gpu_id].unlock();
 
             //書き込み

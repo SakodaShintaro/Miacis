@@ -6,7 +6,7 @@
 #include <random>
 #include <sstream>
 
-std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
+std::array<float, LOSS_TYPE_NUM> validation(LearningModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
     torch::NoGradGuard no_grad_guard;
     std::array<float, LOSS_TYPE_NUM> losses{};
     for (uint64_t index = 0; index < valid_data.size();) {
@@ -15,7 +15,7 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
             curr_data.push_back(valid_data[index++]);
         }
 
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = nn->validLoss(curr_data);
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = model.validLoss(curr_data);
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             losses[i] += loss[i].sum().item<float>();
         }
@@ -59,12 +59,6 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
     return data_buffer;
 }
 
-void initParams() {
-    NeuralNetwork nn;
-    torch::save(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    std::cout << "初期化したパラメータを" << NeuralNetworkImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
-}
-
 LearnManager::LearnManager(const std::string& learn_name) {
     assert(learn_name == "supervised" || learn_name == "reinforcement");
     HyperparameterLoader settings(learn_name + "_learn_settings.txt");
@@ -82,7 +76,8 @@ LearnManager::LearnManager(const std::string& learn_name) {
     torch::optim::SGDOptions sgd_option(learn_rate_);
     sgd_option.momentum(settings.get<float>("momentum"));
     sgd_option.weight_decay(settings.get<float>("weight_decay"));
-    optimizer_ = std::make_unique<torch::optim::SGD>(neural_network->parameters(), sgd_option);
+    std::vector<torch::Tensor> parameters;
+    optimizer_ = std::make_unique<torch::optim::SGD>(neural_network.parameters(), sgd_option);
 
     //学習推移のログファイル
     train_log_.open(learn_name + "_train_log.txt");
@@ -94,11 +89,10 @@ LearnManager::LearnManager(const std::string& learn_name) {
     }
 
     //評価関数読み込み
-    torch::load(neural_network, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    neural_network->setGPU(0);
+    neural_network.load(DEFAULT_MODEL_NAME, 0);
 
     //学習前のパラメータを出力
-    torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_before_learn.model");
+    neural_network.save(MODEL_PREFIX + "_before_learn.model");
 
     //パラメータの保存間隔
     save_interval_ = settings.get<int64_t>("save_interval");
@@ -130,7 +124,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     //学習
     optimizer_->zero_grad();
-    std::array<torch::Tensor, LOSS_TYPE_NUM> loss = neural_network->loss(curr_data);
+    std::array<torch::Tensor, LOSS_TYPE_NUM> loss = neural_network.loss(curr_data);
     torch::Tensor loss_sum = torch::zeros({ batch_size });
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         loss_sum += coefficients_[i] * loss[i].cpu();
@@ -174,7 +168,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
         optimizer_->zero_grad();
 
         //再計算
-        loss = neural_network->loss(curr_data);
+        loss = neural_network.loss(curr_data);
         loss_sum = torch::zeros({ batch_size });
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             loss_sum += coefficients_[i] * loss[i].cpu();
@@ -210,9 +204,9 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     if (stem_num % validation_interval_ == 0) {
         //validation_lossを計算
-        neural_network->eval();
+        neural_network.eval();
         std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network, valid_data_, batch_size);
-        neural_network->train();
+        neural_network.train();
         float sum_loss = 0;
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             sum_loss += coefficients_[i] * valid_loss[i];
@@ -228,7 +222,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     //パラメータをステップ付きで保存
     if (stem_num % save_interval_ == 0) {
-        torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(stem_num) + ".model");
+        neural_network.save(MODEL_PREFIX + "_" + std::to_string(stem_num) + ".model");
     }
 
     //学習率の変化はoptimizer_->defaults();を使えそうな気がする

@@ -61,7 +61,7 @@ public:
         spin_options.emplace("print_policy_num",       SpinOption(print_policy_num         =     0,    0,  593));
         spin_options.emplace("remained_turn_divisor",  SpinOption(remained_turn_divisor    =     1,    1,  MAX));
         spin_options.emplace("hold_moves_num",         SpinOption(hold_moves_num           =    32,    1,  593));
-        filename_options.emplace("model_name",         FilenameOption(model_name = NeuralNetworkImpl::DEFAULT_MODEL_NAME));
+        filename_options.emplace("model_name",         FilenameOption(model_name = DEFAULT_MODEL_NAME));
         filename_options.emplace("book_file_name",     FilenameOption(book_file_name       = "book.txt"));
         // clang-format on
     }

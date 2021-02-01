@@ -3,7 +3,7 @@ project(Miacis)
 
 #共通する設定
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-march=native")
+set(CMAKE_CXX_FLAGS "-march=native -I/root/trtorch/include/")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.7.0)
@@ -14,7 +14,6 @@ set(SRCS hash_table.cpp
          replay_buffer.cpp
          game_generator.cpp
          neural_network.cpp
-         neural_network_modules.cpp
          learn.cpp
          supervised_learn.cpp
          reinforcement_learn.cpp
@@ -24,7 +23,9 @@ set(SRCS hash_table.cpp
          hyperparameter_loader.cpp
          segment_tree.cpp
          common.cpp
-        timer.cpp
+         timer.cpp
+         learning_model.cpp
+         infer_model.cpp
          )
 
 #将棋用のバイナリをコンパイルするのに必要なソース
@@ -65,8 +66,8 @@ if (MSVC)
     target_link_libraries(Miacis_othello_scalar      "${TORCH_LIBRARIES}")
     target_link_libraries(Miacis_othello_categorical "${TORCH_LIBRARIES}")
 else()
-    target_link_libraries(Miacis_shogi_scalar        pthread stdc++fs "${TORCH_LIBRARIES}")
-    target_link_libraries(Miacis_shogi_categorical   pthread stdc++fs "${TORCH_LIBRARIES}")
-    target_link_libraries(Miacis_othello_scalar      pthread stdc++fs "${TORCH_LIBRARIES}")
-    target_link_libraries(Miacis_othello_categorical pthread stdc++fs "${TORCH_LIBRARIES}")
+    target_link_libraries(Miacis_shogi_scalar        pthread stdc++fs "${TORCH_LIBRARIES}" /root/trtorch/lib/libtrtorch.so /root/trtorch/lib/libtrtorchrt.so)
+    target_link_libraries(Miacis_shogi_categorical   pthread stdc++fs "${TORCH_LIBRARIES}" /root/trtorch/lib/libtrtorch.so /root/trtorch/lib/libtrtorchrt.so)
+    target_link_libraries(Miacis_othello_scalar      pthread stdc++fs "${TORCH_LIBRARIES}" /root/trtorch/lib/libtrtorch.so /root/trtorch/lib/libtrtorchrt.so)
+    target_link_libraries(Miacis_othello_categorical pthread stdc++fs "${TORCH_LIBRARIES}" /root/trtorch/lib/libtrtorch.so /root/trtorch/lib/libtrtorchrt.so)
 endif()
