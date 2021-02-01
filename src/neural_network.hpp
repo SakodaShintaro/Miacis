@@ -47,12 +47,6 @@ public:
     //学習データについて損失を返す関数
     std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
 
-    //MixUpを行って損失を返す関数
-    std::array<torch::Tensor, LOSS_TYPE_NUM> mixUpLoss(const std::vector<LearningData>& data, float alpha);
-
-    //MixUpを行って損失を返す関数
-    std::array<torch::Tensor, LOSS_TYPE_NUM> mixUpLossFinalLayer(const std::vector<LearningData>& data, float alpha);
-
     //GPUにネットワークを送る関数
     void setGPU(int16_t gpu_id, bool fp16 = false);
 

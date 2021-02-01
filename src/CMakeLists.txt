@@ -15,15 +15,16 @@ set(SRCS hash_table.cpp
          game_generator.cpp
          neural_network.cpp
          neural_network_modules.cpp
-         supervised_learn.cpp
          learn.cpp
-         alphazero_learn.cpp
+         supervised_learn.cpp
+         reinforcement_learn.cpp
          searcher.cpp
          searcher_for_play.cpp
          searcher_for_mate.cpp
          hyperparameter_loader.cpp
          segment_tree.cpp
          common.cpp
+        timer.cpp
          )
 
 #将棋用のバイナリをコンパイルするのに必要なソース
