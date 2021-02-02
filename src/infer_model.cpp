@@ -7,12 +7,12 @@
 void InferModel::load(const std::string& model_path, int64_t gpu_id) {
     module_ = torch::jit::load(model_path);
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-    module_.to(torch::kCUDA, torch::kHalf);
+    module_.to(device_, torch::kHalf);
     module_.eval();
 
-    torch::Tensor in_min = torch::randn({ 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH }, torch::kCUDA).to(torch::kHalf);
-    torch::Tensor in_opt = torch::randn({ 128, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH }, torch::kCUDA).to(torch::kHalf);
-    torch::Tensor in_max = torch::randn({ 256, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH }, torch::kCUDA).to(torch::kHalf);
+    torch::Tensor in_min = torch::randn({ 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH }, device_).to(torch::kHalf);
+    torch::Tensor in_opt = torch::randn({ 128, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH }, device_).to(torch::kHalf);
+    torch::Tensor in_max = torch::randn({ 256, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH }, device_).to(torch::kHalf);
 
     //trtorch
     trtorch::CompileSpec::InputRange range(in_min.sizes(), in_opt.sizes(), in_max.sizes());

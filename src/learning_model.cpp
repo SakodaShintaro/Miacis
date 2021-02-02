@@ -6,7 +6,7 @@
 void LearningModel::load(const std::string& model_path, int64_t gpu_id) {
     module_ = torch::jit::load(model_path);
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-    module_.to(torch::kCUDA);
+    module_.to(device_);
 }
 
 void LearningModel::save(const std::string& model_path) {
