@@ -77,7 +77,7 @@ class NeuralNetwork(nn.Module):
         value = self.value_linear0_.forward(value)
         value = F.relu(value)
         value = self.value_linear1_.forward(value)
-        value = torch.sigmoid(value)
+        value = torch.tanh(value)
 
         return policy, value
 
