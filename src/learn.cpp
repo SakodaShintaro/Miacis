@@ -6,7 +6,8 @@
 #include <random>
 #include <sstream>
 
-std::array<float, LOSS_TYPE_NUM> validation(LearningModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
+std::array<float, LOSS_TYPE_NUM> validation(LearningModel& model, const std::vector<LearningData>& valid_data,
+                                            uint64_t batch_size) {
     torch::NoGradGuard no_grad_guard;
     std::array<float, LOSS_TYPE_NUM> losses{};
     for (uint64_t index = 0; index < valid_data.size();) {
@@ -71,14 +72,6 @@ LearnManager::LearnManager(const std::string& learn_name) {
         coefficients_[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
     }
 
-    //optimizerの準備
-    learn_rate_ = settings.get<float>("learn_rate");
-    torch::optim::SGDOptions sgd_option(learn_rate_);
-    sgd_option.momentum(settings.get<float>("momentum"));
-    sgd_option.weight_decay(settings.get<float>("weight_decay"));
-    std::vector<torch::Tensor> parameters;
-    optimizer_ = std::make_unique<torch::optim::SGD>(neural_network.parameters(), sgd_option);
-
     //学習推移のログファイル
     train_log_.open(learn_name + "_train_log.txt");
     valid_log_.open(learn_name + "_valid_log.txt");
@@ -93,6 +86,14 @@ LearnManager::LearnManager(const std::string& learn_name) {
 
     //学習前のパラメータを出力
     neural_network.save(MODEL_PREFIX + "_before_learn.model");
+
+    //optimizerの準備
+    learn_rate_ = settings.get<float>("learn_rate");
+    torch::optim::SGDOptions sgd_option(learn_rate_);
+    sgd_option.momentum(settings.get<float>("momentum"));
+    sgd_option.weight_decay(settings.get<float>("weight_decay"));
+    std::vector<torch::Tensor> parameters;
+    optimizer_ = std::make_unique<torch::optim::SGD>(neural_network.parameters(), sgd_option);
 
     //パラメータの保存間隔
     save_interval_ = settings.get<int64_t>("save_interval");
