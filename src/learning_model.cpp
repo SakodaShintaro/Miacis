@@ -53,7 +53,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<L
 
 #ifdef USE_CATEGORICAL
     torch::Tensor categorical_target = torch::tensor(value_teachers).to(device_);
-    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(y.second, 1), categorical_target);
+    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), categorical_target);
 #else
     torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
     value = value.view(-1);
@@ -94,17 +94,20 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vec
         value_teachers.push_back(data[i].value == 0 ? MIN_SCORE : MAX_SCORE);
     }
 
-    std::pair<torch::Tensor, torch::Tensor> y = forward(inputs);
-    torch::Tensor logits = y.first.view({ -1, POLICY_DIM });
+    torch::Tensor input_tensor = encode(inputs);
+    auto out = module_.forward({ input_tensor });
+    auto tuple = out.toTuple();
+    torch::Tensor policy_logit = tuple->elements()[0].toTensor();
+    torch::Tensor value_logit = tuple->elements()[1].toTensor();
 
-    torch::Tensor policy_target =
-        (fp16_ ? torch::tensor(policy_teachers).to(device_, torch::kHalf) : torch::tensor(policy_teachers).to(device_))
-            .view({ -1, POLICY_DIM });
+    torch::Tensor logits = policy_logit.view({ -1, POLICY_DIM });
+
+    torch::Tensor policy_target = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
 
     torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false);
 
     //Valueの分布を取得
-    torch::Tensor value_cat = torch::softmax(y.second, 1);
+    torch::Tensor value_cat = torch::softmax(value_logit, 1);
 
     //i番目の要素が示す値はMIN_SCORE + (i + 0.5) * VALUE_WIDTH
     std::vector<float> each_value;
@@ -116,8 +119,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vec
     //Categorical分布と内積を取ることで期待値を求める
     torch::Tensor value = (each_value_tensor * value_cat).sum(1);
 
-    torch::Tensor value_t =
-        (fp16_ ? torch::tensor(value_teachers).to(device_, torch::kHalf) : torch::tensor(value_teachers).to(device_));
+    torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
 
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = torch::binary_cross_entropy(value, value_t, {}, torch::Reduction::None);

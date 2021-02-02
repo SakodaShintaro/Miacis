@@ -27,7 +27,7 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
     auto out = module_.forward({ x });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
-    torch::Tensor value = tuple->elements()[1].toTensor();
+    torch::Tensor value_logit = tuple->elements()[1].toTensor();
 
     uint64_t batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);
 
@@ -42,7 +42,7 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
     }
 
 #ifdef USE_CATEGORICAL
-    torch::Tensor value = torch::softmax(y.second, 1).cpu();
+    torch::Tensor value = torch::softmax(value_logit, 1).cpu();
     torch::Half* value_p = value.data_ptr<torch::Half>();
     for (uint64_t i = 0; i < batch_size; i++) {
         std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
