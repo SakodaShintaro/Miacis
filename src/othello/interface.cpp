@@ -22,7 +22,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["quit"]           = [this] { quit(); };
 
     //メンバ関数以外
-    command_["initParams"]         = initParams;
     command_["supervisedLearn"]    = supervisedLearn;
     command_["reinforcementLearn"] = reinforcementLearn;
     // clang-format on
@@ -107,10 +106,8 @@ void Interface::test() {
     search_options.thread_num_per_gpu = 1;
     search_options.search_batch_size = 1;
     search_options.output_log_file = true;
-    NeuralNetwork nn;
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    nn->setGPU(0);
-    nn->eval();
+    InferModel nn;
+    nn.load(DEFAULT_MODEL_NAME, 0);
     SearcherForPlay searcher(search_options);
 
     Position pos;
@@ -289,9 +286,8 @@ void Interface::quit() {
 void Interface::outputValue() {
     root_.init();
     std::ofstream ofs("value_output.txt");
-    NeuralNetwork nn;
-    torch::load(nn, options_.model_name);
-    nn->setGPU(0);
+    InferModel nn;
+    nn.load(options_.model_name, 0);
 
     std::uniform_real_distribution<float> dist(0.0, 1.0);
 
@@ -300,7 +296,7 @@ void Interface::outputValue() {
         std::vector<float> feature = root_.makeFeature();
         root_.print();
 
-        std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = nn->policyAndValueBatch(feature);
+        std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = nn.policyAndValueBatch(feature);
         PolicyType policy;
         std::vector<Move> moves = root_.generateAllMoves();
         for (const Move& move : moves) {
