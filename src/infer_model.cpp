@@ -18,6 +18,7 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id) {
     trtorch::CompileSpec::InputRange range(in_min.sizes(), in_opt.sizes(), in_max.sizes());
     trtorch::CompileSpec info({ range });
     info.op_precision = torch::kHalf;
+    info.device.gpu_id = gpu_id;
     module_ = trtorch::CompileGraph(module_, info);
 }
 
