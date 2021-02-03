@@ -45,6 +45,9 @@ ENV LD_LIBRARY_PATH /opt/conda/lib/python3.6/site-packages/torch/lib:$LD_LIBRARY
 RUN apt-get update && apt-get install -y language-pack-ja-base language-pack-ja && rm -rf /var/lib/apt/lists/*
 ENV LANG='ja_JP.UTF-8'
 
+# 必要なもののインストール
+RUN apt-get update && apt-get install -y p7zip-full && rm -rf /var/lib/apt/lists/*
+
 # trtorchを適切な場所へ展開
 WORKDIR /root
 RUN tar xvf /opt/trtorch/bazel-bin/libtrtorch.tar.gz .
