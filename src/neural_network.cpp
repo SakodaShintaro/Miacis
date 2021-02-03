@@ -10,9 +10,6 @@ static constexpr int32_t CHANNEL_NUM = 128;
 static constexpr int32_t BLOCK_NUM = 5;
 static constexpr int32_t CHANNEL_NUM = 64;
 #endif
-static constexpr int32_t KERNEL_SIZE = 3;
-static constexpr int32_t REDUCTION = 8;
-static constexpr int32_t VALUE_HIDDEN_NUM = 256;
 
 #ifdef USE_CATEGORICAL
 #ifdef SHOGI
