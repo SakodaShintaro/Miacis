@@ -10,12 +10,12 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id) {
     module_.to(device_, torch::kHalf);
     module_.eval();
 
-    torch::Tensor in_min = torch::randn({ 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH }, device_).to(torch::kHalf);
-    torch::Tensor in_opt = torch::randn({ 128, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH }, device_).to(torch::kHalf);
-    torch::Tensor in_max = torch::randn({ 256, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH }, device_).to(torch::kHalf);
+    std::vector<int64_t> in_min = { 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
+    std::vector<int64_t> in_opt = { 128, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
+    std::vector<int64_t> in_max = { 256, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
 
     //trtorch
-    trtorch::CompileSpec::InputRange range(in_min.sizes(), in_opt.sizes(), in_max.sizes());
+    trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
     trtorch::CompileSpec info({ range });
     info.op_precision = torch::kHalf;
     info.device.gpu_id = gpu_id;
