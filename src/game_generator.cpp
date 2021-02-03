@@ -1,5 +1,6 @@
 ﻿#include "game_generator.hpp"
 #include <thread>
+#include <trtorch/trtorch.h>
 
 void GameGenerator::genGames() {
     //まず最初のロード
@@ -19,6 +20,9 @@ void GameGenerator::genGames() {
 }
 
 void GameGenerator::genSlave(int64_t thread_id) {
+    //スレッドごとにCUDAをセットしておかないとエラーが出る
+    trtorch::set_device(gpu_id_);
+
     //Workerを準備
     std::vector<std::unique_ptr<GenerateWorker>> workers(worker_num_);
     for (int32_t i = 0; i < worker_num_; i++) {
@@ -54,10 +58,12 @@ void GameGenerator::genSlave(int64_t thread_id) {
         }
 
         //パラメータをロードし直す必要があれば実行
+        gpu_mutex.lock();
         if (need_load) {
             neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_);
             need_load = false;
         }
+        gpu_mutex.unlock();
     }
 }
 
