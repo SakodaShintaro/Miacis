@@ -29,7 +29,7 @@ elif args.game == "othello":
 class Conv2DwithBatchNorm(nn.Module):
     def __init__(self, input_ch, output_ch, kernel_size):
         super(Conv2DwithBatchNorm, self).__init__()
-        self.conv_ = nn.Conv2d(input_ch, output_ch, kernel_size, padding=kernel_size // 2)
+        self.conv_ = nn.Conv2d(input_ch, output_ch, kernel_size, bias=False, padding=kernel_size // 2)
         self.norm_ = nn.BatchNorm2d(output_ch)
 
     def forward(self, x):
