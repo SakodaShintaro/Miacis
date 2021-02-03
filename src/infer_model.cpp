@@ -5,10 +5,10 @@
 #include <trtorch/trtorch.h>
 
 void InferModel::load(const std::string& model_path, int64_t gpu_id) {
-    module_ = torch::jit::load(model_path);
+    torch::jit::Module module = torch::jit::load(model_path);
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-    module_.to(device_, torch::kHalf);
-    module_.eval();
+    module.to(device_, torch::kHalf);
+    module.eval();
 
     std::vector<int64_t> in_min = { 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
     std::vector<int64_t> in_opt = { 128, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
@@ -19,7 +19,7 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id) {
     trtorch::CompileSpec info({ range });
     info.op_precision = torch::kHalf;
     info.device.gpu_id = gpu_id;
-    module_ = trtorch::CompileGraph(module_, info);
+    module_ = trtorch::CompileGraph(module, info);
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAndValueBatch(const std::vector<float>& inputs) {
