@@ -60,13 +60,11 @@ void reinforcementLearn() {
 
     //GPUの数だけネットワーク,自己対局生成器を生成
     size_t gpu_num = torch::getNumGPUs();
-    std::vector<InferModel> neural_networks(gpu_num);
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     std::vector<std::thread> gen_threads;
     for (uint64_t i = 0; i < gpu_num; i++) {
-        neural_networks[i].load(DEFAULT_MODEL_NAME, static_cast<int16_t>(i));
         generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_thread, Q_dist_lambda, noise_mode,
-                                                        noise_epsilon, noise_alpha, replay_buffer, neural_networks[i]);
+                                                        noise_epsilon, noise_alpha, replay_buffer, i);
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
     }
 
@@ -106,9 +104,9 @@ void reinforcementLearn() {
                     generators[i]->gpu_mutex.lock();
                 }
 
-                //ロードするときは一度fp32に直さないとエラーになる
-                //もっと良いやり方はありそうだがなぁ
-                neural_networks[i].load(DEFAULT_MODEL_NAME, static_cast<int16_t>(i));
+                //パラメータをロードするべきというシグナルを出す
+                generators[i]->need_load = true;
+
                 if (i > 0) {
                     generators[i]->gpu_mutex.unlock();
                 }

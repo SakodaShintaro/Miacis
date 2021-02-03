@@ -2,6 +2,10 @@
 #include <thread>
 
 void GameGenerator::genGames() {
+    //まず最初のロード
+    neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_);
+    need_load = false;
+
     //生成スレッドを生成
     std::vector<std::thread> threads;
     for (int64_t i = 0; i < search_options_.thread_num_per_gpu; i++) {
@@ -47,6 +51,12 @@ void GameGenerator::genSlave(int64_t thread_id) {
         //各Workerについてbackup
         for (int32_t i = 0; i < worker_num_; i++) {
             workers[i]->backup();
+        }
+
+        //パラメータをロードし直す必要があれば実行
+        if (need_load) {
+            neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_);
+            need_load = false;
         }
     }
 }
