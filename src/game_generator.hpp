@@ -27,7 +27,7 @@ public:
     //生成してリプレイバッファに送り続ける関数
     void genGames();
 
-    //排他制御用のmutex。AlphaZeroTrainerから触れるようにpublicに置いている
+    //排他制御用のmutex。強化学習時に外部からアクセスできるようpublicに置いている
     std::mutex gpu_mutex;
 
     //評価パラメータの読み込みが必要かどうかのシグナル
