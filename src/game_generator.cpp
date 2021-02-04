@@ -58,12 +58,13 @@ void GameGenerator::genSlave(int64_t thread_id) {
         }
 
         //パラメータをロードし直す必要があれば実行
-        gpu_mutex.lock();
-        if (need_load) {
+        //全スレッドが読み込もうとする必要はないので代表してid=0のスレッドに任せる
+        if (need_load && thread_id == 0) {
+            gpu_mutex.lock();
             neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_);
             need_load = false;
+            gpu_mutex.unlock();
         }
-        gpu_mutex.unlock();
     }
 }
 
