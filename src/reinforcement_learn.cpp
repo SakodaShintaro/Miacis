@@ -1,7 +1,7 @@
 ﻿#include "game_generator.hpp"
 #include "hyperparameter_loader.hpp"
-#include "learn.hpp"
 #include "infer_model.hpp"
+#include "learn.hpp"
 #include <torch/torch.h>
 
 void reinforcementLearn() {
@@ -89,6 +89,9 @@ void reinforcementLearn() {
         //1ステップ学習し、損失を取得
         torch::Tensor loss_sum = learn_manager.learnOneStep(curr_data, step_num);
 
+        //GPUを解放
+        generators.front()->gpu_mutex.unlock();
+
         //replay_bufferのpriorityを更新
         std::vector<float> loss_vec(loss_sum.data_ptr<float>(), loss_sum.data_ptr<float>() + batch_size);
         replay_buffer.update(loss_vec);
@@ -100,21 +103,14 @@ void reinforcementLearn() {
 
             //各ネットワークで保存されたパラメータを読み込み
             for (uint64_t i = 0; i < gpu_num; i++) {
-                if (i > 0) {
-                    generators[i]->gpu_mutex.lock();
-                }
+                generators[i]->gpu_mutex.lock();
 
                 //パラメータをロードするべきというシグナルを出す
                 generators[i]->need_load = true;
 
-                if (i > 0) {
-                    generators[i]->gpu_mutex.unlock();
-                }
+                generators[i]->gpu_mutex.unlock();
             }
         }
-
-        //GPUを解放
-        generators.front()->gpu_mutex.unlock();
 
         //学習スレッドを眠らせることで擬似的にActorの数を増やす
         std::this_thread::sleep_for(std::chrono::milliseconds(sleep_msec));
