@@ -245,5 +245,5 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
         }
     }
 
-    return loss_sum;
+    return loss_sum.detach();
 }
