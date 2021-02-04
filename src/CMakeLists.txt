@@ -15,43 +15,13 @@ set(TRTORCH_INCLUDE ../../trtorch/include)
 file(GLOB TRTORCH_LIBRARIES ../../trtorch/lib/*.so)
 
 # 各ゲームで共通する部分のソース
-set(SRCS hash_table.cpp
-         replay_buffer.cpp
-         game_generator.cpp
-         neural_network.cpp
-         learn.cpp
-         supervised_learn.cpp
-         reinforcement_learn.cpp
-         searcher.cpp
-         searcher_for_play.cpp
-         searcher_for_mate.cpp
-         hyperparameter_loader.cpp
-         segment_tree.cpp
-         common.cpp
-         timer.cpp
-         learning_model.cpp
-         infer_model.cpp
-         )
+file(GLOB SRCS ./*.cpp)
 
 # 将棋用のバイナリをコンパイルするのに必要なソース
-set(SHOGI_SRCS shogi/main.cpp
-        shogi/test.cpp
-        shogi/bitboard.cpp
-        shogi/move.cpp
-        shogi/piece.cpp
-        shogi/position.cpp
-        shogi/square.cpp
-        shogi/interface.cpp
-        shogi/game.cpp
-        shogi/book.cpp)
+file(GLOB SHOGI_SRCS ./shogi/*.cpp)
 
 # オセロ用のバイナリをコンパイルするのに必要なソース
-set(OTHELLO_SRCS othello/main.cpp
-                 othello/position.cpp
-                 othello/square.cpp
-                 othello/piece.cpp
-                 othello/interface.cpp
-                 othello/game.cpp)
+file(GLOB OTHELLO_SRCS ./othello/*.cpp)
 
 # 実行ファイルの定義
 add_executable(Miacis_shogi_scalar      ${SRCS} ${SHOGI_SRCS})
@@ -64,6 +34,7 @@ add_executable(Miacis_othello_categorical ${SRCS} ${OTHELLO_SRCS})
 target_compile_definitions(Miacis_othello_scalar      PUBLIC OTHELLO)
 target_compile_definitions(Miacis_othello_categorical PUBLIC OTHELLO USE_CATEGORICAL)
 
+# foreachで回すためにリスト化
 set(BIN Miacis_shogi_scalar Miacis_shogi_categorical Miacis_othello_scalar Miacis_othello_categorical)
 
 if (MSVC)
