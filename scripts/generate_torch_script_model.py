@@ -6,8 +6,8 @@ import torch.jit
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-game", choices=["shogi", "othello"])
-parser.add_argument("-value_type", choices=["sca", "cat"])
+parser.add_argument("-game", default="shogi", choices=["shogi", "othello"])
+parser.add_argument("-value_type", default="cat", choices=["sca", "cat"])
 parser.add_argument("--block_num", type=int, default=10)
 parser.add_argument("--channel_num", type=int, default=128)
 args = parser.parse_args()
