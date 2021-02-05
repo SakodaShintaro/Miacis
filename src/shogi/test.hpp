@@ -16,6 +16,7 @@ void checkMirror();
 void checkBook();
 void makeBook();
 void searchWithLog();
+void testLoad();
 
 } // namespace Shogi
 

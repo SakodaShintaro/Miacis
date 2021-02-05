@@ -456,4 +456,42 @@ void searchWithLog() {
     }
 }
 
+void testLoad() {
+    constexpr int64_t LOOP_NUM = 20;
+
+    //時間計測開始
+    Timer timer;
+    timer.start();
+    int64_t pre = 0;
+    //通常試行
+    std::cout << "通常の試行" << std::endl;
+    for (int64_t num = 0; num < LOOP_NUM; num++) {
+        InferModel model;
+        model.load(DEFAULT_MODEL_NAME, 0);
+        int64_t ela = timer.elapsedSeconds();
+        int64_t curr = ela - pre;
+        pre = ela;
+        std::cout << std::setw(3) << num + 1 << "回目終了, 今回" << curr << "秒, 平均" << ela / (num + 1.0) << "秒" << std::endl;
+    }
+
+    //スレッドを作成しての試行
+    timer.start();
+    pre = 0;
+    std::cout << "スレッドを作成しての試行" << std::endl;
+    for (int64_t num = 0; num < LOOP_NUM; num++) {
+        std::thread thread([]() {
+            InferModel model;
+            model.load(DEFAULT_MODEL_NAME, 0);
+        });
+        thread.join();
+        int64_t ela = timer.elapsedSeconds();
+        int64_t curr = ela - pre;
+        pre = ela;
+        std::cout << std::setw(3) << num + 1 << "回目終了, 今回" << curr << "秒, 平均" << ela / (num + 1.0) << "秒" << std::endl;
+    }
+
+    std::cout << "finish testLoad" << std::endl;
+    std::exit(0);
+}
+
 } // namespace Shogi

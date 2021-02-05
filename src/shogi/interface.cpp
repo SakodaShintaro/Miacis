@@ -34,6 +34,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["checkBook"]          = checkBook;
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
+    command_["testLoad"]           = testLoad;
     // clang-format on
 }
 
