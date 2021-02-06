@@ -47,6 +47,7 @@ ENV LANG='ja_JP.UTF-8'
 
 # 必要なもののインストール
 RUN apt-get update && apt-get install -y p7zip-full && rm -rf /var/lib/apt/lists/*
+RUN pip install natsort
 
 # trtorchを適切な場所へ展開
 WORKDIR /root
