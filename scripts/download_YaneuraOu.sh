@@ -9,6 +9,7 @@ root_dir=../..
 # GitHubからソースコードをダウンロード
 git clone https://github.com/yaneurao/YaneuraOu ${root_dir}/YaneuraOu
 cd ${root_dir}/YaneuraOu/source
+git checkout 1048b6a1874ead3e385e5c62064cf790a9bdebea
 
 # デフォルトではclangを使うようになっているがg++を使いたいのでMakefileを書き換える
 sed -i -e "s/#COMPILER = g++/COMPILER = g++/g" Makefile
