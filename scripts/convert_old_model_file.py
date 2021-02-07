@@ -116,7 +116,7 @@ model = CategoricalNetwork(args.channel_num)
 model_names = natsorted(glob.glob(f"{args.source_dir}/*.model"))
 
 for source_model_name in model_names:
-    source = torch.jit.load("/home/sakoda/learn_result/supervised/20201029_cat/cat_bl10_ch128_3000000.model").cpu()
+    source = torch.jit.load(source_model_name).cpu()
 
     # state_first
     load_conv_and_norm(model.state_first_conv_and_norm_, source.state_first_conv_and_norm_)
