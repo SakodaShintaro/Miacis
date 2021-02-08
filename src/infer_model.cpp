@@ -4,15 +4,15 @@
 #include <torch/torch.h>
 #include <trtorch/trtorch.h>
 
-void InferModel::load(const std::string& model_path, int64_t gpu_id) {
+void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size) {
     torch::jit::Module module = torch::jit::load(model_path);
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     module.to(device_, torch::kHalf);
     module.eval();
 
     std::vector<int64_t> in_min = { 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
-    std::vector<int64_t> in_opt = { 128, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
-    std::vector<int64_t> in_max = { 256, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
+    std::vector<int64_t> in_opt = { opt_batch_size, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
+    std::vector<int64_t> in_max = { opt_batch_size * 2, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
 
     //trtorch
     trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
