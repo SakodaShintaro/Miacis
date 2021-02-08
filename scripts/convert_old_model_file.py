@@ -8,14 +8,12 @@ import torch.jit
 import argparse
 import glob
 import os
+import re
 from natsort import natsorted
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-source_dir", type=str, required=True)
 parser.add_argument("-game", default="shogi", choices=["shogi", "othello"])
-parser.add_argument("-value_type", default="cat", choices=["sca", "cat"])
-parser.add_argument("--block_num", type=int, default=10)
-parser.add_argument("--channel_num", type=int, default=128)
 args = parser.parse_args()
 
 REDUCTION = 8
@@ -71,12 +69,38 @@ class ResidualBlock(nn.Module):
         return t
 
 
+def load_conv_and_norm(dst, src):
+    dst.conv_.weight.data = src.conv_.weight.data
+    dst.norm_.weight.data = src.norm_.weight.data
+    dst.norm_.bias.data = src.norm_.bias.data
+    dst.norm_.running_mean = src.norm_.running_mean
+    dst.norm_.running_var = src.norm_.running_var
+
+
+# ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
+source_model_names = natsorted(glob.glob(f"{args.source_dir}/*.model"))
+
+# 1番目のモデル名からブロック数,チャンネル数を読み取る.これらは1ディレクトリ内で共通だという前提
+basename_without_ext = os.path.splitext(os.path.basename(source_model_names[0]))[0]
+parts = basename_without_ext.split("_")
+block_num = None
+channel_num = None
+for p in parts:
+    if "bl" in p:
+        block_num = int(re.sub("\\D", "", p))
+    elif "ch" in p:
+        channel_num = int(re.sub("\\D", "", p))
+
+
+# 上で取得したブロック数, チャンネル数を前提にクラスを定義
+# forwardでもchannel_numを使うのでコンストラクタの引数として渡すと面倒なので定義を遅らせて外部の変数を利用する形に
+# self.channel_num などに保存するのも、余計な変数をクラスに保持させたくない（というかTorchScript化の際にエラーになったような)
 class CategoricalNetwork(nn.Module):
-    def __init__(self, channel_num):
+    def __init__(self):
         super(CategoricalNetwork, self).__init__()
         self.state_first_conv_and_norm_ = Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, channel_num, 3)
         self.blocks = nn.Sequential()
-        for i in range(args.block_num):
+        for i in range(block_num):
             self.blocks.add_module(f"block{i}", ResidualBlock(channel_num, KERNEL_SIZE, REDUCTION))
         self.policy_conv_ = nn.Conv2d(channel_num, POLICY_CHANNEL_NUM, 1, bias=True, padding=0)
 
@@ -93,7 +117,7 @@ class CategoricalNetwork(nn.Module):
 
         value = self.value_conv_and_norm_.forward(x)
         value = F.relu(value)
-        value = value.view([-1, args.channel_num * BOARD_SIZE * BOARD_SIZE])
+        value = value.view([-1, channel_num * BOARD_SIZE * BOARD_SIZE])
         value = self.value_linear0_.forward(value)
         value = F.relu(value)
         value = self.value_linear1_.forward(value)
@@ -101,21 +125,11 @@ class CategoricalNetwork(nn.Module):
         return policy, value
 
 
-def load_conv_and_norm(dst, src):
-    dst.conv_.weight.data = src.conv_.weight.data
-    dst.norm_.weight.data = src.norm_.weight.data
-    dst.norm_.bias.data = src.norm_.bias.data
-    dst.norm_.running_mean = src.norm_.running_mean
-    dst.norm_.running_var = src.norm_.running_var
-
-
 # インスタンス生成
-model = CategoricalNetwork(args.channel_num)
+model = CategoricalNetwork()
 
-# ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
-model_names = natsorted(glob.glob(f"{args.source_dir}/*.model"))
-
-for source_model_name in model_names:
+# 各モデルファイルのパラメータをコピーしてTorchScriptとして保存
+for source_model_name in source_model_names:
     source = torch.jit.load(source_model_name).cpu()
 
     # state_first
