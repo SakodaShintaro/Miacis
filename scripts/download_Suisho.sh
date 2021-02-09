@@ -9,10 +9,7 @@ root_dir=../..
 # GitHubからソースコードをダウンロード
 git clone https://github.com/yaneurao/YaneuraOu ${root_dir}/Suisho
 cd ${root_dir}/Suisho/source
-
-# Gitの特定コミットへ移動
-# (dlshogiが対局していたものに合わせる cf. https://tadaoyamaoka.hatenablog.com/entry/2020/08/10/220411)
-git checkout 276faf80d51dd6cae053112db8021171d5dbf4e8
+git checkout b0a3a2a4f7565bbefb85999368df15e9c90c621f
 
 # デフォルトではclangを使うようになっているがg++を使いたいのでMakefileを書き換える
 sed -i -e "s/#COMPILER = g++/COMPILER = g++/g" Makefile
