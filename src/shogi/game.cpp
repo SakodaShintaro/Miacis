@@ -59,14 +59,12 @@ std::tuple<Game, bool> loadCSAOneGame(std::ifstream& ifs, float rate_threshold) 
             if (buf.substr(0, 6) == "%TORYO") {
                 game.result = (pos.color() == BLACK ? MIN_SCORE : MAX_SCORE);
                 ok = true;
-            } else if (buf.substr(0, 11) == "%SENNICHITE") {
-                game.result = (MAX_SCORE + MIN_SCORE) / 2;
-                ok = true;
             } else if (buf.substr(0, 6) == "%KACHI") {
                 game.result = (pos.color() == BLACK ? MAX_SCORE : MIN_SCORE);
                 ok = true;
-            } else if (buf.substr(0, 7) == "%CHUDAN" || buf.substr(0, 16) == "%+ILLEGAL_ACTION" ||
-                       buf.substr(0, 16) == "%-ILLEGAL_ACTION" || buf.substr(0, 8) == "%TIME_UP") {
+            } else if (buf.substr(0, 11) == "%SENNICHITE" || buf.substr(0, 7) == "%CHUDAN" ||
+                       buf.substr(0, 16) == "%+ILLEGAL_ACTION" || buf.substr(0, 16) == "%-ILLEGAL_ACTION" ||
+                       buf.substr(0, 8) == "%TIME_UP") {
                 //ダメな対局であったというフラグを返す
                 return std::make_tuple(game, false);
             } else {
