@@ -2,8 +2,7 @@
 
 int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
 #ifdef USE_CATEGORICAL
-    int32_t best_index = std::max_element(node.N.begin(), node.N.end()) - node.N.begin();
-    float best_value = expOfValueDist(hash_table_.QfromNextValue(node, best_index));
+    float best_value = expOfValueDist(node.value);
     int32_t best_value_index = std::min(valueToIndex(best_value) + 1, BIN_SIZE - 1);
     int32_t reversed_best_value_index = BIN_SIZE - best_value_index;
 #endif
@@ -12,23 +11,24 @@ int32_t Searcher::selectMaxUcbChild(const HashEntry& node) const {
     float max_value = INT_MIN;
 
     const int32_t sum = node.sum_N + node.virtual_sum_N;
+    const float U_numerator = std::sqrt(sum + 1);
     for (uint64_t i = 0; i < node.moves.size(); i++) {
-        float U = std::sqrt(sum + 1) / (node.N[i] + node.virtual_N[i] + 1);
+        float U = U_numerator / (node.N[i] + node.virtual_N[i] + 1);
         assert(U >= 0.0);
 
 #ifdef USE_CATEGORICAL
         float P = 0.0;
         if (node.child_indices[i] == HashTable::NOT_EXPANDED) {
-            P = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : 1);
+            P = (node.N[i] == 0 ? fpu_ : 1);
         } else {
             std::unique_lock lock(hash_table_[node.child_indices[i]].mutex);
             for (int32_t j = 0; j < reversed_best_value_index; j++) {
                 P += hash_table_[node.child_indices[i]].value[j];
             }
         }
-        float ucb = search_options_.C_PUCT_x1000 / 1000.0 * node.nn_policy[i] * U + search_options_.P_coeff_x1000 / 1000.0 * P;
+        float ucb = c_puct_ * node.nn_policy[i] * U + p_coeff_ * P;
         if (search_options_.Q_coeff_x1000 > 0) {
-            ucb += search_options_.Q_coeff_x1000 / 1000.0 * hash_table_.expQfromNext(node, i);
+            ucb += q_coeff_ * hash_table_.expQfromNext(node, i);
         }
 #else
         float Q = (node.N[i] == 0 ? search_options_.FPU_x1000 / 1000.0 : hash_table_.QfromNextValue(node, i));

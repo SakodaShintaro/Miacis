@@ -1085,11 +1085,13 @@ bool Position::isLastMoveDropPawn() const { return (lastMove().isDrop() && kind(
 
 bool Position::isFinish(float& score, bool check_repeat) {
     //詰みの確認
-    std::vector<Move> moves = generateAllMoves();
-    if (moves.empty()) {
-        //打ち歩詰めなら手番側（詰まされた側）が勝ち、そうでないなら手番側が負け
-        score = isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE;
-        return true;
+    if (is_checked_) {
+        std::vector<Move> moves = generateAllMoves();
+        if (moves.empty()) {
+            //打ち歩詰めなら手番側（詰まされた側）が勝ち、そうでないなら手番側が負け
+            score = isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE;
+            return true;
+        }
     }
 
     //千日手の確認
