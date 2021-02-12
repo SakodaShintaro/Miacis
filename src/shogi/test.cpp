@@ -269,7 +269,7 @@ void checkVal() {
 void checkPredictSpeed() {
     Position pos;
     constexpr int64_t REPEAT_NUM = 1000;
-    constexpr int64_t BATCH_SIZE = 4096;
+    constexpr int64_t BATCH_SIZE = 512;
     std::cout << std::fixed;
 
     InferModel nn;
@@ -291,20 +291,17 @@ void checkPredictSpeed() {
             }
         }
 
-        std::cout << input.size() << std::endl;
-
         float time = 0.0;
         for (int64_t i = 0; i < REPEAT_NUM; i++) {
             auto start = std::chrono::steady_clock::now();
             torch::NoGradGuard no_grad_guard;
-            nn.policyAndValueBatch(pos.makeFeature());
+            nn.policyAndValueBatch(input);
             auto end = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
             time += elapsed.count();
         }
 
-        std::cout << "batch_size = " << std::setw(5) << batch_size << ", " << time / REPEAT_NUM << " microsec / batch"
-                  << std::endl;
+        std::cout << std::setw(5) << batch_size << "\t" << time / REPEAT_NUM << "\tmicrosec/batch" << std::endl;
     }
 }
 
