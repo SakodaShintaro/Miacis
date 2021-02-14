@@ -17,14 +17,11 @@ CalibrationDataset::CalibrationDataset(const std::string& root) {
         //targetの方は使わないのでダミーの適当な値を入れる
         targets_.push_back(torch::tensor({ 0 }));
 
-        //データ数をどれくらい取れば良いのかはよくわからない
-        //とりあえず多めに4000データ取ることにする
-        if (data_.size() >= 4000) {
+        //先頭1000データのみを用いる
+        if (data_.size() >= 1000) {
             break;
         }
     }
-
-    std::cout << data_.size() << " " << targets_.size() << std::endl;
 }
 
 torch::data::Example<> CalibrationDataset::get(size_t index) {
