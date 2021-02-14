@@ -9,19 +9,19 @@
 void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size) {
     torch::jit::Module module = torch::jit::load(model_path);
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-    module.to(device_, torch::kHalf);
+    module.to(device_);
     module.eval();
 
     std::vector<int64_t> in_min = { 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
     std::vector<int64_t> in_opt = { opt_batch_size, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
     std::vector<int64_t> in_max = { opt_batch_size * 2, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
 
-    auto dataset = CalibrationDataset("/home/sakoda/data/floodgate_kifu/small").map(torch::data::transforms::Stack<>());
+    auto dataset = CalibrationDataset("/home/sakoda/data/floodgate_kifu/valid").map(torch::data::transforms::Stack<>());
     auto dataloader =
         torch::data::make_data_loader(std::move(dataset), torch::data::DataLoaderOptions().batch_size(32).workers(1));
 
     const std::string name = "calibration_cache_file.txt";
-    auto calibrator = trtorch::ptq::make_int8_calibrator<>(std::move(dataloader), name, true);
+    auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(std::move(dataloader), name, true);
 
     //trtorch
     trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
@@ -57,7 +57,7 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
 
 #ifdef USE_CATEGORICAL
     value = torch::softmax(value, 1).cpu();
-    torch::Half* value_p = value.data_ptr<torch::Half>();
+    float* value_p = value.data_ptr<float>();
     for (uint64_t i = 0; i < batch_size; i++) {
         std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
     }
