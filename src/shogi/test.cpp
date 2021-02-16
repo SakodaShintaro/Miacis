@@ -453,7 +453,7 @@ void searchWithLog() {
 
 void testLoad() {
     constexpr int64_t LOOP_NUM = 20;
-    constexpr int64_t BATCH_SIZE = 128;
+    constexpr int64_t BATCH_SIZE = 256;
 
     //時間計測開始
     Timer timer;
@@ -474,12 +474,18 @@ void testLoad() {
     timer.start();
     pre = 0;
     std::cout << "スレッドを作成しての試行" << std::endl;
+    const int64_t gpu_num = torch::getNumGPUs();
     for (int64_t num = 0; num < LOOP_NUM; num++) {
-        std::thread thread([]() {
-            InferModel model;
-            model.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE);
-        });
-        thread.join();
+        std::vector<std::thread> threads;
+        for (int64_t i = 0; i < gpu_num; i++) {
+            threads.emplace_back([&]() {
+                InferModel model;
+                model.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE);
+            });
+        }
+        for (int64_t i = 0; i < gpu_num; i++) {
+            threads[i].join();
+        }
         int64_t ela = timer.elapsedSeconds();
         int64_t curr = ela - pre;
         pre = ela;

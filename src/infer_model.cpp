@@ -21,7 +21,7 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt
         torch::data::make_data_loader(std::move(dataset), torch::data::DataLoaderOptions().batch_size(128).workers(1));
 
     const std::string name = "calibration_cache_file.txt";
-    auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(std::move(dataloader), name, true);
+    auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(std::move(dataloader), name, false);
 
     //trtorch
     trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
