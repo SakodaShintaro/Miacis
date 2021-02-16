@@ -478,7 +478,7 @@ void testLoad() {
     for (int64_t num = 0; num < LOOP_NUM; num++) {
         std::vector<std::thread> threads;
         for (int64_t i = 0; i < gpu_num; i++) {
-            threads.emplace_back([&]() {
+            threads.emplace_back([i]() {
                 InferModel model;
                 model.load(DEFAULT_MODEL_NAME, i, BATCH_SIZE);
             });
