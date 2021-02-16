@@ -38,6 +38,7 @@ validation_interval     50000
 sleep_msec              -1
 noise_mode              0
 use_sam_optim           1
+clip_grad_norm_         10
 
 # Shogi
 init_buffer_by_kifu     0
