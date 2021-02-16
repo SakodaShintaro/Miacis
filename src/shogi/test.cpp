@@ -461,7 +461,7 @@ void testLoad() {
     int64_t pre = 0;
     //通常試行
     std::cout << "通常の試行" << std::endl;
-    for (int64_t num = 0; num < LOOP_NUM; num++) {
+    for (int64_t num = 0; num < 0; num++) {
         InferModel model;
         model.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE);
         int64_t ela = timer.elapsedSeconds();
@@ -480,7 +480,7 @@ void testLoad() {
         for (int64_t i = 0; i < gpu_num; i++) {
             threads.emplace_back([&]() {
                 InferModel model;
-                model.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE);
+                model.load(DEFAULT_MODEL_NAME, i, BATCH_SIZE);
             });
         }
         for (int64_t i = 0; i < gpu_num; i++) {
