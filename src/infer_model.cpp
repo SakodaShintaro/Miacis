@@ -7,7 +7,7 @@
 #include <trtorch/trtorch.h>
 
 void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size,
-                      const std::string& calibration_kifu_path) {
+                      const std::string& calibration_kifu_path, int64_t calibration_data_num) {
     torch::jit::Module module = torch::jit::load(model_path);
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     module.to(device_);
@@ -18,7 +18,7 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt
     std::vector<int64_t> in_max = { opt_batch_size * 2, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
 
     using namespace torch::data;
-    auto dataset = CalibrationDataset(calibration_kifu_path, 2000).map(transforms::Stack<>());
+    auto dataset = CalibrationDataset(calibration_kifu_path, calibration_data_num).map(transforms::Stack<>());
     auto dataloader = make_data_loader(std::move(dataset), DataLoaderOptions().batch_size(opt_batch_size).workers(1));
 
     const std::string name = "calibration_cache_file.txt";
@@ -154,8 +154,9 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
         value_teachers.push_back(data[i].value);
     }
 
-    torch::Tensor input_tensor = encode(inputs);
-    auto out = module_.forward({ input_tensor });
+    torch::Tensor x = torch::tensor(inputs).to(device_);
+    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+    auto out = module_.forward({ x });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
     torch::Tensor value = tuple->elements()[1].toTensor();
