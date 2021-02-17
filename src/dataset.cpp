@@ -3,7 +3,7 @@
 #include "learn.hpp"
 #include "neural_network.hpp"
 
-CalibrationDataset::CalibrationDataset(const std::string& root) {
+CalibrationDataset::CalibrationDataset(const std::string& root, int64_t data_num) {
     std::vector<LearningData> data = loadData(root, false, 3200);
     Position pos;
 
@@ -17,8 +17,8 @@ CalibrationDataset::CalibrationDataset(const std::string& root) {
         //targetの方は使わないのでダミーの適当な値を入れる
         targets_.push_back(torch::tensor({ 0 }));
 
-        //先頭1000データのみを用いる
-        if (data_.size() >= 1000) {
+        //全データだと多いので、先頭からいくつかのみを用いる
+        if (data_.size() >= data_num) {
             break;
         }
     }

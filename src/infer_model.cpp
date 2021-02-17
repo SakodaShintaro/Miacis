@@ -16,7 +16,7 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt
     std::vector<int64_t> in_opt = { opt_batch_size, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
     std::vector<int64_t> in_max = { opt_batch_size * 2, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
 
-    auto dataset = CalibrationDataset("/home/sakoda/data/floodgate_kifu/valid").map(torch::data::transforms::Stack<>());
+    auto dataset = CalibrationDataset("/home/sakoda/data/floodgate_kifu/valid", 2000).map(torch::data::transforms::Stack<>());
     auto dataloader =
         torch::data::make_data_loader(std::move(dataset), torch::data::DataLoaderOptions().batch_size(opt_batch_size).workers(1));
 
