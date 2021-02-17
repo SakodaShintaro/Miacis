@@ -6,8 +6,8 @@
 #include <random>
 #include <sstream>
 
-std::array<float, LOSS_TYPE_NUM> validation(LearningModel& model, const std::vector<LearningData>& valid_data,
-                                            uint64_t batch_size) {
+template<class ModelType>
+std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
     torch::NoGradGuard no_grad_guard;
     std::array<float, LOSS_TYPE_NUM> losses{};
     for (uint64_t index = 0; index < valid_data.size();) {
@@ -29,6 +29,9 @@ std::array<float, LOSS_TYPE_NUM> validation(LearningModel& model, const std::vec
 
     return losses;
 }
+
+template std::array<float, LOSS_TYPE_NUM> validation<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data,
+                                                                 uint64_t batch_size);
 
 std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold) {
     //棋譜を読み込めるだけ読み込む

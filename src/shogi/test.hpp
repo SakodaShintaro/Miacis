@@ -10,6 +10,7 @@ void checkSearchSpeed2();
 void checkGenSpeed();
 void checkPredictSpeed();
 void checkVal();
+void checkValInfer();
 void checkSegmentTree();
 void checkDoAndUndo();
 void checkMirror();

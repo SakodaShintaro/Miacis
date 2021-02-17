@@ -1,8 +1,9 @@
 ﻿#ifndef MIACIS_LEARN_HPP
 #define MIACIS_LEARN_HPP
 
-#include "neural_network.hpp"
+#include "infer_model.hpp"
 #include "learning_model.hpp"
+#include "neural_network.hpp"
 #include "timer.hpp"
 
 //標準出力とファイルストリームに同時に出力するためのクラス
@@ -105,7 +106,8 @@ private:
 std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold);
 
 //validationを行う関数
-std::array<float, LOSS_TYPE_NUM> validation(LearningModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
+template<class ModelType>
+std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
 
 //棋譜からの教師あり学習
 void supervisedLearn();

@@ -266,6 +266,35 @@ void checkVal() {
     }
 }
 
+void checkValInfer() {
+    //データを取得
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
+    int64_t batch_size;
+    std::cout << "batch_size : ";
+    std::cin >> batch_size;
+    std::string model_file;
+    std::cout << "model_file : ";
+    std::cin >> model_file;
+    std::string calibration_kifu_path;
+    std::cout << "calibration_kifu_path : ";
+    std::cin >> calibration_kifu_path;
+
+    std::vector<LearningData> data = loadData(path, false, 3000);
+    std::cout << "data.size() = " << data.size() << std::endl;
+
+    //ネットワークの準備
+    InferModel nn;
+    nn.load(model_file, 0, batch_size, calibration_kifu_path);
+
+    std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, batch_size);
+    std::cout << std::fixed << std::setprecision(4);
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
+    }
+}
+
 void checkPredictSpeed() {
     Position pos;
     constexpr int64_t REPEAT_NUM = 1000;
