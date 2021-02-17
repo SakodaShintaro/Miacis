@@ -14,7 +14,7 @@ void test() {
     search_options.search_batch_size = 1;
     search_options.output_log_file = true;
     InferModel nn;
-    nn.load(DEFAULT_MODEL_NAME, 0, search_options.search_batch_size);
+    nn.load(DEFAULT_MODEL_NAME, 0, search_options.search_batch_size, search_options.calibration_kifu_path);
     SearcherForPlay searcher(search_options);
 
     Position pos;
@@ -272,8 +272,10 @@ void checkPredictSpeed() {
     constexpr int64_t BATCH_SIZE = 512;
     std::cout << std::fixed;
 
+    SearchOptions search_options;
+
     InferModel nn;
-    nn.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE);
+    nn.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE, search_options.calibration_kifu_path);
 
     for (int64_t batch_size = 1; batch_size <= BATCH_SIZE; batch_size *= 2) {
         //バッチサイズ分入力を取得
@@ -455,6 +457,8 @@ void testLoad() {
     constexpr int64_t LOOP_NUM = 20;
     constexpr int64_t BATCH_SIZE = 256;
 
+    SearchOptions search_options;
+
     //時間計測開始
     Timer timer;
     timer.start();
@@ -463,7 +467,7 @@ void testLoad() {
     std::cout << "通常の試行" << std::endl;
     for (int64_t num = 0; num < 0; num++) {
         InferModel model;
-        model.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE);
+        model.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE, search_options.calibration_kifu_path);
         int64_t ela = timer.elapsedSeconds();
         int64_t curr = ela - pre;
         pre = ela;
@@ -478,9 +482,9 @@ void testLoad() {
     for (int64_t num = 0; num < LOOP_NUM; num++) {
         std::vector<std::thread> threads;
         for (int64_t i = 0; i < gpu_num; i++) {
-            threads.emplace_back([i]() {
+            threads.emplace_back([i, search_options]() {
                 InferModel model;
-                model.load(DEFAULT_MODEL_NAME, i, BATCH_SIZE);
+                model.load(DEFAULT_MODEL_NAME, i, BATCH_SIZE, search_options.calibration_kifu_path);
             });
         }
         for (int64_t i = 0; i < gpu_num; i++) {

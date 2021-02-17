@@ -4,7 +4,8 @@
 
 void GameGenerator::genGames() {
     //まず最初のロード
-    neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_, worker_num_ * search_options_.search_batch_size);
+    neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_, worker_num_ * search_options_.search_batch_size,
+                         search_options_.calibration_kifu_path);
     need_load = false;
 
     //生成スレッドを生成
@@ -61,7 +62,8 @@ void GameGenerator::genSlave(int64_t thread_id) {
         //全スレッドが読み込もうとする必要はないので代表してid=0のスレッドに任せる
         if (need_load && thread_id == 0) {
             gpu_mutex.lock();
-            neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_, worker_num_ * search_options_.search_batch_size);
+            neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_, worker_num_ * search_options_.search_batch_size,
+                                 search_options_.calibration_kifu_path);
             need_load = false;
             gpu_mutex.unlock();
         }
@@ -208,10 +210,9 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
             //選択回数が0ならMIN_SCORE
             //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
             //その他は普通に計算
-            Q_dist[i] =
-                (N[i] == 0 ? MIN_SCORE
-                           : root_node.child_indices[i] == HashTable::NOT_EXPANDED ? MAX_SCORE
-                                                                                   : hash_table_.expQfromNext(root_node, i));
+            Q_dist[i] = (N[i] == 0                                               ? MIN_SCORE
+                         : root_node.child_indices[i] == HashTable::NOT_EXPANDED ? MAX_SCORE
+                                                                                 : hash_table_.expQfromNext(root_node, i));
         }
         Q_dist = softmax(Q_dist, std::max(search_options_.temperature_x1000 / 1000.0f, 1e-4f));
 

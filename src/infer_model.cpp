@@ -6,7 +6,8 @@
 #include <trtorch/ptq.h>
 #include <trtorch/trtorch.h>
 
-void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size) {
+void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size,
+                      const std::string& calibration_kifu_path) {
     torch::jit::Module module = torch::jit::load(model_path);
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     module.to(device_);
@@ -17,7 +18,7 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt
     std::vector<int64_t> in_max = { opt_batch_size * 2, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
 
     using namespace torch::data;
-    auto dataset = CalibrationDataset("/home/sakoda/data/floodgate_kifu/valid", 2000).map(transforms::Stack<>());
+    auto dataset = CalibrationDataset(calibration_kifu_path, 2000).map(transforms::Stack<>());
     auto dataloader = make_data_loader(std::move(dataset), DataLoaderOptions().batch_size(opt_batch_size).workers(1));
 
     const std::string name = "calibration_cache_file.txt";

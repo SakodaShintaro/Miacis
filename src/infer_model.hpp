@@ -7,7 +7,7 @@
 class InferModel {
 public:
     InferModel() : device_(torch::kCPU) {}
-    void load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size);
+    void load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size, const std::string& calibration_kifu_path);
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
 private:
