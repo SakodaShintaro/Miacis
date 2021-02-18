@@ -122,7 +122,7 @@ def main():
     parser.add_argument("-game", default="shogi", choices=["shogi", "othello"])
     parser.add_argument("-value_type", default="cat", choices=["sca", "cat"])
     parser.add_argument("--block_num", type=int, default=10)
-    parser.add_argument("--channel_num", type=int, default=128)
+    parser.add_argument("--channel_num", type=int, default=256)
     args = parser.parse_args()
 
     if args.game == "shogi":
