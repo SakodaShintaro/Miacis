@@ -5,26 +5,6 @@ import torch.nn.functional as F
 import torch.jit
 import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-game", default="shogi", choices=["shogi", "othello"])
-parser.add_argument("-value_type", default="cat", choices=["sca", "cat"])
-parser.add_argument("--block_num", type=int, default=10)
-parser.add_argument("--channel_num", type=int, default=128)
-args = parser.parse_args()
-
-REDUCTION = 8
-KERNEL_SIZE = 3
-VALUE_HIDDEN_NUM = 256
-
-if args.game == "shogi":
-    INPUT_CHANNEL_NUM = 42
-    BOARD_SIZE = 9
-    POLICY_CHANNEL_NUM = 27
-elif args.game == "othello":
-    INPUT_CHANNEL_NUM = 2
-    BOARD_SIZE = 8
-    POLICY_CHANNEL_NUM = 2
-
 
 class Conv2DwithBatchNorm(nn.Module):
     def __init__(self, input_ch, output_ch, kernel_size):
@@ -66,12 +46,12 @@ class ResidualBlock(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, channel_num):
+    def __init__(self, input_channel_num, block_num, channel_num, kernel_size=3, reduction=8):
         super(Encoder, self).__init__()
-        self.first_conv_and_norm_ = Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, channel_num, 3)
+        self.first_conv_and_norm_ = Conv2DwithBatchNorm(input_channel_num, channel_num, 3)
         self.blocks = nn.Sequential()
-        for i in range(args.block_num):
-            self.blocks.add_module(f"block{i}", ResidualBlock(channel_num, KERNEL_SIZE, REDUCTION))
+        for i in range(block_num):
+            self.blocks.add_module(f"block{i}", ResidualBlock(channel_num, kernel_size, reduction))
 
     def forward(self, x):
         x = self.first_conv_and_norm_.forward(x)
@@ -81,9 +61,9 @@ class Encoder(nn.Module):
 
 
 class PolicyHead(nn.Module):
-    def __init__(self, channel_num):
+    def __init__(self, channel_num, policy_channel_num):
         super(PolicyHead, self).__init__()
-        self.policy_conv_ = nn.Conv2d(channel_num, POLICY_CHANNEL_NUM, 1, bias=True, padding=0)
+        self.policy_conv_ = nn.Conv2d(channel_num, policy_channel_num, 1, bias=True, padding=0)
 
     def forward(self, x):
         policy = self.policy_conv_.forward(x)
@@ -91,16 +71,17 @@ class PolicyHead(nn.Module):
 
 
 class ValueHead(nn.Module):
-    def __init__(self, channel_num, unit_num):
+    def __init__(self, channel_num, board_size, unit_num, hidden_size=256):
         super(ValueHead, self).__init__()
         self.value_conv_and_norm_ = Conv2DwithBatchNorm(channel_num, channel_num, 1)
-        self.value_linear0_ = nn.Linear(BOARD_SIZE * BOARD_SIZE * channel_num, VALUE_HIDDEN_NUM)
-        self.value_linear1_ = nn.Linear(VALUE_HIDDEN_NUM, unit_num)
+        self.hidden_size = channel_num * board_size * board_size
+        self.value_linear0_ = nn.Linear(self.hidden_size, hidden_size)
+        self.value_linear1_ = nn.Linear(hidden_size, unit_num)
 
     def forward(self, x):
         value = self.value_conv_and_norm_.forward(x)
         value = F.relu(value)
-        value = value.view([-1, args.channel_num * BOARD_SIZE * BOARD_SIZE])
+        value = value.view([-1, self.hidden_size])
         value = self.value_linear0_.forward(value)
         value = F.relu(value)
         value = self.value_linear1_.forward(value)
@@ -108,11 +89,11 @@ class ValueHead(nn.Module):
 
 
 class ScalarNetwork(nn.Module):
-    def __init__(self, channel_num):
+    def __init__(self, input_channel_num, block_num, channel_num, policy_channel_num, board_size):
         super(ScalarNetwork, self).__init__()
-        self.encoder_ = Encoder(channel_num)
-        self.policy_head_ = PolicyHead(channel_num)
-        self.value_head_ = ValueHead(channel_num, 1)
+        self.encoder_ = Encoder(input_channel_num, block_num, channel_num)
+        self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
+        self.value_head_ = ValueHead(channel_num, board_size, 1)
 
     def forward(self, x):
         x = self.encoder_.forward(x)
@@ -123,11 +104,11 @@ class ScalarNetwork(nn.Module):
 
 
 class CategoricalNetwork(nn.Module):
-    def __init__(self, channel_num):
+    def __init__(self, input_channel_num, block_num, channel_num, policy_channel_num, board_size):
         super(CategoricalNetwork, self).__init__()
-        self.encoder_ = Encoder(channel_num)
-        self.policy_head_ = PolicyHead(channel_num)
-        self.value_head_ = ValueHead(channel_num, 51)
+        self.encoder_ = Encoder(input_channel_num, block_num, channel_num)
+        self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
+        self.value_head_ = ValueHead(channel_num, board_size, 51)
 
     def forward(self, x):
         x = self.encoder_.forward(x)
@@ -136,14 +117,37 @@ class CategoricalNetwork(nn.Module):
         return policy, value
 
 
-model = None
-if args.value_type == "sca":
-    model = ScalarNetwork(args.channel_num)
-elif args.value_type == "cat":
-    model = CategoricalNetwork(args.channel_num)
-input_data = torch.randn([8, INPUT_CHANNEL_NUM, BOARD_SIZE, BOARD_SIZE])
-script_model = torch.jit.trace(model, input_data)
-# script_model = torch.jit.script(model)
-model_path = f"./{args.game}_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.model"
-script_model.save(model_path)
-print(f"{model_path}にパラメータを保存")
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-game", default="shogi", choices=["shogi", "othello"])
+    parser.add_argument("-value_type", default="cat", choices=["sca", "cat"])
+    parser.add_argument("--block_num", type=int, default=10)
+    parser.add_argument("--channel_num", type=int, default=128)
+    args = parser.parse_args()
+
+    if args.game == "shogi":
+        input_channel_num = 42
+        board_size = 9
+        policy_channel_num = 27
+    elif args.game == "othello":
+        input_channel_num = 2
+        board_size = 8
+        policy_channel_num = 2
+    else:
+        exit(1)
+
+    model = None
+    if args.value_type == "sca":
+        model = ScalarNetwork(input_channel_num, args.block_num, args.channel_num, policy_channel_num, board_size)
+    elif args.value_type == "cat":
+        model = CategoricalNetwork(input_channel_num, args.block_num, args.channel_num, policy_channel_num, board_size)
+    input_data = torch.randn([8, input_channel_num, board_size, board_size])
+    # script_model = torch.jit.trace(model, input_data)
+    script_model = torch.jit.script(model)
+    model_path = f"./{args.game}_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.model"
+    script_model.save(model_path)
+    print(f"{model_path}にパラメータを保存")
+
+
+if __name__ == "__main__":
+    main()
