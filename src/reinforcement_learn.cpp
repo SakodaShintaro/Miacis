@@ -110,6 +110,9 @@ void reinforcementLearn() {
 
                 generators[i]->gpu_mutex.unlock();
             }
+
+            //loadに30秒ほどかかるのでその期間スリープ
+            std::this_thread::sleep_for(std::chrono::seconds(30));
         }
 
         //学習スレッドを眠らせることで擬似的にActorの数を増やす
