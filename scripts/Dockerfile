@@ -37,7 +37,7 @@ RUN python3 setup.py install --use-cxx11-abi
 
 RUN conda init bash
 
-ENV LD_LIBRARY_PATH /opt/conda/lib/python3.6/site-packages/torch/lib:$LD_LIBRARY_PATh
+ENV LD_LIBRARY_PATH /opt/conda/lib/python3.6/site-packages/torch/lib:$LD_LIBRARY_PATH
 
 
 # ここから自分の設定
@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install -y language-pack-ja-base language-pack-ja 
 ENV LANG='ja_JP.UTF-8'
 
 # 必要なもののインストール
-RUN apt-get update && apt-get install -y p7zip-full && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y p7zip-full zip && rm -rf /var/lib/apt/lists/*
 RUN pip install natsort
 
 # trtorchを適切な場所へ展開
