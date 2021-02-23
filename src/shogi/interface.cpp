@@ -202,7 +202,7 @@ void Interface::go() {
         Move best_move =
             (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - search_options_.byoyomi_margin));
         std::cout << "bestmove " << best_move << std::endl;
-        if (search_options_.USI_Ponder && best_move != NULL_MOVE) {
+        if (search_options_.USI_Ponder && best_move != NULL_MOVE && best_move != DECLARE_MOVE) {
             root_.doMove(best_move);
             float score{};
             if (!root_.isFinish(score) && root_.turnNumber() <= search_options_.draw_turn) {
