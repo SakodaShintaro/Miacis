@@ -43,6 +43,9 @@ public:
     //終了判定
     bool isFinish(float& score, bool check_repeat = true) const;
 
+    //ループ判定:将棋の方で使うのでオセロでも持っておく
+    static bool isRepeating(float& score) { return false; }
+
     //ハッシュ
     static void initHashSeed();
 

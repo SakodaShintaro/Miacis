@@ -182,6 +182,19 @@ Index Searcher::expand(Position& pos, std::stack<int32_t>& indices, std::stack<i
     //ノードを評価
     float finish_score;
     if (pos.isFinish(finish_score) || pos.turnNumber() > search_options_.draw_turn) {
+        float dummy_score;
+        if (!pos.isRepeating(dummy_score) || pos.turnNumber() > search_options_.draw_turn) {
+            //この局面にはどう到達しても絶対に終わりなので指し手情報などを消して良い
+            curr_node.moves.clear();
+            curr_node.moves.shrink_to_fit();
+            curr_node.child_indices.clear();
+            curr_node.child_indices.shrink_to_fit();
+            curr_node.N.clear();
+            curr_node.N.shrink_to_fit();
+            curr_node.virtual_N.clear();
+            curr_node.virtual_N.shrink_to_fit();
+        }
+
 #ifdef USE_CATEGORICAL
         curr_node.value = onehotDist(finish_score);
 #else
