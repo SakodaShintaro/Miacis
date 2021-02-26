@@ -60,7 +60,7 @@ WORKDIR /root/Miacis/src/cmake-build-release
 RUN echo "git fetch" > update.sh && \
     echo "git reset --hard origin/master" >> update.sh && \
     echo "cmake -DCMAKE_BUILD_TYPE=Release .." >> update.sh && \
-    echo "make -j$(nproc)" >> update.sh && \
+    echo "make -j$(nproc) Miacis_shogi_categorical" >> update.sh && \
     chmod +x update.sh && \
     ./update.sh
 
