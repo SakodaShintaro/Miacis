@@ -45,6 +45,10 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAndValueBatch(const std::vector<float>& inputs) {
+    return decode(infer(inputs));
+}
+
+std::tuple<torch::Tensor, torch::Tensor> InferModel::infer(const std::vector<float>& inputs) {
     torch::Tensor x = torch::tensor(inputs).to(device_);
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
     if (use_fp16_) {
@@ -55,13 +59,27 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
     torch::Tensor policy = tuple->elements()[0].toTensor();
     torch::Tensor value = tuple->elements()[1].toTensor();
 
-    uint64_t batch_size = inputs.size() / (SQUARE_NUM * INPUT_CHANNEL_NUM);
+    //CPUに持ってくる
+    policy = policy.cpu();
+
+    //valueはcategoricalのときだけはsoftmaxをかけてからcpuへ
+#ifdef USE_CATEGORICAL
+    value = torch::softmax(value, 1).cpu();
+#else
+    value = value.cpu();
+#endif
+
+    return std::make_tuple(policy, value);
+}
+
+std::pair<std::vector<PolicyType>, std::vector<ValueType>>
+InferModel::decode(const std::tuple<torch::Tensor, torch::Tensor>& output) const {
+    const auto& [policy, value] = output;
+    uint64_t batch_size = policy.size(0);
 
     std::vector<PolicyType> policies(batch_size);
     std::vector<ValueType> values(batch_size);
 
-    //CPUに持ってくる
-    policy = policy.cpu();
     if (use_fp16_) {
         torch::Half* p = policy.data_ptr<torch::Half>();
         for (uint64_t i = 0; i < batch_size; i++) {
@@ -75,8 +93,6 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
     }
 
 #ifdef USE_CATEGORICAL
-    value = torch::softmax(value, 1).cpu();
-
     //valueの方はfp16化してもなぜかHalfではなくFloatとして返ってくる
     //ひょっとしたらTRTorchのバグかも
     float* value_p = value.data_ptr<float>();
@@ -84,8 +100,6 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
         std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
     }
 #else
-    //CPUに持ってくる
-    value = value.cpu();
     std::copy(value.data_ptr<float>(), value.data_ptr<float>() + batch_size, values.begin());
 #endif
     return std::make_pair(policies, values);

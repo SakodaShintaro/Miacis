@@ -96,9 +96,10 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
     //順伝播計算
     gpu_mutex.lock();
     torch::NoGradGuard no_grad_guard;
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result =
-        neural_network_.policyAndValueBatch(gpu_queues_[thread_id].inputs);
+    std::tuple<torch::Tensor, torch::Tensor> output = neural_network_.infer(gpu_queues_[thread_id].inputs);
     gpu_mutex.unlock();
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = neural_network_.decode(output);
+
     const std::vector<PolicyType>& policies = result.first;
     const std::vector<ValueType>& values = result.second;
 
