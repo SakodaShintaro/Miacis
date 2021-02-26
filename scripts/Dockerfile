@@ -14,7 +14,7 @@ RUN pip install notebook
 WORKDIR /opt
 RUN git clone https://github.com/NVIDIA/TRTorch trtorch
 WORKDIR /opt/trtorch
-RUN git checkout b228bf239aadd5f104af38ea64416bdda5f0aa57
+RUN git checkout 721b071f7166e1826183f28305823f406eac4807
 RUN cp /opt/trtorch/docker/WORKSPACE.cu.docker /opt/trtorch/WORKSPACE
 
 # Workaround for bazel expecting both static and shared versions, we only use shared libraries inside container
