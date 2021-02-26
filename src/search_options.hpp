@@ -32,7 +32,7 @@ public:
         // clang-format off
         check_options.emplace("USI_Ponder",            CheckOption(USI_Ponder = false));
         check_options.emplace("leave_root",            CheckOption(leave_root = true));
-        check_options.emplace("use_fp16",              CheckOption(use_fp16   = true));
+        check_options.emplace("use_fp16",              CheckOption(use_fp16   = false));
         check_options.emplace("use_book",              CheckOption(use_book   = false));
         check_options.emplace("print_info",            CheckOption(print_info = true));
         check_options.emplace("output_log_file",       CheckOption(output_log_file = false));

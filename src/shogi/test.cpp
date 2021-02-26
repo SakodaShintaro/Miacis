@@ -14,7 +14,8 @@ void test() {
     search_options.search_batch_size = 1;
     search_options.output_log_file = true;
     InferModel nn;
-    nn.load(DEFAULT_MODEL_NAME, 0, search_options.search_batch_size, search_options.calibration_kifu_path);
+    nn.load(DEFAULT_MODEL_NAME, 0, search_options.search_batch_size, search_options.calibration_kifu_path,
+            search_options.use_fp16);
     SearcherForPlay searcher(search_options);
 
     Position pos;
@@ -280,6 +281,9 @@ void checkValInfer() {
     std::string calibration_kifu_path;
     std::cout << "calibration_kifu_path : ";
     std::cin >> calibration_kifu_path;
+    bool use_fp16;
+    std::cout << "fp16 : ";
+    std::cin >> use_fp16;
 
     std::vector<LearningData> data = loadData(path, false, 3000);
     std::cout << "data.size() = " << data.size() << std::endl;
@@ -288,7 +292,7 @@ void checkValInfer() {
     InferModel nn;
 
     for (int64_t calibration_data_num = batch_size; calibration_data_num <= (batch_size << 5); calibration_data_num *= 2) {
-        nn.load(model_file, 0, batch_size, calibration_kifu_path);
+        nn.load(model_file, 0, batch_size, calibration_kifu_path, use_fp16);
 
         std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, batch_size);
         std::cout << std::fixed << std::setprecision(4);
@@ -309,7 +313,7 @@ void checkPredictSpeed() {
     SearchOptions search_options;
 
     InferModel nn;
-    nn.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE, search_options.calibration_kifu_path);
+    nn.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE, search_options.calibration_kifu_path, search_options.use_fp16);
 
     for (int64_t batch_size = 1; batch_size <= BATCH_SIZE; batch_size *= 2) {
         //バッチサイズ分入力を取得
@@ -501,7 +505,7 @@ void testLoad() {
     std::cout << "通常の試行" << std::endl;
     for (int64_t num = 0; num < 0; num++) {
         InferModel model;
-        model.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE, search_options.calibration_kifu_path);
+        model.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE, search_options.calibration_kifu_path, search_options.use_fp16);
         int64_t ela = timer.elapsedSeconds();
         int64_t curr = ela - pre;
         pre = ela;
@@ -518,7 +522,7 @@ void testLoad() {
         for (int64_t i = 0; i < gpu_num; i++) {
             threads.emplace_back([i, search_options]() {
                 InferModel model;
-                model.load(DEFAULT_MODEL_NAME, i, BATCH_SIZE, search_options.calibration_kifu_path);
+                model.load(DEFAULT_MODEL_NAME, i, BATCH_SIZE, search_options.calibration_kifu_path, search_options.use_fp16);
             });
         }
         for (int64_t i = 0; i < gpu_num; i++) {

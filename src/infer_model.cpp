@@ -7,7 +7,7 @@
 #include <trtorch/trtorch.h>
 
 void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size,
-                      const std::string& calibration_kifu_path) {
+                      const std::string& calibration_kifu_path, bool use_fp16) {
     torch::jit::Module module = torch::jit::load(model_path);
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     module.to(device_);
@@ -17,28 +17,39 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt
     std::vector<int64_t> in_opt = { opt_batch_size, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
     std::vector<int64_t> in_max = { opt_batch_size * 2, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
 
-    using namespace torch::data;
-    auto dataset = CalibrationDataset(calibration_kifu_path, opt_batch_size * 2).map(transforms::Stack<>());
-    auto dataloader = make_data_loader(std::move(dataset), DataLoaderOptions().batch_size(opt_batch_size).workers(1));
+    use_fp16_ = use_fp16;
+    if (use_fp16_) {
+        trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
+        trtorch::CompileSpec info({ range });
+        info.op_precision = torch::kHalf;
+        info.device.gpu_id = gpu_id;
+        module_ = trtorch::CompileGraph(module, info);
+    } else {
+        using namespace torch::data;
+        auto dataset = CalibrationDataset(calibration_kifu_path, opt_batch_size * 2).map(transforms::Stack<>());
+        auto dataloader = make_data_loader(std::move(dataset), DataLoaderOptions().batch_size(opt_batch_size).workers(1));
 
-    const std::string name = "calibration_cache_file.txt";
-    auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(std::move(dataloader), name, false);
+        const std::string name = "calibration_cache_file.txt";
+        auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(std::move(dataloader), name, false);
 
-    //trtorch
-    trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
-    trtorch::CompileSpec info({ range });
-    info.op_precision = torch::kI8;
-    info.device.gpu_id = gpu_id;
-    info.ptq_calibrator = calibrator;
-    info.workspace_size = (1ull << 29);
-    info.max_batch_size = opt_batch_size * 2;
+        trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
+        trtorch::CompileSpec info({ range });
+        info.op_precision = torch::kI8;
+        info.device.gpu_id = gpu_id;
+        info.ptq_calibrator = calibrator;
+        info.workspace_size = (1ull << 29);
+        info.max_batch_size = opt_batch_size * 2;
 
-    module_ = trtorch::CompileGraph(module, info);
+        module_ = trtorch::CompileGraph(module, info);
+    }
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAndValueBatch(const std::vector<float>& inputs) {
     torch::Tensor x = torch::tensor(inputs).to(device_);
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+    if (use_fp16_) {
+        x = x.to(torch::kFloat16);
+    }
     auto out = module_.forward({ x });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
@@ -51,13 +62,23 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
 
     //CPUに持ってくる
     policy = policy.cpu();
-    float* p = policy.data_ptr<float>();
-    for (uint64_t i = 0; i < batch_size; i++) {
-        policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
+    if (use_fp16_) {
+        torch::Half* p = policy.data_ptr<torch::Half>();
+        for (uint64_t i = 0; i < batch_size; i++) {
+            policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
+        }
+    } else {
+        float* p = policy.data_ptr<float>();
+        for (uint64_t i = 0; i < batch_size; i++) {
+            policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
+        }
     }
 
 #ifdef USE_CATEGORICAL
     value = torch::softmax(value, 1).cpu();
+
+    //valueの方はfp16化してもなぜかHalfではなくFloatとして返ってくる
+    //ひょっとしたらTRTorchのバグかも
     float* value_p = value.data_ptr<float>();
     for (uint64_t i = 0; i < batch_size; i++) {
         std::copy(value_p + i * BIN_SIZE, value_p + (i + 1) * BIN_SIZE, values[i].begin());
@@ -65,7 +86,7 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
 #else
     //CPUに持ってくる
     value = value.cpu();
-    std::copy(value.data_ptr<torch::Half>(), value.data_ptr<torch::Half>() + batch_size, values.begin());
+    std::copy(value.data_ptr<float>(), value.data_ptr<float>() + batch_size, values.begin());
 #endif
     return std::make_pair(policies, values);
 }

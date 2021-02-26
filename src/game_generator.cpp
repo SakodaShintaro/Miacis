@@ -5,7 +5,7 @@
 void GameGenerator::genGames() {
     //まず最初のロード
     neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_, worker_num_ * search_options_.search_batch_size,
-                         search_options_.calibration_kifu_path);
+                         search_options_.calibration_kifu_path, search_options_.use_fp16);
     need_load = false;
 
     //生成スレッドを生成
@@ -63,7 +63,7 @@ void GameGenerator::genSlave(int64_t thread_id) {
         if (need_load && thread_id == 0) {
             gpu_mutex.lock();
             neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_, worker_num_ * search_options_.search_batch_size,
-                                 search_options_.calibration_kifu_path);
+                                 search_options_.calibration_kifu_path, search_options_.use_fp16);
             need_load = false;
             gpu_mutex.unlock();
         }
