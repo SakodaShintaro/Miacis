@@ -33,6 +33,7 @@ void reinforcementLearn() {
     int64_t sleep_msec                = settings.get<int64_t>("sleep_msec");
     int64_t init_buffer_by_kifu       = settings.get<int64_t>("init_buffer_by_kifu");
     int64_t noise_mode                = settings.get<int64_t>("noise_mode");
+    int64_t wait_sec_per_load         = settings.get<int64_t>("wait_sec_per_load");
     bool data_augmentation            = settings.get<bool>("data_augmentation");
     bool Q_search                     = settings.get<bool>("Q_search");
     std::string train_kifu_path       = settings.get<std::string>("train_kifu_path");
@@ -112,8 +113,8 @@ void reinforcementLearn() {
                 generators[i]->gpu_mutex.unlock();
             }
 
-            //loadに30秒ほどかかるのでその期間スリープ
-            std::this_thread::sleep_for(std::chrono::seconds(30));
+            //int8の場合は特にloadで時間がかかるのでその期間スリープ
+            std::this_thread::sleep_for(std::chrono::seconds(wait_sec_per_load));
         }
 
         //学習スレッドを眠らせることで擬似的にActorの数を増やす
