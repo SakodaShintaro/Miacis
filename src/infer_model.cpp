@@ -8,6 +8,10 @@
 
 void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size,
                       const std::string& calibration_kifu_path, bool use_fp16) {
+    //マルチGPU環境で同時にloadすると時々Segmentation Faultが発生するので排他制御を入れる
+    static std::mutex load_mutex;
+    std::lock_guard<std::mutex> guard(load_mutex);
+
     torch::jit::Module module = torch::jit::load(model_path);
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     module.to(device_);
