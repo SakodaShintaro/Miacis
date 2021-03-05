@@ -100,6 +100,9 @@ private:
 
     //Sharpness-Aware Minimizationを行うかどうか
     bool use_sam_optim_;
+
+    //勾配クリッピングの値
+    float clip_grad_norm_;
 };
 
 //教師データを読み込む関数

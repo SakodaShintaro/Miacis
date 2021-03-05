@@ -39,6 +39,7 @@ sleep_msec              -1
 noise_mode              0
 wait_sec_per_load       90
 use_sam_optim           0
+clip_grad_norm          10
 calibration_kifu_path   /root/data/floodgate_kifu/valid
 
 # Shogi

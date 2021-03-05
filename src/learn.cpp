@@ -118,6 +118,9 @@ LearnManager::LearnManager(const std::string& learn_name) {
     //SAM
     use_sam_optim_ = settings.get<int64_t>("use_sam_optim");
 
+    //clip_grad_norm_の値
+    clip_grad_norm_ = settings.get<float>("clip_grad_norm");
+
     //学習開始時間の設定
     timer_.start();
 }
@@ -193,6 +196,9 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
             }
         }
     }
+
+    //勾配をクリップ
+    torch::nn::utils::clip_grad_norm_(neural_network.parameters(), clip_grad_norm_);
 
     //パラメータを更新
     optimizer_->step();
