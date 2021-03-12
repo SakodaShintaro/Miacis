@@ -98,6 +98,9 @@ private:
     //Cosine annealing時の最小値
     float min_learn_rate_;
 
+    //mixupを行う場合の混合比を決定する値
+    float mixup_alpha_;
+
     //Sharpness-Aware Minimizationを行うかどうか
     bool use_sam_optim_;
 

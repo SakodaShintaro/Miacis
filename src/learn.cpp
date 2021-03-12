@@ -115,6 +115,9 @@ LearnManager::LearnManager(const std::string& learn_name) {
     learn_rate_decay_period_ = settings.get<int64_t>("learn_rate_decay_period");
     min_learn_rate_ = settings.get<float>("min_learn_rate");
 
+    //mixupの混合比を決定する値
+    mixup_alpha_ = settings.get<float>("mixup_alpha");
+
     //SAM
     use_sam_optim_ = settings.get<int64_t>("use_sam_optim");
 
@@ -131,7 +134,8 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     //学習
     optimizer_->zero_grad();
-    std::array<torch::Tensor, LOSS_TYPE_NUM> loss = neural_network.loss(curr_data);
+    std::array<torch::Tensor, LOSS_TYPE_NUM> loss =
+        (mixup_alpha_ == 0 ? neural_network.loss(curr_data) : neural_network.mixUpLoss(curr_data, mixup_alpha_));
     torch::Tensor loss_sum = torch::zeros({ batch_size });
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         loss_sum += coefficients_[i] * loss[i].cpu();

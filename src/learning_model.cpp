@@ -134,6 +134,69 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vec
 #endif
 }
 
+std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::mixUpLoss(const std::vector<LearningData>& data, float alpha) {
+    std::gamma_distribution<float> gamma_dist(alpha);
+    float gamma1 = gamma_dist(engine), gamma2 = gamma_dist(engine);
+    float beta = gamma1 / (gamma1 + gamma2);
+
+    static Position pos;
+    std::vector<float> inputs;
+    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
+    std::vector<ValueTeacherType> value_teachers;
+
+    for (uint64_t i = 0; i < data.size(); i++) {
+        pos.fromStr(data[i].position_str);
+
+        //入力
+        const std::vector<float> feature = pos.makeFeature();
+        inputs.insert(inputs.end(), feature.begin(), feature.end());
+
+        //policyの教師信号
+        for (const std::pair<int32_t, float>& e : data[i].policy) {
+            policy_teachers[i * POLICY_DIM + e.first] = e.second;
+        }
+
+        //valueの教師信号
+        value_teachers.push_back(data[i].value);
+    }
+
+    torch::Tensor input_tensor = encode(inputs);
+
+    //入力時のmixup
+    input_tensor = beta * input_tensor + (1 - beta) * input_tensor.roll(1, 0);
+
+    auto out = module_.forward({ input_tensor });
+    auto tuple = out.toTuple();
+    torch::Tensor policy = tuple->elements()[0].toTensor();
+    torch::Tensor value = tuple->elements()[1].toTensor();
+
+    torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
+    torch::Tensor policy_target = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
+
+    //教師データのmixup
+    policy_target = beta * policy_target + (1 - beta) * policy_target.roll(1, 0);
+
+    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
+
+#ifdef USE_CATEGORICAL
+    torch::Tensor categorical_target = torch::tensor(value_teachers).to(device_);
+    torch::Tensor value_loss1 = torch::nll_loss(torch::log_softmax(value, 1), categorical_target);
+    torch::Tensor value_loss2 = torch::nll_loss(torch::log_softmax(value, 1), categorical_target.roll(1, 0));
+    torch::Tensor value_loss = beta * value_loss1 + (1 - beta) * value_loss2;
+#else
+    torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
+    value_t = beta * value_t + (1 - beta) * value_t.roll(1, 0);
+    value = value.view(-1);
+#ifdef USE_SIGMOID
+    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_t, {}, torch::Reduction::None);
+#else
+    torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
+#endif
+#endif
+
+    return { policy_loss, value_loss };
+}
+
 std::vector<torch::Tensor> LearningModel::parameters() {
     std::vector<torch::Tensor> parameters;
     for (auto p : module_.parameters()) {
