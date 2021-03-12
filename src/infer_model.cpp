@@ -6,45 +6,49 @@
 #include <trtorch/ptq.h>
 #include <trtorch/trtorch.h>
 
-void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size,
+void InferModel::load(const std::vector<std::string>& model_paths, int64_t gpu_id, int64_t opt_batch_size,
                       const std::string& calibration_kifu_path, bool use_fp16) {
     //マルチGPU環境で同時にloadすると時々Segmentation Faultが発生するので排他制御を入れる
     static std::mutex load_mutex;
     std::lock_guard<std::mutex> guard(load_mutex);
 
-    torch::jit::Module module = torch::jit::load(model_path);
-    device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
-    module.to(device_);
-    module.eval();
+    modules_.clear();
 
-    std::vector<int64_t> in_min = { 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
-    std::vector<int64_t> in_opt = { opt_batch_size, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
-    std::vector<int64_t> in_max = { opt_batch_size * 2, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
+    for (uint64_t i = 0; i < model_paths.size(); i++) {
+        torch::jit::Module module = torch::jit::load(model_paths[i]);
+        device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
+        module.to(device_);
+        module.eval();
 
-    use_fp16_ = use_fp16;
-    if (use_fp16_) {
-        trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
-        trtorch::CompileSpec info({ range });
-        info.op_precision = torch::kHalf;
-        info.device.gpu_id = gpu_id;
-        module_ = trtorch::CompileGraph(module, info);
-    } else {
-        using namespace torch::data;
-        auto dataset = CalibrationDataset(calibration_kifu_path, opt_batch_size * 2).map(transforms::Stack<>());
-        auto dataloader = make_data_loader(std::move(dataset), DataLoaderOptions().batch_size(opt_batch_size).workers(1));
+        std::vector<int64_t> in_min = { 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
+        std::vector<int64_t> in_opt = { opt_batch_size, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
+        std::vector<int64_t> in_max = { opt_batch_size * 2, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
 
-        const std::string name = "calibration_cache_file.txt";
-        auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(std::move(dataloader), name, false);
+        use_fp16_ = use_fp16;
+        if (use_fp16_) {
+            trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
+            trtorch::CompileSpec info({ range });
+            info.op_precision = torch::kHalf;
+            info.device.gpu_id = gpu_id;
+            modules_.push_back(trtorch::CompileGraph(module, info));
+        } else {
+            using namespace torch::data;
+            auto dataset = CalibrationDataset(calibration_kifu_path, opt_batch_size * 2).map(transforms::Stack<>());
+            auto dataloader = make_data_loader(std::move(dataset), DataLoaderOptions().batch_size(opt_batch_size).workers(1));
 
-        trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
-        trtorch::CompileSpec info({ range });
-        info.op_precision = torch::kI8;
-        info.device.gpu_id = gpu_id;
-        info.ptq_calibrator = calibrator;
-        info.workspace_size = (1ull << 29);
-        info.max_batch_size = opt_batch_size * 2;
+            const std::string name = "calibration_cache_file.txt";
+            auto calibrator =
+                trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(std::move(dataloader), name, false);
 
-        module_ = trtorch::CompileGraph(module, info);
+            trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
+            trtorch::CompileSpec info({ range });
+            info.op_precision = torch::kI8;
+            info.device.gpu_id = gpu_id;
+            info.ptq_calibrator = calibrator;
+            info.workspace_size = (1ull << 29);
+            info.max_batch_size = opt_batch_size * 2;
+            modules_.push_back(trtorch::CompileGraph(module, info));
+        }
     }
 }
 
@@ -58,22 +62,38 @@ std::tuple<torch::Tensor, torch::Tensor> InferModel::infer(const std::vector<flo
     if (use_fp16_) {
         x = x.to(torch::kFloat16);
     }
-    auto out = module_.forward({ x });
-    auto tuple = out.toTuple();
-    torch::Tensor policy = tuple->elements()[0].toTensor();
-    torch::Tensor value = tuple->elements()[1].toTensor();
 
-    //CPUに持ってくる
-    policy = policy.cpu();
+    torch::Tensor policy_sum;
+    torch::Tensor value_sum;
 
-    //valueはcategoricalのときだけはsoftmaxをかけてからcpuへ
+    for (uint64_t i = 0; i < modules_.size(); i++) {
+        auto out = modules_[i].forward({ x });
+        auto tuple = out.toTuple();
+        torch::Tensor policy = tuple->elements()[0].toTensor();
+        torch::Tensor value = tuple->elements()[1].toTensor();
+
+        //valueはcategoricalのときだけはsoftmaxをかける
 #ifdef USE_CATEGORICAL
-    value = torch::softmax(value, 1).cpu();
-#else
-    value = value.cpu();
+        value = torch::softmax(value, 1);
 #endif
 
-    return std::make_tuple(policy, value);
+        if (i == 0) {
+            policy_sum = policy;
+            value_sum = value;
+        } else {
+            policy_sum += policy_sum;
+            value_sum += value;
+        }
+    }
+
+    const int64_t ensemble_num = modules_.size();
+    policy_sum /= ensemble_num;
+    value_sum /= ensemble_num;
+
+    policy_sum = policy_sum.cpu();
+    value_sum = value_sum.cpu();
+
+    return std::make_tuple(policy_sum, value_sum);
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
@@ -138,7 +158,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
 
     torch::Tensor x = torch::tensor(inputs).to(device_);
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    auto out = module_.forward({ x });
+    auto out = modules_[0].forward({ x });
     auto tuple = out.toTuple();
     torch::Tensor policy_logit = tuple->elements()[0].toTensor();
     torch::Tensor value_logit = tuple->elements()[1].toTensor();
@@ -195,7 +215,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
 
     torch::Tensor x = torch::tensor(inputs).to(device_);
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    auto out = module_.forward({ x });
+    auto out = modules_.forward({ x });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
     torch::Tensor value = tuple->elements()[1].toTensor();

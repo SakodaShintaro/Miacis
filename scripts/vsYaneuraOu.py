@@ -99,7 +99,7 @@ if args.option is None:
         server.engines[0].set_engine_options({"random_turn": 30,
                                               "print_interval": 10000000,
                                               "USI_Hash": 4096,
-                                              "model_name": model_name})
+                                              "model_name1": model_name})
         scalar_or_categorical = "scalar" if "sca" in model_name else "categorical"
         server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
 

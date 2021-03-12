@@ -289,7 +289,7 @@ void Interface::outputValue() {
     std::ofstream ofs("value_output.txt");
     SearchOptions search_option;
     InferModel nn;
-    nn.load(options_.model_name, 0, 1, search_option.calibration_kifu_path, search_option.use_fp16);
+    nn.load(options_.model_name1, 0, 1, search_option.calibration_kifu_path, search_option.use_fp16);
 
     std::uniform_real_distribution<float> dist(0.0, 1.0);
 

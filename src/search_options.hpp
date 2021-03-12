@@ -61,7 +61,8 @@ public:
         spin_options.emplace("print_policy_num",       SpinOption(print_policy_num         =     0,    0,  593));
         spin_options.emplace("remained_turn_divisor",  SpinOption(remained_turn_divisor    =     1,    1,  MAX));
         spin_options.emplace("hold_moves_num",         SpinOption(hold_moves_num           =    32,    1,  593));
-        filename_options.emplace("model_name",         FilenameOption(model_name = DEFAULT_MODEL_NAME));
+        filename_options.emplace("model_name1",         FilenameOption(model_name1 = DEFAULT_MODEL_NAME));
+        filename_options.emplace("model_name2",         FilenameOption(model_name2 = DEFAULT_MODEL_NAME));
         filename_options.emplace("book_file_name",     FilenameOption(book_file_name       = "book.txt"));
         filename_options.emplace("calibration_kifu_path", FilenameOption(calibration_kifu_path = "../../../data/floodgate_kifu/valid"));
         // clang-format on
@@ -92,7 +93,8 @@ public:
     int64_t print_policy_num;
     int64_t remained_turn_divisor;
     int64_t hold_moves_num;
-    std::string model_name;
+    std::string model_name1;
+    std::string model_name2;
     std::string book_file_name;
     std::string calibration_kifu_path;
 
