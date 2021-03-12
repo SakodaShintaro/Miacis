@@ -215,7 +215,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
 
     torch::Tensor x = torch::tensor(inputs).to(device_);
     x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    auto out = modules_.forward({ x });
+    auto out = modules_[0].forward({ x });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
     torch::Tensor value = tuple->elements()[1].toTensor();
