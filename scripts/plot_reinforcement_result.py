@@ -9,11 +9,10 @@ markers = [".", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p", "*", "h",
 
 TIME = 0
 STEP = 1
-SUM_LOSS = 2
-POLICY_LOSS = 3
-VALUE_LOSS = 4
-ELO_RATE = 5
-ELEMENT_NUM = 6
+POLICY_LOSS = 2
+VALUE_LOSS = 3
+ELO_RATE = 4
+ELEMENT_NUM = 5
 
 # ディレクトリの名前をコマンドライン引数として受け取る
 parser = argparse.ArgumentParser()
@@ -38,7 +37,7 @@ for dir_name in args.dirs:
     data = [list() for _ in range(ELEMENT_NUM)]
 
     # まず損失のデータを取得する
-    loss_file_name = dir_name + "/alphazero_valid_log.txt"
+    loss_file_name = dir_name + "/reinforcement_valid_log.txt"
     if not os.path.exists(loss_file_name):
         print("There is not a such file : ", loss_file_name)
         break
@@ -64,17 +63,6 @@ for dir_name in args.dirs:
                 hour = float(e[0]) + float(e[1]) / 60 + float(e[2]) / 3600
                 data[i].append(hour)
 
-    # 対局結果はresult.txtにある
-    result_file_name = dir_name + "/result.txt"
-    if os.path.exists(result_file_name):
-        for line in open(result_file_name):
-            # 空白区切りで"相対レート"という要素の次にレートが記録されていることを前提とする
-            elements = line.strip().split()
-            if "相対レート" in elements:
-                data[ELO_RATE].append(float(elements[elements.index("相対レート") + 1]))
-    else:
-        print("There is not a such file : ", result_file_name)
-
     all_data.append(data)
 
 # timeという名前にしているが時間で換算した方がわかりやすいので名前を変える
@@ -82,7 +70,7 @@ label[TIME] = "hour"
 
 # グラフの描画
 for i in [STEP, TIME]:  # x軸
-    for j in [POLICY_LOSS, VALUE_LOSS, ELO_RATE]:  # y軸
+    for j in [POLICY_LOSS, VALUE_LOSS]:  # y軸
         plt.xlabel(label[i])
         plt.ylabel(label[j])
 
@@ -90,7 +78,8 @@ for i in [STEP, TIME]:  # x軸
         for k, data in enumerate(all_data):
             d = len(data[i]) // len(data[j])
             plt.plot(data[i][d - 1::d], data[j], label=args.labels[k], marker=markers[k])
-            texts.append(plt.text(data[i][-1] * 1.01, data[j][-1], args.labels[k], color=plt.get_cmap("tab10")(k)))
+            if len(all_data) > 1:
+                texts.append(plt.text(data[i][-1] * 1.01, data[j][-1], args.labels[k], color=plt.get_cmap("tab10")(k)))
         texts.sort(key=lambda text: text.get_position()[1])
         pre_y = -float("inf")
         margin = (plt.ylim()[1] - plt.ylim()[0]) / 30
