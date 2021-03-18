@@ -25,7 +25,7 @@ learn_rate_decay_step3  2000000
 learn_rate_decay_step4  2000000
 learn_rate_decay_period 100000
 update_interval         1000
-batch_size_per_gen      2
+batch_size_per_gen      1
 worker_num_per_thread   64
 max_stack_size          1048576
 first_wait              1048576
