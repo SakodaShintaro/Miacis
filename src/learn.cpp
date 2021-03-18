@@ -113,7 +113,6 @@ LearnManager::LearnManager(const std::string& learn_name) {
     learn_rate_decay_step3_ = settings.get<int64_t>("learn_rate_decay_step3");
     learn_rate_decay_step4_ = settings.get<int64_t>("learn_rate_decay_step4");
     learn_rate_decay_period_ = settings.get<int64_t>("learn_rate_decay_period");
-    min_learn_rate_ = settings.get<float>("min_learn_rate");
 
     //mixupの混合比を決定する値
     mixup_alpha_ = settings.get<float>("mixup_alpha");
@@ -250,7 +249,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
         //Cosine annealing
         int64_t curr_step = stem_num % learn_rate_decay_period_;
         (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
-            min_learn_rate_ + 0.5 * (learn_rate_ - min_learn_rate_) * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period_));
+            0.5 * learn_rate_ * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period_));
     } else if (learn_rate_decay_mode_ == 3) {
         //指数的な減衰
         if (stem_num % learn_rate_decay_period_ == 0) {

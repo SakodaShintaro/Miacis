@@ -95,9 +95,6 @@ private:
     //その他周期的なスケジューリングの周期
     int64_t learn_rate_decay_period_;
 
-    //Cosine annealing時の最小値
-    float min_learn_rate_;
-
     //mixupを行う場合の混合比を決定する値
     float mixup_alpha_;
 

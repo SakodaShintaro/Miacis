@@ -1,5 +1,4 @@
 learn_rate              0.025
-min_learn_rate          0.0025
 momentum                0.9
 weight_decay            0.0
 policy_loss_coeff       1.0
