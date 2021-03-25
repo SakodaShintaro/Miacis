@@ -7,12 +7,9 @@ import argparse
 
 # ディレクトリの名前をコマンドライン引数として受け取る
 parser = argparse.ArgumentParser()
-parser.add_argument("-dirs", type=(lambda x: x.split()))
-parser.add_argument("--labels", type=(lambda x: x.split()), default=None)
+parser.add_argument("--dirs", type=(lambda x: x.split()), required=True)
+parser.add_argument("--labels", type=(lambda x: x.split()), required=True)
 args = parser.parse_args()
-if args.labels is None:
-    args.labels = [""]
-
 assert len(args.dirs) == len(args.labels)
 
 
@@ -34,11 +31,10 @@ def get_labels_and_data(file_name):
 
 
 TIME = 0
-EPOCH = 1
-STEP = 2
-POLICY_LOSS = 3
-VALUE_LOSS = 4
-ELO_RATE = 5
+STEP = 1
+POLICY_LOSS = 2
+VALUE_LOSS = 3
+ELO_RATE = 4
 
 train_labels = None
 train_data = list()
@@ -90,7 +86,8 @@ for x in [STEP]:
             plt.plot(data[x], data[y], label=name)
         plt.xlabel(train_labels[x])
         plt.ylabel(train_labels[y])
-        plt.legend()
+        if len(args.labels) > 1:
+            plt.legend()
         plt.savefig("compare_train_" + train_labels[y] + ".png", bbox_inches="tight", pad_inches=0.1)
         plt.clf()
 
@@ -99,7 +96,8 @@ for x in [STEP]:
             plt.plot(data[x], data[y], label=name)
         plt.xlabel(valid_labels[x])
         plt.ylabel(valid_labels[y])
-        plt.legend()
+        if len(args.labels) > 1:
+            plt.legend()
         plt.savefig("compare_valid_" + valid_labels[y] + ".png", bbox_inches="tight", pad_inches=0.1)
         plt.clf()
 
