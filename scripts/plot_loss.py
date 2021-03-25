@@ -9,10 +9,9 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--dirs", type=(lambda x: x.split()), required=True)
 parser.add_argument("--labels", type=(lambda x: x.split()), required=True)
+parser.add_argument("--prefix", type=str, required=True)
 args = parser.parse_args()
 assert len(args.dirs) == len(args.labels)
-
-prefix = "supervised"
 
 
 def get_labels_and_data(file_name):
@@ -47,13 +46,13 @@ battle_result = list()
 for dir_name in args.dirs:
     if dir_name[-1] != "/":
         dir_name += "/"
-    train_labels, t_data = get_labels_and_data(dir_name + f"{prefix}_train_log.txt")
+    train_labels, t_data = get_labels_and_data(dir_name + f"{args.prefix}_train_log.txt")
     # trainデータは1ステップごとに記録されていて多すぎるのでSKIP個になるようにまとめて平均を取る
     SKIP = 200
     for i in range(len(t_data)):
         t_data[i] = np.array(t_data[i]).reshape(SKIP, -1).mean(axis=1)
     train_data.append(t_data)
-    valid_labels, v_data = get_labels_and_data(dir_name + f"{prefix}_valid_log.txt")
+    valid_labels, v_data = get_labels_and_data(dir_name + f"{args.prefix}_valid_log.txt")
     valid_data.append(v_data)
 
     # 対局結果を取得
@@ -95,7 +94,7 @@ for x in [STEP]:
 
         # valid
         for name, data in zip(args.labels, valid_data):
-            plt.plot(data[x], data[y], label=name)
+            plt.plot(data[x], data[y], label=name, marker=".")
         plt.xlabel(valid_labels[x])
         plt.ylabel(valid_labels[y])
         if len(args.labels) > 1:
@@ -107,7 +106,7 @@ for x in [STEP]:
         for name, data in zip(args.labels, train_data):
             plt.plot(data[x], data[y], label="train_" + name, linestyle="dashed")
         for name, data in zip(args.labels, valid_data):
-            plt.plot(data[x], data[y], label="valid_" + name)
+            plt.plot(data[x], data[y], label="valid_" + name, marker=".")
         plt.xlabel(train_labels[x])
         plt.ylabel(train_labels[y])
         plt.legend()
