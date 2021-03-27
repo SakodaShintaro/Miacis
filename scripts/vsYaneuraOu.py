@@ -17,9 +17,9 @@ from calc_elo_rate import calc_elo_rate
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--time1", type=int, default=1000)
-parser.add_argument("--time2", type=int, default=400)
+parser.add_argument("--time2", type=int, default=1000)
 parser.add_argument("--NodesLimit", type=int, default=0)
-parser.add_argument("--game_num", type=int, default=500)
+parser.add_argument("--game_num", type=int, default=1000)
 parser.add_argument("--init_model_step", type=int, default=0)
 parser.add_argument("--reverse", action="store_true")
 parser.add_argument("--option", type=str, default=None)
@@ -30,15 +30,18 @@ args = parser.parse_args()
 # 対局数(先後行うので偶数でなければならない)
 assert args.game_num % 2 == 0
 
+# ハッシュサイズ(共通)
+hash_size = 2048
+
 # 勝ち,負け,引き分けの結果を示す定数
-WIN  = 0
+WIN = 0
 DRAW = 1
 LOSE = 2
 
 # Ayaneにおける結果をここでの結果に変換する辞書
-result_converter = { ayane.GameResult.BLACK_WIN: WIN,
-                     ayane.GameResult.WHITE_WIN: LOSE,
-                     ayane.GameResult.DRAW     : DRAW,
+result_converter = {ayane.GameResult.BLACK_WIN: WIN,
+                    ayane.GameResult.WHITE_WIN: LOSE,
+                    ayane.GameResult.DRAW: DRAW,
                      ayane.GameResult.MAX_MOVES: DRAW }
 
 
@@ -53,7 +56,7 @@ server.moves_to_draw = 320
 # YaneuraOuの設定
 server.engines[1].set_engine_options({"USI_Ponder": "false",
                                       "NodesLimit": args.NodesLimit,
-                                      "USI_Hash": 1024,
+                                      "USI_Hash": hash_size,
                                       "BookMoves": 0,
                                       "NetworkDelay": 0,
                                       "NetworkDelay2": 0
@@ -71,10 +74,7 @@ if curr_path[-1] != "/":
 
 # 結果を書き込むファイルを取得
 f = open(curr_path + "result.txt", mode="a")
-f.write("~/Miacis/scripts/vsYaneuraOu.py")
-for w in sys.argv:
-    f.write(" " + w)
-f.write(f"\nMiacis time = {args.time1}, YaneuraOu time = {args.time2}\n")
+f.write(f"\ntime1 = {args.time1}, time2 = {args.time2}, NodesLimit = {args.NodesLimit}\n")
 
 # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
 model_names = natsorted(glob.glob(curr_path + "*0.model"))
@@ -96,7 +96,7 @@ if args.option is None:
         # Miacisを準備
         server.engines[0].set_engine_options({"random_turn": 30,
                                               "print_interval": 10000000,
-                                              "USI_Hash": 4096,
+                                              "USI_Hash": hash_size,
                                               "model_name": model_name})
         scalar_or_categorical = "scalar" if "sca" in model_name else "categorical"
         server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
@@ -146,7 +146,7 @@ else:
         # Miacisを準備
         server.engines[0].set_engine_options({"random_turn": 30,
                                               "print_interval": 10000000,
-                                              "USI_Hash": 4096,
+                                              "USI_Hash": hash_size,
                                               args.option: parameter,
                                               "model_name": model_names[-1]})
         scalar_or_categorical = "scalar" if "sca" in model_names[-1] else "categorical"
