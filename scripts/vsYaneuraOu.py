@@ -25,6 +25,7 @@ parser.add_argument("--reverse", action="store_true")
 parser.add_argument("--option", type=str, default=None)
 parser.add_argument("--parameters", type=(lambda x: list(map(int, x.split()))))
 parser.add_argument("--Suisho", action="store_true")
+parser.add_argument("--total_num", type=(lambda x: list(map(int, x.split()))), default=[0, 0, 0])
 args = parser.parse_args()
 
 # 対局数(先後行うので偶数でなければならない)
@@ -102,13 +103,16 @@ if args.option is None:
         server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
 
         # 戦績を初期化
-        total_num = [0, 0, 0]
+        total_num = args.total_num
+
+        # 引数で初期化するのは最初だけにしたいのでここで[0, 0, 0]を入れてしまう
+        args.total_num = [0, 0, 0]
 
         # 棋譜の集合を初期化
         sfens = defaultdict(int)
 
         # iが偶数のときMiacis先手
-        for i in range(args.game_num):
+        for i in range(sum(total_num), args.game_num):
             # 対局を実行
             server.game_start()
             while not server.game_result.is_gameover():
@@ -153,7 +157,10 @@ else:
         server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
 
         # 戦績を初期化
-        total_num = [0, 0, 0]
+        total_num = args.total_num
+
+        # 引数で初期化するのは最初だけにしたいのでここで[0, 0, 0]を入れてしまう
+        args.total_num = [0, 0, 0]
 
         # 棋譜の集合を初期化
         sfens = defaultdict(int)
