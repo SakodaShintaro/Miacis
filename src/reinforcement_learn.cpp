@@ -1,6 +1,8 @@
 ﻿#include "game_generator.hpp"
 #include "hyperparameter_loader.hpp"
+#include "infer_model.hpp"
 #include "learn.hpp"
+#include <torch/torch.h>
 
 void reinforcementLearn() {
     // clang-format off
@@ -31,9 +33,11 @@ void reinforcementLearn() {
     int64_t sleep_msec                = settings.get<int64_t>("sleep_msec");
     int64_t init_buffer_by_kifu       = settings.get<int64_t>("init_buffer_by_kifu");
     int64_t noise_mode                = settings.get<int64_t>("noise_mode");
+    int64_t wait_sec_per_load         = settings.get<int64_t>("wait_sec_per_load");
     bool data_augmentation            = settings.get<bool>("data_augmentation");
     bool Q_search                     = settings.get<bool>("Q_search");
     std::string train_kifu_path       = settings.get<std::string>("train_kifu_path");
+    search_options.calibration_kifu_path = settings.get<std::string>("calibration_kifu_path");
     // clang-format on
 
     //学習クラスを生成
@@ -58,14 +62,11 @@ void reinforcementLearn() {
 
     //GPUの数だけネットワーク,自己対局生成器を生成
     size_t gpu_num = torch::getNumGPUs();
-    std::vector<NeuralNetwork> neural_networks(gpu_num);
     std::vector<std::unique_ptr<GameGenerator>> generators(gpu_num);
     std::vector<std::thread> gen_threads;
     for (uint64_t i = 0; i < gpu_num; i++) {
-        torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-        neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
         generators[i] = std::make_unique<GameGenerator>(search_options, worker_num_per_thread, Q_dist_lambda, noise_mode,
-                                                        noise_epsilon, noise_alpha, replay_buffer, neural_networks[i]);
+                                                        noise_epsilon, noise_alpha, replay_buffer, i);
         gen_threads.emplace_back([&generators, i]() { generators[i]->genGames(); });
     }
 
@@ -90,6 +91,9 @@ void reinforcementLearn() {
         //1ステップ学習し、損失を取得
         torch::Tensor loss_sum = learn_manager.learnOneStep(curr_data, step_num);
 
+        //GPUを解放
+        generators.front()->gpu_mutex.unlock();
+
         //replay_bufferのpriorityを更新
         std::vector<float> loss_vec(loss_sum.data_ptr<float>(), loss_sum.data_ptr<float>() + batch_size);
         replay_buffer.update(loss_vec);
@@ -97,27 +101,21 @@ void reinforcementLearn() {
         //一定間隔でActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
             //学習パラメータを保存
-            torch::save(learn_manager.neural_network, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
+            learn_manager.neural_network.save(DEFAULT_MODEL_NAME);
 
             //各ネットワークで保存されたパラメータを読み込み
             for (uint64_t i = 0; i < gpu_num; i++) {
-                if (i > 0) {
-                    generators[i]->gpu_mutex.lock();
-                }
+                generators[i]->gpu_mutex.lock();
 
-                //ロードするときは一度fp32に直さないとエラーになる
-                //もっと良いやり方はありそうだがなぁ
-                neural_networks[i]->setGPU(i, false);
-                torch::load(neural_networks[i], NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-                neural_networks[i]->setGPU(static_cast<int16_t>(i), search_options.use_fp16);
-                if (i > 0) {
-                    generators[i]->gpu_mutex.unlock();
-                }
+                //パラメータをロードするべきというシグナルを出す
+                generators[i]->need_load = true;
+
+                generators[i]->gpu_mutex.unlock();
             }
-        }
 
-        //GPUを解放
-        generators.front()->gpu_mutex.unlock();
+            //int8の場合は特にloadで時間がかかるのでその期間スリープ
+            std::this_thread::sleep_for(std::chrono::seconds(wait_sec_per_load));
+        }
 
         //学習スレッドを眠らせることで擬似的にActorの数を増やす
         std::this_thread::sleep_for(std::chrono::milliseconds(sleep_msec));

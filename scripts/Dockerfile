@@ -1,41 +1,69 @@
-FROM nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04
-MAINTAINER Shintaro Sakoda
+FROM nvcr.io/nvidia/pytorch:20.10-py3
 
-RUN set -x && \
-    : "必要なものをインストール" && \
-    apt-get update && \
-    apt-get install sudo -y && \
-    sudo apt-get install git -y && \
-    sudo apt-get install vim -y && \
-    sudo apt-get install cmake -y && \
-    sudo apt-get install python3 -y && \
-    sudo apt-get install python3-pip -y && \
-    sudo apt-get install p7zip-full -y && \
-    sudo apt-get install wget -y && \
-    sudo apt-get install curl -y && \
-    sudo apt-get install zip -y && \
-    sudo apt-get install unzip -y && \
-    pip3 install natsort && \
-    : "日本語の導入" && \
-    sudo apt-get install language-pack-ja-base language-pack-ja -y && \
-    echo "export LANG='ja_JP.UTF-8'" >> ~/.bashrc && \
-    : "Miacisの取得" && \
-    cd ~ && \
-    git clone https://github.com/SakodaShintaro/Miacis && \
-    : "libtorchの取得" && \
-    ./Miacis/scripts/download_libtorch.sh && \
-    : "ビルド更新スクリプトの準備" && \
-    mkdir Miacis/src/cmake-build-release && \
-    cd Miacis/src/cmake-build-release && \
-    echo "git fetch" > update.sh && \
+RUN apt-get update && apt-get install -y curl gnupg  && rm -rf /var/lib/apt/lists/*
+
+RUN curl https://bazel.build/bazel-release.pub.gpg | apt-key add - && \
+echo "deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list
+
+RUN apt-get update && apt-get install -y bazel-3.7.1 && rm -rf /var/lib/apt/lists/*
+RUN ln -s /usr/bin/bazel-3.7.1 /usr/bin/bazel
+
+RUN pip install notebook
+
+# trtorchの導入
+WORKDIR /opt
+RUN git clone https://github.com/NVIDIA/TRTorch trtorch
+WORKDIR /opt/trtorch
+RUN git checkout 721b071f7166e1826183f28305823f406eac4807
+RUN cp /opt/trtorch/docker/WORKSPACE.cu.docker /opt/trtorch/WORKSPACE
+
+# Workaround for bazel expecting both static and shared versions, we only use shared libraries inside container
+RUN cp /usr/lib/x86_64-linux-gnu/libnvinfer.so /usr/lib/x86_64-linux-gnu/libnvinfer_static.a
+
+WORKDIR /opt/trtorch
+RUN bazel build //:libtrtorch --compilation_mode opt
+
+WORKDIR /opt/trtorch/py
+
+RUN pip install ipywidgets
+RUN jupyter nbextension enable --py widgetsnbextension
+
+# Locale is not set by default
+RUN apt-get update && apt-get install -y locales ninja-build && rm -rf /var/lib/apt/lists/* && locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+RUN python3 setup.py install --use-cxx11-abi
+
+RUN conda init bash
+
+ENV LD_LIBRARY_PATH /opt/conda/lib/python3.6/site-packages/torch/lib:$LD_LIBRARY_PATH
+
+
+# ここから自分の設定
+# 言語の設定
+RUN apt-get update && apt-get install -y language-pack-ja-base language-pack-ja && rm -rf /var/lib/apt/lists/*
+ENV LANG='ja_JP.UTF-8'
+
+# 必要なもののインストール
+RUN apt-get update && apt-get install -y p7zip-full zip && rm -rf /var/lib/apt/lists/*
+RUN pip install natsort
+
+# trtorchを適切な場所へ展開
+WORKDIR /root
+RUN tar xvf /opt/trtorch/bazel-bin/libtrtorch.tar.gz .
+
+# Miacisの導入
+RUN git clone https://github.com/SakodaShintaro/Miacis
+RUN ./Miacis/scripts/download_libtorch.sh
+WORKDIR /root/Miacis/src/cmake-build-release
+RUN echo "git fetch" > update.sh && \
     echo "git reset --hard origin/master" >> update.sh && \
     echo "cmake -DCMAKE_BUILD_TYPE=Release .." >> update.sh && \
-    echo "make -j$(nproc)" >> update.sh && \
+    echo "make -j$(nproc) Miacis_shogi_categorical" >> update.sh && \
     chmod +x update.sh && \
-    ./update.sh && \
-    : "dotfilesの取得" && \
-    cd ~ && \
-    git clone https://github.com/SakodaShintaro/dotfiles && \
-    ./dotfiles/setup.sh
+    ./update.sh
 
+# dotfileの導入
 WORKDIR /root
+RUN git clone https://github.com/SakodaShintaro/dotfiles && ./dotfiles/setup.sh

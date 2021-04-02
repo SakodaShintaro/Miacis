@@ -1,7 +1,13 @@
 ﻿#include "game_generator.hpp"
 #include <thread>
+#include <trtorch/trtorch.h>
 
 void GameGenerator::genGames() {
+    //まず最初のロード
+    neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_, worker_num_ * search_options_.search_batch_size,
+                         search_options_.calibration_kifu_path, search_options_.use_fp16);
+    need_load = false;
+
     //生成スレッドを生成
     std::vector<std::thread> threads;
     for (int64_t i = 0; i < search_options_.thread_num_per_gpu; i++) {
@@ -15,6 +21,9 @@ void GameGenerator::genGames() {
 }
 
 void GameGenerator::genSlave(int64_t thread_id) {
+    //スレッドごとにCUDAをセットしておかないとエラーが出る
+    trtorch::set_device(gpu_id_);
+
     //Workerを準備
     std::vector<std::unique_ptr<GenerateWorker>> workers(worker_num_);
     for (int32_t i = 0; i < worker_num_; i++) {
@@ -48,6 +57,16 @@ void GameGenerator::genSlave(int64_t thread_id) {
         for (int32_t i = 0; i < worker_num_; i++) {
             workers[i]->backup();
         }
+
+        //パラメータをロードし直す必要があれば実行
+        //全スレッドが読み込もうとする必要はないので代表してid=0のスレッドに任せる
+        if (need_load && thread_id == 0) {
+            gpu_mutex.lock();
+            neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_, worker_num_ * search_options_.search_batch_size,
+                                 search_options_.calibration_kifu_path, search_options_.use_fp16);
+            need_load = false;
+            gpu_mutex.unlock();
+        }
     }
 }
 
@@ -77,9 +96,10 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
     //順伝播計算
     gpu_mutex.lock();
     torch::NoGradGuard no_grad_guard;
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result =
-        neural_network_->policyAndValueBatch(gpu_queues_[thread_id].inputs);
+    std::tuple<torch::Tensor, torch::Tensor> output = neural_network_.infer(gpu_queues_[thread_id].inputs);
     gpu_mutex.unlock();
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = neural_network_.decode(output);
+
     const std::vector<PolicyType>& policies = result.first;
     const std::vector<ValueType>& values = result.second;
 
@@ -191,10 +211,9 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
             //選択回数が0ならMIN_SCORE
             //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
             //その他は普通に計算
-            Q_dist[i] =
-                (N[i] == 0 ? MIN_SCORE
-                           : root_node.child_indices[i] == HashTable::NOT_EXPANDED ? MAX_SCORE
-                                                                                   : hash_table_.expQfromNext(root_node, i));
+            Q_dist[i] = (N[i] == 0                                               ? MIN_SCORE
+                         : root_node.child_indices[i] == HashTable::NOT_EXPANDED ? MAX_SCORE
+                                                                                 : hash_table_.expQfromNext(root_node, i));
         }
         Q_dist = softmax(Q_dist, std::max(search_options_.temperature_x1000 / 1000.0f, 1e-4f));
 

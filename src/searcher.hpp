@@ -24,7 +24,9 @@ struct BackupQueue {
 class Searcher {
 public:
     explicit Searcher(const SearchOptions& search_options, HashTable& hash_table, GPUQueue& gpu_queue)
-        : hash_table_(hash_table), search_options_(search_options), gpu_queue_(gpu_queue) {}
+        : hash_table_(hash_table), search_options_(search_options), gpu_queue_(gpu_queue),
+          fpu_(search_options_.FPU_x1000 / 1000.0), c_puct_(search_options_.C_PUCT_x1000 / 1000.0),
+          p_coeff_(search_options_.P_coeff_x1000 / 1000.0), q_coeff_(search_options_.Q_coeff_x1000 / 1000.0) {}
 
     //再帰しない探索関数
     void select(Position& pos);
@@ -58,6 +60,12 @@ private:
 
     //バックアップ要求を貯めるキュー。これは各インスタンスが生成して保持する
     BackupQueue backup_queue_;
+
+    //select時の定数
+    const float fpu_;
+    const float c_puct_;
+    const float p_coeff_;
+    const float q_coeff_;
 };
 
 #endif //MIACIS_SEARCHER_HPP

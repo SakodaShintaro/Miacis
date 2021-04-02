@@ -11,14 +11,13 @@ public:
 
 SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
     : stop_signal(false), search_options_(search_options),
-      hash_table_(search_options.USI_Hash * 1024 * 1024 / (60 * search_options.hold_moves_num)),
+      hash_table_(search_options.USI_Hash * 1024 * 1024 / (120 * search_options.hold_moves_num)),
       mate_searcher_(hash_table_, search_options) {
     //GPUを準備
     for (int64_t i = 0; i < search_options.gpu_num; i++) {
         neural_networks_.emplace_back();
-        torch::load(neural_networks_[i], search_options_.model_name);
-        neural_networks_[i]->setGPU(i, search_options_.use_fp16);
-        neural_networks_[i]->eval();
+        neural_networks_[i].load(search_options_.model_name, i, search_options.search_batch_size,
+                                 search_options.calibration_kifu_path, search_options.use_fp16);
     }
 
     //GPUに対するmutexを準備
@@ -98,7 +97,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
         }
         torch::NoGradGuard no_grad_guard;
         std::pair<std::vector<PolicyType>, std::vector<ValueType>> y =
-            neural_networks_[0]->policyAndValueBatch(gpu_queues_[0][0].inputs);
+            neural_networks_[0].policyAndValueBatch(gpu_queues_[0][0].inputs);
 
         //ルートノードへ書き込み
         curr_node.nn_policy.resize(curr_node.moves.size());
@@ -255,9 +254,9 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
         if (!gpu_queue.inputs.empty()) {
             torch::NoGradGuard no_grad_guard;
             gpu_mutexes_[gpu_id].lock();
-            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y =
-                neural_networks_[gpu_id]->policyAndValueBatch(gpu_queue.inputs);
+            std::tuple<torch::Tensor, torch::Tensor> output = neural_networks_[gpu_id].infer(gpu_queue.inputs);
             gpu_mutexes_[gpu_id].unlock();
+            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = neural_networks_[gpu_id].decode(output);
 
             //書き込み
             for (uint64_t i = 0; i < gpu_queue.indices.size(); i++) {

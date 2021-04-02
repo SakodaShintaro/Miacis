@@ -8,7 +8,8 @@ import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--kifu_path", type=str, default="/root/data/floodgate_kifu/valid")
-parser.add_argument("--batch_size", type=int, default=4096)
+parser.add_argument("--batch_size", type=int, default=512)
+parser.add_argument("--init_model_step", type=int, default=0)
 args = parser.parse_args()
 
 # カレントディレクトリ内にある{prefix}_{step}.modelを評価する
@@ -18,7 +19,7 @@ if curr_path[-1] != "/":
     curr_path += "/"
 
 # 結果を書き込むファイルを取得
-f = open(curr_path + "validation_loss.txt", "w")
+f = open(curr_path + "validation_loss.txt", "a")
 
 # ディレクトリにある以下のprefixを持ったパラメータを用いて検証損失の計算を行う
 model_names = natsorted(glob.glob(curr_path + "*0.model"))
@@ -34,6 +35,10 @@ start = time.time()
 for model_name in model_names:
     # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
     step = int(model_name[model_name.rfind("_") + 1:model_name.find(".model")])
+
+    # args.init_model_stepより小さいものは調べない
+    if step < args.init_model_step:
+        continue
 
     scalar_or_categorical = "scalar" if "sca" in model_name else "categorical"
     miacis_path = f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}"

@@ -10,13 +10,14 @@ void checkSearchSpeed2();
 void checkGenSpeed();
 void checkPredictSpeed();
 void checkVal();
+void checkValInfer();
 void checkSegmentTree();
 void checkDoAndUndo();
 void checkMirror();
 void checkBook();
 void makeBook();
 void searchWithLog();
-void convertModelToCPU();
+void testLoad();
 
 } // namespace Shogi
 

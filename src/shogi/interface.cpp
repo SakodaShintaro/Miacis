@@ -19,7 +19,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["gameover"]   = [this] { gameover(); };
 
     //メンバ関数以外
-    command_["initParams"]         = initParams;
     command_["cleanGames"]         = cleanGames;
     command_["supervisedLearn"]    = supervisedLearn;
     command_["reinforcementLearn"] = reinforcementLearn;
@@ -30,12 +29,13 @@ Interface::Interface() : searcher_(nullptr) {
     command_["checkGenSpeed"]      = checkGenSpeed;
     command_["checkPredictSpeed"]  = checkPredictSpeed;
     command_["checkVal"]           = checkVal;
+    command_["checkValInfer"]      = checkValInfer;
     command_["checkDoAndUndo"]     = checkDoAndUndo;
     command_["checkMirror"]        = checkMirror;
     command_["checkBook"]          = checkBook;
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
-    command_["convertModelToCPU"]  = convertModelToCPU;
+    command_["testLoad"]           = testLoad;
     // clang-format on
 }
 
@@ -202,7 +202,7 @@ void Interface::go() {
         Move best_move =
             (root_.canWinDeclare() ? DECLARE_MOVE : searcher_->think(root_, time_limit - search_options_.byoyomi_margin));
         std::cout << "bestmove " << best_move << std::endl;
-        if (search_options_.USI_Ponder && best_move != NULL_MOVE) {
+        if (search_options_.USI_Ponder && best_move != NULL_MOVE && best_move != DECLARE_MOVE) {
             root_.doMove(best_move);
             float score{};
             if (!root_.isFinish(score) && root_.turnNumber() <= search_options_.draw_turn) {

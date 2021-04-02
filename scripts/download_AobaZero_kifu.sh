@@ -27,7 +27,7 @@ while read row; do
 
   # THRESHOLDより大きいものだけをダウンロード
   # 2重にダウンロードしないように存在判定を入れる
-  if [ "${file_number}" -ge ${START_FILE_ID} ] && [ "${file_number}" -lt ${START_FILE_ID} ] && [ ! -f "${root_dir}/${file_name}" ]; then
+  if [ "${file_number}" -ge ${START_FILE_ID} ] && [ "${file_number}" -lt ${END_FILE_ID} ] && [ ! -f "${root_dir}/${file_name}" ]; then
     # ダウンロード
     curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=${file_id}" >/dev/null
     CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"

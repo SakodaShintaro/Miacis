@@ -2,6 +2,7 @@
 #define MIACIS_GAME_GENERATOR_HPP
 
 #include "game.hpp"
+#include "infer_model.hpp"
 #include "replay_buffer.hpp"
 #include "search_options.hpp"
 #include "searcher.hpp"
@@ -16,19 +17,21 @@
 class GameGenerator {
 public:
     GameGenerator(const SearchOptions& search_options, int64_t worker_num, float Q_dist_lambda, int64_t noise_mode,
-                  float noise_epsilon, float noise_alpha, ReplayBuffer& rb, NeuralNetwork nn)
+                  float noise_epsilon, float noise_alpha, ReplayBuffer& rb, int64_t gpu_id)
         : stop_signal(false), search_options_(search_options), worker_num_(worker_num), Q_dist_lambda_(Q_dist_lambda),
           noise_mode_(noise_mode), noise_epsilon_(noise_epsilon), noise_alpha_(noise_alpha), replay_buffer_(rb),
-          neural_network_(std::move(nn)), gpu_queues_(search_options_.thread_num_per_gpu) {
-        neural_network_->eval();
+          neural_network_(), gpu_id_(gpu_id), gpu_queues_(search_options_.thread_num_per_gpu) {
         assert(0 <= noise_mode_ && noise_mode_ < NOISE_MODE_SIZE);
     };
 
     //生成してリプレイバッファに送り続ける関数
     void genGames();
 
-    //排他制御用のmutex。AlphaZeroTrainerから触れるようにpublicに置いている
+    //排他制御用のmutex。強化学習時に外部からアクセスできるようpublicに置いている
     std::mutex gpu_mutex;
+
+    //評価パラメータの読み込みが必要かどうかのシグナル
+    bool need_load;
 
     //停止信号。止めたいときは外部からこれをtrueにする
     bool stop_signal;
@@ -70,7 +73,10 @@ private:
     ReplayBuffer& replay_buffer_;
 
     //局面評価に用いるネットワーク
-    NeuralNetwork neural_network_;
+    InferModel neural_network_;
+
+    //CUDAがスレッドごとに紐付くのでgpu_id_を明に保持する必要がある
+    int64_t gpu_id_;
 
     //評価要求を受け付けるQueue
     std::vector<GPUQueue> gpu_queues_;

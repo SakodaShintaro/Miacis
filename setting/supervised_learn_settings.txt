@@ -1,7 +1,7 @@
 learn_rate              0.025
-min_learn_rate          0.0025
 momentum                0.9
 weight_decay            0.0001
+mixup_alpha             0.0
 policy_loss_coeff       1.0
 value_loss_coeff        1.0
 data_augmentation       1
@@ -16,7 +16,7 @@ learn_rate_decay_step3  1800000
 learn_rate_decay_step4  2400000
 learn_rate_decay_period 100000
 use_sam_optim           0
-clip_grad_norm_         10
+clip_grad_norm          10
 
 # Shogi(AobaZero)
 load_multi_dir       1

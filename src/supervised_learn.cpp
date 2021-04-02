@@ -32,6 +32,11 @@ void supervisedLearn() {
     //データを取得
     std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation, train_rate_threshold);
 
+    //どのEpochでどのデータを使っているかを記録する
+    std::ofstream epoch_log("epoch_log.txt");
+    epoch_log << "dir_path.size() = " << dir_paths.size() << std::endl;
+    epoch_log << "0 0 " << train_data.size() << std::endl;
+
     //学習クラスを生成
     LearnManager learn_manager("supervised");
 
@@ -53,6 +58,7 @@ void supervisedLearn() {
 
         if (load_multi_dir) {
             train_data = loadData(dir_paths[epoch % dir_paths.size()], data_augmentation, train_rate_threshold);
+            epoch_log << epoch << " " << global_step << " " << train_data.size() << std::endl;
         }
     }
 

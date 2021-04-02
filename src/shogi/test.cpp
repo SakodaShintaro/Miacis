@@ -1,5 +1,6 @@
 ﻿#include "test.hpp"
 #include "../game_generator.hpp"
+#include "../infer_model.hpp"
 #include "../searcher_for_play.hpp"
 #include "book.hpp"
 
@@ -12,10 +13,9 @@ void test() {
     search_options.thread_num_per_gpu = 1;
     search_options.search_batch_size = 1;
     search_options.output_log_file = true;
-    NeuralNetwork nn;
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    nn->setGPU(0);
-    nn->eval();
+    InferModel nn;
+    nn.load(DEFAULT_MODEL_NAME, 0, search_options.search_batch_size, search_options.calibration_kifu_path,
+            search_options.use_fp16);
     SearcherForPlay searcher(search_options);
 
     Position pos;
@@ -82,9 +82,6 @@ void infiniteTest() {
 }
 
 void checkGenSpeed() {
-    NeuralNetwork nn;
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-
     constexpr int64_t buffer_size = 1048576;
     SearchOptions search_options;
     search_options.search_limit = 800;
@@ -95,9 +92,6 @@ void checkGenSpeed() {
     constexpr int64_t noise_mode = 0;
     constexpr float noise_epsilon = 0.25;
     constexpr float noise_alpha = 0.15;
-
-    nn->setGPU(0, search_options.use_fp16);
-    nn->eval();
 
     int64_t total_worker_num = 0;
     std::cout << "total_worker_num(デフォルトは128): ";
@@ -116,8 +110,7 @@ void checkGenSpeed() {
         for (search_options.search_batch_size = 2; search_options.search_batch_size <= 4; search_options.search_batch_size *= 2) {
             ReplayBuffer buffer(0, buffer_size, 1, 1.0, 1.0, false);
             auto start = std::chrono::steady_clock::now();
-            GameGenerator generator(search_options, worker_num, Q_dist_lambda, noise_mode, noise_epsilon, noise_alpha, buffer,
-                                    nn);
+            GameGenerator generator(search_options, worker_num, Q_dist_lambda, noise_mode, noise_epsilon, noise_alpha, buffer, 0);
             std::thread t(&GameGenerator::genGames, &generator);
             for (int64_t i = 0; i < num; i++) {
                 std::this_thread::sleep_for(std::chrono::seconds(sec));
@@ -263,10 +256,9 @@ void checkVal() {
     std::cout << "data.size() = " << data.size() << std::endl;
 
     //ネットワークの準備
-    NeuralNetwork nn;
-    torch::load(nn, model_file);
-    nn->setGPU(0);
-    nn->eval();
+    LearningModel nn;
+    nn.load(model_file, 0);
+    nn.eval();
 
     std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, batch_size);
     std::cout << std::fixed << std::setprecision(4);
@@ -275,17 +267,55 @@ void checkVal() {
     }
 }
 
+void checkValInfer() {
+    //データを取得
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
+    int64_t batch_size;
+    std::cout << "batch_size : ";
+    std::cin >> batch_size;
+    std::string model_file;
+    std::cout << "model_file : ";
+    std::cin >> model_file;
+    std::string calibration_kifu_path;
+    std::cout << "calibration_kifu_path : ";
+    std::cin >> calibration_kifu_path;
+    bool use_fp16;
+    std::cout << "fp16 : ";
+    std::cin >> use_fp16;
+
+    std::vector<LearningData> data = loadData(path, false, 3000);
+    std::cout << "data.size() = " << data.size() << std::endl;
+
+    //ネットワークの準備
+    InferModel nn;
+
+    for (int64_t calibration_data_num = batch_size; calibration_data_num <= (batch_size << 5); calibration_data_num *= 2) {
+        nn.load(model_file, 0, batch_size, calibration_kifu_path, use_fp16);
+
+        std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, batch_size);
+        std::cout << std::fixed << std::setprecision(4);
+        std::cout << std::setw(10) << calibration_data_num << " ";
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
+        }
+    }
+    std::cout << "finish checkValInfer" << std::endl;
+}
+
 void checkPredictSpeed() {
     Position pos;
     constexpr int64_t REPEAT_NUM = 1000;
+    constexpr int64_t BATCH_SIZE = 512;
     std::cout << std::fixed;
 
-    NeuralNetwork nn;
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    nn->setGPU(0);
-    nn->eval();
+    SearchOptions search_options;
 
-    for (int64_t batch_size = 1; batch_size <= 4096; batch_size *= 2) {
+    InferModel nn;
+    nn.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE, search_options.calibration_kifu_path, search_options.use_fp16);
+
+    for (int64_t batch_size = 1; batch_size <= BATCH_SIZE; batch_size *= 2) {
         //バッチサイズ分入力を取得
         std::vector<float> input;
         for (int64_t k = 0; k < batch_size; k++) {
@@ -301,20 +331,17 @@ void checkPredictSpeed() {
             }
         }
 
-        std::cout << input.size() << std::endl;
-
         float time = 0.0;
         for (int64_t i = 0; i < REPEAT_NUM; i++) {
             auto start = std::chrono::steady_clock::now();
             torch::NoGradGuard no_grad_guard;
-            nn->policyAndValueBatch(pos.makeFeature());
+            nn.policyAndValueBatch(input);
             auto end = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
             time += elapsed.count();
         }
 
-        std::cout << "batch_size = " << std::setw(5) << batch_size << ", " << time / REPEAT_NUM << " microsec / batch"
-                  << std::endl;
+        std::cout << std::setw(5) << batch_size << "\t" << time / REPEAT_NUM << "\tmicrosec/batch" << std::endl;
     }
 }
 
@@ -464,13 +491,51 @@ void searchWithLog() {
     }
 }
 
-void convertModelToCPU() {
-    //ネットワークの準備
-    NeuralNetwork nn;
-    torch::load(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    nn->to(torch::kCPU);
-    torch::save(nn, NeuralNetworkImpl::MODEL_PREFIX + "_cpu.model");
-    std::cout << "finish convertModelToCPU" << std::endl;
+void testLoad() {
+    constexpr int64_t LOOP_NUM = 20;
+    constexpr int64_t BATCH_SIZE = 256;
+
+    SearchOptions search_options;
+
+    //時間計測開始
+    Timer timer;
+    timer.start();
+    int64_t pre = 0;
+    //通常試行
+    std::cout << "通常の試行" << std::endl;
+    for (int64_t num = 0; num < 0; num++) {
+        InferModel model;
+        model.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE, search_options.calibration_kifu_path, search_options.use_fp16);
+        int64_t ela = timer.elapsedSeconds();
+        int64_t curr = ela - pre;
+        pre = ela;
+        std::cout << std::setw(3) << num + 1 << "回目終了, 今回" << curr << "秒, 平均" << ela / (num + 1.0) << "秒" << std::endl;
+    }
+
+    //スレッドを作成しての試行
+    timer.start();
+    pre = 0;
+    std::cout << "スレッドを作成しての試行" << std::endl;
+    const int64_t gpu_num = torch::getNumGPUs();
+    for (int64_t num = 0; num < LOOP_NUM; num++) {
+        std::vector<std::thread> threads;
+        for (int64_t i = 0; i < gpu_num; i++) {
+            threads.emplace_back([i, search_options]() {
+                InferModel model;
+                model.load(DEFAULT_MODEL_NAME, i, BATCH_SIZE, search_options.calibration_kifu_path, search_options.use_fp16);
+            });
+        }
+        for (int64_t i = 0; i < gpu_num; i++) {
+            threads[i].join();
+        }
+        int64_t ela = timer.elapsedSeconds();
+        int64_t curr = ela - pre;
+        pre = ela;
+        std::cout << std::setw(3) << num + 1 << "回目終了, 今回" << curr << "秒, 平均" << ela / (num + 1.0) << "秒" << std::endl;
+    }
+
+    std::cout << "finish testLoad" << std::endl;
+    std::exit(0);
 }
 
 } // namespace Shogi

@@ -13,12 +13,9 @@ ELEMENT_NUM = 2
 
 # ディレクトリの名前をコマンドライン引数として受け取る
 parser = argparse.ArgumentParser()
-parser.add_argument("-dirs", type=(lambda x: x.split()))
-parser.add_argument("--labels", type=(lambda x: x.split("%")), default=None)
+parser.add_argument("--dirs", type=(lambda x: x.split()), required=True)
+parser.add_argument("--labels", type=(lambda x: x.split()), required=True)
 args = parser.parse_args()
-if args.labels is None:
-    args.labels = [""]
-
 assert len(args.dirs) == len(args.labels)
 
 # 3次元

@@ -6,7 +6,8 @@
 #include <random>
 #include <sstream>
 
-std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
+template<class ModelType>
+std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
     torch::NoGradGuard no_grad_guard;
     std::array<float, LOSS_TYPE_NUM> losses{};
     for (uint64_t index = 0; index < valid_data.size();) {
@@ -15,7 +16,7 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
             curr_data.push_back(valid_data[index++]);
         }
 
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = nn->validLoss(curr_data);
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = model.validLoss(curr_data);
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             losses[i] += loss[i].sum().item<float>();
         }
@@ -28,6 +29,9 @@ std::array<float, LOSS_TYPE_NUM> validation(NeuralNetwork nn, const std::vector<
 
     return losses;
 }
+
+template std::array<float, LOSS_TYPE_NUM> validation<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data,
+                                                                 uint64_t batch_size);
 
 std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold) {
     //棋譜を読み込めるだけ読み込む
@@ -59,12 +63,6 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
     return data_buffer;
 }
 
-void initParams() {
-    NeuralNetwork nn;
-    torch::save(nn, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    std::cout << "初期化したパラメータを" << NeuralNetworkImpl::DEFAULT_MODEL_NAME << "に出力" << std::endl;
-}
-
 LearnManager::LearnManager(const std::string& learn_name) {
     assert(learn_name == "supervised" || learn_name == "reinforcement");
     HyperparameterLoader settings(learn_name + "_learn_settings.txt");
@@ -77,13 +75,6 @@ LearnManager::LearnManager(const std::string& learn_name) {
         coefficients_[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
     }
 
-    //optimizerの準備
-    learn_rate_ = settings.get<float>("learn_rate");
-    torch::optim::SGDOptions sgd_option(learn_rate_);
-    sgd_option.momentum(settings.get<float>("momentum"));
-    sgd_option.weight_decay(settings.get<float>("weight_decay"));
-    optimizer_ = std::make_unique<torch::optim::SGD>(neural_network->parameters(), sgd_option);
-
     //学習推移のログファイル
     train_log_.open(learn_name + "_train_log.txt");
     valid_log_.open(learn_name + "_valid_log.txt");
@@ -94,11 +85,18 @@ LearnManager::LearnManager(const std::string& learn_name) {
     }
 
     //評価関数読み込み
-    torch::load(neural_network, NeuralNetworkImpl::DEFAULT_MODEL_NAME);
-    neural_network->setGPU(0);
+    neural_network.load(DEFAULT_MODEL_NAME, 0);
 
     //学習前のパラメータを出力
-    torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_before_learn.model");
+    neural_network.save(MODEL_PREFIX + "_before_learn.model");
+
+    //optimizerの準備
+    learn_rate_ = settings.get<float>("learn_rate");
+    torch::optim::SGDOptions sgd_option(learn_rate_);
+    sgd_option.momentum(settings.get<float>("momentum"));
+    sgd_option.weight_decay(settings.get<float>("weight_decay"));
+    std::vector<torch::Tensor> parameters;
+    optimizer_ = std::make_unique<torch::optim::SGD>(neural_network.parameters(), sgd_option);
 
     //パラメータの保存間隔
     save_interval_ = settings.get<int64_t>("save_interval");
@@ -115,13 +113,15 @@ LearnManager::LearnManager(const std::string& learn_name) {
     learn_rate_decay_step3_ = settings.get<int64_t>("learn_rate_decay_step3");
     learn_rate_decay_step4_ = settings.get<int64_t>("learn_rate_decay_step4");
     learn_rate_decay_period_ = settings.get<int64_t>("learn_rate_decay_period");
-    min_learn_rate_ = settings.get<float>("min_learn_rate");
+
+    //mixupの混合比を決定する値
+    mixup_alpha_ = settings.get<float>("mixup_alpha");
 
     //SAM
     use_sam_optim_ = settings.get<int64_t>("use_sam_optim");
 
     //clip_grad_norm_の値
-    clip_grad_norm_ = settings.get<float>("clip_grad_norm_");
+    clip_grad_norm_ = settings.get<float>("clip_grad_norm");
 
     //学習開始時間の設定
     timer_.start();
@@ -133,7 +133,8 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     //学習
     optimizer_->zero_grad();
-    std::array<torch::Tensor, LOSS_TYPE_NUM> loss = neural_network->loss(curr_data);
+    std::array<torch::Tensor, LOSS_TYPE_NUM> loss =
+        (mixup_alpha_ == 0 ? neural_network.loss(curr_data) : neural_network.mixUpLoss(curr_data, mixup_alpha_));
     torch::Tensor loss_sum = torch::zeros({ batch_size });
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         loss_sum += coefficients_[i] * loss[i].cpu();
@@ -177,7 +178,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
         optimizer_->zero_grad();
 
         //再計算
-        loss = neural_network->loss(curr_data);
+        loss = neural_network.loss(curr_data);
         loss_sum = torch::zeros({ batch_size });
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             loss_sum += coefficients_[i] * loss[i].cpu();
@@ -200,7 +201,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
     }
 
     //勾配をクリップ
-    torch::nn::utils::clip_grad_norm_(neural_network->parameters(), clip_grad_norm_);
+    torch::nn::utils::clip_grad_norm_(neural_network.parameters(), clip_grad_norm_);
 
     //パラメータを更新
     optimizer_->step();
@@ -216,9 +217,9 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     if (stem_num % validation_interval_ == 0) {
         //validation_lossを計算
-        neural_network->eval();
+        neural_network.eval();
         std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network, valid_data_, batch_size);
-        neural_network->train();
+        neural_network.train();
         float sum_loss = 0;
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             sum_loss += coefficients_[i] * valid_loss[i];
@@ -234,7 +235,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     //パラメータをステップ付きで保存
     if (stem_num % save_interval_ == 0) {
-        torch::save(neural_network, NeuralNetworkImpl::MODEL_PREFIX + "_" + std::to_string(stem_num) + ".model");
+        neural_network.save(MODEL_PREFIX + "_" + std::to_string(stem_num) + ".model");
     }
 
     //学習率の変化はoptimizer_->defaults();を使えそうな気がする
@@ -248,7 +249,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
         //Cosine annealing
         int64_t curr_step = stem_num % learn_rate_decay_period_;
         (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
-            min_learn_rate_ + 0.5 * (learn_rate_ - min_learn_rate_) * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period_));
+            0.5 * learn_rate_ * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period_));
     } else if (learn_rate_decay_mode_ == 3) {
         //指数的な減衰
         if (stem_num % learn_rate_decay_period_ == 0) {
@@ -256,5 +257,5 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
         }
     }
 
-    return loss_sum;
+    return loss_sum.detach();
 }
