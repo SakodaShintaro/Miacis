@@ -1,5 +1,6 @@
 ﻿#include "test.hpp"
 #include "../game_generator.hpp"
+#include "../infer_dlshogi_model.hpp"
 #include "../infer_model.hpp"
 #include "../searcher_for_play.hpp"
 #include "book.hpp"
@@ -536,6 +537,44 @@ void testLoad() {
 
     std::cout << "finish testLoad" << std::endl;
     std::exit(0);
+}
+
+void testDLShogiModel() {
+    //データを取得
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
+    int64_t batch_size;
+    std::cout << "batch_size : ";
+    std::cin >> batch_size;
+    std::string model_file;
+    std::cout << "model_file : ";
+    std::cin >> model_file;
+    std::string calibration_kifu_path;
+    std::cout << "calibration_kifu_path : ";
+    std::cin >> calibration_kifu_path;
+    bool use_fp16;
+    std::cout << "fp16 : ";
+    std::cin >> use_fp16;
+
+    //ネットワークの準備
+    InferDLShogiModel nn;
+    nn.load(model_file, 0, batch_size, calibration_kifu_path, use_fp16);
+
+    std::vector<LearningData> data = loadData(path, false, 3000);
+    std::cout << "data.size() = " << data.size() << std::endl;
+
+    int64_t calibration_data_num = batch_size;
+
+    nn.load(model_file, 0, batch_size, calibration_kifu_path, use_fp16);
+
+    std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, batch_size);
+    std::cout << std::fixed << std::setprecision(4);
+    std::cout << std::setw(10) << calibration_data_num << " ";
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
+    }
+    std::cout << "finish testDLShogiModel" << std::endl;
 }
 
 } // namespace Shogi

@@ -85,6 +85,10 @@ constexpr int64_t INPUT_CHANNEL_NUM = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2
 extern const std::array<Piece, PIECE_KIND_NUM * 2> PieceList;
 extern const std::array<std::array<Piece, 3>, 2> ColoredJumpPieceList;
 
+extern const std::array<Piece, PIECE_KIND_NUM> DLShogiPieceKindList;
+extern const std::array<Piece, HAND_PIECE_KIND_NUM> DLShogiHandPieceKindList;
+extern const ArrayMap<int64_t, PieceNum> DLShogiPieceToIndex;
+
 inline Piece kind(Piece p) { return static_cast<Piece>(p & PIECE_KIND_MASK); }
 inline Piece kindWithPromotion(Piece p) { return static_cast<Piece>(p & (PROMOTE | PIECE_KIND_MASK)); }
 inline Piece promote(Piece p) { return static_cast<Piece>(p | PROMOTE); }

@@ -46,6 +46,63 @@ uint32_t Move::toLabel() const {
     return static_cast<uint32_t>(SquareToNum[to_sq] + SQUARE_NUM * direction);
 }
 
+uint32_t Move::toDLShogiLabel() const {
+    Color c = pieceToColor(subject());
+
+    Square to_sq = (c == BLACK ? to() : InvSquare[to()]);
+    File to_file = SquareToFile[to_sq];
+    Rank to_rank = SquareToRank[to_sq];
+    Square from_sq = (c == BLACK ? from() : InvSquare[from()]);
+    File from_file = SquareToFile[from_sq];
+    Rank from_rank = SquareToRank[from_sq];
+
+    enum MOVE_DIRECTION {
+        UP,
+        UP_LEFT,
+        UP_RIGHT,
+        LEFT,
+        RIGHT,
+        DOWN,
+        DOWN_LEFT,
+        DOWN_RIGHT,
+        UP2_LEFT,
+        UP2_RIGHT,
+        MOVE_DIRECTION_NUM
+    };
+
+    int32_t direction{};
+    if (from() == WALL00) { //打つ手
+        direction = 2 * MOVE_DIRECTION_NUM + DLShogiPieceToIndex[kind(subject())] - 1;
+    } else if (to_file == from_file - 1 && to_rank == from_rank - 2) { //桂馬右上
+        direction = UP2_RIGHT;
+    } else if (to_file == from_file + 1 && to_rank == from_rank - 2) { //桂馬左上
+        direction = UP2_LEFT;
+    } else if (to_file == from_file && to_rank > from_rank) {
+        direction = DOWN;
+    } else if (to_file > from_file && to_rank > from_rank) {
+        direction = DOWN_LEFT;
+    } else if (to_file > from_file && to_rank == from_rank) {
+        direction = LEFT;
+    } else if (to_file > from_file && to_rank < from_rank) {
+        direction = UP_LEFT;
+    } else if (to_file == from_file && to_rank < from_rank) {
+        direction = UP;
+    } else if (to_file < from_file && to_rank < from_rank) {
+        direction = UP_RIGHT;
+    } else if (to_file < from_file && to_rank == from_rank) {
+        direction = RIGHT;
+    } else if (to_file < from_file && to_rank > from_rank) {
+        direction = DOWN_RIGHT;
+    } else {
+        assert(false);
+    }
+    if (isPromote()) {
+        direction += MOVE_DIRECTION_NUM;
+    }
+
+    return static_cast<uint32_t>(SquareToNum[to_sq] + SQUARE_NUM * direction);
+}
+
 uint32_t Move::augmentLabel(uint32_t label, int64_t augmentation) {
     if (augmentation == 0) {
         //0のときはそのまま

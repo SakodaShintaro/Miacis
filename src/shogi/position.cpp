@@ -1081,6 +1081,112 @@ std::vector<float> Position::makeFeature() const {
     return features;
 }
 
+std::vector<float> Position::makeDLShogiFeature() const {
+    std::vector<float> result((DLSHOGI_FEATURES1_NUM + DLSHOGI_FEATURES2_NUM) * SQUARE_NUM, 0);
+
+    auto index = [](int64_t feature, int64_t color, int64_t ch, int64_t sq) {
+        return feature * (DLSHOGI_FEATURES1_NUM * SQUARE_NUM) +
+               color * (feature == 0 ? DLSHOGI_FEATURES1_NUM / 2 : DLSHOGI_FEATURES2_NUM / 2) * SQUARE_NUM + ch * SQUARE_NUM + sq;
+    };
+
+    constexpr unsigned long MAX_ATTACK_NUM = 3; // 利き数の最大値
+    const int32_t MAX_PIECES_IN_HAND[HAND_PIECE_KIND_NUM + 1] = { 0, 8, 4, 4, 4, 4, 2, 2 };
+
+    const Bitboard occupied_bb = occupied_all_;
+
+    // dlshogiはEMPTY=0を含めて数えているのでPIECE_KIND_NUM + 1
+    constexpr int64_t PieceTypeNum = PIECE_KIND_NUM + 1;
+
+    // 駒の利き(駒種でマージ)
+    Bitboard attacks[ColorNum][PieceTypeNum] = {
+        { { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 } },
+        { { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 },
+          { 0, 0 } },
+    };
+    for (Square sq : SquareList) {
+        const Piece p = board_[sq];
+        if (p != EMPTY) {
+            const Color pc = pieceToColor(p);
+            const Piece pt = kind(p);
+            const int64_t ind = DLShogiPieceToIndex[pt];
+            attacks[pc][ind] |= controlBB(sq, p, occupied_bb);
+        }
+    }
+
+    for (Color c : { BLACK, WHITE }) {
+        // 白の場合、色を反転
+        const Color c2 = (color_ == BLACK ? c : ~c);
+
+        for (Square sq : SquareList) {
+            // 白の場合、盤面を180度回転
+            const Square sq2 = (color_ == BLACK ? sq : InvSquare[sq]);
+            const int64_t sq_index = SquareToNum[sq2];
+
+            for (int64_t i = 0; i < DLShogiPieceKindList.size(); i++) {
+                Piece pt = DLShogiPieceKindList[i];
+                // 駒の配置
+                if (pieces_bb_[coloredPiece(c, pt)] & SQUARE_BB[sq]) {
+                    result[index(0, c2, i, sq_index)] = 1;
+                }
+
+                // 駒の利き
+                if (attacks[c][i + 1] & SQUARE_BB[sq]) {
+                    result[index(0, c2, PIECE_KIND_NUM + i, sq_index)] = 1;
+                }
+            }
+
+            // 利き数
+            const int64_t num = std::min(MAX_ATTACK_NUM, attackersTo(c, sq, occupied_bb).pop_count());
+            for (int64_t k = 0; k < num; k++) {
+                result[index(0, c2, PIECE_KIND_NUM * 2 + k, sq_index)] = 1;
+            }
+        }
+
+        // hand
+        const Hand hand = hand_[c];
+        int64_t p = 0;
+        for (Piece hp : DLShogiHandPieceKindList) {
+            int64_t num = std::min(hand.num(hp), MAX_PIECES_IN_HAND[hp]);
+            std::fill_n(result.begin() + index(1, c2, p, 0), SQUARE_NUM * num, 1);
+            p += MAX_PIECES_IN_HAND[hp];
+        }
+    }
+
+    // is check
+    if (is_checked_) {
+        std::fill_n(result.end() - SQUARE_NUM, SQUARE_NUM, 1);
+    }
+
+    return result;
+}
+
 bool Position::isLastMoveDropPawn() const { return (lastMove().isDrop() && kind(lastMove().subject()) == PAWN); }
 
 bool Position::isFinish(float& score, bool check_repeat) {

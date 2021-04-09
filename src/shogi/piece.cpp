@@ -132,7 +132,34 @@ std::unordered_map<int, std::string> PieceToSfenStr = {
     { WHITE_ROOK_PROMOTE,   "+r" },
 };
 
-const std::array<Piece, 28> PieceList{
+const std::array<Piece, PIECE_KIND_NUM> DLShogiPieceKindList{
+    PAWN,
+    LANCE,
+    KNIGHT,
+    SILVER,
+    BISHOP,
+    ROOK,
+    GOLD,
+    KING,
+    PAWN_PROMOTE,
+    LANCE_PROMOTE,
+    KNIGHT_PROMOTE,
+    SILVER_PROMOTE,
+    BISHOP_PROMOTE,
+    ROOK_PROMOTE,
+};
+
+const std::array<Piece, HAND_PIECE_KIND_NUM> DLShogiHandPieceKindList{
+    PAWN,
+    LANCE,
+    KNIGHT,
+    SILVER,
+    GOLD,
+    BISHOP,
+    ROOK,
+};
+
+const std::array<Piece, PIECE_KIND_NUM * 2> PieceList{
     BLACK_PAWN,
     BLACK_LANCE,
     BLACK_KNIGHT,
@@ -162,6 +189,23 @@ const std::array<Piece, 28> PieceList{
     WHITE_BISHOP_PROMOTE,
     WHITE_ROOK_PROMOTE,
 };
+
+const ArrayMap<int64_t, PieceNum> DLShogiPieceToIndex({
+    { PAWN, 1 },
+    { LANCE, 2 },
+    { KNIGHT, 3 },
+    { SILVER, 4 },
+    { BISHOP, 5 },
+    { ROOK, 6 },
+    { GOLD, 7 },
+    { KING, 8 },
+    { PAWN_PROMOTE, 9 },
+    { LANCE_PROMOTE, 10 },
+    { KNIGHT_PROMOTE, 11 },
+    { SILVER_PROMOTE, 12 },
+    { BISHOP_PROMOTE, 13 },
+    { ROOK_PROMOTE, 14 }
+});
 
 const std::array<std::array<Piece, 3>, 2> ColoredJumpPieceList {{
     { BLACK_LANCE, BLACK_BISHOP, BLACK_ROOK },
