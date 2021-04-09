@@ -70,13 +70,6 @@ std::tuple<torch::Tensor, torch::Tensor> InferDLShogiModel::infer(const std::vec
     torch::Tensor x1 = xs[0];
     torch::Tensor x2 = xs[1];
 
-    //    std::cout << "x1" << std::endl;
-    //    for (int64_t i = 0; i < x1.size(1); i++) {
-    //        std::cout << "i = " << i << std::endl;
-    //        std::cout << x1[0][i] << std::endl;
-    //    }
-    //    std::cout << "x2 = " << x2 << std::endl;
-
     auto out = module_.forward({ x1, x2 });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();

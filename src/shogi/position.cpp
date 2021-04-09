@@ -1098,43 +1098,12 @@ std::vector<float> Position::makeDLShogiFeature() const {
     constexpr int64_t PieceTypeNum = PIECE_KIND_NUM + 1;
 
     // 駒の利き(駒種でマージ)
-    Bitboard attacks[ColorNum][PieceTypeNum] = {
-        { { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 } },
-        { { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 },
-          { 0, 0 } },
-    };
+    std::vector<std::vector<Bitboard>> attacks(ColorNum, std::vector<Bitboard>(PieceTypeNum, { 0, 0 }));
     for (Square sq : SquareList) {
         const Piece p = board_[sq];
         if (p != EMPTY) {
             const Color pc = pieceToColor(p);
-            const Piece pt = kind(p);
+            const Piece pt = kindWithPromotion(p);
             const int64_t ind = DLShogiPieceToIndex[pt];
             attacks[pc][ind] |= controlBB(sq, p, occupied_bb);
         }
