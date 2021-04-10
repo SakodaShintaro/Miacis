@@ -37,6 +37,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["searchWithLog"]      = searchWithLog;
     command_["testLoad"]           = testLoad;
     command_["testDLShogiModel"]   = testDLShogiModel;
+    command_["testDLShogiLabel"]   = testDLShogiLabel;
     command_["checkValDLShogi"]    = checkValDLShogi;
     // clang-format on
 }
