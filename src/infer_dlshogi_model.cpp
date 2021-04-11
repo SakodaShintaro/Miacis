@@ -62,13 +62,10 @@ InferDLShogiModel::policyAndValueBatch(const std::vector<float>& inputs) {
 }
 
 std::tuple<torch::Tensor, torch::Tensor> InferDLShogiModel::infer(const std::vector<float>& inputs) {
-    torch::Tensor x = torch::tensor(inputs).to(device_);
-    x = x.view({ -1, (DLSHOGI_FEATURES1_NUM + DLSHOGI_FEATURES2_NUM), BOARD_WIDTH, BOARD_WIDTH });
-
+    torch::Tensor x = inputVectorToTensor(inputs).to(device_);
     if (use_fp16_) {
         x = x.to(torch::kFloat16);
     }
-
     std::vector<torch::Tensor> xs = x.split(DLSHOGI_FEATURES1_NUM, 1);
     torch::Tensor x1 = xs[0];
     torch::Tensor x2 = xs[1];

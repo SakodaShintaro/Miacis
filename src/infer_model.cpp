@@ -54,8 +54,7 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
 }
 
 std::tuple<torch::Tensor, torch::Tensor> InferModel::infer(const std::vector<float>& inputs) {
-    torch::Tensor x = torch::tensor(inputs).to(device_);
-    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+    torch::Tensor x = inputVectorToTensor(inputs).to(device_);
     if (use_fp16_) {
         x = x.to(torch::kFloat16);
     }
@@ -78,19 +77,20 @@ std::tuple<torch::Tensor, torch::Tensor> InferModel::infer(const std::vector<flo
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector<LearningData>& data) {
-#ifdef USE_CATEGORICAL
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_, true);
+    if (use_fp16_) {
+        input = input.to(torch::kFloat16);
+    }
     auto out = module_.forward({ input });
     auto tuple = out.toTuple();
-    torch::Tensor policy_logit = tuple->elements()[0].toTensor();
-    torch::Tensor value_logit = tuple->elements()[1].toTensor();
+    torch::Tensor policy_logit = tuple->elements()[0].toTensor().view({ -1, POLICY_DIM });
+    torch::Tensor value = tuple->elements()[1].toTensor();
 
-    torch::Tensor logits = policy_logit.view({ -1, POLICY_DIM });
+    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logit, 1), 1, false);
 
-    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false);
-
+#ifdef USE_CATEGORICAL
     //Valueの分布を取得
-    torch::Tensor value_cat = torch::softmax(value_logit, 1);
+    torch::Tensor value_cat = torch::softmax(value, 1);
 
     //i番目の要素が示す値はMIN_SCORE + (i + 0.5) * VALUE_WIDTH
     std::vector<float> each_value;
@@ -100,26 +100,13 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
     torch::Tensor each_value_tensor = torch::tensor(each_value).to(device_);
 
     //Categorical分布と内積を取ることで期待値を求める
-    torch::Tensor value = (each_value_tensor * value_cat).sum(1);
+    value = (each_value_tensor * value_cat).sum(1);
 
-#ifdef USE_SIGMOID
-    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
-#else
-    torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
-#endif
-    return { policy_loss, value_loss };
-
-#else
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, true);
-    auto out = module_.forward({ input });
-    auto tuple = out.toTuple();
-    torch::Tensor policy = tuple->elements()[0].toTensor();
-    torch::Tensor value = tuple->elements()[1].toTensor();
-
-    torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
-    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
-
+#else //Scalarモデルの場合
     value = value.view(-1);
+#endif
+
+    //Sigmoidのときはbce, tanhのときはmse
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
@@ -127,5 +114,4 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
 #endif
 
     return { policy_loss, value_loss };
-#endif
 }
