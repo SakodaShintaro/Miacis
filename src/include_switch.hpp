@@ -13,6 +13,11 @@ using namespace Shogi;
 #include "othello/position.hpp"
 using namespace Othello;
 
+//囲碁をコンパイルする場合
+#elif defined(GO)
+#include "go/position.hpp"
+using namespace Go;
+
 #endif
 
 #endif //MIACIS_INCLUDE_SWITCH_HPP

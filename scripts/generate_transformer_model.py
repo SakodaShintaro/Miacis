@@ -51,7 +51,7 @@ class TransformerModel(nn.Module):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-game", default="shogi", choices=["shogi", "othello"])
+    parser.add_argument("-game", default="shogi", choices=["shogi", "othello", "go"])
     parser.add_argument("-value_type", default="cat", choices=["sca", "cat"])
     parser.add_argument("--layer_num", type=int, default=10)
     parser.add_argument("--channel_num", type=int, default=256)

@@ -9,19 +9,26 @@ static constexpr int32_t CHANNEL_NUM = 256;
 #elif defined(OTHELLO)
 static constexpr int32_t BLOCK_NUM = 5;
 static constexpr int32_t CHANNEL_NUM = 64;
+#elif defined(GO)
+static constexpr int32_t BLOCK_NUM = 5;
+static constexpr int32_t CHANNEL_NUM = 64;
 #endif
 
 #ifdef USE_CATEGORICAL
 #ifdef SHOGI
 const std::string MODEL_PREFIX = "shogi_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#else
+#elif defined(OTHELLO)
 const std::string MODEL_PREFIX = "othello_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+#elif defined(GO)
+const std::string MODEL_PREFIX = "go_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 #endif
 #else
 #ifdef SHOGI
 const std::string MODEL_PREFIX = "shogi_sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#else
+#elif defined(OTHELLO)
 const std::string MODEL_PREFIX = "othello_sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
+#elif defined(GO)
+const std::string MODEL_PREFIX = "go_sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
 #endif
 #endif
 //デフォルトで読み書きするファイル名
