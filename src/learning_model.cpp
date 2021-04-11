@@ -82,8 +82,10 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::mixUpLoss(const std::vec
     float gamma1 = gamma_dist(engine), gamma2 = gamma_dist(engine);
     float beta = gamma1 / (gamma1 + gamma2);
 
-    //入力時のmixup
+    //データのmixup
     input_tensor = beta * input_tensor + (1 - beta) * input_tensor.roll(1, 0);
+    policy_target = beta * policy_target + (1 - beta) * policy_target.roll(1, 0);
+    value_target = beta * value_target + (1 - beta) * value_target.roll(1, 0);
 
     auto out = module_.forward({ input_tensor });
     auto tuple = out.toTuple();
@@ -92,17 +94,11 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::mixUpLoss(const std::vec
 
     torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
 
-    //教師データのmixup
-    policy_target = beta * policy_target + (1 - beta) * policy_target.roll(1, 0);
-
     torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
 
 #ifdef USE_CATEGORICAL
-    torch::Tensor value_loss1 = torch::nll_loss(torch::log_softmax(value, 1), value_target);
-    torch::Tensor value_loss2 = torch::nll_loss(torch::log_softmax(value, 1), value_target.roll(1, 0));
-    torch::Tensor value_loss = beta * value_loss1 + (1 - beta) * value_loss2;
+    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_target);
 #else
-    value_target = beta * value_target + (1 - beta) * value_target.roll(1, 0);
     value = value.view(-1);
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
