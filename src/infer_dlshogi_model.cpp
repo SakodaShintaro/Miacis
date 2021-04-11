@@ -57,7 +57,7 @@ void InferDLShogiModel::load(const std::string& model_path, int64_t gpu_id, int6
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
 InferDLShogiModel::policyAndValueBatch(const std::vector<float>& inputs) {
-    return tensorToVector(infer(inputs), use_fp16_);
+    return tensorToVector(infer(inputs));
 }
 
 std::tuple<torch::Tensor, torch::Tensor> InferDLShogiModel::infer(const std::vector<float>& inputs) {

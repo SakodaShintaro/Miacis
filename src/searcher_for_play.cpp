@@ -256,7 +256,7 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
             gpu_mutexes_[gpu_id].lock();
             std::tuple<torch::Tensor, torch::Tensor> output = neural_networks_[gpu_id].infer(gpu_queue.inputs);
             gpu_mutexes_[gpu_id].unlock();
-            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = tensorToVector(output, search_options_.use_fp16);
+            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = tensorToVector(output);
 
             //書き込み
             for (uint64_t i = 0; i < gpu_queue.indices.size(); i++) {

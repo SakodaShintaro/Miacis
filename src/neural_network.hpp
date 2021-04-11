@@ -36,8 +36,7 @@ const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{ "policy", "value" }
 
 //推論時の補助関数
 //CPU上にあるTensorのペア(それぞれPolicy, Value)をstd::vector<へ変換する
-std::pair<std::vector<PolicyType>, std::vector<ValueType>> tensorToVector(const std::tuple<torch::Tensor, torch::Tensor>& output,
-                                                                          bool use_fp16);
+std::pair<std::vector<PolicyType>, std::vector<ValueType>> tensorToVector(const std::tuple<torch::Tensor, torch::Tensor>& output);
 
 //Categorical分布に対する操作
 #ifdef USE_CATEGORICAL

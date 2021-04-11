@@ -27,15 +27,15 @@ const std::string MODEL_PREFIX = "othello_sca_bl" + std::to_string(BLOCK_NUM) + 
 //デフォルトで読み書きするファイル名
 const std::string DEFAULT_MODEL_NAME = MODEL_PREFIX + ".model";
 
-std::pair<std::vector<PolicyType>, std::vector<ValueType>> tensorToVector(const std::tuple<torch::Tensor, torch::Tensor>& output,
-                                                                          bool use_fp16) {
+std::pair<std::vector<PolicyType>, std::vector<ValueType>>
+tensorToVector(const std::tuple<torch::Tensor, torch::Tensor>& output) {
     const auto& [policy, value] = output;
     uint64_t batch_size = policy.size(0);
 
     std::vector<PolicyType> policies(batch_size);
     std::vector<ValueType> values(batch_size);
 
-    if (use_fp16) {
+    if (policy.dtype() == torch::kHalf) {
         torch::Half* p = policy.data_ptr<torch::Half>();
         for (uint64_t i = 0; i < batch_size; i++) {
             policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);

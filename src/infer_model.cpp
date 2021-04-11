@@ -49,7 +49,7 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAndValueBatch(const std::vector<float>& inputs) {
-    return tensorToVector(infer(inputs), use_fp16_);
+    return tensorToVector(infer(inputs));
 }
 
 std::tuple<torch::Tensor, torch::Tensor> InferModel::infer(const std::vector<float>& inputs) {

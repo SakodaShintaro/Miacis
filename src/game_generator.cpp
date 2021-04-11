@@ -98,7 +98,7 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
     torch::NoGradGuard no_grad_guard;
     std::tuple<torch::Tensor, torch::Tensor> output = neural_network_.infer(gpu_queues_[thread_id].inputs);
     gpu_mutex.unlock();
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = tensorToVector(output, search_options_.use_fp16);
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = tensorToVector(output);
 
     const std::vector<PolicyType>& policies = result.first;
     const std::vector<ValueType>& values = result.second;
