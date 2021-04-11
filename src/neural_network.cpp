@@ -27,6 +27,10 @@ const std::string MODEL_PREFIX = "othello_sca_bl" + std::to_string(BLOCK_NUM) + 
 //デフォルトで読み書きするファイル名
 const std::string DEFAULT_MODEL_NAME = MODEL_PREFIX + ".model";
 
+torch::Tensor inputVectorToTensor(const std::vector<float>& input) {
+    return torch::tensor(input).view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+}
+
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
 tensorToVector(const std::tuple<torch::Tensor, torch::Tensor>& output) {
     const auto& [policy, value] = output;

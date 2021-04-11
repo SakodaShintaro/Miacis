@@ -34,6 +34,9 @@ enum LossType { POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM };
 //各損失の名前を示す文字列
 const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{ "policy", "value" };
 
+//入力のvectorをTensorに変換する関数
+torch::Tensor inputVectorToTensor(const std::vector<float>& input);
+
 //推論時の補助関数
 //CPU上にあるTensorのペア(それぞれPolicy, Value)をstd::vector<へ変換する
 std::pair<std::vector<PolicyType>, std::vector<ValueType>> tensorToVector(const std::tuple<torch::Tensor, torch::Tensor>& output);

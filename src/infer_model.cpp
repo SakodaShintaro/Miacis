@@ -79,13 +79,12 @@ std::tuple<torch::Tensor, torch::Tensor> InferModel::infer(const std::vector<flo
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector<LearningData>& data) {
 #ifdef USE_CATEGORICAL
-    auto [inputs, policy_target, value_target] = learningDataToTensor(data, true);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, true);
+    input = input.to(device_);
     policy_target = policy_target.to(device_);
     value_target = value_target.to(device_);
 
-    torch::Tensor x = torch::tensor(inputs).to(device_);
-    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    auto out = module_.forward({ x });
+    auto out = module_.forward({ input });
     auto tuple = out.toTuple();
     torch::Tensor policy_logit = tuple->elements()[0].toTensor();
     torch::Tensor value_logit = tuple->elements()[1].toTensor();
@@ -115,13 +114,12 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
     return { policy_loss, value_loss };
 
 #else
-    auto [inputs, policy_target, value_target] = learningDataToTensor(data, true);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, true);
+    input = input.to(device_);
     policy_target = policy_target.to(device_);
     value_target = value_target.to(device_);
 
-    torch::Tensor x = torch::tensor(inputs).to(device_);
-    x = x.view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    auto out = module_.forward({ x });
+    auto out = module_.forward({ input });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
     torch::Tensor value = tuple->elements()[1].toTensor();

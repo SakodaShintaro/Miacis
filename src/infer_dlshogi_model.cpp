@@ -6,6 +6,7 @@
 #include "dataset.hpp"
 #include "include_switch.hpp"
 #include "infer_model.hpp"
+#include "learn.hpp"
 #include <torch/torch.h>
 #include <trtorch/ptq.h>
 #include <trtorch/trtorch.h>
@@ -99,34 +100,16 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiModel::validLoss(const std:
     std::cout << "dlshogiモデルはCategoricalモードに対応していない" << std::endl;
     std::exit(1);
 #else
-    static Position pos;
-    std::vector<float> inputs;
-    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
-    std::vector<ValueTeacherType> value_teachers;
+    auto [input, policy_target, value_target] = learningDataToTensor(data, true);
+    input = input.to(device_);
+    policy_target = policy_target.to(device_);
+    value_target = value_target.to(device_);
 
-    for (uint64_t i = 0; i < data.size(); i++) {
-        pos.fromStr(data[i].position_str);
-
-        //入力
-        const std::vector<float> feature = pos.makeDLShogiFeature();
-        inputs.insert(inputs.end(), feature.begin(), feature.end());
-
-        //policyの教師信号
-        for (const std::pair<int32_t, float>& e : data[i].policy) {
-            policy_teachers[i * POLICY_DIM + e.first] = e.second;
-        }
-
-        //valueの教師信号
-        value_teachers.push_back(data[i].value);
-    }
-
-    torch::Tensor x = torch::tensor(inputs).to(device_);
-    x = x.view({ -1, (DLSHOGI_FEATURES1_NUM + DLSHOGI_FEATURES2_NUM), BOARD_WIDTH, BOARD_WIDTH });
     if (use_fp16_) {
-        x = x.to(torch::kFloat16);
+        input = input.to(torch::kFloat16);
     }
 
-    std::vector<torch::Tensor> xs = x.split(DLSHOGI_FEATURES1_NUM, 1);
+    std::vector<torch::Tensor> xs = input.split(DLSHOGI_FEATURES1_NUM, 1);
     torch::Tensor x1 = xs[0];
     torch::Tensor x2 = xs[1];
 
@@ -135,16 +118,14 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiModel::validLoss(const std:
     torch::Tensor policy_logits = tuple->elements()[0].toTensor();
     torch::Tensor value = tuple->elements()[1].toTensor();
 
-    torch::Tensor policy_target = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
     torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
 
-    torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
     value = value.view(-1);
 #ifdef USE_SIGMOID
-    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_t, {}, torch::Reduction::None);
+    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
     value = value * 2 - 1;
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
 #endif
 
     return { policy_loss, value_loss };
