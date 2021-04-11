@@ -11,8 +11,6 @@ public:
               bool use_fp16);
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
     std::tuple<torch::Tensor, torch::Tensor> infer(const std::vector<float>& inputs);
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>>
-    decode(const std::tuple<torch::Tensor, torch::Tensor>& output) const;
     std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data);
 
 private:

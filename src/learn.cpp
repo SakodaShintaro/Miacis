@@ -33,8 +33,10 @@ std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<
 
 template std::array<float, LOSS_TYPE_NUM> validation<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data,
                                                                  uint64_t batch_size);
+#ifdef SHOGI
 template std::array<float, LOSS_TYPE_NUM>
 validation<InferDLShogiModel>(InferDLShogiModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
+#endif
 
 std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold) {
     //棋譜を読み込めるだけ読み込む

@@ -1,5 +1,7 @@
 #include "infer_dlshogi_model.hpp"
 
+#ifdef SHOGI
+
 #include "common.hpp"
 #include "dataset.hpp"
 #include "include_switch.hpp"
@@ -55,7 +57,7 @@ void InferDLShogiModel::load(const std::string& model_path, int64_t gpu_id, int6
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
 InferDLShogiModel::policyAndValueBatch(const std::vector<float>& inputs) {
-    return decode(infer(inputs));
+    return tensorToVector(infer(inputs), use_fp16_);
 }
 
 std::tuple<torch::Tensor, torch::Tensor> InferDLShogiModel::infer(const std::vector<float>& inputs) {
@@ -90,35 +92,6 @@ std::tuple<torch::Tensor, torch::Tensor> InferDLShogiModel::infer(const std::vec
 #endif
 
     return std::make_tuple(policy, value);
-}
-
-std::pair<std::vector<PolicyType>, std::vector<ValueType>>
-InferDLShogiModel::decode(const std::tuple<torch::Tensor, torch::Tensor>& output) const {
-    const auto& [policy, value] = output;
-    uint64_t batch_size = policy.size(0);
-
-    std::vector<PolicyType> policies(batch_size);
-    std::vector<ValueType> values(batch_size);
-
-    if (use_fp16_) {
-        torch::Half* p = policy.data_ptr<torch::Half>();
-        for (uint64_t i = 0; i < batch_size; i++) {
-            policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
-        }
-    } else {
-        float* p = policy.data_ptr<float>();
-        for (uint64_t i = 0; i < batch_size; i++) {
-            policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
-        }
-    }
-
-#ifdef USE_CATEGORICAL
-    std::cout << "dlshogiモデルはCategoricalモードに対応していない" << std::endl;
-    std::exit(1);
-#else
-    std::copy(value.data_ptr<float>(), value.data_ptr<float>() + batch_size, values.begin());
-#endif
-    return std::make_pair(policies, values);
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiModel::validLoss(const std::vector<LearningData>& data) {
@@ -177,3 +150,5 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiModel::validLoss(const std:
     return { policy_loss, value_loss };
 #endif
 }
+
+#endif
