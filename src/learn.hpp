@@ -112,6 +112,9 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
 template<class ModelType>
 std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
 
+std::tuple<std::vector<float>, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
+                                                                                  bool valid);
+
 //棋譜からの教師あり学習
 void supervisedLearn();
 

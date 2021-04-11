@@ -264,3 +264,46 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     return loss_sum.detach();
 }
+
+std::tuple<std::vector<float>, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
+                                                                                  bool valid) {
+    static Position pos;
+    std::vector<float> inputs;
+    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
+    std::vector<ValueTeacherType> value_teachers;
+
+    for (uint64_t i = 0; i < data.size(); i++) {
+        pos.fromStr(data[i].position_str);
+
+        //入力
+        const std::vector<float> feature = pos.makeFeature();
+        inputs.insert(inputs.end(), feature.begin(), feature.end());
+
+        //policyの教師信号
+        for (const std::pair<int32_t, float>& e : data[i].policy) {
+            policy_teachers[i * POLICY_DIM + e.first] = e.second;
+        }
+
+        //valueの教師信号
+        if (!valid) {
+            //trainモードのときはそのまま突っ込めば良い
+            value_teachers.push_back(data[i].value);
+        } else {
+            //validモードのときはCategoricalモデルを使うとしてもfloatのvalueをターゲットにしたい
+#ifdef USE_CATEGORICAL
+            if (data[i].value != 0 && data[i].value != BIN_SIZE - 1) {
+                std::cerr << "Categoricalの検証データは現状のところValueが-1 or 1でないといけない" << std::endl;
+                std::exit(1);
+            }
+            value_teachers.push_back(data[i].value == 0 ? MIN_SCORE : MAX_SCORE);
+#else
+            value_teachers.push_back(data[i].value);
+#endif
+        }
+    }
+
+    torch::Tensor policy_target = torch::tensor(policy_teachers).view({ -1, POLICY_DIM });
+    torch::Tensor value_target = torch::tensor(value_teachers);
+
+    return std::make_tuple(inputs, policy_target, value_target);
+}

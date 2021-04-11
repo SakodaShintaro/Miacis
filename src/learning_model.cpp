@@ -1,6 +1,7 @@
 #include "learning_model.hpp"
 #include "common.hpp"
 #include "include_switch.hpp"
+#include "learn.hpp"
 #include <torch/torch.h>
 
 void LearningModel::load(const std::string& model_path, int64_t gpu_id) {
@@ -18,26 +19,9 @@ torch::Tensor LearningModel::encode(const std::vector<float>& inputs) const {
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<LearningData>& data) {
-    static Position pos;
-    std::vector<float> inputs;
-    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
-    std::vector<ValueTeacherType> value_teachers;
-
-    for (uint64_t i = 0; i < data.size(); i++) {
-        pos.fromStr(data[i].position_str);
-
-        //入力
-        const std::vector<float> feature = pos.makeFeature();
-        inputs.insert(inputs.end(), feature.begin(), feature.end());
-
-        //policyの教師信号
-        for (const std::pair<int32_t, float>& e : data[i].policy) {
-            policy_teachers[i * POLICY_DIM + e.first] = e.second;
-        }
-
-        //valueの教師信号
-        value_teachers.push_back(data[i].value);
-    }
+    auto [inputs, policy_target, value_target] = learningDataToTensor(data, false);
+    policy_target = policy_target.to(device_);
+    value_target = value_target.to(device_);
 
     torch::Tensor input_tensor = encode(inputs);
     auto out = module_.forward({ input_tensor });
@@ -46,19 +30,16 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<L
     torch::Tensor value = tuple->elements()[1].toTensor();
 
     torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
-    torch::Tensor policy_target = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
     torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
 
 #ifdef USE_CATEGORICAL
-    torch::Tensor categorical_target = torch::tensor(value_teachers).to(device_);
-    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), categorical_target);
+    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_target);
 #else
-    torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
     value = value.view(-1);
 #ifdef USE_SIGMOID
-    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_t, {}, torch::Reduction::None);
+    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
 #endif
 #endif
 
@@ -67,30 +48,9 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<L
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vector<LearningData>& data) {
 #ifdef USE_CATEGORICAL
-    Position pos;
-    std::vector<float> inputs;
-    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
-    std::vector<float> value_teachers;
-
-    for (uint64_t i = 0; i < data.size(); i++) {
-        pos.fromStr(data[i].position_str);
-
-        //入力
-        const std::vector<float> feature = pos.makeFeature();
-        inputs.insert(inputs.end(), feature.begin(), feature.end());
-
-        //policyの教師信号
-        for (const std::pair<int32_t, float>& e : data[i].policy) {
-            policy_teachers[i * POLICY_DIM + e.first] = e.second;
-        }
-
-        //valueの教師信号
-        if (data[i].value != 0 && data[i].value != BIN_SIZE - 1) {
-            std::cerr << "Categoricalの検証データは現状のところValueが-1 or 1でないといけない" << std::endl;
-            std::exit(1);
-        }
-        value_teachers.push_back(data[i].value == 0 ? MIN_SCORE : MAX_SCORE);
-    }
+    auto [inputs, policy_target, value_target] = learningDataToTensor(data, true);
+    policy_target = policy_target.to(device_);
+    value_target = value_target.to(device_);
 
     torch::Tensor input_tensor = encode(inputs);
     auto out = module_.forward({ input_tensor });
@@ -99,8 +59,6 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vec
     torch::Tensor value_logit = tuple->elements()[1].toTensor();
 
     torch::Tensor logits = policy_logit.view({ -1, POLICY_DIM });
-
-    torch::Tensor policy_target = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
 
     torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false);
 
@@ -117,12 +75,10 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vec
     //Categorical分布と内積を取ることで期待値を求める
     torch::Tensor value = (each_value_tensor * value_cat).sum(1);
 
-    torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
-
 #ifdef USE_SIGMOID
-    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_t, {}, torch::Reduction::None);
+    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
 #endif
 
     return { policy_loss, value_loss };
@@ -133,30 +89,14 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vec
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::mixUpLoss(const std::vector<LearningData>& data, float alpha) {
+    auto [inputs, policy_target, value_target] = learningDataToTensor(data, false);
+    policy_target = policy_target.to(device_);
+    value_target = value_target.to(device_);
+
+    //混合比率の振り出し
     std::gamma_distribution<float> gamma_dist(alpha);
     float gamma1 = gamma_dist(engine), gamma2 = gamma_dist(engine);
     float beta = gamma1 / (gamma1 + gamma2);
-
-    static Position pos;
-    std::vector<float> inputs;
-    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
-    std::vector<ValueTeacherType> value_teachers;
-
-    for (uint64_t i = 0; i < data.size(); i++) {
-        pos.fromStr(data[i].position_str);
-
-        //入力
-        const std::vector<float> feature = pos.makeFeature();
-        inputs.insert(inputs.end(), feature.begin(), feature.end());
-
-        //policyの教師信号
-        for (const std::pair<int32_t, float>& e : data[i].policy) {
-            policy_teachers[i * POLICY_DIM + e.first] = e.second;
-        }
-
-        //valueの教師信号
-        value_teachers.push_back(data[i].value);
-    }
 
     torch::Tensor input_tensor = encode(inputs);
 
@@ -169,7 +109,6 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::mixUpLoss(const std::vec
     torch::Tensor value = tuple->elements()[1].toTensor();
 
     torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
-    torch::Tensor policy_target = torch::tensor(policy_teachers).to(device_).view({ -1, POLICY_DIM });
 
     //教師データのmixup
     policy_target = beta * policy_target + (1 - beta) * policy_target.roll(1, 0);
@@ -177,18 +116,16 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::mixUpLoss(const std::vec
     torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
 
 #ifdef USE_CATEGORICAL
-    torch::Tensor categorical_target = torch::tensor(value_teachers).to(device_);
-    torch::Tensor value_loss1 = torch::nll_loss(torch::log_softmax(value, 1), categorical_target);
-    torch::Tensor value_loss2 = torch::nll_loss(torch::log_softmax(value, 1), categorical_target.roll(1, 0));
+    torch::Tensor value_loss1 = torch::nll_loss(torch::log_softmax(value, 1), value_target);
+    torch::Tensor value_loss2 = torch::nll_loss(torch::log_softmax(value, 1), value_target.roll(1, 0));
     torch::Tensor value_loss = beta * value_loss1 + (1 - beta) * value_loss2;
 #else
-    torch::Tensor value_t = torch::tensor(value_teachers).to(device_);
-    value_t = beta * value_t + (1 - beta) * value_t.roll(1, 0);
+    value_target = beta * value_target + (1 - beta) * value_target.roll(1, 0);
     value = value.view(-1);
 #ifdef USE_SIGMOID
-    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_t, {}, torch::Reduction::None);
+    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_t, torch::Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
 #endif
 #endif
 
