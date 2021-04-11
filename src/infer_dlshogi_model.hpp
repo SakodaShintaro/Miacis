@@ -18,7 +18,7 @@ public:
 private:
     torch::jit::Module module_;
     torch::Device device_;
-    bool use_fp16_;
+    bool use_fp16_{};
 };
 
 #endif //MIACIS_INFER_DLSHOGI_MODEL_HPP
