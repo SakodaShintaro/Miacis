@@ -13,11 +13,7 @@ void LearningModel::load(const std::string& model_path, int64_t gpu_id) {
 void LearningModel::save(const std::string& model_path) { module_.save(model_path); }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<LearningData>& data) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, false);
-    input = input.to(device_);
-    policy_target = policy_target.to(device_);
-    value_target = value_target.to(device_);
-
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
     auto out = module_.forward({ input });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
@@ -42,11 +38,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<L
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vector<LearningData>& data) {
 #ifdef USE_CATEGORICAL
-    auto [input, policy_target, value_target] = learningDataToTensor(data, true);
-    input = input.to(device_);
-    policy_target = policy_target.to(device_);
-    value_target = value_target.to(device_);
-
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, true);
     auto out = module_.forward({ input });
     auto tuple = out.toTuple();
     torch::Tensor policy_logit = tuple->elements()[0].toTensor();
@@ -83,9 +75,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vec
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::mixUpLoss(const std::vector<LearningData>& data, float alpha) {
-    auto [input_tensor, policy_target, value_target] = learningDataToTensor(data, false);
-    policy_target = policy_target.to(device_);
-    value_target = value_target.to(device_);
+    auto [input_tensor, policy_target, value_target] = learningDataToTensor(data, device_, false);
 
     //混合比率の振り出し
     std::gamma_distribution<float> gamma_dist(alpha);

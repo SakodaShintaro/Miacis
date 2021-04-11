@@ -265,7 +265,8 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
     return loss_sum.detach();
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data, bool valid) {
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
+                                                                             torch::Device device, bool valid) {
     static Position pos;
     std::vector<float> inputs;
     std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
@@ -301,9 +302,9 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(con
         }
     }
 
-    torch::Tensor input_tensor = inputVectorToTensor(inputs);
-    torch::Tensor policy_target = torch::tensor(policy_teachers).view({ -1, POLICY_DIM });
-    torch::Tensor value_target = torch::tensor(value_teachers);
+    torch::Tensor input_tensor = inputVectorToTensor(inputs).to(device);
+    torch::Tensor policy_target = torch::tensor(policy_teachers).view({ -1, POLICY_DIM }).to(device);
+    torch::Tensor value_target = torch::tensor(value_teachers).to(device);
 
     return std::make_tuple(input_tensor, policy_target, value_target);
 }

@@ -113,7 +113,8 @@ template<class ModelType>
 std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
 
 //学習データをtensorへ変換する関数
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data, bool valid);
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
+                                                                             torch::Device device, bool valid);
 
 //棋譜からの教師あり学習
 void supervisedLearn();

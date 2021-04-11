@@ -100,10 +100,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiModel::validLoss(const std:
     std::cout << "dlshogiモデルはCategoricalモードに対応していない" << std::endl;
     std::exit(1);
 #else
-    auto [input, policy_target, value_target] = learningDataToTensor(data, true);
-    input = input.to(device_);
-    policy_target = policy_target.to(device_);
-    value_target = value_target.to(device_);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, true);
 
     if (use_fp16_) {
         input = input.to(torch::kFloat16);

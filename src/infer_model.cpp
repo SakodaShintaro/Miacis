@@ -79,11 +79,7 @@ std::tuple<torch::Tensor, torch::Tensor> InferModel::infer(const std::vector<flo
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector<LearningData>& data) {
 #ifdef USE_CATEGORICAL
-    auto [input, policy_target, value_target] = learningDataToTensor(data, true);
-    input = input.to(device_);
-    policy_target = policy_target.to(device_);
-    value_target = value_target.to(device_);
-
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, true);
     auto out = module_.forward({ input });
     auto tuple = out.toTuple();
     torch::Tensor policy_logit = tuple->elements()[0].toTensor();
@@ -114,11 +110,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
     return { policy_loss, value_loss };
 
 #else
-    auto [input, policy_target, value_target] = learningDataToTensor(data, true);
-    input = input.to(device_);
-    policy_target = policy_target.to(device_);
-    value_target = value_target.to(device_);
-
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, true);
     auto out = module_.forward({ input });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
