@@ -82,6 +82,11 @@ constexpr int64_t PIECE_KIND_NUM = 14;
 constexpr int64_t HAND_PIECE_KIND_NUM = 7;
 constexpr int64_t INPUT_CHANNEL_NUM = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2;
 
+// dlshogiの設定
+constexpr int64_t DLSHOGI_FEATURES1_NUM = 62;
+constexpr int64_t DLSHOGI_FEATURES2_NUM = 57;
+//constexpr int64_t INPUT_CHANNEL_NUM = DLSHOGI_FEATURES1_NUM + DLSHOGI_FEATURES2_NUM;
+
 extern const std::array<Piece, PIECE_KIND_NUM * 2> PieceList;
 extern const std::array<std::array<Piece, 3>, 2> ColoredJumpPieceList;
 

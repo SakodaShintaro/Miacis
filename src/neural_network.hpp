@@ -62,8 +62,4 @@ inline float expOfValueDist(ValueType dist) {
 }
 #endif
 
-// dlshogiの設定
-constexpr int64_t DLSHOGI_FEATURES1_NUM = 62;
-constexpr int64_t DLSHOGI_FEATURES2_NUM = 57;
-
 #endif //MIACIS_NEURAL_NETWORK_HPP
