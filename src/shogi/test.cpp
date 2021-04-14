@@ -564,26 +564,6 @@ void testDLShogiModel() {
     std::exit(0);
 }
 
-void testDLShogiLabel() {
-    std::vector<std::string> sfen_parts(4);
-    std::cout << "sfen : ";
-    std::cin >> sfen_parts[0] >> sfen_parts[1] >> sfen_parts[2] >> sfen_parts[3];
-    std::string sfen = sfen_parts[0] + " " + sfen_parts[1] + " " + sfen_parts[2] + " " + sfen_parts[3];
-    Position pos;
-    pos.fromStr(sfen);
-    std::vector<std::pair<int64_t, Move>> label_and_move;
-    for (Move move : pos.generateAllMoves()) {
-        label_and_move.emplace_back(move.toDLShogiLabel(), move);
-    }
-    sort(label_and_move.begin(), label_and_move.end(), [](auto& lhs, auto& rhs) { return lhs.first < rhs.first; });
-    std::ofstream ofs("label_and_move.txt");
-    for (auto [label, move] : label_and_move) {
-        ofs << label << " " << move << std::endl;
-    }
-    std::cout << "finish testDLShogiLabel" << std::endl;
-    std::exit(0);
-}
-
 void checkValDLShogi() {
     //データを取得
     std::string path;
