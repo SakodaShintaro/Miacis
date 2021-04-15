@@ -3,7 +3,7 @@ project(Miacis)
 
 # 共通する設定
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-march=native")
+set(CMAKE_CXX_FLAGS "-march=native -I/home/sakoda/TensorRT-7.2.2.3/include")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 # LibTorch
@@ -13,6 +13,9 @@ find_package(Torch REQUIRED)
 # TRTorch
 set(TRTORCH_INCLUDE ../../trtorch/include)
 file(GLOB TRTORCH_LIBRARIES ../../trtorch/lib/*.so)
+
+# TensorRT
+file(GLOB TENSORRT_LIBRARIES /home/sakoda/TensorRT-7.2.2.3/lib/*.so)
 
 # 各ゲームで共通する部分のソース
 file(GLOB SRCS ./*.cpp)
@@ -57,7 +60,7 @@ if (MSVC)
     endforeach ()
 else ()
     foreach (bin IN ITEMS ${BIN})
-        target_link_libraries(${bin} pthread stdc++fs ${TORCH_LIBRARIES} ${TRTORCH_LIBRARIES})
+        target_link_libraries(${bin} pthread stdc++fs ${TORCH_LIBRARIES} ${TRTORCH_LIBRARIES} ${TENSORRT_LIBRARIES})
         target_include_directories(${bin} PRIVATE ${TRTORCH_INCLUDE})
     endforeach ()
 endif ()
