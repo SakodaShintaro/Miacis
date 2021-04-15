@@ -1047,6 +1047,9 @@ void Position::initHashValue() {
 }
 
 std::vector<float> Position::makeFeature() const {
+#ifdef DLSHOGI
+    return makeDLShogiFeature();
+#endif
     std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
 
     uint64_t i = 0;
