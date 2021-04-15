@@ -104,7 +104,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
         for (uint64_t i = 0; i < curr_node.moves.size(); i++) {
             curr_node.nn_policy[i] = y.first[0][curr_node.moves[i].toLabel()];
         }
-        curr_node.nn_policy = softmax(curr_node.nn_policy);
+        curr_node.nn_policy = softmax(curr_node.nn_policy, search_options_.policy_temperature_x1000 / 1000.0f);
         curr_node.value = y.second[0];
         curr_node.evaled = true;
     }
@@ -288,7 +288,7 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
                     curr_node.moves[j] = moves_with_score[j].move;
                     curr_node.nn_policy[j] = moves_with_score[j].score;
                 }
-                curr_node.nn_policy = softmax(curr_node.nn_policy);
+                curr_node.nn_policy = softmax(curr_node.nn_policy, search_options_.policy_temperature_x1000 / 1000.0f);
                 curr_node.value = y.second[i];
                 curr_node.evaled = true;
             }
