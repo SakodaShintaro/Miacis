@@ -1,7 +1,7 @@
 #ifndef MIACIS_INFER_DLSHOGI_MODEL_HPP
 #define MIACIS_INFER_DLSHOGI_MODEL_HPP
 
-#ifdef SHOGI
+#ifdef DLSHOGI
 
 #include "neural_network.hpp"
 #include <torch/script.h>

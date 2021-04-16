@@ -539,13 +539,13 @@ void testLoad() {
     std::exit(0);
 }
 
-void testDLShogiModel() {
+void testModel() {
     std::string model_file;
     std::cout << "model_file : ";
     std::cin >> model_file;
 
     //ネットワークの準備
-    InferDLShogiModel nn;
+    InferModel nn;
     nn.load(model_file, 0, 64, "calibration_kifu_path_is_null", true);
 
     Position pos;
@@ -560,44 +560,8 @@ void testDLShogiModel() {
         ofs << policy[0][i].item<float>() << std::endl;
     }
     ofs << value[0].item<float>() << std::endl;
-    std::cout << "finish testDLShogiModel" << std::endl;
+    std::cout << "finish testModel" << std::endl;
     std::exit(0);
-}
-
-void checkValDLShogi() {
-    //データを取得
-    std::string path;
-    std::cout << "validation kifu path : ";
-    std::cin >> path;
-    int64_t batch_size;
-    std::cout << "batch_size : ";
-    std::cin >> batch_size;
-    std::string model_file;
-    std::cout << "model_file : ";
-    std::cin >> model_file;
-    std::string calibration_kifu_path;
-    std::cout << "calibration_kifu_path : ";
-    std::cin >> calibration_kifu_path;
-    bool use_fp16;
-    std::cout << "fp16 : ";
-    std::cin >> use_fp16;
-
-    //ネットワークの準備
-    InferDLShogiModel nn;
-    nn.load(model_file, 0, batch_size, calibration_kifu_path, use_fp16);
-
-    std::vector<LearningData> data = loadData(path, false, 3000);
-    std::cout << "data.size() = " << data.size() << std::endl;
-
-    int64_t calibration_data_num = batch_size;
-
-    std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, batch_size);
-    std::cout << std::fixed << std::setprecision(4);
-    std::cout << std::setw(10) << calibration_data_num << " ";
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
-    }
-    std::cout << "finish checkValDLShogiModel" << std::endl;
 }
 
 } // namespace Shogi

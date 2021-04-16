@@ -7,6 +7,8 @@
 #include <trtorch/ptq.h>
 #include <trtorch/trtorch.h>
 
+#ifndef DLSHOGI
+
 void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size,
                       const std::string& calibration_kifu_path, bool use_fp16) {
     //マルチGPU環境で同時にloadすると時々Segmentation Faultが発生するので排他制御を入れる
@@ -115,3 +117,5 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
 
     return { policy_loss, value_loss };
 }
+
+#endif

@@ -4,6 +4,13 @@
 #include "neural_network.hpp"
 #include <torch/script.h>
 
+#ifdef DLSHOGI
+
+#include "infer_dlshogi_model.hpp"
+using InferModel = InferDLShogiModel;
+
+#else
+
 class InferModel {
 public:
     InferModel() : device_(torch::kCPU) {}
@@ -18,5 +25,7 @@ private:
     torch::Device device_;
     bool use_fp16_{};
 };
+
+#endif
 
 #endif

@@ -1,6 +1,6 @@
 #include "infer_dlshogi_model.hpp"
 
-#ifdef SHOGI
+#ifdef DLSHOGI
 
 #include "common.hpp"
 #include "dataset.hpp"

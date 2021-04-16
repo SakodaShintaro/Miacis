@@ -81,14 +81,16 @@ inline int operator<<(Piece p, int shift) { return static_cast<int>(p) << shift;
 constexpr int64_t PIECE_KIND_NUM = 14;
 constexpr int64_t HAND_PIECE_KIND_NUM = 7;
 
-// dlshogiの設定
-#ifdef DLSHOGI
+//MoveのラベルはDLShogiと互換性があるように変更したので、これはDLSHOGIモードでなくてもコンパイルする
 constexpr int64_t DLSHOGI_FEATURES1_NUM = 62;
 constexpr int64_t DLSHOGI_FEATURES2_NUM = 57;
-constexpr int64_t INPUT_CHANNEL_NUM = DLSHOGI_FEATURES1_NUM + DLSHOGI_FEATURES2_NUM;
+extern const ArrayMap<int64_t, PieceNum> DLShogiPieceToIndex;
 extern const std::array<Piece, PIECE_KIND_NUM> DLShogiPieceKindList;
 extern const std::array<Piece, HAND_PIECE_KIND_NUM> DLShogiHandPieceKindList;
-extern const ArrayMap<int64_t, PieceNum> DLShogiPieceToIndex;
+
+// dlshogiの設定
+#ifdef DLSHOGI
+constexpr int64_t INPUT_CHANNEL_NUM = DLSHOGI_FEATURES1_NUM + DLSHOGI_FEATURES2_NUM;
 #else
 constexpr int64_t INPUT_CHANNEL_NUM = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2;
 #endif

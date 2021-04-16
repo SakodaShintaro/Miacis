@@ -36,8 +36,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
     command_["testLoad"]           = testLoad;
-    command_["testDLShogiModel"]   = testDLShogiModel;
-    command_["checkValDLShogi"]    = checkValDLShogi;
+    command_["testModel"]          = testModel;
     // clang-format on
 }
 
