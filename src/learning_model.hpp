@@ -15,6 +15,8 @@ public:
     //MixUpを行って損失を返す関数
     std::array<torch::Tensor, LOSS_TYPE_NUM> mixUpLoss(const std::vector<LearningData>& data, float alpha);
 
+    torch::Tensor contrastiveLoss(const std::vector<LearningData>& data);
+
     std::vector<torch::Tensor> parameters();
 
     void train() { module_.train(); }

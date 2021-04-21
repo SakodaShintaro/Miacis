@@ -22,8 +22,30 @@ void contrastiveLearn() {
     search_options.calibration_kifu_path = settings.get<std::string>("calibration_kifu_path");
     // clang-format on
 
-    //学習クラスを生成
-    LearnManager learn_manager("contrastive");
+    //学習推移のログファイル
+    std::ofstream train_log_("contrastive_train_log.txt");
+    dout(std::cout, train_log_) << std::fixed << "time\tstep\tloss" << std::endl;
+
+    //評価関数読み込み
+    LearningModel neural_network;
+    neural_network.load(DEFAULT_MODEL_NAME, 0);
+
+    //学習前のパラメータを出力
+    neural_network.save(MODEL_PREFIX + "_before_learn.model");
+
+    //optimizerの準備
+    float learn_rate_ = settings.get<float>("learn_rate");
+    torch::optim::SGDOptions sgd_option(learn_rate_);
+    sgd_option.momentum(settings.get<float>("momentum"));
+    sgd_option.weight_decay(settings.get<float>("weight_decay"));
+    std::vector<torch::Tensor> parameters;
+    torch::optim::SGD optimizer_(neural_network.parameters(), sgd_option);
+
+    //パラメータの保存間隔
+    int64_t save_interval_ = settings.get<int64_t>("save_interval");
+
+    //clip_grad_norm_の値
+    float clip_grad_norm_ = settings.get<float>("clip_grad_norm");
 
     //リプレイバッファの生成
     ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, per_alpha, data_augmentation);
@@ -58,11 +80,27 @@ void contrastiveLearn() {
         }
 
         //1ステップ学習し、損失を取得
-        torch::Tensor loss_sum = learn_manager.learnOneStep(curr_data, step_num);
+        torch::Tensor loss_sum = neural_network.contrastiveLoss(curr_data);
 
-        //replay_bufferのpriorityを更新
-        std::vector<float> loss_vec(loss_sum.data_ptr<float>(), loss_sum.data_ptr<float>() + batch_size);
-        replay_buffer.update(loss_vec);
+        optimizer_.zero_grad();
+
+        loss_sum.backward();
+
+        //勾配をクリップ
+        torch::nn::utils::clip_grad_norm_(neural_network.parameters(), clip_grad_norm_);
+
+        //パラメータを更新
+        optimizer_.step();
+
+        //表示
+        if (step_num % 100 == 0) {
+            dout(std::cout, train_log_) << timer.elapsedTimeStr() << "\t" << step_num << "\t" << loss_sum.mean().item<float>()
+                                        << "\r" << std::flush;
+        }
+
+        //Cosine annealing
+        (dynamic_cast<torch::optim::SGDOptions&>(optimizer_.param_groups().front().options())).lr() =
+            0.5 * learn_rate_ * (1 + cos(acos(-1) * step_num / max_step_num));
 
         //学習スレッドを眠らせることで擬似的にActorの数を増やす
         std::this_thread::sleep_for(std::chrono::milliseconds(sleep_msec));
