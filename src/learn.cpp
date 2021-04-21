@@ -65,7 +65,7 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
 }
 
 LearnManager::LearnManager(const std::string& learn_name) {
-    assert(learn_name == "supervised" || learn_name == "reinforcement");
+    assert(learn_name == "supervised" || learn_name == "reinforcement" || learn_name == "contrastive");
     HyperparameterLoader settings(learn_name + "_learn_settings.txt");
 
     //検証を行う間隔
