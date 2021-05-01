@@ -44,9 +44,6 @@ void contrastiveLearn() {
     //パラメータの保存間隔
     int64_t save_interval_ = settings.get<int64_t>("save_interval");
 
-    //clip_grad_norm_の値
-    float clip_grad_norm_ = settings.get<float>("clip_grad_norm");
-
     //リプレイバッファの生成
     ReplayBuffer replay_buffer(first_wait, max_stack_size, output_interval, lambda, per_alpha, data_augmentation);
 
@@ -84,10 +81,7 @@ void contrastiveLearn() {
 
         optimizer_.zero_grad();
 
-        loss_sum.backward();
-
-        //勾配をクリップ
-        torch::nn::utils::clip_grad_norm_(neural_network.parameters(), clip_grad_norm_);
+        loss_sum.mean().backward();
 
         //パラメータを更新
         optimizer_.step();
