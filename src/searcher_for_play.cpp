@@ -49,7 +49,8 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
 #ifdef SHOGI
     float score{};
     if (!root.isRepeating(score) && search_options_.use_book && book_.hasEntry(root)) {
-        return book_.pickOne(root, search_options_.book_temperature_x1000);
+        Move move = book_.pickOne(root, search_options_.book_temperature_x1000);
+        return root.transformValidMove(move);
     }
 #endif
 
