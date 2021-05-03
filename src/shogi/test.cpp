@@ -426,8 +426,8 @@ void checkMirror() {
 }
 
 void checkBook() {
-    YaneBook book;
-    book.open("./standard_book.db");
+    Book book;
+    book.open("./book.txt");
     Position pos;
     float score{};
     while (!pos.isFinish(score)) {
@@ -452,10 +452,95 @@ void makeBook() {
     std::cout << "一局面の思考時間(秒): ";
     std::cin >> think_sec;
 
+    SearchOptions search_options;
+    search_options.print_interval = think_sec * 2000;
+    search_options.USI_Hash = 8096;
+    search_options.use_book = false;
+
+    SearcherForPlay searcher(search_options);
+
     Book book;
     book.open("book.txt");
     for (int64_t _ = 0; _ < search_num; _++) {
-        book.updateOne(think_sec);
+        Position pos;
+        std::vector<Move> selected_moves;
+        while (true) {
+            if (!book.hasEntry(pos)) {
+                break;
+            }
+
+            const BookEntry& book_entry = book.getEntry(pos);
+
+            //選択回数の合計
+            int64_t sum = std::accumulate(book_entry.select_num.begin(), book_entry.select_num.end(), (int64_t)0);
+
+            //UCBを計算し、一番高い行動を選択
+            int64_t max_index = -1;
+            float max_value = -1;
+            for (uint64_t i = 0; i < book_entry.moves.size(); i++) {
+                float U = std::sqrt(sum + 1) / (book_entry.select_num[i] + 1);
+                float ucb = search_options.Q_coeff_x1000 / 1000.0 * book_entry.values[i] +
+                            search_options.C_PUCT_x1000 / 1000.0 * book_entry.policies[i] * U;
+                if (ucb > max_value) {
+                    max_index = i;
+                    max_value = ucb;
+                }
+            }
+
+            Move best_move = pos.transformValidMove(book_entry.moves[max_index]);
+            selected_moves.push_back(best_move);
+            pos.doMove(best_move);
+        }
+
+        //-------------
+        //    展開部
+        //-------------
+        //この局面を探索する
+        pos.print();
+        searcher.think(pos, think_sec * 1000);
+
+        //結果を取得
+        const HashTable& searched = searcher.hashTable();
+        const HashEntry& root_node = searched[searched.root_index];
+
+        //展開
+        BookEntry& book_entry = book.getEntry(pos);
+        book_entry.moves = root_node.moves;
+        book_entry.policies = root_node.nn_policy;
+        book_entry.values.resize(book_entry.moves.size());
+        for (uint64_t i = 0; i < book_entry.moves.size(); i++) {
+            book_entry.values[i] = searched.expQfromNext(root_node, i);
+        }
+        book_entry.select_num.assign(book_entry.moves.size(), 1);
+        float value = *max_element(book_entry.values.begin(), book_entry.values.end());
+
+        //この局面を登録
+        //backupする
+        while (!selected_moves.empty()) {
+            //局面を戻し、そこに相当するエントリを取得
+            pos.undo();
+            BookEntry& curr_entry = book.getEntry(pos);
+
+            //価値を反転
+            value = -value;
+
+            //最終手を取得
+            Move last_move = selected_moves.back();
+            selected_moves.pop_back();
+
+            //更新
+            for (uint64_t i = 0; i < curr_entry.moves.size(); i++) {
+                if (pos.transformValidMove(curr_entry.moves[i]) != last_move) {
+                    continue;
+                }
+
+                //この手の価値を更新
+                float alpha = 1.0f / (++curr_entry.select_num[i]);
+                curr_entry.values[i] += alpha * (value - curr_entry.values[i]);
+                break;
+            }
+        }
+
         book.write("book.txt");
     }
     std::cout << "finish makeBook" << std::endl;
