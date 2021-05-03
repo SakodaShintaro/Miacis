@@ -174,7 +174,7 @@ void Book::updateOne(int64_t think_sec) {
         //局面を戻し、そこに相当するエントリを取得
         pos.undo();
         std::string sfen = removeTurnNumber(pos.toStr());
-        book_entry = book_[sfen];
+        BookEntry& curr_entry = book_[sfen];
 
         //価値を反転
         value = -value;
@@ -184,14 +184,14 @@ void Book::updateOne(int64_t think_sec) {
         selected_moves.pop_back();
 
         //更新
-        for (uint64_t i = 0; i < book_entry.moves.size(); i++) {
-            if (pos.transformValidMove(book_entry.moves[i]) != last_move) {
+        for (uint64_t i = 0; i < curr_entry.moves.size(); i++) {
+            if (pos.transformValidMove(curr_entry.moves[i]) != last_move) {
                 continue;
             }
 
             //この手の価値を更新
-            float alpha = 1.0f / (++book_entry.select_num[i]);
-            book_entry.values[i] += alpha * (value - book_entry.values[i]);
+            float alpha = 1.0f / (++curr_entry.select_num[i]);
+            curr_entry.values[i] += alpha * (value - curr_entry.values[i]);
             break;
         }
     }
