@@ -37,6 +37,9 @@ public:
     bool stop_signal;
 
 private:
+    //ネットワークをロードする関数
+    void loadNeuralNetwork();
+
     enum NoiseMode { DIRICHLET, ONEHOT, NOISE_MODE_SIZE };
     //ディリクレ分布に従ったものを返す関数
     static std::vector<float> dirichletDistribution(uint64_t k, float alpha);

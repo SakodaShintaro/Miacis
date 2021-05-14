@@ -48,6 +48,11 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt
     }
 }
 
+void InferModel::load(int64_t gpu_id, bool use_calibration_cache, const SearchOptions& search_option) {
+    load(search_option.model_name, gpu_id, search_option.search_batch_size, use_calibration_cache,
+         search_option.calibration_kifu_path, search_option.calibration_cache_path, search_option.use_fp16);
+}
+
 std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAndValueBatch(const std::vector<float>& inputs) {
     return tensorToVector(infer(inputs));
 }
