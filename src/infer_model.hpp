@@ -8,7 +8,7 @@
 class InferModel {
 public:
     InferModel() : device_(torch::kCPU) {}
-    void load(int64_t gpu_id, bool use_calibration_cache, const SearchOptions& search_option);
+    void load(int64_t gpu_id, const SearchOptions& search_option);
 
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
     std::tuple<torch::Tensor, torch::Tensor> infer(const std::vector<float>& inputs);

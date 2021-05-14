@@ -107,7 +107,7 @@ void Interface::test() {
     search_options.search_batch_size = 1;
     search_options.output_log_file = true;
     InferModel nn;
-    nn.load(DEFAULT_MODEL_NAME, false, 0);
+    nn.load(DEFAULT_MODEL_NAME, 0);
     SearcherForPlay searcher(search_options);
 
     Position pos;
@@ -288,7 +288,7 @@ void Interface::outputValue() {
     std::ofstream ofs("value_output.txt");
     SearchOptions search_option;
     InferModel nn;
-    nn.load(options_.model_name, false, 0);
+    nn.load(options_.model_name, 0);
 
     std::uniform_real_distribution<float> dist(0.0, 1.0);
 

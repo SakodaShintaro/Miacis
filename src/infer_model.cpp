@@ -6,7 +6,7 @@
 #include <trtorch/ptq.h>
 #include <trtorch/trtorch.h>
 
-void InferModel::load(int64_t gpu_id, bool use_calibration_cache, const SearchOptions& search_option) {
+void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     //マルチGPU環境で同時にloadすると時々Segmentation Faultが発生するので排他制御を入れる
     static std::mutex load_mutex;
     std::lock_guard<std::mutex> guard(load_mutex);
@@ -30,6 +30,7 @@ void InferModel::load(int64_t gpu_id, bool use_calibration_cache, const SearchOp
         module_ = trtorch::CompileGraph(module, info);
     } else {
         using namespace torch::data;
+        const bool use_calibration_cache = search_option.use_calibration_cache;
         auto raw_dataset = (use_calibration_cache ? CalibrationDataset(search_option.calibration_kifu_path, opt_batch_size * 2)
                                                   : CalibrationDataset());
         auto dataset = raw_dataset.map(transforms::Stack<>());
