@@ -30,7 +30,9 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt
         module_ = trtorch::CompileGraph(module, info);
     } else {
         using namespace torch::data;
-        auto dataset = CalibrationDataset(calibration_kifu_path, opt_batch_size * 2).map(transforms::Stack<>());
+        auto raw_dataset =
+            (use_calibration_cache ? CalibrationDataset(calibration_kifu_path, opt_batch_size * 2) : CalibrationDataset());
+        auto dataset = raw_dataset.map(transforms::Stack<>());
         auto dataloader = make_data_loader(std::move(dataset), DataLoaderOptions().batch_size(opt_batch_size).workers(1));
 
         auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(
