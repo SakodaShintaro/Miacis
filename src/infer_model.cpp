@@ -6,8 +6,8 @@
 #include <trtorch/ptq.h>
 #include <trtorch/trtorch.h>
 
-void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size,
-                      const std::string& calibration_kifu_path, bool use_fp16) {
+void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size, bool use_calibration_cache,
+                      const std::string& calibration_kifu_path, const std::string& calibration_cache_path, bool use_fp16) {
     //マルチGPU環境で同時にloadすると時々Segmentation Faultが発生するので排他制御を入れる
     static std::mutex load_mutex;
     std::lock_guard<std::mutex> guard(load_mutex);
@@ -33,8 +33,8 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt
         auto dataset = CalibrationDataset(calibration_kifu_path, opt_batch_size * 2).map(transforms::Stack<>());
         auto dataloader = make_data_loader(std::move(dataset), DataLoaderOptions().batch_size(opt_batch_size).workers(1));
 
-        const std::string name = "calibration_cache_file.txt";
-        auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(std::move(dataloader), name, false);
+        auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(
+            std::move(dataloader), calibration_cache_path, use_calibration_cache);
 
         trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
         trtorch::CompileSpec info({ range });
