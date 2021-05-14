@@ -15,9 +15,6 @@ public:
     std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data);
 
 private:
-    void load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size, bool use_calibration_cache,
-              const std::string& calibration_kifu_path, const std::string& calibration_cache_path, bool use_fp16);
-
     torch::jit::Module module_;
     torch::Device device_;
     bool use_fp16_{};
