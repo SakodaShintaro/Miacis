@@ -29,8 +29,9 @@ RUN echo "git fetch" > update.sh && \
     chmod +x update.sh && \
     ./update.sh
 
-# パラメータの取得
+# パラメータ,キャリブレーションキャッシュの取得
 RUN wget https://github.com/SakodaShintaro/Miacis/releases/download/20210407/shogi_cat_bl10_ch256.model
+RUN wget https://github.com/SakodaShintaro/Miacis/releases/download/20210407/calibration_cache_file.txt
 
 # dotfileの導入
 WORKDIR /root
