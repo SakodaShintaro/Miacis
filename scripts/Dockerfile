@@ -20,12 +20,10 @@ ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/libtorch-1.8.1/lib:/root/trtorch/lib
 
 # Miacisの導入
 RUN git clone https://github.com/SakodaShintaro/Miacis
-WORKDIR /root/Miacis
-RUN git checkout libtorch-1.8.1
 RUN sh /root/Miacis/scripts/download_libtorch.sh
 WORKDIR /root/Miacis/src/cmake-build-release
 RUN echo "git fetch" > update.sh && \
-    echo "git reset --hard origin/libtorch-1.8.1" >> update.sh && \
+    echo "git reset --hard origin/master" >> update.sh && \
     echo "cmake -DCMAKE_BUILD_TYPE=Release .." >> update.sh && \
     echo "make -j$(nproc) Miacis_shogi_categorical" >> update.sh && \
     chmod +x update.sh && \
