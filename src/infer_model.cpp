@@ -31,8 +31,8 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     } else {
         using namespace torch::data;
         const bool use_calibration_cache = search_option.use_calibration_cache;
-        auto raw_dataset = (use_calibration_cache ? CalibrationDataset(search_option.calibration_kifu_path, opt_batch_size * 2)
-                                                  : CalibrationDataset());
+        auto raw_dataset = (use_calibration_cache ? CalibrationDataset()
+                                                  : CalibrationDataset(search_option.calibration_kifu_path, opt_batch_size * 2));
         auto dataset = raw_dataset.map(transforms::Stack<>());
         auto dataloader = make_data_loader(std::move(dataset), DataLoaderOptions().batch_size(opt_batch_size).workers(1));
 
