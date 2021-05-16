@@ -76,6 +76,12 @@ LearnManager::LearnManager(const std::string& learn_name) {
         coefficients_[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
     }
 
+    //検証用データの読み込み
+    std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
+    float valid_rate_threshold = settings.get<float>("valid_rate_threshold");
+    valid_data_ = loadData(valid_kifu_path, false, valid_rate_threshold);
+    std::cout << "valid_data.size() = " << valid_data_.size() << std::endl;
+
     //学習推移のログファイル
     train_log_.open(learn_name + "_train_log.txt");
     valid_log_.open(learn_name + "_valid_log.txt");
@@ -101,11 +107,6 @@ LearnManager::LearnManager(const std::string& learn_name) {
 
     //パラメータの保存間隔
     save_interval_ = settings.get<int64_t>("save_interval");
-
-    //検証用データの読み込み
-    std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
-    float valid_rate_threshold = settings.get<float>("valid_rate_threshold");
-    valid_data_ = loadData(valid_kifu_path, false, valid_rate_threshold);
 
     //学習率のスケジューリングについての変数
     learn_rate_decay_mode_ = settings.get<int64_t>("learn_rate_decay_mode");
