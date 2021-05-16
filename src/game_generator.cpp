@@ -4,8 +4,7 @@
 
 void GameGenerator::genGames() {
     //まず最初のロード
-    neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_, worker_num_ * search_options_.search_batch_size,
-                         search_options_.calibration_kifu_path, search_options_.use_fp16);
+    loadNeuralNetwork();
     need_load = false;
 
     //生成スレッドを生成
@@ -62,8 +61,7 @@ void GameGenerator::genSlave(int64_t thread_id) {
         //全スレッドが読み込もうとする必要はないので代表してid=0のスレッドに任せる
         if (need_load && thread_id == 0) {
             gpu_mutex.lock();
-            neural_network_.load(DEFAULT_MODEL_NAME, gpu_id_, worker_num_ * search_options_.search_batch_size,
-                                 search_options_.calibration_kifu_path, search_options_.use_fp16);
+            loadNeuralNetwork();
             need_load = false;
             gpu_mutex.unlock();
         }
@@ -133,6 +131,14 @@ void GameGenerator::evalWithGPU(int64_t thread_id) {
         //フラグを設定
         curr_node.evaled = true;
     }
+}
+
+void GameGenerator::loadNeuralNetwork() {
+    //探索バッチサイズのworker_num_倍が実際の推論バッチサイズなので無理やり変更する
+    SearchOptions tmp_option = search_options_;
+    tmp_option.search_batch_size *= worker_num_;
+    tmp_option.use_calibration_cache = false;
+    neural_network_.load(gpu_id_, tmp_option);
 }
 
 GenerateWorker::GenerateWorker(const SearchOptions& search_options, GPUQueue& gpu_queue, float Q_dist_lambda, ReplayBuffer& rb)

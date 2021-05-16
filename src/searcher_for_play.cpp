@@ -16,8 +16,7 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
     //GPUを準備
     for (int64_t i = 0; i < search_options.gpu_num; i++) {
         neural_networks_.emplace_back();
-        neural_networks_[i].load(search_options_.model_name, i, search_options.search_batch_size,
-                                 search_options.calibration_kifu_path, search_options.use_fp16);
+        neural_networks_[i].load(i, search_options);
     }
 
     //GPUに対するmutexを準備
@@ -49,7 +48,8 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
 #ifdef SHOGI
     float score{};
     if (!root.isRepeating(score) && search_options_.use_book && book_.hasEntry(root)) {
-        return book_.pickOne(root, search_options_.book_temperature_x1000);
+        Move move = book_.pickOne(root, search_options_.book_temperature_x1000);
+        return root.transformValidMove(move);
     }
 #endif
 

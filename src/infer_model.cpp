@@ -8,23 +8,22 @@
 #include <trtorch/trtorch.h>
 
 #ifndef DLSHOGI
-
-void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size,
-                      const std::string& calibration_kifu_path, bool use_fp16) {
+void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     //マルチGPU環境で同時にloadすると時々Segmentation Faultが発生するので排他制御を入れる
     static std::mutex load_mutex;
     std::lock_guard<std::mutex> guard(load_mutex);
 
-    torch::jit::Module module = torch::jit::load(model_path);
+    torch::jit::Module module = torch::jit::load(search_option.model_name);
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
     module.to(device_);
     module.eval();
 
+    const int64_t opt_batch_size = search_option.search_batch_size;
     std::vector<int64_t> in_min = { 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
     std::vector<int64_t> in_opt = { opt_batch_size, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
     std::vector<int64_t> in_max = { opt_batch_size * 2, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
 
-    use_fp16_ = use_fp16;
+    use_fp16_ = search_option.use_fp16;
     if (use_fp16_) {
         trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
         trtorch::CompileSpec info({ range });
@@ -33,11 +32,14 @@ void InferModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt
         module_ = trtorch::CompileGraph(module, info);
     } else {
         using namespace torch::data;
-        auto dataset = CalibrationDataset(calibration_kifu_path, opt_batch_size * 2).map(transforms::Stack<>());
+        const bool use_calibration_cache = search_option.use_calibration_cache;
+        auto raw_dataset = (use_calibration_cache ? CalibrationDataset()
+                                                  : CalibrationDataset(search_option.calibration_kifu_path, opt_batch_size * 2));
+        auto dataset = raw_dataset.map(transforms::Stack<>());
         auto dataloader = make_data_loader(std::move(dataset), DataLoaderOptions().batch_size(opt_batch_size).workers(1));
 
-        const std::string name = "calibration_cache_file.txt";
-        auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(std::move(dataloader), name, false);
+        auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(
+            std::move(dataloader), search_option.calibration_cache_path, use_calibration_cache);
 
         trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
         trtorch::CompileSpec info({ range });
