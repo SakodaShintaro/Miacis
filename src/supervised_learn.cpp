@@ -34,7 +34,7 @@ void supervisedLearn() {
 
     //どのEpochでどのデータを使っているかを記録する
     std::ofstream epoch_log("epoch_log.txt");
-    epoch_log << "dir_path.size() = " << dir_paths.size() << std::endl;
+    dout(std::cout, epoch_log) << "dir_path.size() = " << dir_paths.size() << std::endl;
     epoch_log << "0 0 " << train_data.size() << std::endl;
 
     //学習クラスを生成
