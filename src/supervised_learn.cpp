@@ -26,6 +26,7 @@ void supervisedLearn() {
         for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
             dir_paths.push_back(p->path().string());
         }
+        std::shuffle(dir_paths.begin(), dir_paths.end(), engine);
         train_kifu_path = dir_paths[0];
     }
 
