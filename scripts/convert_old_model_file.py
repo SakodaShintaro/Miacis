@@ -3,7 +3,7 @@ import glob
 import os
 import re
 from natsort import natsorted
-from generate_torch_script_model import *
+from generate_cnn_model import *
 
 
 # batch_normがある場合はちょっと特殊なので関数として切り出しておく
