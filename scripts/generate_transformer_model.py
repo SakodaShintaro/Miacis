@@ -22,7 +22,7 @@ class TransformerModel(nn.Module):
         self.policy_head_ = torch.nn.Linear(square_num * channel_num, square_num * policy_channel_num)
         self.value_linear0_ = torch.nn.Linear(square_num * channel_num, VALUE_HIDDEN_NUM)
         self.value_linear1_ = torch.nn.Linear(VALUE_HIDDEN_NUM, BIN_SIZE)
-        self.positional_encoding_ = torch.nn.Parameter(torch.randn([square_num, 1, channel_num]), requires_grad=True)
+        self.positional_encoding_ = torch.nn.Parameter(torch.zeros([square_num, 1, channel_num]), requires_grad=True)
 
     def encode(self, x):
         x = x.view([x.shape[0], x.shape[1], x.shape[2] * x.shape[3]])
