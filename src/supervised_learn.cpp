@@ -63,5 +63,8 @@ void supervisedLearn() {
         }
     }
 
+    //学習パラメータを保存
+    learn_manager.saveModelAsDefaultName();
+
     std::cout << "finish supervisedLearn" << std::endl;
 }
