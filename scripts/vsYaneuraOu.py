@@ -26,6 +26,7 @@ parser.add_argument("--option", type=str, default=None)
 parser.add_argument("--parameters", type=(lambda x: list(map(int, x.split()))))
 parser.add_argument("--Suisho", action="store_true")
 parser.add_argument("--total_num", type=(lambda x: list(map(int, x.split()))), default=[0, 0, 0])
+parser.add_argument("--onnx", action="store_true")
 args = parser.parse_args()
 
 # 対局数(先後行うので偶数でなければならない)
@@ -44,7 +45,6 @@ result_converter = {ayane.GameResult.BLACK_WIN: WIN,
                     ayane.GameResult.WHITE_WIN: LOSE,
                     ayane.GameResult.DRAW: DRAW,
                     ayane.GameResult.MAX_MOVES: DRAW}
-
 
 # インスタンス生成
 server = ayane.AyaneruServer()
@@ -77,8 +77,8 @@ if curr_path[-1] != "/":
 f = open(curr_path + "result.txt", mode="a")
 f.write(f"\ntime1 = {args.time1}, time2 = {args.time2}, NodesLimit = {args.NodesLimit}\n")
 
-# ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
-model_names = natsorted(glob.glob(curr_path + "*0.model"))
+# ディレクトリにある以下のsuffixを持ったパラメータを用いて対局を行う
+model_names = natsorted(glob.glob(curr_path + "*0.model")) if not args.onnx else glob.glob(curr_path + "*.onnx")
 assert len(model_names) > 0
 
 if args.reverse:
@@ -87,12 +87,15 @@ if args.reverse:
 if args.option is None:
     # 各ステップの勝率を計測
     for model_name in model_names:
-        # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
-        step = int(model_name[model_name.rfind("_") + 1:model_name.find(".model")])
+        if not args.onnx:
+            # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
+            step = int(model_name[model_name.rfind("_") + 1:model_name.find(".model")])
 
-        # args.init_model_stepより小さいものは調べない
-        if step < args.init_model_step:
-            continue
+            # args.init_model_stepより小さいものは調べない
+            if step < args.init_model_step:
+                continue
+        else:
+            step = 0
 
         # Miacisを準備
         server.engines[0].set_engine_options({"random_turn": 30,
@@ -100,8 +103,17 @@ if args.option is None:
                                               "USI_Hash": hash_size,
                                               "model_name": model_name,
                                               "use_calibration_cache": "false"})
-        scalar_or_categorical = "scalar" if "sca" in model_name else "categorical"
-        server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
+        binary_suffix = None
+        if "sca" in model_name:
+            binary_suffix = "scalar"
+        elif "cat" in model_name:
+            binary_suffix = "categorical"
+        elif "onnx" in model_name:
+            binary_suffix = "dlshogi"
+        else:
+            print("unknown model_name")
+            exit()
+        server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{binary_suffix}")
 
         # 戦績を初期化
         total_num = args.total_num
@@ -154,8 +166,17 @@ else:
                                               "USI_Hash": hash_size,
                                               args.option: parameter,
                                               "model_name": model_names[-1]})
-        scalar_or_categorical = "scalar" if "sca" in model_names[-1] else "categorical"
-        server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{scalar_or_categorical}")
+        binary_suffix = None
+        if "sca" in model_names[-1]:
+            binary_suffix = "scalar"
+        elif "cat" in model_names[-1]:
+            binary_suffix = "categorical"
+        elif "onnx" in model_names[-1]:
+            binary_suffix = "dlshogi"
+        else:
+            print("unknown model_name")
+            exit()
+        server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{binary_suffix}")
 
         # 戦績を初期化
         total_num = args.total_num
@@ -167,7 +188,7 @@ else:
         sfens = defaultdict(int)
 
         # iが偶数のときMiacis先手
-        for i in range(args.game_num):
+        for i in range(sum(total_num), args.game_num):
             # 対局を実行
             server.game_start()
             while not server.game_result.is_gameover():
@@ -199,6 +220,5 @@ else:
         # ファイルに書き込み
         f.write(result_str + "\n")
         f.flush()
-
 
 server.terminate()
