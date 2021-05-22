@@ -156,6 +156,20 @@ void InferDLShogiOnnxModel::load_model(const char* filename) {
     inputDims2 = engine->getBindingDimensions(1);
 }
 
+void InferDLShogiOnnxModel::load(int64_t gpu_id, const SearchOptions& search_option) {
+    gpu_id = gpu_id;
+    max_batch_size = search_option.search_batch_size * 2;
+    // Create host and device buffers
+    checkCudaErrors(cudaMalloc((void**)&x1_dev, sizeof(features1_t) * max_batch_size));
+    checkCudaErrors(cudaMalloc((void**)&x2_dev, sizeof(features2_t) * max_batch_size));
+    checkCudaErrors(cudaMalloc((void**)&y1_dev, MAX_MOVE_LABEL_NUM * (size_t)SquareNum * max_batch_size * sizeof(DType)));
+    checkCudaErrors(cudaMalloc((void**)&y2_dev, max_batch_size * sizeof(DType)));
+
+    inputBindings = { x1_dev, x2_dev, y1_dev, y2_dev };
+
+    load_model(search_option.model_name.c_str());
+}
+
 void InferDLShogiOnnxModel::forward(const int batch_size, void* x1, void* x2, DType* y1, DType* y2) {
     inputDims1.d[0] = batch_size;
     inputDims2.d[0] = batch_size;
@@ -169,23 +183,8 @@ void InferDLShogiOnnxModel::forward(const int batch_size, void* x1, void* x2, DT
     const bool status = context->executeV2(inputBindings.data());
     assert(status);
 
-    checkCudaErrors(
-        cudaMemcpy(y1, y1_dev, MAX_MOVE_LABEL_NUM * (size_t)SquareNum * batch_size * sizeof(DType), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(y1, y1_dev, batch_size * sizeof(DType) * POLICY_DIM, cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaMemcpy(y2, y2_dev, batch_size * sizeof(DType), cudaMemcpyDeviceToHost));
-}
-
-void InferDLShogiOnnxModel::load(int64_t gpu_id, const SearchOptions& search_option) {
-    gpu_id = gpu_id;
-    max_batch_size = search_option.search_batch_size * 2;
-    // Create host and device buffers
-    checkCudaErrors(cudaMalloc((void**)&x1_dev, sizeof(features1_t) * max_batch_size));
-    checkCudaErrors(cudaMalloc((void**)&x2_dev, sizeof(features2_t) * max_batch_size));
-    checkCudaErrors(cudaMalloc((void**)&y1_dev, MAX_MOVE_LABEL_NUM * (size_t)SquareNum * max_batch_size * sizeof(DType)));
-    checkCudaErrors(cudaMalloc((void**)&y2_dev, max_batch_size * sizeof(DType)));
-
-    inputBindings = { x1_dev, x2_dev, y1_dev, y2_dev };
-
-    load_model(search_option.model_name.c_str());
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDLShogiOnnxModel::policyAndValueBatch(const std::vector<float>& inputs) {
@@ -215,6 +214,5 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDLShogiOnnxModel
 std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiOnnxModel::validLoss(const std::vector<LearningData>& data) {
     return std::array<torch::Tensor, LOSS_TYPE_NUM>{};
 }
-
 
 #endif
