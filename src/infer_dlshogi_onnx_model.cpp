@@ -162,9 +162,9 @@ void InferDLShogiOnnxModel::load(int64_t gpu_id, const SearchOptions& search_opt
     gpu_id = gpu_id;
     max_batch_size = search_option.search_batch_size * 2;
     // Create host and device buffers
-    checkCudaErrors(cudaMalloc((void**)&x1_dev, sizeof(features1_t) * max_batch_size));
-    checkCudaErrors(cudaMalloc((void**)&x2_dev, sizeof(features2_t) * max_batch_size));
-    checkCudaErrors(cudaMalloc((void**)&y1_dev, MAX_MOVE_LABEL_NUM * (size_t)SquareNum * max_batch_size * sizeof(DType)));
+    checkCudaErrors(cudaMalloc((void**)&x1_dev, max_batch_size * sizeof(features1_t)));
+    checkCudaErrors(cudaMalloc((void**)&x2_dev, max_batch_size * sizeof(features2_t)));
+    checkCudaErrors(cudaMalloc((void**)&y1_dev, max_batch_size * sizeof(DType) * POLICY_DIM));
     checkCudaErrors(cudaMalloc((void**)&y2_dev, max_batch_size * sizeof(DType)));
 
     inputBindings = { x1_dev, x2_dev, y1_dev, y2_dev };
@@ -172,15 +172,15 @@ void InferDLShogiOnnxModel::load(int64_t gpu_id, const SearchOptions& search_opt
     load_model(search_option.model_name.c_str());
 }
 
-void InferDLShogiOnnxModel::forward(const int batch_size, void* x1, void* x2, DType* y1, DType* y2) {
+void InferDLShogiOnnxModel::forward(const int64_t batch_size, void* x1, void* x2, DType* y1, DType* y2) {
     inputDims1.d[0] = batch_size;
     inputDims2.d[0] = batch_size;
 
     context->setBindingDimensions(0, inputDims1);
     context->setBindingDimensions(1, inputDims2);
 
-    checkCudaErrors(cudaMemcpy(x1_dev, x1, sizeof(features1_t) * batch_size, cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(x2_dev, x2, sizeof(features2_t) * batch_size, cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(x1_dev, x1, batch_size * sizeof(features1_t), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(x2_dev, x2, batch_size * sizeof(features2_t), cudaMemcpyHostToDevice));
 
     const bool status = context->executeV2(inputBindings.data());
     assert(status);
@@ -195,19 +195,25 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDLShogiOnnxModel
 
     torch::Tensor x = inputVectorToTensor(inputs);
     std::vector<torch::Tensor> xs = x.split(DLSHOGI_FEATURES1_NUM, 1);
-    torch::Tensor x1_tensor = xs[0].view({ -1, ColorNum, MAX_FEATURES1_NUM, SQUARE_NUM });
-    torch::Tensor x2_tensor = xs[1].view({ -1, MAX_FEATURES2_NUM, SQUARE_NUM });
+    torch::Tensor x1 = xs[0].reshape({ batch_size, ColorNum, MAX_FEATURES1_NUM, SQUARE_NUM }).contiguous();
+    torch::Tensor x2 = xs[1].reshape({ batch_size, MAX_FEATURES2_NUM, SQUARE_NUM }).contiguous();
 
-    // std::cout << x1_tensor.sizes() << ", " << x2_tensor.sizes() << std::endl;
+    std::vector<DType> policy_buffer(batch_size * POLICY_DIM);
+    std::vector<DType> value_buffer(batch_size);
 
-    std::vector<DType> policy_buffer(batch_size * POLICY_DIM, -1);
-    std::vector<DType> value_buffer(batch_size, -1);
-
-    forward(batch_size, x1_tensor.data_ptr(), x2_tensor.data_ptr(), policy_buffer.data(), value_buffer.data());
+    forward(batch_size, x1.data_ptr(), x2.data_ptr(), policy_buffer.data(), value_buffer.data());
 
     std::vector<PolicyType> policy(batch_size);
     for (int64_t i = 0; i < batch_size; i++) {
+        //policyをコピー
         policy[i].insert(policy[i].begin(), policy_buffer.begin() + i * POLICY_DIM, policy_buffer.begin() + (i + 1) * POLICY_DIM);
+
+#ifdef USE_SIGMOID
+        //Sigmoidのときはそのままで良い
+#else
+        //tanh想定のときはvalueの規格を修正
+        value_buffer[i] = value_buffer[i] * 2 - 1;
+#endif
     }
 
     return std::make_pair(policy, value_buffer);

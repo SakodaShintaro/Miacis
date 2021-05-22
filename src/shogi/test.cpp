@@ -638,7 +638,7 @@ void testModel() {
     //ネットワークの準備
     SearchOptions search_options;
     search_options.use_calibration_cache = false;
-    search_options.search_batch_size = 64;
+    search_options.search_batch_size = 2;
     search_options.model_name = model_file;
     InferModel nn;
     nn.load(0, search_options);
@@ -646,13 +646,20 @@ void testModel() {
     Position pos;
     pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
     //    pos.fromStr("lnsgk4/9/pppp1ppp1/9/8+P/9/PPPP1PPP1/4+p4/LNSGK4 b RBGSNLPrbgsnlp 1");
-    auto vec = pos.makeDLShogiFeature();
+    std::vector<float> vec;
+    for (int64_t i = 0; i < search_options.search_batch_size; i++) {
+        auto f = pos.makeDLShogiFeature();
+        vec.insert(vec.end(), f.begin(), f.end());
+    }
     auto [policy, value] = nn.policyAndValueBatch(vec);
 
     std::ofstream ofs("policy.txt");
     ofs << std::fixed << std::setprecision(4);
     for (int64_t i = 0; i < policy[0].size(); i++) {
         ofs << policy[0][i] << std::endl;
+    }
+    for (int64_t i = 0; i < search_options.search_batch_size; i++) {
+        std::cout << value[i] << std::endl;
     }
     std::cout << "finish testModel" << std::endl;
     std::exit(0);

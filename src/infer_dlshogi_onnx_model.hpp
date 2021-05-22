@@ -3,12 +3,12 @@
 
 #ifdef DLSHOGI
 
-#include "NvInfer.h"
-#include "NvInferRuntimeCommon.h"
-#include "NvOnnxParser.h"
 #include "include_switch.hpp"
 #include "neural_network.hpp"
 #include "search_options.hpp"
+#include <NvInfer.h>
+#include <NvInferRuntimeCommon.h>
+#include <NvOnnxParser.h>
 #include <cctype>
 #include <cstdint>
 #include <cuda.h>
@@ -214,7 +214,7 @@ private:
 
     void load_model(const char* filename);
     void build(const std::string& onnx_filename);
-    void forward(const int batch_size, void* x1, void* x2, DType* y1, DType* y2);
+    void forward(const int64_t batch_size, void* x1, void* x2, DType* y1, DType* y2);
 };
 
 #endif
