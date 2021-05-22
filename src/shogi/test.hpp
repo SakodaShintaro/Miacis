@@ -18,9 +18,6 @@ void checkBook();
 void makeBook();
 void searchWithLog();
 void testLoad();
-void testDLShogiModel();
-void testDLShogiONNXModel();
-void checkValDLShogi();
 void testModel();
 
 } // namespace Shogi
