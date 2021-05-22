@@ -190,12 +190,12 @@ struct InferDeleter {
 
 template<typename T> using InferUniquePtr = std::unique_ptr<T, InferDeleter>;
 
-class NNTensorRT {
+class InferDlshogiOnnxModel {
 public:
-    NNTensorRT() = default;
+    InferDlshogiOnnxModel() = default;
     void load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size, const std::string& calibration_kifu_path,
               bool use_fp16);
-    ~NNTensorRT();
+    ~InferDlshogiOnnxModel();
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 
 private:

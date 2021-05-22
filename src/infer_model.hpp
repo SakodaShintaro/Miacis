@@ -8,7 +8,8 @@
 #ifdef DLSHOGI
 
 #include "infer_dlshogi_model.hpp"
-using InferModel = InferDLShogiModel;
+#include "infer_dlshogi_onnx_model.hpp"
+using InferModel = InferDLShogiOnnxModel;
 
 #else
 
