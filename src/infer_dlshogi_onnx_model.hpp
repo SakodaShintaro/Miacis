@@ -8,6 +8,7 @@
 #include "NvOnnxParser.h"
 #include "include_switch.hpp"
 #include "neural_network.hpp"
+#include "search_options.hpp"
 #include <cctype>
 #include <cstdint>
 #include <cuda.h>
@@ -193,8 +194,7 @@ template<typename T> using InferUniquePtr = std::unique_ptr<T, InferDeleter>;
 class InferDLShogiOnnxModel {
 public:
     InferDLShogiOnnxModel() = default;
-    void load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size, const std::string& calibration_kifu_path,
-              bool use_fp16);
+    void load(int64_t gpu_id, const SearchOptions& search_option);
     ~InferDLShogiOnnxModel();
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
 

@@ -172,10 +172,9 @@ void InferDLShogiOnnxModel::forward(const int batch_size, features1_t* x1, featu
     checkCudaErrors(cudaMemcpy(y2, y2_dev, batch_size * sizeof(DType), cudaMemcpyDeviceToHost));
 }
 
-void InferDLShogiOnnxModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size,
-                      const std::string& calibration_kifu_path, bool use_fp16) {
+void InferDLShogiOnnxModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     gpu_id = gpu_id;
-    max_batch_size = opt_batch_size * 2;
+    max_batch_size = search_option.search_batch_size * 2;
     // Create host and device buffers
     checkCudaErrors(cudaMalloc((void**)&x1_dev, sizeof(features1_t) * max_batch_size));
     checkCudaErrors(cudaMalloc((void**)&x2_dev, sizeof(features2_t) * max_batch_size));
