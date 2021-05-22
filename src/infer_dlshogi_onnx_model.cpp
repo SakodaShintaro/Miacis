@@ -183,7 +183,7 @@ void InferDLShogiOnnxModel::load(int64_t gpu_id, const SearchOptions& search_opt
 
     inputBindings = { x1_dev, x2_dev, y1_dev, y2_dev };
 
-    load_model(model_path.c_str());
+    load_model(search_option.model_name.c_str());
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDLShogiOnnxModel::policyAndValueBatch(const std::vector<float>& inputs) {

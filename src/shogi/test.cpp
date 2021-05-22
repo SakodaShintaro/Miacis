@@ -647,14 +647,14 @@ void testModel() {
     pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
     //    pos.fromStr("lnsgk4/9/pppp1ppp1/9/8+P/9/PPPP1PPP1/4+p4/LNSGK4 b RBGSNLPrbgsnlp 1");
     auto vec = pos.makeDLShogiFeature();
-    auto [policy, value] = nn.infer(vec);
+    auto [policy, value] = nn.policyAndValueBatch(vec);
 
     std::ofstream ofs("policy.txt");
     ofs << std::fixed << std::setprecision(4);
-    for (int64_t i = 0; i < policy.size(1); i++) {
-        ofs << policy[0][i].item<float>() << std::endl;
+    for (int64_t i = 0; i < policy[0].size(); i++) {
+        ofs << policy[0][i] << std::endl;
     }
-    ofs << value[0].item<float>() << std::endl;
+    ofs << value[0] << std::endl;
     std::cout << "finish testModel" << std::endl;
     std::exit(0);
 }

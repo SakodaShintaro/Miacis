@@ -254,9 +254,8 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
         if (!gpu_queue.inputs.empty()) {
             torch::NoGradGuard no_grad_guard;
             gpu_mutexes_[gpu_id].lock();
-            std::tuple<torch::Tensor, torch::Tensor> output = neural_networks_[gpu_id].infer(gpu_queue.inputs);
+            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = neural_networks_[gpu_id].policyAndValueBatch(gpu_queue.inputs);
             gpu_mutexes_[gpu_id].unlock();
-            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = tensorToVector(output);
 
             //書き込み
             for (uint64_t i = 0; i < gpu_queue.indices.size(); i++) {
