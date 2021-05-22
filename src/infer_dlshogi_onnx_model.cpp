@@ -70,7 +70,6 @@ void InferDLShogiOnnxModel::build(const std::string& onnx_filename) {
 
     std::unique_ptr<nvinfer1::IInt8Calibrator> calibrator;
     if (builder->platformHasFastInt8()) {
-        // �L�����u���[�V�����L���b�V��������ꍇ�̂�INT8���g�p
         std::string calibration_cache_filename = std::string(onnx_filename) + ".calibcache";
         std::ifstream calibcache(calibration_cache_filename);
         if (calibcache.is_open()) {

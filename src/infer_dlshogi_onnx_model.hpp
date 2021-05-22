@@ -194,9 +194,10 @@ template<typename T> using InferUniquePtr = std::unique_ptr<T, InferDeleter>;
 class InferDLShogiOnnxModel {
 public:
     InferDLShogiOnnxModel() = default;
-    void load(int64_t gpu_id, const SearchOptions& search_option);
     ~InferDLShogiOnnxModel();
+    void load(int64_t gpu_id, const SearchOptions& search_option);
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
+    std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data);
 
 private:
     int gpu_id;
