@@ -88,6 +88,22 @@ class ValueHead(nn.Module):
         return value
 
 
+class EncodeHead(nn.Module):
+    def __init__(self, in_features, hidden_features, out_features):
+        super(EncodeHead, self).__init__()
+        self.linear0 = nn.Linear(in_features, hidden_features)
+        self.linear1 = nn.Linear(hidden_features, out_features)
+
+    def forward(self, x):
+        y = F.avg_pool2d(x, [x.shape[2], x.shape[3]])
+        y = y.view([-1, x.shape[1]])
+        y = y.flatten(1)
+        y = self.linear0(y)
+        y = F.relu(y)
+        y = self.linear1(y)
+        return y
+
+
 class ScalarNetwork(nn.Module):
     def __init__(self, input_channel_num, block_num, channel_num, policy_channel_num, board_size):
         super(ScalarNetwork, self).__init__()
@@ -109,12 +125,19 @@ class CategoricalNetwork(nn.Module):
         self.encoder_ = Encoder(input_channel_num, block_num, channel_num)
         self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
         self.value_head_ = ValueHead(channel_num, board_size, 51)
+        self.encoder_head = EncodeHead(channel_num, channel_num, channel_num)
 
     def forward(self, x):
         x = self.encoder_.forward(x)
         policy = self.policy_head_.forward(x)
         value = self.value_head_.forward(x)
         return policy, value
+
+    @torch.jit.export
+    def encode(self, x):
+        x = self.encoder_.forward(x)
+        x = self.encoder_head.forward(x)
+        return x
 
 
 def main():

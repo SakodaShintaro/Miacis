@@ -33,10 +33,6 @@ std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<
 
 template std::array<float, LOSS_TYPE_NUM> validation<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data,
                                                                  uint64_t batch_size);
-#ifdef SHOGI
-template std::array<float, LOSS_TYPE_NUM>
-validation<InferDLShogiModel>(InferDLShogiModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
-#endif
 
 std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold) {
     //棋譜を読み込めるだけ読み込む
@@ -69,7 +65,7 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
 }
 
 LearnManager::LearnManager(const std::string& learn_name) {
-    assert(learn_name == "supervised" || learn_name == "reinforcement");
+    assert(learn_name == "supervised" || learn_name == "reinforcement" || learn_name == "contrastive");
     HyperparameterLoader settings(learn_name + "_learn_settings.txt");
 
     //検証を行う間隔
@@ -79,6 +75,12 @@ LearnManager::LearnManager(const std::string& learn_name) {
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         coefficients_[i] = settings.get<float>(LOSS_TYPE_NAME[i] + "_loss_coeff");
     }
+
+    //検証用データの読み込み
+    std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
+    float valid_rate_threshold = settings.get<float>("valid_rate_threshold");
+    valid_data_ = loadData(valid_kifu_path, false, valid_rate_threshold);
+    std::cout << "valid_data.size() = " << valid_data_.size() << std::endl;
 
     //学習推移のログファイル
     train_log_.open(learn_name + "_train_log.txt");
@@ -90,10 +92,10 @@ LearnManager::LearnManager(const std::string& learn_name) {
     }
 
     //評価関数読み込み
-    neural_network.load(DEFAULT_MODEL_NAME, 0);
+    neural_network_.load(DEFAULT_MODEL_NAME, 0);
 
     //学習前のパラメータを出力
-    neural_network.save(MODEL_PREFIX + "_before_learn.model");
+    neural_network_.save(MODEL_PREFIX + "_before_learn.model");
 
     //optimizerの準備
     learn_rate_ = settings.get<float>("learn_rate");
@@ -101,15 +103,10 @@ LearnManager::LearnManager(const std::string& learn_name) {
     sgd_option.momentum(settings.get<float>("momentum"));
     sgd_option.weight_decay(settings.get<float>("weight_decay"));
     std::vector<torch::Tensor> parameters;
-    optimizer_ = std::make_unique<torch::optim::SGD>(neural_network.parameters(), sgd_option);
+    optimizer_ = std::make_unique<torch::optim::SGD>(neural_network_.parameters(), sgd_option);
 
     //パラメータの保存間隔
     save_interval_ = settings.get<int64_t>("save_interval");
-
-    //検証用データの読み込み
-    std::string valid_kifu_path = settings.get<std::string>("valid_kifu_path");
-    float valid_rate_threshold = settings.get<float>("valid_rate_threshold");
-    valid_data_ = loadData(valid_kifu_path, false, valid_rate_threshold);
 
     //学習率のスケジューリングについての変数
     learn_rate_decay_mode_ = settings.get<int64_t>("learn_rate_decay_mode");
@@ -139,7 +136,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
     //学習
     optimizer_->zero_grad();
     std::array<torch::Tensor, LOSS_TYPE_NUM> loss =
-        (mixup_alpha_ == 0 ? neural_network.loss(curr_data) : neural_network.mixUpLoss(curr_data, mixup_alpha_));
+        (mixup_alpha_ == 0 ? neural_network_.loss(curr_data) : neural_network_.mixUpLoss(curr_data, mixup_alpha_));
     torch::Tensor loss_sum = torch::zeros({ batch_size });
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         loss_sum += coefficients_[i] * loss[i].cpu();
@@ -183,7 +180,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
         optimizer_->zero_grad();
 
         //再計算
-        loss = neural_network.loss(curr_data);
+        loss = neural_network_.loss(curr_data);
         loss_sum = torch::zeros({ batch_size });
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             loss_sum += coefficients_[i] * loss[i].cpu();
@@ -206,7 +203,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
     }
 
     //勾配をクリップ
-    torch::nn::utils::clip_grad_norm_(neural_network.parameters(), clip_grad_norm_);
+    torch::nn::utils::clip_grad_norm_(neural_network_.parameters(), clip_grad_norm_);
 
     //パラメータを更新
     optimizer_->step();
@@ -222,9 +219,9 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     if (stem_num % validation_interval_ == 0) {
         //validation_lossを計算
-        neural_network.eval();
-        std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network, valid_data_, batch_size);
-        neural_network.train();
+        neural_network_.eval();
+        std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network_, valid_data_, batch_size);
+        neural_network_.train();
         float sum_loss = 0;
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             sum_loss += coefficients_[i] * valid_loss[i];
@@ -240,7 +237,7 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     //パラメータをステップ付きで保存
     if (stem_num % save_interval_ == 0) {
-        neural_network.save(MODEL_PREFIX + "_" + std::to_string(stem_num) + ".model");
+        neural_network_.save(MODEL_PREFIX + "_" + std::to_string(stem_num) + ".model");
     }
 
     //学習率の変化はoptimizer_->defaults();を使えそうな気がする
@@ -264,6 +261,8 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
 
     return loss_sum.detach();
 }
+
+void LearnManager::saveModelAsDefaultName() { neural_network_.save(DEFAULT_MODEL_NAME); }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
                                                                              torch::Device device, bool valid) {

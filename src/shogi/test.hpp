@@ -21,6 +21,7 @@ void testLoad();
 void testDLShogiModel();
 void testDLShogiONNXModel();
 void checkValDLShogi();
+void testModel();
 
 } // namespace Shogi
 

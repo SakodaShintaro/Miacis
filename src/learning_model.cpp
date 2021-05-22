@@ -117,3 +117,10 @@ std::vector<torch::Tensor> LearningModel::parameters() {
     }
     return parameters;
 }
+
+torch::Tensor LearningModel::contrastiveLoss(const std::vector<LearningData>& data) {
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
+    torch::Tensor representation = module_.get_method("encode")({ input }).toTensor();
+    torch::Tensor loss = representation.norm();
+    return loss;
+}

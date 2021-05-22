@@ -54,11 +54,12 @@ class LearnManager {
 public:
     explicit LearnManager(const std::string& learn_name);
     torch::Tensor learnOneStep(const std::vector<LearningData>& curr_data, int64_t stem_num);
-
-    //学習するモデル。強化学習時に定期的な同期を挟むためにpublicに置く
-    LearningModel neural_network;
+    void saveModelAsDefaultName();
 
 private:
+    //学習するモデル
+    LearningModel neural_network_;
+
     //Optimizer
     std::unique_ptr<torch::optim::SGD> optimizer_;
 
@@ -121,5 +122,8 @@ void supervisedLearn();
 
 //AlphaZero式の強化学習
 void reinforcementLearn();
+
+//ランダムに自己対局したラベルなしデータから教師なしで対比学習
+void contrastiveLearn();
 
 #endif //MIACIS_LEARN_HPP

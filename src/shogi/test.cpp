@@ -16,8 +16,7 @@ void test() {
     search_options.search_batch_size = 1;
     search_options.output_log_file = true;
     InferModel nn;
-    nn.load(DEFAULT_MODEL_NAME, 0, search_options.search_batch_size, search_options.calibration_kifu_path,
-            search_options.use_fp16);
+    nn.load(0, search_options);
     SearcherForPlay searcher(search_options);
 
     Position pos;
@@ -293,8 +292,14 @@ void checkValInfer() {
     //ネットワークの準備
     InferModel nn;
 
+    SearchOptions search_options;
+    search_options.model_name = model_file;
+    search_options.search_batch_size = batch_size;
+    search_options.calibration_kifu_path = calibration_kifu_path;
+    search_options.use_fp16 = use_fp16;
+
     for (int64_t calibration_data_num = batch_size; calibration_data_num <= (batch_size << 5); calibration_data_num *= 2) {
-        nn.load(model_file, 0, batch_size, calibration_kifu_path, use_fp16);
+        nn.load(0, search_options);
 
         std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, batch_size);
         std::cout << std::fixed << std::setprecision(4);
@@ -315,7 +320,7 @@ void checkPredictSpeed() {
     SearchOptions search_options;
 
     InferModel nn;
-    nn.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE, search_options.calibration_kifu_path, search_options.use_fp16);
+    nn.load(0, search_options);
 
     for (int64_t batch_size = 1; batch_size <= BATCH_SIZE; batch_size *= 2) {
         //バッチサイズ分入力を取得
@@ -427,8 +432,8 @@ void checkMirror() {
 }
 
 void checkBook() {
-    YaneBook book;
-    book.open("./standard_book.db");
+    Book book;
+    book.open("./book.txt");
     Position pos;
     float score{};
     while (!pos.isFinish(score)) {
@@ -453,10 +458,95 @@ void makeBook() {
     std::cout << "一局面の思考時間(秒): ";
     std::cin >> think_sec;
 
+    SearchOptions search_options;
+    search_options.print_interval = think_sec * 2000;
+    search_options.USI_Hash = 8096;
+    search_options.use_book = false;
+
+    SearcherForPlay searcher(search_options);
+
     Book book;
     book.open("book.txt");
     for (int64_t _ = 0; _ < search_num; _++) {
-        book.updateOne(think_sec);
+        Position pos;
+        std::vector<Move> selected_moves;
+        while (true) {
+            if (!book.hasEntry(pos)) {
+                break;
+            }
+
+            const BookEntry& book_entry = book.getEntry(pos);
+
+            //選択回数の合計
+            int64_t sum = std::accumulate(book_entry.select_num.begin(), book_entry.select_num.end(), (int64_t)0);
+
+            //UCBを計算し、一番高い行動を選択
+            int64_t max_index = -1;
+            float max_value = -1;
+            for (uint64_t i = 0; i < book_entry.moves.size(); i++) {
+                float U = std::sqrt(sum + 1) / (book_entry.select_num[i] + 1);
+                float ucb = search_options.Q_coeff_x1000 / 1000.0 * book_entry.values[i] +
+                            search_options.C_PUCT_x1000 / 1000.0 * book_entry.policies[i] * U;
+                if (ucb > max_value) {
+                    max_index = i;
+                    max_value = ucb;
+                }
+            }
+
+            Move best_move = pos.transformValidMove(book_entry.moves[max_index]);
+            selected_moves.push_back(best_move);
+            pos.doMove(best_move);
+        }
+
+        //-------------
+        //    展開部
+        //-------------
+        //この局面を探索する
+        pos.print();
+        searcher.think(pos, think_sec * 1000);
+
+        //結果を取得
+        const HashTable& searched = searcher.hashTable();
+        const HashEntry& root_node = searched[searched.root_index];
+
+        //展開
+        BookEntry& book_entry = book.getEntry(pos);
+        book_entry.moves = root_node.moves;
+        book_entry.policies = root_node.nn_policy;
+        book_entry.values.resize(book_entry.moves.size());
+        for (uint64_t i = 0; i < book_entry.moves.size(); i++) {
+            book_entry.values[i] = searched.expQfromNext(root_node, i);
+        }
+        book_entry.select_num.assign(book_entry.moves.size(), 1);
+        float value = *max_element(book_entry.values.begin(), book_entry.values.end());
+
+        //この局面を登録
+        //backupする
+        while (!selected_moves.empty()) {
+            //局面を戻し、そこに相当するエントリを取得
+            pos.undo();
+            BookEntry& curr_entry = book.getEntry(pos);
+
+            //価値を反転
+            value = -value;
+
+            //最終手を取得
+            Move last_move = selected_moves.back();
+            selected_moves.pop_back();
+
+            //更新
+            for (uint64_t i = 0; i < curr_entry.moves.size(); i++) {
+                if (pos.transformValidMove(curr_entry.moves[i]) != last_move) {
+                    continue;
+                }
+
+                //この手の価値を更新
+                float alpha = 1.0f / (++curr_entry.select_num[i]);
+                curr_entry.values[i] += alpha * (value - curr_entry.values[i]);
+                break;
+            }
+        }
+
         book.write("book.txt");
     }
     std::cout << "finish makeBook" << std::endl;
@@ -507,7 +597,7 @@ void testLoad() {
     std::cout << "通常の試行" << std::endl;
     for (int64_t num = 0; num < 0; num++) {
         InferModel model;
-        model.load(DEFAULT_MODEL_NAME, 0, BATCH_SIZE, search_options.calibration_kifu_path, search_options.use_fp16);
+        model.load(0, search_options);
         int64_t ela = timer.elapsedSeconds();
         int64_t curr = ela - pre;
         pre = ela;
@@ -524,7 +614,7 @@ void testLoad() {
         for (int64_t i = 0; i < gpu_num; i++) {
             threads.emplace_back([i, search_options]() {
                 InferModel model;
-                model.load(DEFAULT_MODEL_NAME, i, BATCH_SIZE, search_options.calibration_kifu_path, search_options.use_fp16);
+                model.load(i, search_options);
             });
         }
         for (int64_t i = 0; i < gpu_num; i++) {
@@ -540,14 +630,18 @@ void testLoad() {
     std::exit(0);
 }
 
-void testDLShogiModel() {
+void testModel() {
     std::string model_file;
     std::cout << "model_file : ";
     std::cin >> model_file;
 
     //ネットワークの準備
-    InferDLShogiModel nn;
-    nn.load(model_file, 0, 64, "calibration_kifu_path_is_null", true);
+    SearchOptions search_options;
+    search_options.use_calibration_cache = false;
+    search_options.search_batch_size = 64;
+    search_options.model_name = model_file;
+    InferModel nn;
+    nn.load(0, search_options);
 
     Position pos;
     pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
@@ -561,7 +655,7 @@ void testDLShogiModel() {
         ofs << policy[0][i].item<float>() << std::endl;
     }
     ofs << value[0].item<float>() << std::endl;
-    std::cout << "finish testDLShogiModel" << std::endl;
+    std::cout << "finish testModel" << std::endl;
     std::exit(0);
 }
 
@@ -608,9 +702,14 @@ void checkValDLShogi() {
     std::cout << "fp16 : ";
     std::cin >> use_fp16;
 
+    SearchOptions search_options;
+    search_options.model_name = model_file;
+    search_options.calibration_kifu_path = calibration_kifu_path;
+    search_options.use_fp16 = use_fp16;
+
     //ネットワークの準備
     InferDLShogiModel nn;
-    nn.load(model_file, 0, batch_size, calibration_kifu_path, use_fp16);
+    nn.load(0, search_options);
 
     std::vector<LearningData> data = loadData(path, false, 3000);
     std::cout << "data.size() = " << data.size() << std::endl;

@@ -101,7 +101,7 @@ void reinforcementLearn() {
         //一定間隔でActorのパラメータをLearnerと同期
         if (step_num % update_interval == 0) {
             //学習パラメータを保存
-            learn_manager.neural_network.save(DEFAULT_MODEL_NAME);
+            learn_manager.saveModelAsDefaultName();
 
             //各ネットワークで保存されたパラメータを読み込み
             for (uint64_t i = 0; i < gpu_num; i++) {

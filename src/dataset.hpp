@@ -5,6 +5,7 @@
 
 class CalibrationDataset : public torch::data::datasets::Dataset<CalibrationDataset> {
 public:
+    CalibrationDataset() = default;
     explicit CalibrationDataset(const std::string& root, int64_t data_num);
 
     torch::data::Example<> get(size_t index) override;

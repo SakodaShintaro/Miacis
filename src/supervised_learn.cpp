@@ -26,6 +26,7 @@ void supervisedLearn() {
         for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
             dir_paths.push_back(p->path().string());
         }
+        std::shuffle(dir_paths.begin(), dir_paths.end(), engine);
         train_kifu_path = dir_paths[0];
     }
 
@@ -34,7 +35,7 @@ void supervisedLearn() {
 
     //どのEpochでどのデータを使っているかを記録する
     std::ofstream epoch_log("epoch_log.txt");
-    epoch_log << "dir_path.size() = " << dir_paths.size() << std::endl;
+    dout(std::cout, epoch_log) << "dir_path.size() = " << dir_paths.size() << std::endl;
     epoch_log << "0 0 " << train_data.size() << std::endl;
 
     //学習クラスを生成
@@ -61,6 +62,9 @@ void supervisedLearn() {
             epoch_log << epoch << " " << global_step << " " << train_data.size() << std::endl;
         }
     }
+
+    //学習パラメータを保存
+    learn_manager.saveModelAsDefaultName();
 
     std::cout << "finish supervisedLearn" << std::endl;
 }
