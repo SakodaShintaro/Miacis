@@ -15,8 +15,8 @@ set(TRTORCH_INCLUDE ../../trtorch/include)
 file(GLOB TRTORCH_LIBRARIES ../../trtorch/lib/*.so)
 
 # TensorRT
-find_library(LIBNVINFER NAMES libnvinfer.so)
-find_library(LIBNVONNXPARSER NAMES libnvonnxparser.so)
+set(TENSORRT_INCLUDE ../../TensorRT-7.2.2.3/include)
+file(GLOB TENSORRT_LIBRARIES ../../TensorRT-7.2.2.3/lib/*.so)
 
 # 各ゲームで共通する部分のソース
 file(GLOB SRCS ./*.cpp)
@@ -61,7 +61,11 @@ if (MSVC)
     endforeach ()
 else ()
     foreach (bin IN ITEMS ${BIN})
-        target_link_libraries(${bin} pthread stdc++fs ${TORCH_LIBRARIES} ${TRTORCH_LIBRARIES} ${LIBNVINFER} ${LIBNVONNXPARSER})
+        target_link_libraries(${bin} pthread stdc++fs ${TORCH_LIBRARIES} ${TRTORCH_LIBRARIES})
         target_include_directories(${bin} PRIVATE ${TRTORCH_INCLUDE})
     endforeach ()
 endif ()
+
+# dlshogi版については加えてTensorRTもinclude/libに追加
+target_link_libraries(Miacis_shogi_dlshogi ${TENSORRT_LIBRARIES})
+target_include_directories(Miacis_shogi_dlshogi PRIVATE ${TENSORRT_INCLUDE})
