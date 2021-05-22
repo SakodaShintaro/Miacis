@@ -227,8 +227,8 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiOnnxModel::validLoss(const 
     auto [input, policy_target, value_target] = learningDataToTensor(data, torch::Device(torch::kCPU), true);
 
     std::vector<torch::Tensor> xs = input.split(DLSHOGI_FEATURES1_NUM, 1);
-    torch::Tensor x1_tensor = xs[0];
-    torch::Tensor x2_tensor = xs[1];
+    torch::Tensor x1_tensor = xs[0].contiguous();
+    torch::Tensor x2_tensor = xs[1].contiguous();
 
     const int64_t batch_size = x1_tensor.size(0);
 
