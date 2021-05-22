@@ -2,6 +2,8 @@
 
 #ifdef DLSHOGI
 
+#include "learn.hpp"
+
 class Logger : public nvinfer1::ILogger {
     const char* error_type(Severity severity) {
         switch (severity) {
@@ -212,7 +214,38 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDLShogiOnnxModel
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiOnnxModel::validLoss(const std::vector<LearningData>& data) {
-    return std::array<torch::Tensor, LOSS_TYPE_NUM>{};
+#ifdef USE_CATEGORICAL
+    std::cout << "dlshogiモデルはCategoricalモードに対応していない" << std::endl;
+    std::exit(1);
+#else
+    auto [input, policy_target, value_target] = learningDataToTensor(data, torch::Device(torch::kCPU), true);
+
+    std::vector<torch::Tensor> xs = input.split(DLSHOGI_FEATURES1_NUM, 1);
+    torch::Tensor x1_tensor = xs[0];
+    torch::Tensor x2_tensor = xs[1];
+
+    const int64_t batch_size = x1_tensor.size(0);
+
+    std::vector<DType> policy_buffer(batch_size * POLICY_DIM, -1);
+    std::vector<DType> value_buffer(batch_size, -1);
+
+    forward(batch_size, x1_tensor.data_ptr(), x2_tensor.data_ptr(), policy_buffer.data(), value_buffer.data());
+
+    torch::Tensor policy_logits = torch::tensor(policy_buffer).view({ -1, POLICY_DIM });
+    torch::Tensor value = torch::tensor(value_buffer);
+
+    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
+
+    value = value.view(-1);
+#ifdef USE_SIGMOID
+    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
+#else
+    value = value * 2 - 1;
+    torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
+#endif
+
+    return { policy_loss, value_loss };
+#endif
 }
 
 #endif
