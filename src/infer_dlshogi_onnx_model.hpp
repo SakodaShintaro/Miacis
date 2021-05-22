@@ -202,13 +202,13 @@ public:
 private:
     int gpu_id;
     int max_batch_size;
-    InferUniquePtr<nvinfer1::ICudaEngine> engine;
+    nvinfer1::ICudaEngine* engine;
     features1_t* x1_dev;
     features2_t* x2_dev;
     DType* y1_dev;
     DType* y2_dev;
     std::vector<void*> inputBindings;
-    InferUniquePtr<nvinfer1::IExecutionContext> context;
+    nvinfer1::IExecutionContext* context;
     nvinfer1::Dims inputDims1;
     nvinfer1::Dims inputDims2;
 

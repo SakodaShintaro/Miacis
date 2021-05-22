@@ -9,7 +9,7 @@
 
 #include "infer_dlshogi_model.hpp"
 #include "infer_dlshogi_onnx_model.hpp"
-using InferModel = InferDLShogiModel;
+using InferModel = InferDLShogiOnnxModel;
 
 #else
 

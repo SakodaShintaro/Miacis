@@ -108,7 +108,7 @@ void InferDLShogiOnnxModel::build(const std::string& onnx_filename) {
                            nvinfer1::Dims4(max_batch_size, dims2[1], dims2[2], dims2[3]));
     config->addOptimizationProfile(profile);
 
-    engine.reset(builder->buildEngineWithConfig(*network, *config));
+    engine = builder->buildEngineWithConfig(*network, *config);
     if (!engine) {
         throw std::runtime_error("buildEngineWithConfig");
     }
@@ -126,7 +126,7 @@ void InferDLShogiOnnxModel::load_model(const char* filename) {
         std::unique_ptr<char[]> blob(new char[modelSize]);
         seriarizedFile.read(blob.get(), modelSize);
         auto runtime = InferUniquePtr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(gLogger));
-        engine = InferUniquePtr<nvinfer1::ICudaEngine>(runtime->deserializeCudaEngine(blob.get(), modelSize, nullptr));
+        engine = runtime->deserializeCudaEngine(blob.get(), modelSize, nullptr);
     } else {
 
         // build
@@ -147,7 +147,7 @@ void InferDLShogiOnnxModel::load_model(const char* filename) {
         }
     }
 
-    context = InferUniquePtr<nvinfer1::IExecutionContext>(engine->createExecutionContext());
+    context = engine->createExecutionContext();
     if (!context) {
         throw std::runtime_error("createExecutionContext");
     }
@@ -196,5 +196,10 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDLShogiOnnxModel
     forward(batch_size, x1, x2, y1, y2);
     return std::pair<std::vector<PolicyType>, std::vector<ValueType>>();
 }
+
+std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiOnnxModel::validLoss(const std::vector<LearningData>& data) {
+    return std::array<torch::Tensor, LOSS_TYPE_NUM>{};
+}
+
 
 #endif
