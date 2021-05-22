@@ -1,5 +1,7 @@
 #include "infer_dlshogi_onnx_model.hpp"
 
+#ifdef DLSHOGI
+
 class Logger : public nvinfer1::ILogger {
     const char* error_type(Severity severity) {
         switch (severity) {
@@ -196,3 +198,5 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> NNTensorRT::policyAnd
     forward(batch_size, x1, x2, y1, y2);
     return std::pair<std::vector<PolicyType>, std::vector<ValueType>>();
 }
+
+#endif

@@ -1,6 +1,8 @@
 #ifndef MIACIS_INFER_DLSHOGI_ONNX_MODEL_HPP
 #define MIACIS_INFER_DLSHOGI_ONNX_MODEL_HPP
 
+#ifdef DLSHOGI
+
 #include "NvInfer.h"
 #include "NvInferRuntimeCommon.h"
 #include "NvOnnxParser.h"
@@ -213,5 +215,7 @@ private:
     void build(const std::string& onnx_filename);
     void forward(const int batch_size, features1_t* x1, features2_t* x2, DType* y1, DType* y2);
 };
+
+#endif
 
 #endif //MIACIS_INFER_DLSHOGI_ONNX_MODEL_HPP
