@@ -31,14 +31,14 @@ constexpr int MAX_MOVE_LABEL_NUM = MOVE_DIRECTION_NUM + HAND_PIECE_KIND_NUM;
 
 constexpr long long int operator"" _MiB(long long unsigned int val) { return val * (1 << 20); }
 
-InferDlshogiOnnxModel::~InferDlshogiOnnxModel() {
+InferDLShogiOnnxModel::~InferDLShogiOnnxModel() {
     checkCudaErrors(cudaFree(x1_dev));
     checkCudaErrors(cudaFree(x2_dev));
     checkCudaErrors(cudaFree(y1_dev));
     checkCudaErrors(cudaFree(y2_dev));
 }
 
-void InferDlshogiOnnxModel::build(const std::string& onnx_filename) {
+void InferDLShogiOnnxModel::build(const std::string& onnx_filename) {
     auto builder = InferUniquePtr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(gLogger));
     if (!builder) {
         throw std::runtime_error("createInferBuilder");
@@ -115,7 +115,7 @@ void InferDlshogiOnnxModel::build(const std::string& onnx_filename) {
     }
 }
 
-void InferDlshogiOnnxModel::load_model(const char* filename) {
+void InferDLShogiOnnxModel::load_model(const char* filename) {
     std::string serialized_filename =
         std::string(filename) + "." + std::to_string(gpu_id) + "." + std::to_string(max_batch_size) + ".serialized";
     std::ifstream seriarizedFile(serialized_filename, std::ios::binary);
@@ -157,7 +157,7 @@ void InferDlshogiOnnxModel::load_model(const char* filename) {
     inputDims2 = engine->getBindingDimensions(1);
 }
 
-void InferDlshogiOnnxModel::forward(const int batch_size, features1_t* x1, features2_t* x2, DType* y1, DType* y2) {
+void InferDLShogiOnnxModel::forward(const int batch_size, features1_t* x1, features2_t* x2, DType* y1, DType* y2) {
     inputDims1.d[0] = batch_size;
     inputDims2.d[0] = batch_size;
     context->setBindingDimensions(0, inputDims1);
@@ -172,7 +172,7 @@ void InferDlshogiOnnxModel::forward(const int batch_size, features1_t* x1, featu
     checkCudaErrors(cudaMemcpy(y2, y2_dev, batch_size * sizeof(DType), cudaMemcpyDeviceToHost));
 }
 
-void InferDlshogiOnnxModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size,
+void InferDLShogiOnnxModel::load(const std::string& model_path, int64_t gpu_id, int64_t opt_batch_size,
                       const std::string& calibration_kifu_path, bool use_fp16) {
     gpu_id = gpu_id;
     max_batch_size = opt_batch_size * 2;
@@ -187,7 +187,7 @@ void InferDlshogiOnnxModel::load(const std::string& model_path, int64_t gpu_id, 
     load_model(model_path.c_str());
 }
 
-std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDlshogiOnnxModel::policyAndValueBatch(const std::vector<float>& inputs) {
+std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDLShogiOnnxModel::policyAndValueBatch(const std::vector<float>& inputs) {
     int64_t element_num = INPUT_CHANNEL_NUM * SQUARE_NUM;
     int64_t batch_size = inputs.size() / element_num;
     features1_t* x1;
