@@ -214,7 +214,7 @@ private:
 
     void load_model(const char* filename);
     void build(const std::string& onnx_filename);
-    void forward(const int batch_size, features1_t* x1, features2_t* x2, DType* y1, DType* y2);
+    void forward(const int batch_size, void* x1, void* x2, DType* y1, DType* y2);
 };
 
 #endif

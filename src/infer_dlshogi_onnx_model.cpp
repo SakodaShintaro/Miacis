@@ -156,7 +156,7 @@ void InferDLShogiOnnxModel::load_model(const char* filename) {
     inputDims2 = engine->getBindingDimensions(1);
 }
 
-void InferDLShogiOnnxModel::forward(const int batch_size, features1_t* x1, features2_t* x2, DType* y1, DType* y2) {
+void InferDLShogiOnnxModel::forward(const int batch_size, void* x1, void* x2, DType* y1, DType* y2) {
     inputDims1.d[0] = batch_size;
     inputDims2.d[0] = batch_size;
 
@@ -189,29 +189,27 @@ void InferDLShogiOnnxModel::load(int64_t gpu_id, const SearchOptions& search_opt
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDLShogiOnnxModel::policyAndValueBatch(const std::vector<float>& inputs) {
-    int64_t element_num = INPUT_CHANNEL_NUM * SQUARE_NUM;
-    int64_t batch_size = inputs.size() / element_num;
+    constexpr int64_t element_num = INPUT_CHANNEL_NUM * SQUARE_NUM;
+    const int64_t batch_size = inputs.size() / element_num;
 
     torch::Tensor x = inputVectorToTensor(inputs);
     std::vector<torch::Tensor> xs = x.split(DLSHOGI_FEATURES1_NUM, 1);
-    torch::Tensor x1_tensor = xs[0];
-    torch::Tensor x2_tensor = xs[1];
+    torch::Tensor x1_tensor = xs[0].view({ -1, ColorNum, MAX_FEATURES1_NUM, SQUARE_NUM });
+    torch::Tensor x2_tensor = xs[1].view({ -1, MAX_FEATURES2_NUM, SQUARE_NUM });
 
-    features1_t* x1 = new features1_t[batch_size];
-    features2_t* x2 = new features2_t[batch_size];
-    DType* y1 = new DType[batch_size * POLICY_DIM];
-    DType* y2 = new DType[batch_size];
+    // std::cout << x1_tensor.sizes() << ", " << x2_tensor.sizes() << std::endl;
 
-    forward(batch_size, x1, x2, y1, y2);
+    std::vector<DType> policy_buffer(batch_size * POLICY_DIM, -1);
+    std::vector<DType> value_buffer(batch_size, -1);
+
+    forward(batch_size, x1_tensor.data_ptr(), x2_tensor.data_ptr(), policy_buffer.data(), value_buffer.data());
 
     std::vector<PolicyType> policy(batch_size);
-    std::vector<ValueType> value(y2, y2 + batch_size);
-
     for (int64_t i = 0; i < batch_size; i++) {
-        policy[i].insert(policy[i].begin(), y1 + i * POLICY_DIM, y1 + (i + 1) * POLICY_DIM);
+        policy[i].insert(policy[i].begin(), policy_buffer.begin() + i * POLICY_DIM, policy_buffer.begin() + (i + 1) * POLICY_DIM);
     }
 
-    return std::make_pair(policy, value);
+    return std::make_pair(policy, value_buffer);
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiOnnxModel::validLoss(const std::vector<LearningData>& data) {
