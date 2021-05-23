@@ -148,6 +148,9 @@ std::vector<Game> loadGames(const std::string& path, float rate_threshold) {
             auto [game, ok] = loadCSAOneGame(ifs, rate_threshold);
             if (ok) {
                 games.push_back(game);
+                if (games.size() >= 100000) {
+                    break;
+                }
             }
             getline(ifs, buf);
             if (buf != "/") {
