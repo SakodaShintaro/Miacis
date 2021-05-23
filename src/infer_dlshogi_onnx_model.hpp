@@ -200,17 +200,17 @@ public:
     std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data);
 
 private:
-    int gpu_id;
-    int max_batch_size;
-    nvinfer1::ICudaEngine* engine;
-    features1_t* x1_dev;
-    features2_t* x2_dev;
-    DType* y1_dev;
-    DType* y2_dev;
-    std::vector<void*> inputBindings;
-    nvinfer1::IExecutionContext* context;
-    nvinfer1::Dims inputDims1;
-    nvinfer1::Dims inputDims2;
+    int64_t gpu_id_;
+    int64_t max_batch_size_;
+    nvinfer1::ICudaEngine* engine_;
+    features1_t* x1_dev_;
+    features2_t* x2_dev_;
+    DType* y1_dev_;
+    DType* y2_dev_;
+    std::vector<void*> input_bindings_;
+    nvinfer1::IExecutionContext* context_;
+    nvinfer1::Dims input_dims1_;
+    nvinfer1::Dims input_dims2_;
 
     void load_model(const char* filename);
     void build(const std::string& onnx_filename);

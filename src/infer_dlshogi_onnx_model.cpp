@@ -34,10 +34,12 @@ constexpr int MAX_MOVE_LABEL_NUM = MOVE_DIRECTION_NUM + HAND_PIECE_KIND_NUM;
 constexpr long long int operator"" _MiB(long long unsigned int val) { return val * (1 << 20); }
 
 InferDLShogiOnnxModel::~InferDLShogiOnnxModel() {
-    checkCudaErrors(cudaFree(x1_dev));
-    checkCudaErrors(cudaFree(x2_dev));
-    checkCudaErrors(cudaFree(y1_dev));
-    checkCudaErrors(cudaFree(y2_dev));
+    checkCudaErrors(cudaFree(x1_dev_));
+    checkCudaErrors(cudaFree(x2_dev_));
+    checkCudaErrors(cudaFree(y1_dev_));
+    checkCudaErrors(cudaFree(y2_dev_));
+    engine_->destroy();
+    context_->destroy();
 }
 
 void InferDLShogiOnnxModel::build(const std::string& onnx_filename) {
@@ -67,7 +69,7 @@ void InferDLShogiOnnxModel::build(const std::string& onnx_filename) {
         throw std::runtime_error("parseFromFile");
     }
 
-    builder->setMaxBatchSize(max_batch_size);
+    builder->setMaxBatchSize(max_batch_size_);
     config->setMaxWorkspaceSize(64_MiB);
 
     std::unique_ptr<nvinfer1::IInt8Calibrator> calibrator;
@@ -99,26 +101,26 @@ void InferDLShogiOnnxModel::build(const std::string& onnx_filename) {
     const auto dims1 = inputDims[0].d;
     profile->setDimensions("input1", nvinfer1::OptProfileSelector::kMIN, nvinfer1::Dims4(1, dims1[1], dims1[2], dims1[3]));
     profile->setDimensions("input1", nvinfer1::OptProfileSelector::kOPT,
-                           nvinfer1::Dims4(max_batch_size, dims1[1], dims1[2], dims1[3]));
+                           nvinfer1::Dims4(max_batch_size_, dims1[1], dims1[2], dims1[3]));
     profile->setDimensions("input1", nvinfer1::OptProfileSelector::kMAX,
-                           nvinfer1::Dims4(max_batch_size, dims1[1], dims1[2], dims1[3]));
+                           nvinfer1::Dims4(max_batch_size_, dims1[1], dims1[2], dims1[3]));
     const auto dims2 = inputDims[1].d;
     profile->setDimensions("input2", nvinfer1::OptProfileSelector::kMIN, nvinfer1::Dims4(1, dims2[1], dims2[2], dims2[3]));
     profile->setDimensions("input2", nvinfer1::OptProfileSelector::kOPT,
-                           nvinfer1::Dims4(max_batch_size, dims2[1], dims2[2], dims2[3]));
+                           nvinfer1::Dims4(max_batch_size_, dims2[1], dims2[2], dims2[3]));
     profile->setDimensions("input2", nvinfer1::OptProfileSelector::kMAX,
-                           nvinfer1::Dims4(max_batch_size, dims2[1], dims2[2], dims2[3]));
+                           nvinfer1::Dims4(max_batch_size_, dims2[1], dims2[2], dims2[3]));
     config->addOptimizationProfile(profile);
 
-    engine = builder->buildEngineWithConfig(*network, *config);
-    if (!engine) {
+    engine_ = builder->buildEngineWithConfig(*network, *config);
+    if (!engine_) {
         throw std::runtime_error("buildEngineWithConfig");
     }
 }
 
 void InferDLShogiOnnxModel::load_model(const char* filename) {
     std::string serialized_filename =
-        std::string(filename) + "." + std::to_string(gpu_id) + "." + std::to_string(max_batch_size) + ".serialized";
+        std::string(filename) + "." + std::to_string(gpu_id_) + "." + std::to_string(max_batch_size_) + ".serialized";
     std::ifstream seriarizedFile(serialized_filename, std::ios::binary);
     if (seriarizedFile.is_open()) {
         // deserializing a model
@@ -128,14 +130,14 @@ void InferDLShogiOnnxModel::load_model(const char* filename) {
         std::unique_ptr<char[]> blob(new char[modelSize]);
         seriarizedFile.read(blob.get(), modelSize);
         auto runtime = InferUniquePtr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(gLogger));
-        engine = runtime->deserializeCudaEngine(blob.get(), modelSize, nullptr);
+        engine_ = runtime->deserializeCudaEngine(blob.get(), modelSize, nullptr);
     } else {
 
         // build
         build(filename);
 
         // serializing a model
-        auto serializedEngine = InferUniquePtr<nvinfer1::IHostMemory>(engine->serialize());
+        auto serializedEngine = InferUniquePtr<nvinfer1::IHostMemory>(engine_->serialize());
         if (!serializedEngine) {
             throw std::runtime_error("Engine serialization failed");
         }
@@ -149,44 +151,44 @@ void InferDLShogiOnnxModel::load_model(const char* filename) {
         }
     }
 
-    context = engine->createExecutionContext();
-    if (!context) {
+    context_ = engine_->createExecutionContext();
+    if (!context_) {
         throw std::runtime_error("createExecutionContext");
     }
 
-    inputDims1 = engine->getBindingDimensions(0);
-    inputDims2 = engine->getBindingDimensions(1);
+    input_dims1_ = engine_->getBindingDimensions(0);
+    input_dims2_ = engine_->getBindingDimensions(1);
 }
 
 void InferDLShogiOnnxModel::load(int64_t gpu_id, const SearchOptions& search_option) {
-    gpu_id = gpu_id;
-    max_batch_size = search_option.search_batch_size * 2;
+    gpu_id_ = gpu_id;
+    max_batch_size_ = search_option.search_batch_size * 2;
     // Create host and device buffers
-    checkCudaErrors(cudaMalloc((void**)&x1_dev, max_batch_size * sizeof(features1_t)));
-    checkCudaErrors(cudaMalloc((void**)&x2_dev, max_batch_size * sizeof(features2_t)));
-    checkCudaErrors(cudaMalloc((void**)&y1_dev, max_batch_size * sizeof(DType) * POLICY_DIM));
-    checkCudaErrors(cudaMalloc((void**)&y2_dev, max_batch_size * sizeof(DType)));
+    checkCudaErrors(cudaMalloc((void**)&x1_dev_, max_batch_size_ * sizeof(features1_t)));
+    checkCudaErrors(cudaMalloc((void**)&x2_dev_, max_batch_size_ * sizeof(features2_t)));
+    checkCudaErrors(cudaMalloc((void**)&y1_dev_, max_batch_size_ * sizeof(DType) * POLICY_DIM));
+    checkCudaErrors(cudaMalloc((void**)&y2_dev_, max_batch_size_ * sizeof(DType)));
 
-    inputBindings = { x1_dev, x2_dev, y1_dev, y2_dev };
+    input_bindings_ = { x1_dev_, x2_dev_, y1_dev_, y2_dev_ };
 
     load_model(search_option.model_name.c_str());
 }
 
 void InferDLShogiOnnxModel::forward(const int64_t batch_size, void* x1, void* x2, DType* y1, DType* y2) {
-    inputDims1.d[0] = batch_size;
-    inputDims2.d[0] = batch_size;
+    input_dims1_.d[0] = batch_size;
+    input_dims2_.d[0] = batch_size;
 
-    context->setBindingDimensions(0, inputDims1);
-    context->setBindingDimensions(1, inputDims2);
+    context_->setBindingDimensions(0, input_dims1_);
+    context_->setBindingDimensions(1, input_dims2_);
 
-    checkCudaErrors(cudaMemcpy(x1_dev, x1, batch_size * sizeof(features1_t), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(x2_dev, x2, batch_size * sizeof(features2_t), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(x1_dev_, x1, batch_size * sizeof(features1_t), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(x2_dev_, x2, batch_size * sizeof(features2_t), cudaMemcpyHostToDevice));
 
-    const bool status = context->executeV2(inputBindings.data());
+    const bool status = context_->executeV2(input_bindings_.data());
     assert(status);
 
-    checkCudaErrors(cudaMemcpy(y1, y1_dev, batch_size * sizeof(DType) * POLICY_DIM, cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMemcpy(y2, y2_dev, batch_size * sizeof(DType), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(y1, y1_dev_, batch_size * sizeof(DType) * POLICY_DIM, cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(y2, y2_dev_, batch_size * sizeof(DType), cudaMemcpyDeviceToHost));
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDLShogiOnnxModel::policyAndValueBatch(const std::vector<float>& inputs) {
