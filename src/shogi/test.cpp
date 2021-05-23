@@ -312,36 +312,6 @@ void checkPredictSpeed() {
     }
 }
 
-void checkSegmentTree() {
-    constexpr int64_t n = 8;
-    SegmentTree st(n);
-    st.print();
-    st.update(0, 100);
-    st.update(1, 50);
-    st.update(2, 49);
-    st.update(3, 1);
-    st.update(4, 800);
-    st.print();
-    float sum = st.getSum();
-    std::cout << std::fixed;
-    std::cout << "sum = " << sum << std::endl;
-    std::uniform_real_distribution<float> dist(0.0, sum);
-
-    constexpr int64_t sample_num = 10000;
-
-    std::vector<int64_t> freq(n, 0);
-    for (int64_t i = 0; i < sample_num; i++) {
-        auto value = dist(engine);
-        auto index = st.getIndex(value);
-        std::cout << "value = " << std::setw(10) << value << ", index = " << index << std::endl;
-        freq[index]++;
-    }
-
-    for (int64_t i = 0; i < n; i++) {
-        std::cout << std::setw(5) << i << " " << 1.0 * freq[i] / sample_num << std::endl;
-    }
-}
-
 void checkDoAndUndo() {
     for (int64_t i = 0; i < 1000000000000; i++) {
         Position pos;
