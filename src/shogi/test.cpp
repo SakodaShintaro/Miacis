@@ -658,9 +658,6 @@ void testModel() {
     for (int64_t i = 0; i < policy[0].size(); i++) {
         ofs << policy[0][i] << std::endl;
     }
-    for (int64_t i = 0; i < search_options.search_batch_size; i++) {
-        std::cout << value[i] << std::endl;
-    }
     std::cout << "finish testModel" << std::endl;
     std::exit(0);
 }
