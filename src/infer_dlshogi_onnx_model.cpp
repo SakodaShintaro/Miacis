@@ -102,13 +102,13 @@ void InferDLShogiOnnxModel::build(const std::string& onnx_filename) {
     const auto dims1 = inputDims[0].d;
     profile->setDimensions("input1", nvinfer1::OptProfileSelector::kMIN, nvinfer1::Dims4(1, dims1[1], dims1[2], dims1[3]));
     profile->setDimensions("input1", nvinfer1::OptProfileSelector::kOPT,
-                           nvinfer1::Dims4(max_batch_size_, dims1[1], dims1[2], dims1[3]));
+                           nvinfer1::Dims4(opt_batch_size_, dims1[1], dims1[2], dims1[3]));
     profile->setDimensions("input1", nvinfer1::OptProfileSelector::kMAX,
                            nvinfer1::Dims4(max_batch_size_, dims1[1], dims1[2], dims1[3]));
     const auto dims2 = inputDims[1].d;
     profile->setDimensions("input2", nvinfer1::OptProfileSelector::kMIN, nvinfer1::Dims4(1, dims2[1], dims2[2], dims2[3]));
     profile->setDimensions("input2", nvinfer1::OptProfileSelector::kOPT,
-                           nvinfer1::Dims4(max_batch_size_, dims2[1], dims2[2], dims2[3]));
+                           nvinfer1::Dims4(opt_batch_size_, dims2[1], dims2[2], dims2[3]));
     profile->setDimensions("input2", nvinfer1::OptProfileSelector::kMAX,
                            nvinfer1::Dims4(max_batch_size_, dims2[1], dims2[2], dims2[3]));
     config->addOptimizationProfile(profile);
@@ -163,6 +163,7 @@ void InferDLShogiOnnxModel::load_model(const char* filename) {
 
 void InferDLShogiOnnxModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     gpu_id_ = gpu_id;
+    opt_batch_size_ = search_option.search_batch_size;
     max_batch_size_ = search_option.search_batch_size * 2;
     // Create host and device buffers
     checkCudaErrors(cudaMalloc((void**)&x1_dev_, max_batch_size_ * sizeof(features1_t)));

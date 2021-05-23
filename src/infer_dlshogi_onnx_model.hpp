@@ -149,6 +149,7 @@ public:
 
 private:
     int64_t gpu_id_;
+    int64_t opt_batch_size_;
     int64_t max_batch_size_;
     nvinfer1::ICudaEngine* engine_;
     features1_t* x1_dev_;
