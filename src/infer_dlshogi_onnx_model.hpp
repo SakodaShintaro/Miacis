@@ -161,7 +161,7 @@ private:
     nvinfer1::Dims input_dims1_;
     nvinfer1::Dims input_dims2_;
 
-    void load_model(const char* filename);
+    void load_model(const std::string& filename);
     void build(const std::string& onnx_filename);
     void forward(const int64_t batch_size, void* x1, void* x2, DType* y1, DType* y2);
 };

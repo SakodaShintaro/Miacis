@@ -119,9 +119,9 @@ void InferDLShogiOnnxModel::build(const std::string& onnx_filename) {
     }
 }
 
-void InferDLShogiOnnxModel::load_model(const char* filename) {
+void InferDLShogiOnnxModel::load_model(const std::string& filename) {
     std::string serialized_filename =
-        std::string(filename) + "." + std::to_string(gpu_id_) + "." + std::to_string(max_batch_size_) + ".serialized";
+        filename + "." + std::to_string(gpu_id_) + "." + std::to_string(max_batch_size_) + ".serialized";
     std::ifstream serializedFile(serialized_filename, std::ios::binary);
     if (serializedFile.is_open()) {
         // deserializing a model
@@ -173,7 +173,7 @@ void InferDLShogiOnnxModel::load(int64_t gpu_id, const SearchOptions& search_opt
 
     input_bindings_ = { x1_dev_, x2_dev_, y1_dev_, y2_dev_ };
 
-    load_model(search_option.model_name.c_str());
+    load_model(search_option.model_name);
 }
 
 void InferDLShogiOnnxModel::forward(const int64_t batch_size, void* x1, void* x2, DType* y1, DType* y2) {
