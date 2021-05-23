@@ -25,7 +25,7 @@ public:
     void gameover();
 
     //setoptionで設定した後テストする関数
-    void infiniteSearchTest();
+    void testSelfPlay(int64_t game_num);
 
 private:
     std::unordered_map<std::string, std::function<void()>> command_;

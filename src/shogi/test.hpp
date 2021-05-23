@@ -3,7 +3,6 @@
 
 namespace Shogi {
 
-void test();
 void checkSearchSpeed();
 void checkSearchSpeed2();
 void checkGenSpeed();

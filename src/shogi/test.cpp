@@ -8,52 +8,6 @@
 
 namespace Shogi {
 
-void test() {
-    SearchOptions search_options;
-    search_options.search_limit = 800;
-    search_options.print_interval = 100000;
-    search_options.thread_num_per_gpu = 1;
-    search_options.search_batch_size = 1;
-    search_options.output_log_file = true;
-    InferModel nn;
-    nn.load(0, search_options);
-    SearcherForPlay searcher(search_options);
-
-    Position pos;
-    Game game;
-
-    auto start = std::chrono::steady_clock::now();
-    while (true) {
-        Move best_move = searcher.think(pos, LLONG_MAX);
-
-        if (best_move == NULL_MOVE) {
-            //投了
-            game.result = (pos.color() == BLACK ? MIN_SCORE : MAX_SCORE);
-            break;
-        }
-
-        float finish_score{};
-        if ((pos.isFinish(finish_score) && finish_score == (MAX_SCORE + MIN_SCORE) / 2) ||
-            pos.turnNumber() > search_options.draw_turn) {
-            //千日手or持将棋
-            game.result = finish_score;
-            break;
-        }
-
-        pos.doMove(best_move);
-        pos.print();
-        OneTurnElement element;
-        element.move = best_move;
-        game.elements.push_back(element);
-    }
-    auto end = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << elapsed.count() / pos.turnNumber() << " msec / pos" << std::endl;
-
-    game.writeKifuFile("./");
-    std::cout << "finish test" << std::endl;
-}
-
 void checkGenSpeed() {
     constexpr int64_t buffer_size = 1048576;
     SearchOptions search_options;
