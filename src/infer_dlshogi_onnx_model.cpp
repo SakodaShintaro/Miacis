@@ -38,8 +38,11 @@ InferDLShogiOnnxModel::~InferDLShogiOnnxModel() {
     checkCudaErrors(cudaFree(x2_dev_));
     checkCudaErrors(cudaFree(y1_dev_));
     checkCudaErrors(cudaFree(y2_dev_));
-    engine_->destroy();
-    context_->destroy();
+
+    //destroyを入れるとむしろSegmentation Faultが発生するのでコメントアウト
+    //しかし何もしていないとリークしていそうだが、それは良いのか？
+    //engine_->destroy();
+    //context_->destroy();
 }
 
 void InferDLShogiOnnxModel::build(const std::string& onnx_filename) {
