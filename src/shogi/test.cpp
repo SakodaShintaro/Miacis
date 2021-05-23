@@ -515,7 +515,6 @@ void searchWithLog() {
 
 void testLoad() {
     constexpr int64_t LOOP_NUM = 20;
-    constexpr int64_t BATCH_SIZE = 256;
 
     SearchOptions search_options;
 
@@ -561,15 +560,14 @@ void testLoad() {
 }
 
 void testModel() {
-    std::string model_file;
-    std::cout << "model_file : ";
-    std::cin >> model_file;
-
     //ネットワークの準備
     SearchOptions search_options;
     search_options.use_calibration_cache = false;
     search_options.search_batch_size = 2;
-    search_options.model_name = model_file;
+
+    std::cout << "model_file : ";
+    std::cin >> search_options.model_name;
+
     InferModel nn;
     nn.load(0, search_options);
 
