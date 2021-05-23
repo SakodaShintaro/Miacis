@@ -29,10 +29,6 @@ class Logger : public nvinfer1::ILogger {
     }
 } gLogger;
 
-constexpr int MAX_MOVE_LABEL_NUM = MOVE_DIRECTION_NUM + HAND_PIECE_KIND_NUM;
-
-constexpr long long int operator"" _MiB(long long unsigned int val) { return val * (1 << 20); }
-
 InferDLShogiOnnxModel::~InferDLShogiOnnxModel() {
     checkCudaErrors(cudaFree(x1_dev_));
     checkCudaErrors(cudaFree(x2_dev_));
@@ -73,7 +69,9 @@ void InferDLShogiOnnxModel::build(const std::string& onnx_filename) {
     }
 
     builder->setMaxBatchSize(max_batch_size_);
-    config->setMaxWorkspaceSize(64_MiB);
+
+    //MByte単位で指定
+    config->setMaxWorkspaceSize(64 * (1ull << 20));
 
     std::unique_ptr<nvinfer1::IInt8Calibrator> calibrator;
     if (builder->platformHasFastInt8()) {
@@ -200,8 +198,8 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDLShogiOnnxModel
 
     torch::Tensor x = inputVectorToTensor(inputs);
     std::vector<torch::Tensor> xs = x.split(DLSHOGI_FEATURES1_NUM, 1);
-    torch::Tensor x1 = xs[0].reshape({ batch_size, ColorNum, MAX_FEATURES1_NUM, SQUARE_NUM }).contiguous();
-    torch::Tensor x2 = xs[1].reshape({ batch_size, MAX_FEATURES2_NUM, SQUARE_NUM }).contiguous();
+    torch::Tensor x1 = xs[0].contiguous();
+    torch::Tensor x2 = xs[1].contiguous();
 
     std::vector<DType> policy_buffer(batch_size * POLICY_DIM);
     std::vector<DType> value_buffer(batch_size);
