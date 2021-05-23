@@ -18,13 +18,15 @@ Interface::Interface() : searcher_(nullptr) {
     command_["quit"]       = [this] { quit(); };
     command_["gameover"]   = [this] { gameover(); };
 
+    //テスト
+    command_["infiniteSearchTest"] = [this] { infiniteSearchTest(); };
+
     //メンバ関数以外
     command_["cleanGames"]         = cleanGames;
     command_["supervisedLearn"]    = supervisedLearn;
     command_["reinforcementLearn"] = reinforcementLearn;
     command_["contrastiveLearn"]   = contrastiveLearn;
     command_["test"]               = test;
-    command_["infiniteTest"]       = infiniteTest;
     command_["checkSearchSpeed"]   = checkSearchSpeed;
     command_["checkSearchSpeed2"]  = checkSearchSpeed2;
     command_["checkGenSpeed"]      = checkGenSpeed;
@@ -233,6 +235,28 @@ void Interface::gameover() {
     std::string input;
     std::cin >> input;
     //"win" or "lose" or "draw" が来るらしいが、特にするべきことが見当たらない
+}
+
+void Interface::infiniteSearchTest() {
+    for (int64_t i = 0; i < LLONG_MAX; i++) {
+        std::cout << i << std::endl;
+        Position pos;
+
+        while (true) {
+            Move best_move = searcher_->think(pos, 500);
+            if (best_move == NULL_MOVE) {
+                //終了
+                break;
+            }
+
+            pos.doMove(best_move);
+            //pos.print();
+            float finish_score{};
+            if (pos.isFinish(finish_score)) {
+                break;
+            }
+        }
+    }
 }
 
 } // namespace Shogi

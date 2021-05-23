@@ -24,6 +24,9 @@ public:
     void quit();
     void gameover();
 
+    //setoptionで設定した後テストする関数
+    void infiniteSearchTest();
+
 private:
     std::unordered_map<std::string, std::function<void()>> command_;
     Position root_;
