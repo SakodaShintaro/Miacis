@@ -17,6 +17,7 @@ std::tuple<Game, bool> loadCSAOneGame(std::ifstream& ifs, float rate_threshold) 
     Position pos;
     Game game;
     std::string buf;
+    std::string sfen_board, sfen_hand;
     float black_rate = 0, white_rate = 0;
     bool ok = false;
     while (getline(ifs, buf)) {
@@ -25,9 +26,60 @@ std::tuple<Game, bool> loadCSAOneGame(std::ifstream& ifs, float rate_threshold) 
             black_rate = std::stod(buf.substr(buf.rfind(':') + 1));
         } else if (buf.find("'white_rate") < buf.size()) {
             white_rate = std::stod(buf.substr(buf.rfind(':') + 1));
-        } else if (buf[0] != '%' && ((buf[0] != '+' && buf[0] != '-') || buf.size() == 1)) {
-            //最終結果あるいは指し手ではないものはスキップ
-            continue;
+        } else if (buf[0] == 'P') {
+            //盤面の情報を表す
+            if (buf[1] == 'I') {
+                sfen_board = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL";
+            } else if ('1' <= buf[1] && buf[1] <= '9') {
+                //各段の情報が並ぶ
+                //3文字ずつ情報が並んでいるので解釈する
+                std::string curr_rank_str;
+                int64_t curr_empty_num = 0;
+                for (int64_t j = 0; j < BOARD_WIDTH; j++) {
+                    std::string curr_piece_str = buf.substr(2 + j * 3, 3);
+                    if (curr_piece_str == " * ") {
+                        curr_empty_num++;
+                    } else {
+                        Piece p = CSAstringToPiece.at(curr_piece_str.substr(1));
+                        p = coloredPiece((curr_piece_str[0] == '+' ? BLACK : WHITE), p);
+
+                        if (curr_empty_num != 0) {
+                            curr_rank_str += std::to_string(curr_empty_num);
+                        }
+                        curr_rank_str += PieceToSfenStr2[p];
+                        curr_empty_num = 0;
+                    }
+                }
+                if (curr_empty_num != 0) {
+                    curr_rank_str += std::to_string(curr_empty_num);
+                }
+
+                sfen_board += curr_rank_str + (buf[1] != '9' ? "/" : "");
+            } else if (buf[1] == '+' || buf[1] == '-') {
+                //先手の持ち駒
+                //dlshogiの保存形式を前提とする
+                //(1)1行には1種類だけ
+                //(2)同じ駒種は持っている枚数だけ並ぶ
+                //P+00FU00FU00FU
+                //P+00KE
+                //P+00KA
+                //という感じ
+                Piece p = CSAstringToPiece.at(buf.substr(4, 2));
+                p = coloredPiece((buf[1] == '+' ? BLACK : WHITE), p);
+                int64_t num = (buf.size() - 2) / 4;
+                sfen_hand += (num != 1 ? std::to_string(num) : "") + PieceToSfenStr2[p];
+            } else {
+                std::cout << "想定外 buf = " << buf << std::endl;
+                std::exit(1);
+            }
+        } else if (buf == "+" || buf == "-") {
+            //手番を示す
+            //盤面を構築
+            if (sfen_hand.empty()) {
+                sfen_hand = "-";
+            }
+            std::string sfen = sfen_board + (buf == "+" ? " b " : " w ") + sfen_hand + " 1";
+            pos.fromStr(sfen);
         } else if (buf[0] == '+' || buf[0] == '-') {
             //指し手の情報を取得
             Square from = FRToSquare[buf[1] - '0'][buf[2] - '0'];
@@ -48,6 +100,7 @@ std::tuple<Game, bool> loadCSAOneGame(std::ifstream& ifs, float rate_threshold) 
             move = pos.transformValidMove(move);
 
             if (!pos.isLegalMove(move)) {
+                pos.print();
                 std::cerr << "There is a illegal move " << move.toPrettyStr() << std::endl;
                 exit(1);
             }
@@ -73,8 +126,7 @@ std::tuple<Game, bool> loadCSAOneGame(std::ifstream& ifs, float rate_threshold) 
             }
             break;
         } else {
-            std::cout << buf << std::endl;
-            std::exit(1);
+            continue;
         }
     }
 
