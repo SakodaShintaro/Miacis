@@ -122,14 +122,14 @@ void InferDLShogiOnnxModel::build(const std::string& onnx_filename) {
 void InferDLShogiOnnxModel::load_model(const char* filename) {
     std::string serialized_filename =
         std::string(filename) + "." + std::to_string(gpu_id_) + "." + std::to_string(max_batch_size_) + ".serialized";
-    std::ifstream seriarizedFile(serialized_filename, std::ios::binary);
-    if (seriarizedFile.is_open()) {
+    std::ifstream serializedFile(serialized_filename, std::ios::binary);
+    if (serializedFile.is_open()) {
         // deserializing a model
-        seriarizedFile.seekg(0, std::ios_base::end);
-        const size_t modelSize = seriarizedFile.tellg();
-        seriarizedFile.seekg(0, std::ios_base::beg);
+        serializedFile.seekg(0, std::ios_base::end);
+        const size_t modelSize = serializedFile.tellg();
+        serializedFile.seekg(0, std::ios_base::beg);
         std::unique_ptr<char[]> blob(new char[modelSize]);
-        seriarizedFile.read(blob.get(), modelSize);
+        serializedFile.read(blob.get(), modelSize);
         auto runtime = InferUniquePtr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(gLogger));
         engine_ = runtime->deserializeCudaEngine(blob.get(), modelSize, nullptr);
     } else {
