@@ -69,6 +69,13 @@ def main():
         exit(1)
 
     model = TransformerModel(input_channel_num, args.layer_num, args.channel_num, policy_channel_num, board_size)
+
+    params = 0
+    for p in model.parameters():
+        if p.requires_grad:
+            params += p.numel()
+    print(f"パラメータ数 : {params:,}")
+
     input_data = torch.randn([8, input_channel_num, board_size, board_size])
     script_model = torch.jit.trace(model, input_data)
     script_model = torch.jit.script(model)

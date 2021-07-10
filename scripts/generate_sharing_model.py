@@ -6,23 +6,21 @@ import torch.jit
 import argparse
 
 
-class Conv2DwithBatchNorm(nn.Module):
+class Conv2D(nn.Module):
     def __init__(self, input_ch, output_ch, kernel_size):
-        super(Conv2DwithBatchNorm, self).__init__()
+        super(Conv2D, self).__init__()
         self.conv_ = nn.Conv2d(input_ch, output_ch, kernel_size, bias=False, padding=kernel_size // 2)
-        self.norm_ = nn.BatchNorm2d(output_ch)
 
     def forward(self, x):
         t = self.conv_.forward(x)
-        t = self.norm_.forward(t)
         return t
 
 
 class ResidualBlock(nn.Module):
     def __init__(self, channel_num, kernel_size, reduction):
         super(ResidualBlock, self).__init__()
-        self.conv_and_norm0_ = Conv2DwithBatchNorm(channel_num, channel_num, kernel_size)
-        self.conv_and_norm1_ = Conv2DwithBatchNorm(channel_num, channel_num, kernel_size)
+        self.conv_and_norm0_ = Conv2D(channel_num, channel_num, kernel_size)
+        self.conv_and_norm1_ = Conv2D(channel_num, channel_num, kernel_size)
         self.linear0_ = nn.Linear(channel_num, channel_num // reduction, bias=False)
         self.linear1_ = nn.Linear(channel_num // reduction, channel_num, bias=False)
 
@@ -45,18 +43,29 @@ class ResidualBlock(nn.Module):
         return t
 
 
-class Encoder(nn.Module):
-    def __init__(self, input_channel_num, block_num, channel_num, kernel_size=3, reduction=8):
-        super(Encoder, self).__init__()
-        self.first_conv_and_norm_ = Conv2DwithBatchNorm(input_channel_num, channel_num, 3)
+class ResidualLayer(nn.Module):
+    def __init__(self, block_num, channel_num, kernel_size=3, reduction=8):
+        super(ResidualLayer, self).__init__()
         self.blocks = nn.Sequential()
         for i in range(block_num):
             self.blocks.add_module(f"block{i}", ResidualBlock(channel_num, kernel_size, reduction))
 
     def forward(self, x):
+        return self.blocks.forward(x)
+
+
+class Encoder(nn.Module):
+    def __init__(self, input_channel_num, iter_num, channel_num, kernel_size=3, reduction=8):
+        super(Encoder, self).__init__()
+        self.first_conv_and_norm_ = Conv2D(input_channel_num, channel_num, 3)
+        self.layer_ = ResidualLayer(2, channel_num, kernel_size, reduction)
+        self.iter_num_ = iter_num
+
+    def forward(self, x):
         x = self.first_conv_and_norm_.forward(x)
         x = F.relu(x)
-        x = self.blocks.forward(x)
+        for _ in range(self.iter_num_):
+            x = self.layer_.forward(x)
         return x
 
 
@@ -73,7 +82,7 @@ class PolicyHead(nn.Module):
 class ValueHead(nn.Module):
     def __init__(self, channel_num, board_size, unit_num, hidden_size=256):
         super(ValueHead, self).__init__()
-        self.value_conv_and_norm_ = Conv2DwithBatchNorm(channel_num, channel_num, 1)
+        self.value_conv_and_norm_ = Conv2D(channel_num, channel_num, 1)
         self.hidden_size = channel_num * board_size * board_size
         self.value_linear0_ = nn.Linear(self.hidden_size, hidden_size)
         self.value_linear1_ = nn.Linear(hidden_size, unit_num)
@@ -165,14 +174,14 @@ def main():
     elif args.value_type == "cat":
         model = CategoricalNetwork(input_channel_num, args.block_num, args.channel_num, policy_channel_num, board_size)
 
+    # パラメータ数のカウント
     params = 0
     for p in model.parameters():
         if p.requires_grad:
             params += p.numel()
     print(f"パラメータ数 : {params:,}")
-
     input_data = torch.randn([8, input_channel_num, board_size, board_size])
-    # script_model = torch.jit.trace(model, input_data)
+    script_model = torch.jit.trace(model, input_data)
     script_model = torch.jit.script(model)
     model_path = f"./{args.game}_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.model"
     script_model.save(model_path)
