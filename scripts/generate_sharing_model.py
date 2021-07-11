@@ -55,11 +55,11 @@ class ResidualLayer(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, input_channel_num, iter_num, channel_num, kernel_size=3, reduction=8):
+    def __init__(self, input_channel_num, block_num, channel_num, kernel_size=3, reduction=8):
         super(Encoder, self).__init__()
         self.first_conv_and_norm_ = Conv2D(input_channel_num, channel_num, 3)
         self.layer_ = ResidualLayer(2, channel_num, kernel_size, reduction)
-        self.iter_num_ = iter_num
+        self.iter_num_ = block_num // 2
 
     def forward(self, x):
         x = self.first_conv_and_norm_.forward(x)
