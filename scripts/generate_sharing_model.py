@@ -6,21 +6,23 @@ import torch.jit
 import argparse
 
 
-class Conv2D(nn.Module):
+class Conv2DwithLayerNorm(nn.Module):
     def __init__(self, input_ch, output_ch, kernel_size):
-        super(Conv2D, self).__init__()
+        super(Conv2DwithLayerNorm, self).__init__()
         self.conv_ = nn.Conv2d(input_ch, output_ch, kernel_size, bias=False, padding=kernel_size // 2)
+        self.norm_ = nn.LayerNorm((output_ch, 9, 9))
 
     def forward(self, x):
         t = self.conv_.forward(x)
+        t = self.norm_.forward(t)
         return t
 
 
 class ResidualBlock(nn.Module):
     def __init__(self, channel_num, kernel_size, reduction):
         super(ResidualBlock, self).__init__()
-        self.conv_and_norm0_ = Conv2D(channel_num, channel_num, kernel_size)
-        self.conv_and_norm1_ = Conv2D(channel_num, channel_num, kernel_size)
+        self.conv_and_norm0_ = Conv2DwithLayerNorm(channel_num, channel_num, kernel_size)
+        self.conv_and_norm1_ = Conv2DwithLayerNorm(channel_num, channel_num, kernel_size)
         self.linear0_ = nn.Linear(channel_num, channel_num // reduction, bias=False)
         self.linear1_ = nn.Linear(channel_num // reduction, channel_num, bias=False)
 
@@ -57,7 +59,7 @@ class ResidualLayer(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, input_channel_num, block_num, channel_num, kernel_size=3, reduction=8):
         super(Encoder, self).__init__()
-        self.first_conv_and_norm_ = Conv2D(input_channel_num, channel_num, 3)
+        self.first_conv_and_norm_ = Conv2DwithLayerNorm(input_channel_num, channel_num, 3)
         self.layer_ = ResidualLayer(2, channel_num, kernel_size, reduction)
         self.iter_num_ = block_num // 2
 
@@ -82,7 +84,7 @@ class PolicyHead(nn.Module):
 class ValueHead(nn.Module):
     def __init__(self, channel_num, board_size, unit_num, hidden_size=256):
         super(ValueHead, self).__init__()
-        self.value_conv_and_norm_ = Conv2D(channel_num, channel_num, 1)
+        self.value_conv_and_norm_ = Conv2DwithLayerNorm(channel_num, channel_num, 1)
         self.hidden_size = channel_num * board_size * board_size
         self.value_linear0_ = nn.Linear(self.hidden_size, hidden_size)
         self.value_linear1_ = nn.Linear(hidden_size, unit_num)
