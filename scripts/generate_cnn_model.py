@@ -71,17 +71,17 @@ class PolicyHead(nn.Module):
 
 
 class ValueHead(nn.Module):
-    def __init__(self, channel_num, board_size, unit_num, hidden_size=256):
+    def __init__(self, channel_num, unit_num, hidden_size=256):
         super(ValueHead, self).__init__()
         self.value_conv_and_norm_ = Conv2DwithBatchNorm(channel_num, channel_num, 1)
-        self.hidden_size = channel_num * board_size * board_size
-        self.value_linear0_ = nn.Linear(self.hidden_size, hidden_size)
+        self.value_linear0_ = nn.Linear(channel_num, hidden_size)
         self.value_linear1_ = nn.Linear(hidden_size, unit_num)
 
     def forward(self, x):
         value = self.value_conv_and_norm_.forward(x)
         value = F.relu(value)
-        value = value.view([-1, self.hidden_size])
+        value = F.avg_pool2d(value, [value.shape[2], value.shape[3]])
+        value = value.view([-1, value.shape[1]])
         value = self.value_linear0_.forward(value)
         value = F.relu(value)
         value = self.value_linear1_.forward(value)
@@ -109,7 +109,7 @@ class ScalarNetwork(nn.Module):
         super(ScalarNetwork, self).__init__()
         self.encoder_ = Encoder(input_channel_num, block_num, channel_num)
         self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
-        self.value_head_ = ValueHead(channel_num, board_size, 1)
+        self.value_head_ = ValueHead(channel_num, 1)
 
     def forward(self, x):
         x = self.encoder_.forward(x)
@@ -124,7 +124,7 @@ class CategoricalNetwork(nn.Module):
         super(CategoricalNetwork, self).__init__()
         self.encoder_ = Encoder(input_channel_num, block_num, channel_num)
         self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
-        self.value_head_ = ValueHead(channel_num, board_size, 51)
+        self.value_head_ = ValueHead(channel_num, 51)
         self.encoder_head = EncodeHead(channel_num, channel_num, channel_num)
 
     def forward(self, x):
