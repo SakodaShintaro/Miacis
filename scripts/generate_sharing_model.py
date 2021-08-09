@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.jit
 import argparse
+from generate_cnn_model import PolicyHead, ValueHead, EncodeHead
 
 
 class Conv2DwithLayerNorm(nn.Module):
@@ -71,56 +72,12 @@ class Encoder(nn.Module):
         return x
 
 
-class PolicyHead(nn.Module):
-    def __init__(self, channel_num, policy_channel_num):
-        super(PolicyHead, self).__init__()
-        self.policy_conv_ = nn.Conv2d(channel_num, policy_channel_num, 1, bias=True, padding=0)
-
-    def forward(self, x):
-        policy = self.policy_conv_.forward(x)
-        return policy
-
-
-class ValueHead(nn.Module):
-    def __init__(self, channel_num, board_size, unit_num, hidden_size=256):
-        super(ValueHead, self).__init__()
-        self.value_conv_and_norm_ = Conv2DwithLayerNorm(channel_num, channel_num, 1)
-        self.hidden_size = channel_num * board_size * board_size
-        self.value_linear0_ = nn.Linear(self.hidden_size, hidden_size)
-        self.value_linear1_ = nn.Linear(hidden_size, unit_num)
-
-    def forward(self, x):
-        value = self.value_conv_and_norm_.forward(x)
-        value = F.relu(value)
-        value = value.view([-1, self.hidden_size])
-        value = self.value_linear0_.forward(value)
-        value = F.relu(value)
-        value = self.value_linear1_.forward(value)
-        return value
-
-
-class EncodeHead(nn.Module):
-    def __init__(self, in_features, hidden_features, out_features):
-        super(EncodeHead, self).__init__()
-        self.linear0 = nn.Linear(in_features, hidden_features)
-        self.linear1 = nn.Linear(hidden_features, out_features)
-
-    def forward(self, x):
-        y = F.avg_pool2d(x, [x.shape[2], x.shape[3]])
-        y = y.view([-1, x.shape[1]])
-        y = y.flatten(1)
-        y = self.linear0(y)
-        y = F.relu(y)
-        y = self.linear1(y)
-        return y
-
-
 class ScalarNetwork(nn.Module):
     def __init__(self, input_channel_num, block_num, channel_num, policy_channel_num, board_size):
         super(ScalarNetwork, self).__init__()
         self.encoder_ = Encoder(input_channel_num, block_num, channel_num)
         self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
-        self.value_head_ = ValueHead(channel_num, board_size, 1)
+        self.value_head_ = ValueHead(channel_num, 1)
 
     def forward(self, x):
         x = self.encoder_.forward(x)
@@ -135,7 +92,7 @@ class CategoricalNetwork(nn.Module):
         super(CategoricalNetwork, self).__init__()
         self.encoder_ = Encoder(input_channel_num, block_num, channel_num)
         self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
-        self.value_head_ = ValueHead(channel_num, board_size, 51)
+        self.value_head_ = ValueHead(channel_num, 51)
         self.encoder_head = EncodeHead(channel_num, channel_num, channel_num)
 
     def forward(self, x):
