@@ -3,6 +3,8 @@ from generate_sharing_model import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--source_model_path", type=str, required=True)
+parser.add_argument("--start", type=int, default=2)
+parser.add_argument("--end", type=int, default=21)
 args = parser.parse_args()
 
 source_model = torch.jit.load(args.source_model_path).cpu()
@@ -13,7 +15,7 @@ board_size = 9
 policy_channel_num = 27
 channel_num = 256
 
-for block_num in range(2, 21, 2):
+for block_num in range(args.start, args.end, 2):
     model = CategoricalNetwork(input_channel_num, block_num, channel_num, policy_channel_num, board_size)
     model.load_state_dict(source_dict)
 
