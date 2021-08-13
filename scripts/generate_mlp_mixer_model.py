@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 import torch
-from einops.layers.torch import Rearrange
 from torch import nn
-import torch.nn.functional as F
+from generate_cnn_model import PolicyHead, ValueHead
 
 
 class FeedForward(nn.Module):
@@ -24,19 +23,21 @@ class FeedForward(nn.Module):
 class MixerBlock(nn.Module):
     def __init__(self, dim, num_patch, token_dim, channel_dim, dropout=0.):
         super().__init__()
-        self.token_mix = nn.Sequential(
-            nn.LayerNorm(dim),
-            Rearrange('b n d -> b d n'),
-            FeedForward(num_patch, token_dim, dropout),
-            Rearrange('b d n -> b n d')
-        )
+        self.token_norm = nn.LayerNorm(dim)
+        self.token_forward = FeedForward(num_patch, token_dim, dropout)
         self.channel_mix = nn.Sequential(
             nn.LayerNorm(dim),
             FeedForward(dim, channel_dim, dropout),
         )
 
     def forward(self, x):
-        x = x + self.token_mix(x)
+        s = x
+        x = self.token_norm(x)
+        x = x.permute([0, 2, 1])
+        x = self.token_forward(x)
+        x = x.permute([0, 2, 1])
+        x += s
+
         x = x + self.channel_mix(x)
         return x
 
@@ -53,58 +54,37 @@ class Conv2DwithBatchNorm(nn.Module):
         return t
 
 
-class PolicyHead(nn.Module):
-    def __init__(self, channel_num, policy_channel_num):
-        super(PolicyHead, self).__init__()
-        self.policy_linear_ = nn.Linear(channel_num, policy_channel_num)
-
-    def forward(self, x):
-        policy = self.policy_linear_.forward(x)
-        return policy
-
-
-class ValueHead(nn.Module):
-    def __init__(self, channel_num, unit_num, hidden_size=256):
-        super(ValueHead, self).__init__()
-        self.value_linear0_ = nn.Linear(channel_num, hidden_size)
-        self.value_linear1_ = nn.Linear(hidden_size, unit_num)
-
-    def forward(self, x):
-        value = self.value_linear0_.forward(x)
-        value = F.relu(value)
-        value = self.value_linear1_.forward(value)
-        return value
-
-
 class MLPMixer(nn.Module):
-    def __init__(self, in_channels, dim, num_classes, patch_size, image_size, depth, token_dim, channel_dim):
+    def __init__(self, in_channels, dim, board_size, depth, token_dim, channel_dim):
         super().__init__()
 
-        assert image_size % patch_size == 0, 'Image dimensions must be divisible by the patch size.'
-        self.num_patch = (image_size // patch_size) ** 2
+        self.num_patch = board_size ** 2
         self.to_patch_embedding = nn.Sequential(
-            nn.Conv2d(in_channels, dim, patch_size, patch_size),
-            Rearrange('b c h w -> b (h w) c'),
+            nn.Conv2d(in_channels, dim, 1, 1),
         )
 
         self.mixer_blocks = nn.ModuleList([])
         for _ in range(depth):
             self.mixer_blocks.append(MixerBlock(dim, self.num_patch, token_dim, channel_dim))
         self.layer_norm = nn.LayerNorm(dim)
-        self.mlp_head = nn.Sequential(
-            nn.Linear(dim, num_classes)
-        )
         self.dim = dim
         self.board_size = board_size
         self.policy_head_ = PolicyHead(dim, board_size * board_size * policy_channel_num)
         self.value_head_ = ValueHead(dim, 51)
 
     def forward(self, x):
+        batch_size = x.shape[0]
         x = self.to_patch_embedding(x)
+        x = x.permute([0, 2, 3, 1])
+        x = x.view([-1, self.board_size ** 2, self.dim])
         for mixer_block in self.mixer_blocks:
             x = mixer_block(x)
         x = self.layer_norm(x)
-        x = x.mean(dim=1)
+        print(x.shape)
+        x = x.permute([0, 2, 1])
+        print(x.shape)
+        # x = x.contiguous()
+        x = x.view([batch_size, self.dim, self.board_size, self.board_size])
         print(x.shape)
         policy = self.policy_head_.forward(x)
         value = self.value_head_.forward(x)
@@ -130,8 +110,8 @@ if __name__ == "__main__":
     else:
         exit(1)
 
-    model = MLPMixer(in_channels=input_channel_num, image_size=board_size, patch_size=1, num_classes=1000,
-                     dim=512, depth=8, token_dim=256, channel_dim=2048)
+    model = MLPMixer(in_channels=input_channel_num, board_size=board_size, dim=args.channel_num, depth=args.block_num,
+                     token_dim=256, channel_dim=512)
 
     params = 0
     for p in model.parameters():
@@ -139,11 +119,11 @@ if __name__ == "__main__":
             params += p.numel()
     print(f"パラメータ数 : {params:,}")
 
-    input_data = torch.randn([8, input_channel_num, board_size, board_size])
+    model.cuda()
+    input_data = torch.randn([512, input_channel_num, board_size, board_size]).cuda()
     script_model = torch.jit.trace(model, input_data)
     # script_model = torch.jit.script(model)
     model_path = f"./{args.game}_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.model"
     script_model.save(model_path)
+
     print(f"{model_path}にパラメータを保存")
-    output = model(input_data)
-    print(output[0].shape, output[1].shape)
