@@ -178,8 +178,11 @@ void checkVal() {
     std::string model_file;
     std::cout << "model_file : ";
     std::cin >> model_file;
+    float rate_threshold;
+    std::cout << "rate_threshold : ";
+    std::cin >> rate_threshold;
 
-    std::vector<LearningData> data = loadData(path, false, 3000);
+    std::vector<LearningData> data = loadData(path, false, rate_threshold);
     std::cout << "data.size() = " << data.size() << std::endl;
 
     //ネットワークの準備
