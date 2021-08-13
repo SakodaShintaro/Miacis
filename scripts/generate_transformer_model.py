@@ -1,27 +1,22 @@
 #!/usr/bin/env python3
 import argparse
-
 import torch
 import torch.jit
 import torch.nn as nn
 import torch.nn.functional as F
-
-N_HEAD = 8
-VALUE_HIDDEN_NUM = 256
-BIN_SIZE = 51
+from generate_cnn_model import PolicyHead, ValueHead
 
 
 class TransformerModel(nn.Module):
     def __init__(self, input_channel_num, layer_num, channel_num, policy_channel_num, board_size):
         super(TransformerModel, self).__init__()
         self.first_encoding_ = torch.nn.Linear(input_channel_num, channel_num)
-        encoder_layer = torch.nn.TransformerEncoderLayer(channel_num, N_HEAD)
+        encoder_layer = torch.nn.TransformerEncoderLayer(channel_num, nhead=8, dim_feedforward=256)
         self.encoder_ = torch.nn.TransformerEncoder(encoder_layer, layer_num)
         self.board_size = board_size
         square_num = board_size ** 2
-        self.policy_head_ = torch.nn.Linear(square_num * channel_num, square_num * policy_channel_num)
-        self.value_linear0_ = torch.nn.Linear(square_num * channel_num, VALUE_HIDDEN_NUM)
-        self.value_linear1_ = torch.nn.Linear(VALUE_HIDDEN_NUM, BIN_SIZE)
+        self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
+        self.value_head_ = ValueHead(channel_num, 51)
         self.positional_encoding_ = torch.nn.Parameter(torch.zeros([square_num, 1, channel_num]), requires_grad=True)
 
     def encode(self, x):
@@ -37,12 +32,8 @@ class TransformerModel(nn.Module):
         return x
 
     def decode(self, representation):
-        flattened = representation.flatten(1)
-        policy = self.policy_head_(flattened)
-        value = self.value_linear0_(flattened)
-        value = F.relu(value)
-        value = self.value_linear1_(value)
-
+        policy = self.policy_head_(representation)
+        value = self.value_head_(representation)
         return policy, value
 
     def forward(self, x):

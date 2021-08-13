@@ -6,14 +6,12 @@ from generate_cnn_model import PolicyHead, ValueHead
 
 
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.):
+    def __init__(self, dim, hidden_dim):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(dim, hidden_dim),
             nn.GELU(),
-            nn.Dropout(dropout),
             nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout)
         )
 
     def forward(self, x):
@@ -21,13 +19,13 @@ class FeedForward(nn.Module):
 
 
 class MixerBlock(nn.Module):
-    def __init__(self, dim, num_patch, token_dim, channel_dim, dropout=0.):
+    def __init__(self, dim, num_patch, token_dim, channel_dim):
         super().__init__()
         self.token_norm = nn.LayerNorm(dim)
-        self.token_forward = FeedForward(num_patch, token_dim, dropout)
+        self.token_forward = FeedForward(num_patch, token_dim)
         self.channel_mix = nn.Sequential(
             nn.LayerNorm(dim),
-            FeedForward(dim, channel_dim, dropout),
+            FeedForward(dim, channel_dim),
         )
 
     def forward(self, x):
@@ -36,7 +34,7 @@ class MixerBlock(nn.Module):
         x = x.permute([0, 2, 1])
         x = self.token_forward(x)
         x = x.permute([0, 2, 1])
-        x += s
+        x = x + s
 
         x = x + self.channel_mix(x)
         return x
@@ -69,7 +67,7 @@ class MLPMixer(nn.Module):
         self.layer_norm = nn.LayerNorm(dim)
         self.dim = dim
         self.board_size = board_size
-        self.policy_head_ = PolicyHead(dim, board_size * board_size * policy_channel_num)
+        self.policy_head_ = PolicyHead(dim, policy_channel_num)
         self.value_head_ = ValueHead(dim, 51)
 
     def forward(self, x):
@@ -80,12 +78,9 @@ class MLPMixer(nn.Module):
         for mixer_block in self.mixer_blocks:
             x = mixer_block(x)
         x = self.layer_norm(x)
-        print(x.shape)
         x = x.permute([0, 2, 1])
-        print(x.shape)
-        # x = x.contiguous()
+        x = x.contiguous()
         x = x.view([batch_size, self.dim, self.board_size, self.board_size])
-        print(x.shape)
         policy = self.policy_head_.forward(x)
         value = self.value_head_.forward(x)
         return policy, value
