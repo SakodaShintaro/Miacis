@@ -3,6 +3,7 @@
 #include "hyperparameter_loader.hpp"
 #include "include_switch.hpp"
 #include "infer_dlshogi_model.hpp"
+#include "libtorch_model.hpp"
 #include <iomanip>
 #include <random>
 #include <sstream>
@@ -64,7 +65,7 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
     return data_buffer;
 }
 
-LearnManager::LearnManager(const std::string& learn_name) {
+template<class LearningClass> LearnManager<LearningClass>::LearnManager(const std::string& learn_name) {
     assert(learn_name == "supervised" || learn_name == "reinforcement" || learn_name == "contrastive");
     HyperparameterLoader settings(learn_name + "_learn_settings.txt");
 
@@ -129,7 +130,8 @@ LearnManager::LearnManager(const std::string& learn_name) {
     timer_.start();
 }
 
-torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_data, int64_t stem_num) {
+template<class LearningClass>
+torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<LearningData>& curr_data, int64_t stem_num) {
     //バッチサイズを取得
     const int64_t batch_size = curr_data.size();
 
@@ -262,7 +264,9 @@ torch::Tensor LearnManager::learnOneStep(const std::vector<LearningData>& curr_d
     return loss_sum.detach();
 }
 
-void LearnManager::saveModelAsDefaultName() { neural_network_.save(DEFAULT_MODEL_NAME); }
+template<class LearningClass> void LearnManager<LearningClass>::saveModelAsDefaultName() {
+    neural_network_.save(DEFAULT_MODEL_NAME);
+}
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
                                                                              torch::Device device, bool valid) {
@@ -307,3 +311,6 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(con
 
     return std::make_tuple(input_tensor, policy_target, value_target);
 }
+
+template class LearnManager<LearningModel>;
+template class LearnManager<LibTorchModel>;

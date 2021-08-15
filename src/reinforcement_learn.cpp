@@ -41,7 +41,7 @@ void reinforcementLearn() {
     // clang-format on
 
     //学習クラスを生成
-    LearnManager learn_manager("reinforcement");
+    LearnManager<LearningModel> learn_manager("reinforcement");
 
     //カテゴリカルモデルでもQをもとに探索したい場合
     if (Q_search) {

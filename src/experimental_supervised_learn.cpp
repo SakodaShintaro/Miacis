@@ -2,8 +2,9 @@
 #include "game.hpp"
 #include "hyperparameter_loader.hpp"
 #include "learn.hpp"
+#include "libtorch_model.hpp"
 
-void supervisedLearn() {
+void experimentalSupervisedLearn() {
     // clang-format off
     HyperparameterLoader settings("supervised_learn_settings.txt");
     float train_rate_threshold  = settings.get<float>("train_rate_threshold");
@@ -39,7 +40,7 @@ void supervisedLearn() {
     epoch_log << "0 0 " << train_data.size() << std::endl;
 
     //学習クラスを生成
-    LearnManager<LearningModel> learn_manager("supervised");
+    LearnManager<LibTorchModel> learn_manager("supervised");
 
     //エポックを超えたステップ数を初期化
     int64_t global_step = 0;

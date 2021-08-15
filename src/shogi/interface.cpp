@@ -27,6 +27,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["supervisedLearn"]    = supervisedLearn;
     command_["reinforcementLearn"] = reinforcementLearn;
     command_["contrastiveLearn"]   = contrastiveLearn;
+    command_["experimentalSupervisedLearn"] = experimentalSupervisedLearn;
     command_["checkSearchSpeed"]   = checkSearchSpeed;
     command_["checkSearchSpeed2"]  = checkSearchSpeed2;
     command_["checkGenSpeed"]      = checkGenSpeed;

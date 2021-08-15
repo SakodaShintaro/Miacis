@@ -16,7 +16,7 @@ public:
     std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data);
 
 private:
-    torch::jit::Module module_;
+    torch::jit::Module network_;
     torch::Device device_;
     bool use_fp16_{};
 };

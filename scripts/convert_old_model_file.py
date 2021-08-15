@@ -55,7 +55,7 @@ for source_model_name in source_model_names:
 
     # block
     for i, v in enumerate(model.encoder_.__dict__["_modules"]["blocks"]):
-        source_m = source.__dict__["_modules"][f"state_blocks_{i}"]
+        source_m = source.__dict__["_modules"][f"blocks_{i}"]
         load_conv_and_norm(v.conv_and_norm0_, source_m.conv_and_norm0_)
         load_conv_and_norm(v.conv_and_norm1_, source_m.conv_and_norm1_)
         v.linear0_.weight.data = source_m.linear0_.weight.data

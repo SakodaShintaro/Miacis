@@ -37,7 +37,7 @@ void InferDLShogiModel::load(int64_t gpu_id, const SearchOptions& search_option)
     if (use_fp16_) {
         info.op_precision = torch::kHalf;
         info.device.gpu_id = gpu_id;
-        module_ = trtorch::CompileGraph(module, info);
+        network_ = trtorch::CompileGraph(module, info);
     } else {
         using namespace torch::data;
         const bool use_calibration_cache = search_option.use_calibration_cache;
@@ -55,7 +55,7 @@ void InferDLShogiModel::load(int64_t gpu_id, const SearchOptions& search_option)
         info.workspace_size = (1ull << 29);
         info.max_batch_size = opt_batch_size * 2;
 
-        module_ = trtorch::CompileGraph(module, info);
+        network_ = trtorch::CompileGraph(module, info);
     }
 }
 
@@ -73,7 +73,7 @@ std::tuple<torch::Tensor, torch::Tensor> InferDLShogiModel::infer(const std::vec
     torch::Tensor x1 = xs[0];
     torch::Tensor x2 = xs[1];
 
-    auto out = module_.forward({ x1, x2 });
+    auto out = network_.forward({ x1, x2 });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
     torch::Tensor value = tuple->elements()[1].toTensor();
@@ -110,7 +110,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiModel::validLoss(const std:
     torch::Tensor x1 = xs[0];
     torch::Tensor x2 = xs[1];
 
-    auto out = module_.forward({ x1, x2 });
+    auto out = network_.forward({ x1, x2 });
     auto tuple = out.toTuple();
     torch::Tensor policy_logits = tuple->elements()[0].toTensor();
     torch::Tensor value = tuple->elements()[1].toTensor();
