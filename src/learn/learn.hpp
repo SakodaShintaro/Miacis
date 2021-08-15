@@ -1,10 +1,10 @@
 ﻿#ifndef MIACIS_LEARN_HPP
 #define MIACIS_LEARN_HPP
 
-#include "model/infer_model.hpp"
-#include "model/learning_model.hpp"
-#include "model/model_common.hpp"
-#include "timer.hpp"
+#include "../model/infer_model.hpp"
+#include "../model/learning_model.hpp"
+#include "../model/model_common.hpp"
+#include "../timer.hpp"
 
 //標準出力とファイルストリームに同時に出力するためのクラス
 //参考)https://aki-yam.hatenablog.com/entry/20080630/1214801872

@@ -2,7 +2,7 @@
 
 #ifdef DLSHOGI
 
-#include "../learn.hpp"
+#include "../learn/learn.hpp"
 
 class Logger : public nvinfer1::ILogger {
     const char* error_type(Severity severity) {

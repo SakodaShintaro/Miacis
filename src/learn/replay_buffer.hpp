@@ -1,8 +1,8 @@
 ﻿#ifndef MIACIS_REPLAY_BUFFER_HPP
 #define MIACIS_REPLAY_BUFFER_HPP
-#include "game.hpp"
+#include "../game.hpp"
+#include "../model/model_common.hpp"
 #include "learn.hpp"
-#include "model/model_common.hpp"
 #include "segment_tree.hpp"
 #include <mutex>
 #ifdef _MSC_VER

@@ -1,6 +1,6 @@
 #include "dataset.hpp"
 #include "../include_switch.hpp"
-#include "../learn.hpp"
+#include "../learn/learn.hpp"
 #include "model_common.hpp"
 
 CalibrationDataset::CalibrationDataset(const std::string& root, int64_t data_num) {

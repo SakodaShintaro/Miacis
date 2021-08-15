@@ -1,6 +1,6 @@
 ﻿#include "replay_buffer.hpp"
-#include "common.hpp"
-#include "include_switch.hpp"
+#include "../common.hpp"
+#include "../include_switch.hpp"
 #include <iomanip>
 #include <random>
 #include <thread>

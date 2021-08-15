@@ -1,12 +1,12 @@
 #ifndef MIACIS_RANDOM_GAME_GENERATOR_HPP
 #define MIACIS_RANDOM_GAME_GENERATOR_HPP
 
-#include "game.hpp"
-#include "model/infer_model.hpp"
+#include "../game.hpp"
+#include "../model/infer_model.hpp"
+#include "../search_options.hpp"
+#include "../searcher.hpp"
+#include "../searcher_for_mate.hpp"
 #include "replay_buffer.hpp"
-#include "search_options.hpp"
-#include "searcher.hpp"
-#include "searcher_for_mate.hpp"
 #include <atomic>
 #include <mutex>
 #include <stack>

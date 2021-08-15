@@ -1,7 +1,7 @@
 #include "infer_model.hpp"
 #include "../common.hpp"
 #include "../include_switch.hpp"
-#include "../learn.hpp"
+#include "../learn/learn.hpp"
 #include "dataset.hpp"
 #include <torch/torch.h>
 #include <trtorch/ptq.h>

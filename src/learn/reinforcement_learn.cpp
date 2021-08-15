@@ -1,7 +1,7 @@
-﻿#include "game_generator.hpp"
+﻿#include "../model/infer_model.hpp"
+#include "game_generator.hpp"
 #include "hyperparameter_loader.hpp"
 #include "learn.hpp"
-#include "model/infer_model.hpp"
 #include <torch/torch.h>
 
 void reinforcementLearn() {

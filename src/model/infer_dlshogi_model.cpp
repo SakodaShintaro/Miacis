@@ -4,7 +4,7 @@
 
 #include "../common.hpp"
 #include "../include_switch.hpp"
-#include "../learn.hpp"
+#include "../learn/learn.hpp"
 #include "dataset.hpp"
 #include "infer_model.hpp"
 #include <torch/torch.h>

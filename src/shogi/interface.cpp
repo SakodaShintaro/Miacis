@@ -1,6 +1,6 @@
 ﻿#include "interface.hpp"
 #include "../game.hpp"
-#include "../learn.hpp"
+#include "../learn/learn.hpp"
 #include "test.hpp"
 
 namespace Shogi {

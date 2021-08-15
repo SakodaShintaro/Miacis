@@ -1,9 +1,9 @@
 ﻿#include "learn.hpp"
-#include "game.hpp"
+#include "../game.hpp"
+#include "../include_switch.hpp"
+#include "../model/infer_dlshogi_model.hpp"
+#include "../model/libtorch_model.hpp"
 #include "hyperparameter_loader.hpp"
-#include "include_switch.hpp"
-#include "model/infer_dlshogi_model.hpp"
-#include "model/libtorch_model.hpp"
 #include <iomanip>
 #include <random>
 #include <sstream>

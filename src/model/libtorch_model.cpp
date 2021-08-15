@@ -1,7 +1,7 @@
 #include "libtorch_model.hpp"
 #include "../common.hpp"
 #include "../include_switch.hpp"
-#include "../learn.hpp"
+#include "../learn/learn.hpp"
 
 using namespace torch::nn;
 

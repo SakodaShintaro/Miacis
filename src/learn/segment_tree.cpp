@@ -1,5 +1,5 @@
 #include "segment_tree.hpp"
-#include "common.hpp"
+#include "../common.hpp"
 
 SegmentTree::SegmentTree(uint64_t n) : next_push_index_(-1) {
     n_ = 1ull << MSB64(n);

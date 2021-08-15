@@ -1,5 +1,5 @@
 ﻿#include "test.hpp"
-#include "../game_generator.hpp"
+#include "../learn/game_generator.hpp"
 #include "../model/infer_dlshogi_model.hpp"
 #include "../model/infer_dlshogi_onnx_model.hpp"
 #include "../model/infer_model.hpp"
