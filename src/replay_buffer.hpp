@@ -2,7 +2,7 @@
 #define MIACIS_REPLAY_BUFFER_HPP
 #include "game.hpp"
 #include "learn.hpp"
-#include "model/neural_network.hpp"
+#include "model/model_common.hpp"
 #include "segment_tree.hpp"
 #include <mutex>
 #ifdef _MSC_VER

@@ -1,7 +1,7 @@
 #ifndef MIACIS_LIBTORCH_MODEL_HPP
 #define MIACIS_LIBTORCH_MODEL_HPP
 
-#include "neural_network.hpp"
+#include "model_common.hpp"
 
 //畳み込みとBatchNormalizationをまとめたユニット
 class Conv2DwithBatchNormImpl : public torch::nn::Module {

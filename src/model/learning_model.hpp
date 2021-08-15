@@ -1,7 +1,7 @@
 #ifndef LEARNING_MODEL_HPP
 #define LEARNING_MODEL_HPP
 
-#include "neural_network.hpp"
+#include "model_common.hpp"
 #include <torch/script.h>
 
 class LearningModel {

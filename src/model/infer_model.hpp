@@ -2,7 +2,7 @@
 #define INFER_MODEL_HPP
 
 #include "../search_options.hpp"
-#include "neural_network.hpp"
+#include "model_common.hpp"
 #include <torch/script.h>
 
 #ifdef DLSHOGI

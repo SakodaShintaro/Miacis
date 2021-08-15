@@ -1,7 +1,7 @@
 #ifndef MIACIS_SEARCH_OPTIONS_HPP
 #define MIACIS_SEARCH_OPTIONS_HPP
 
-#include "model/neural_network.hpp"
+#include "model/model_common.hpp"
 #include <cstdint>
 #include <map>
 #include <string>

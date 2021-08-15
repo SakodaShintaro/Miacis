@@ -1,5 +1,5 @@
 ﻿#include "position.hpp"
-#include "../model/neural_network.hpp"
+#include "../model/model_common.hpp"
 
 namespace Shogi {
 

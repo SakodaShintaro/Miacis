@@ -3,7 +3,7 @@
 
 #include "model/infer_model.hpp"
 #include "model/learning_model.hpp"
-#include "model/neural_network.hpp"
+#include "model/model_common.hpp"
 #include "timer.hpp"
 
 //標準出力とファイルストリームに同時に出力するためのクラス

@@ -1,4 +1,4 @@
-﻿#include "neural_network.hpp"
+﻿#include "model_common.hpp"
 #include "../common.hpp"
 #include "../include_switch.hpp"
 

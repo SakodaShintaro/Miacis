@@ -1,5 +1,5 @@
-﻿#ifndef MIACIS_NEURAL_NETWORK_HPP
-#define MIACIS_NEURAL_NETWORK_HPP
+﻿#ifndef MIACIS_MODEL_COMMON_HPP
+#define MIACIS_MODEL_COMMON_HPP
 
 #include "../types.hpp"
 #include <torch/torch.h>
@@ -74,4 +74,4 @@ inline float expOfValueDist(ValueType dist) {
 }
 #endif
 
-#endif //MIACIS_NEURAL_NETWORK_HPP
+#endif //MIACIS_MODEL_COMMON_HPP

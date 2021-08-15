@@ -5,7 +5,7 @@
 
 #include "../include_switch.hpp"
 #include "../search_options.hpp"
-#include "neural_network.hpp"
+#include "model_common.hpp"
 #include <NvInfer.h>
 #include <NvInferRuntimeCommon.h>
 #include <NvOnnxParser.h>

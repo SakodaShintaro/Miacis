@@ -2,7 +2,7 @@
 #define MIACIS_SEARCHER_FOR_PLAY_HPP
 
 #include "model/infer_model.hpp"
-#include "model/neural_network.hpp"
+#include "model/model_common.hpp"
 #include "searcher.hpp"
 #include "searcher_for_mate.hpp"
 #include <mutex>

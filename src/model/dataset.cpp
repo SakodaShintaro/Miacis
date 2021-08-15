@@ -1,7 +1,7 @@
 #include "dataset.hpp"
 #include "../include_switch.hpp"
 #include "../learn.hpp"
-#include "neural_network.hpp"
+#include "model_common.hpp"
 
 CalibrationDataset::CalibrationDataset(const std::string& root, int64_t data_num) {
     std::vector<LearningData> data = loadData(root, false, 3200);
