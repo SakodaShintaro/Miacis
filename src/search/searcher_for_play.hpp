@@ -1,15 +1,15 @@
 ﻿#ifndef MIACIS_SEARCHER_FOR_PLAY_HPP
 #define MIACIS_SEARCHER_FOR_PLAY_HPP
 
-#include "model/infer_model.hpp"
-#include "model/model_common.hpp"
+#include "../model/infer_model.hpp"
+#include "../model/model_common.hpp"
 #include "searcher.hpp"
 #include "searcher_for_mate.hpp"
 #include <mutex>
 #include <stack>
 
 #ifdef SHOGI
-#include "shogi/book.hpp"
+#include "../shogi/book.hpp"
 #endif
 
 class SearcherForPlay {

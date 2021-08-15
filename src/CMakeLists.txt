@@ -22,7 +22,8 @@ file(GLOB TENSORRT_LIBRARIES ../../TensorRT-7.2.2.3/lib/*.so)
 file(GLOB COMMON_SRCS ./*.cpp)
 file(GLOB MODEL_SRCS ./model/*.cpp)
 file(GLOB LEARN_SRCS ./learn/*.cpp)
-set(SRCS ${COMMON_SRCS} ${MODEL_SRCS} ${LEARN_SRCS})
+file(GLOB SEARCH_SRCS ./search/*.cpp)
+set(SRCS ${COMMON_SRCS} ${MODEL_SRCS} ${LEARN_SRCS} ${SEARCH_SRCS})
 
 # 将棋用のバイナリをコンパイルするのに必要なソース
 file(GLOB SHOGI_SRCS ./shogi/*.cpp)

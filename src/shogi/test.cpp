@@ -3,7 +3,7 @@
 #include "../model/infer_dlshogi_model.hpp"
 #include "../model/infer_dlshogi_onnx_model.hpp"
 #include "../model/infer_model.hpp"
-#include "../searcher_for_play.hpp"
+#include "../search/searcher_for_play.hpp"
 #include "book.hpp"
 
 namespace Shogi {

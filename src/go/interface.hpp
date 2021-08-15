@@ -1,8 +1,8 @@
 #ifndef MIACIS_GO_INTERFACE_HPP
 #define MIACIS_GO_INTERFACE_HPP
 
-#include "../search_options.hpp"
-#include "../searcher_for_play.hpp"
+#include "../search/search_options.hpp"
+#include "../search/searcher_for_play.hpp"
 #include "position.hpp"
 #include <functional>
 #include <thread>

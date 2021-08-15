@@ -3,9 +3,9 @@
 
 #include "../game.hpp"
 #include "../model/infer_model.hpp"
-#include "../search_options.hpp"
-#include "../searcher.hpp"
-#include "../searcher_for_mate.hpp"
+#include "../search/search_options.hpp"
+#include "../search/searcher.hpp"
+#include "../search/searcher_for_mate.hpp"
 #include "replay_buffer.hpp"
 #include <atomic>
 #include <mutex>

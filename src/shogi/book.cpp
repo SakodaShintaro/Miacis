@@ -1,5 +1,5 @@
 #include "book.hpp"
-#include "../searcher_for_play.hpp"
+#include "../search/searcher_for_play.hpp"
 #include <climits>
 
 namespace Shogi {
