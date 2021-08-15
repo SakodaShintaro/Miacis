@@ -2,18 +2,6 @@
 #include "common.hpp"
 #include "include_switch.hpp"
 
-//ネットワークの設定
-#ifdef SHOGI
-static constexpr int32_t BLOCK_NUM = 10;
-static constexpr int32_t CHANNEL_NUM = 256;
-#elif defined(OTHELLO)
-static constexpr int32_t BLOCK_NUM = 5;
-static constexpr int32_t CHANNEL_NUM = 64;
-#elif defined(GO)
-static constexpr int32_t BLOCK_NUM = 5;
-static constexpr int32_t CHANNEL_NUM = 64;
-#endif
-
 #ifdef USE_CATEGORICAL
 #ifdef SHOGI
 const std::string MODEL_PREFIX = "shogi_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);

@@ -5,17 +5,6 @@
 
 using namespace torch::nn;
 
-//ネットワークの設定
-#ifdef SHOGI
-static constexpr int32_t BLOCK_NUM = 10;
-static constexpr int32_t CHANNEL_NUM = 256;
-#elif defined(OTHELLO)
-static constexpr int32_t BLOCK_NUM = 5;
-static constexpr int32_t CHANNEL_NUM = 64;
-#elif defined(GO)
-static constexpr int32_t BLOCK_NUM = 5;
-static constexpr int32_t CHANNEL_NUM = 64;
-#endif
 static constexpr int64_t KERNEL_SIZE = 3;
 static constexpr int64_t REDUCTION = 8;
 static constexpr int64_t VALUE_HIDDEN_NUM = 256;
