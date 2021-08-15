@@ -16,6 +16,7 @@ void makeBook();
 void searchWithLog();
 void testLoad();
 void testModel();
+void checkValLibTorchModel();
 
 } // namespace Shogi
 

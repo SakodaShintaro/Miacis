@@ -3,6 +3,7 @@
 #include "../model/infer_dlshogi_model.hpp"
 #include "../model/infer_dlshogi_onnx_model.hpp"
 #include "../model/infer_model.hpp"
+#include "../model/libtorch_model.hpp"
 #include "../search/searcher_for_play.hpp"
 #include "book.hpp"
 
@@ -545,6 +546,61 @@ void testModel() {
     }
     std::cout << "finish testModel" << std::endl;
     std::exit(0);
+}
+
+void checkValLibTorchModel() {
+    //データを取得
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
+    int64_t batch_size;
+    std::cout << "batch_size : ";
+    std::cin >> batch_size;
+    std::string model_file;
+    std::cout << "model_file : ";
+    std::cin >> model_file;
+    float rate_threshold;
+    std::cout << "rate_threshold : ";
+    std::cin >> rate_threshold;
+
+    std::vector<LearningData> valid_data = loadData(path, false, rate_threshold);
+    std::cout << "valid_data.size() = " << valid_data.size() << std::endl;
+
+    //ネットワークの準備
+    LibTorchModel model;
+    model.load(model_file, 0);
+    model.eval();
+
+    auto validation = [&](int64_t loop_num) {
+        torch::NoGradGuard no_grad_guard;
+        std::array<float, LOSS_TYPE_NUM> losses{};
+        for (uint64_t index = 0; index < valid_data.size();) {
+            std::vector<LearningData> curr_data;
+            while (index < valid_data.size() && curr_data.size() < batch_size) {
+                curr_data.push_back(valid_data[index++]);
+            }
+
+            std::array<torch::Tensor, LOSS_TYPE_NUM> loss = model.validLoss(curr_data, loop_num);
+            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+                losses[i] += loss[i].sum().item<float>();
+            }
+        }
+
+        //データサイズで割って平均
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            losses[i] /= valid_data.size();
+        }
+        return losses;
+    };
+
+    for (int64_t loop_num = 1; loop_num <= 10; loop_num++) {
+        std::array<float, LOSS_TYPE_NUM> validation_loss = validation(loop_num);
+        std::cout << std::setw(2) << loop_num << "\t";
+        std::cout << std::fixed << std::setprecision(4);
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            std::cout << validation_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
+        }
+    }
 }
 
 } // namespace Shogi

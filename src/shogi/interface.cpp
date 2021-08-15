@@ -42,6 +42,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["testLoad"]           = testLoad;
     command_["testModel"]          = testModel;
     command_["initLibTorchModel"]  = initLibTorchModel;
+    command_["checkValLibTorchModel"] = checkValLibTorchModel;
     // clang-format on
 }
 

@@ -8,7 +8,6 @@ using namespace torch::nn;
 static constexpr int64_t KERNEL_SIZE = 3;
 static constexpr int64_t REDUCTION = 8;
 static constexpr int64_t VALUE_HIDDEN_NUM = 256;
-static constexpr int64_t SHARE_BLOCK_NUM = 2;
 
 torch::Tensor activation(const torch::Tensor& x) {
     //ReLU
@@ -105,7 +104,7 @@ torch::Tensor NetworkImpl::applyOneLoop(const torch::Tensor& x) {
     return r;
 }
 
-torch::Tensor NetworkImpl::encode(const torch::Tensor& x, int64_t loop_num = BLOCK_NUM / SHARE_BLOCK_NUM) {
+torch::Tensor NetworkImpl::encode(const torch::Tensor& x, int64_t loop_num) {
     torch::Tensor r = x;
     r = first_conv_and_norm_->forward(r);
     r = activation(r);
@@ -139,8 +138,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> NetworkImpl::decode(cons
     return { policy, value, ponder };
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> NetworkImpl::forward(const torch::Tensor& x,
-                                                                             int64_t loop_num = BLOCK_NUM / SHARE_BLOCK_NUM) {
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> NetworkImpl::forward(const torch::Tensor& x, int64_t loop_num) {
     return decode(encode(x, loop_num));
 }
 
@@ -198,10 +196,10 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::loss(const std::vector<L
     return { policy_loss_sum, value_loss_sum };
 }
 
-std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::validLoss(const std::vector<LearningData>& data) {
+std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::validLoss(const std::vector<LearningData>& data, int64_t loop_num) {
 #ifdef USE_CATEGORICAL
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_, true);
-    auto [policy_logit, value_logit, ponder] = network_->forward(input);
+    auto [policy_logit, value_logit, ponder] = network_->forward(input, loop_num);
 
     torch::Tensor logits = policy_logit.view({ -1, POLICY_DIM });
 

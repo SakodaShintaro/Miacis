@@ -3,6 +3,9 @@
 
 #include "model_common.hpp"
 
+static constexpr int64_t SHARE_BLOCK_NUM = 2;
+static constexpr int64_t DEFAULT_LOOP_NUM = BLOCK_NUM / SHARE_BLOCK_NUM;
+
 //畳み込みとNormalizationをまとめたユニット
 class Conv2DwithNormImpl : public torch::nn::Module {
 public:
@@ -46,10 +49,10 @@ TORCH_MODULE(ValueHead);
 class NetworkImpl : public torch::nn::Module {
 public:
     NetworkImpl();
-    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> forward(const torch::Tensor& x, int64_t loop_num);
+    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> forward(const torch::Tensor& x, int64_t loop_num = DEFAULT_LOOP_NUM);
     torch::Tensor firstEncode(const torch::Tensor& x);
     torch::Tensor applyOneLoop(const torch::Tensor& x);
-    torch::Tensor encode(const torch::Tensor& x, int64_t loop_num);
+    torch::Tensor encode(const torch::Tensor& x, int64_t loop_num = DEFAULT_LOOP_NUM);
     std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> decode(const torch::Tensor& representation);
 
 private:
@@ -67,7 +70,8 @@ public:
     void load(const std::string& model_path, int64_t gpu_id);
     void save(const std::string& model_path);
     std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
-    std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data);
+    std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data,
+                                                       int64_t loop_num = DEFAULT_LOOP_NUM);
 
     //MixUpを行って損失を返す関数
     std::array<torch::Tensor, LOSS_TYPE_NUM> mixUpLoss(const std::vector<LearningData>& data, float alpha);
