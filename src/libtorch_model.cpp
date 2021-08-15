@@ -102,11 +102,11 @@ NetworkImpl::NetworkImpl() : blocks_(BLOCK_NUM, nullptr) {
 
 torch::Tensor NetworkImpl::encode(const torch::Tensor& x) {
     torch::Tensor r = x;
-    r = first_conv_and_norm_->forward(x);
-    r = activation(x);
+    r = first_conv_and_norm_->forward(r);
+    r = activation(r);
 
     for (ResidualBlock& block : blocks_) {
-        r = block->forward(x);
+        r = block->forward(r);
     }
 
     return r;
