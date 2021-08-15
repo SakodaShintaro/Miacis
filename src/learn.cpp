@@ -312,5 +312,11 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(con
     return std::make_tuple(input_tensor, policy_target, value_target);
 }
 
+void initLibTorchModel() {
+    LibTorchModel model;
+    model.save(DEFAULT_MODEL_NAME);
+    std::cout << DEFAULT_MODEL_NAME << "にパラメータを保存" << std::endl;
+}
+
 template class LearnManager<LearningModel>;
 template class LearnManager<LibTorchModel>;
