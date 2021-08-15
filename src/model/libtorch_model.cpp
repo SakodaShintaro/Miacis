@@ -8,6 +8,7 @@ using namespace torch::nn;
 static constexpr int64_t KERNEL_SIZE = 3;
 static constexpr int64_t REDUCTION = 8;
 static constexpr int64_t VALUE_HIDDEN_NUM = 256;
+static constexpr int64_t SHARE_BLOCK_NUM = 2;
 
 torch::Tensor activation(const torch::Tensor& x) {
     //ReLU
@@ -20,13 +21,13 @@ torch::Tensor activation(const torch::Tensor& x) {
     //return x * torch::sigmoid(x);
 }
 
-Conv2DwithBatchNormImpl::Conv2DwithBatchNormImpl(int64_t input_ch, int64_t output_ch, int64_t kernel_size) {
+Conv2DwithNormImpl::Conv2DwithNormImpl(int64_t input_ch, int64_t output_ch, int64_t kernel_size) {
     conv_ =
         register_module("conv_", Conv2d(Conv2dOptions(input_ch, output_ch, kernel_size).bias(false).padding(kernel_size / 2)));
-    norm_ = register_module("norm_", BatchNorm2d(output_ch));
+    norm_ = register_module("norm_", LayerNorm(std::vector<int64_t>({ output_ch, BOARD_WIDTH, BOARD_WIDTH })));
 }
 
-torch::Tensor Conv2DwithBatchNormImpl::forward(const torch::Tensor& x) {
+torch::Tensor Conv2DwithNormImpl::forward(const torch::Tensor& x) {
     torch::Tensor t = x;
     t = conv_->forward(t);
     t = norm_->forward(t);
@@ -34,8 +35,8 @@ torch::Tensor Conv2DwithBatchNormImpl::forward(const torch::Tensor& x) {
 }
 
 ResidualBlockImpl::ResidualBlockImpl(int64_t channel_num, int64_t kernel_size, int64_t reduction) {
-    conv_and_norm0_ = register_module("conv_and_norm0_", Conv2DwithBatchNorm(channel_num, channel_num, kernel_size));
-    conv_and_norm1_ = register_module("conv_and_norm1_", Conv2DwithBatchNorm(channel_num, channel_num, kernel_size));
+    conv_and_norm0_ = register_module("conv_and_norm0_", Conv2DwithNorm(channel_num, channel_num, kernel_size));
+    conv_and_norm1_ = register_module("conv_and_norm1_", Conv2DwithNorm(channel_num, channel_num, kernel_size));
     linear0_ = register_module("linear0_", Linear(LinearOptions(channel_num, channel_num / reduction).bias(false)));
     linear1_ = register_module("linear1_", Linear(LinearOptions(channel_num / reduction, channel_num).bias(false)));
 }
@@ -61,10 +62,10 @@ torch::Tensor ResidualBlockImpl::forward(const torch::Tensor& x) {
     return t;
 }
 
-ValueHeadImpl::ValueHeadImpl() {
-    conv_and_norm_ = register_module("conv_and_norm_", Conv2DwithBatchNorm(CHANNEL_NUM, CHANNEL_NUM, 1));
-    linear0_ = register_module("linear0_", Linear(CHANNEL_NUM, VALUE_HIDDEN_NUM));
-    linear1_ = register_module("linear1_", Linear(VALUE_HIDDEN_NUM, BIN_SIZE));
+ValueHeadImpl::ValueHeadImpl(int64_t in_channels, int64_t out_dim, int64_t hidden_dim) {
+    conv_and_norm_ = register_module("conv_and_norm_", Conv2DwithNorm(in_channels, in_channels, 1));
+    linear0_ = register_module("linear0_", Linear(in_channels, hidden_dim));
+    linear1_ = register_module("linear1_", Linear(hidden_dim, out_dim));
 }
 
 torch::Tensor ValueHeadImpl::forward(const torch::Tensor& x) {
@@ -78,32 +79,47 @@ torch::Tensor ValueHeadImpl::forward(const torch::Tensor& x) {
     return value;
 }
 
-NetworkImpl::NetworkImpl() : blocks_(BLOCK_NUM, nullptr) {
-    first_conv_and_norm_ =
-        register_module("first_conv_and_norm_", Conv2DwithBatchNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
-    for (int32_t i = 0; i < BLOCK_NUM; i++) {
+NetworkImpl::NetworkImpl() : blocks_(SHARE_BLOCK_NUM, nullptr) {
+    first_conv_and_norm_ = register_module("first_conv_and_norm_", Conv2DwithNorm(INPUT_CHANNEL_NUM, CHANNEL_NUM, KERNEL_SIZE));
+    for (int32_t i = 0; i < SHARE_BLOCK_NUM; i++) {
         blocks_[i] = register_module("blocks_" + std::to_string(i), ResidualBlock(CHANNEL_NUM, KERNEL_SIZE, REDUCTION));
     }
     policy_head_ =
         register_module("policy_head_", Conv2d(Conv2dOptions(CHANNEL_NUM, POLICY_CHANNEL_NUM, 1).padding(0).bias(true)));
-    value_head_ = register_module("value_head_", ValueHead());
+    value_head_ = register_module("value_head_", ValueHead(CHANNEL_NUM, BIN_SIZE, VALUE_HIDDEN_NUM));
+    ponder_head_ = register_module("ponder_head_", ValueHead(CHANNEL_NUM, 1, VALUE_HIDDEN_NUM));
 }
 
-torch::Tensor NetworkImpl::encode(const torch::Tensor& x) {
+torch::Tensor NetworkImpl::firstEncode(const torch::Tensor& x) {
+    torch::Tensor r = x;
+    r = first_conv_and_norm_->forward(r);
+    r = activation(r);
+    return r;
+}
+
+torch::Tensor NetworkImpl::applyOneLoop(const torch::Tensor& x) {
+    torch::Tensor r = x;
+    for (ResidualBlock& block : blocks_) {
+        r = block->forward(r);
+    }
+    return r;
+}
+
+torch::Tensor NetworkImpl::encode(const torch::Tensor& x, int64_t loop_num = BLOCK_NUM / SHARE_BLOCK_NUM) {
     torch::Tensor r = x;
     r = first_conv_and_norm_->forward(r);
     r = activation(r);
 
-    for (ResidualBlock& block : blocks_) {
-        r = block->forward(r);
+    for (int64_t _ = 0; _ < loop_num; _++) {
+        r = applyOneLoop(r);
     }
 
     return r;
 }
 
-std::pair<torch::Tensor, torch::Tensor> NetworkImpl::decode(const torch::Tensor& representation) {
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> NetworkImpl::decode(const torch::Tensor& representation) {
     //policy
-    torch::Tensor policy = policy_head_->forward(representation);
+    torch::Tensor policy = policy_head_->forward(representation).view({ -1, POLICY_DIM });
 
     //value
     torch::Tensor value = value_head_->forward(representation);
@@ -116,10 +132,17 @@ std::pair<torch::Tensor, torch::Tensor> NetworkImpl::decode(const torch::Tensor&
 #endif
 #endif
 
-    return { policy, value };
+    //ponder(halt probability)
+    torch::Tensor ponder = ponder_head_->forward(representation);
+    ponder = torch::sigmoid(ponder).flatten();
+
+    return { policy, value, ponder };
 }
 
-std::pair<torch::Tensor, torch::Tensor> NetworkImpl::forward(const torch::Tensor& x) { return decode(encode(x)); }
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> NetworkImpl::forward(const torch::Tensor& x,
+                                                                             int64_t loop_num = BLOCK_NUM / SHARE_BLOCK_NUM) {
+    return decode(encode(x, loop_num));
+}
 
 void LibTorchModel::load(const std::string& model_path, int64_t gpu_id) {
     torch::load(network_, model_path);
@@ -132,32 +155,53 @@ void LibTorchModel::save(const std::string& model_path) { torch::save(network_, 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::loss(const std::vector<LearningData>& data) {
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
     auto out = network_->forward(input);
-    torch::Tensor policy = out.first;
-    torch::Tensor value = out.second;
+    torch::Tensor x = network_->firstEncode(input);
 
-    torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
-    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
+    const int64_t batch_size = data.size();
+    torch::Tensor policy_loss_sum = torch::zeros({ batch_size }).to(device_);
+    torch::Tensor value_loss_sum = torch::zeros({ batch_size }).to(device_);
+    torch::Tensor ponder_loss_sum = torch::zeros({ batch_size }).to(device_);
+    torch::Tensor remaining_prob = torch::ones({ batch_size }).to(device_);
+    torch::Tensor target_remaining_prob = torch::ones({ batch_size }).to(device_);
+    constexpr int64_t BASE_LOOP_NUM = BLOCK_NUM / SHARE_BLOCK_NUM;
+    constexpr float TARGET_CONSTANT_PROB = (1.0 / BASE_LOOP_NUM);
+
+    for (int64_t loop_num = 0; loop_num < 2 * BLOCK_NUM / SHARE_BLOCK_NUM; loop_num++) {
+        x = network_->applyOneLoop(x);
+        auto [policy, value, ponder] = network_->decode(x);
+
+        //今回で初めて推論が止まる確率 = (まだ推論が止まっていない確率) * (今回で止めると決断する確率)
+        torch::Tensor halt_prob = remaining_prob * ponder;
+        torch::Tensor target_halt_prob = target_remaining_prob * TARGET_CONSTANT_PROB;
+
+        torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy, 1), 1, false);
+        policy_loss_sum = policy_loss_sum + policy_loss * halt_prob;
 
 #ifdef USE_CATEGORICAL
-    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_target);
+        torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_target);
 #else
-    value = value.view(-1);
+        value = value.view(-1);
 #ifdef USE_SIGMOID
-    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
+        torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
+        torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
 #endif
 #endif
+        value_loss_sum = value_loss_sum + value_loss * halt_prob;
 
-    return { policy_loss, value_loss };
+        ponder_loss_sum = ponder_loss_sum + torch::binary_cross_entropy(halt_prob, target_halt_prob);
+
+        remaining_prob = remaining_prob * (1 - ponder);
+        target_halt_prob = target_halt_prob * (1 - TARGET_CONSTANT_PROB);
+    }
+
+    return { policy_loss_sum, value_loss_sum };
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::validLoss(const std::vector<LearningData>& data) {
 #ifdef USE_CATEGORICAL
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_, true);
-    auto out = network_->forward(input);
-    torch::Tensor policy_logit = out.first;
-    torch::Tensor value_logit = out.second;
+    auto [policy_logit, value_logit, ponder] = network_->forward(input);
 
     torch::Tensor logits = policy_logit.view({ -1, POLICY_DIM });
 
@@ -190,7 +234,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::validLoss(const std::vec
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::mixUpLoss(const std::vector<LearningData>& data, float alpha) {
-    auto [input_tensor, policy_target, value_target] = learningDataToTensor(data, device_, false);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
 
     //混合比率の振り出し
     std::gamma_distribution<float> gamma_dist(alpha);
@@ -198,17 +242,13 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::mixUpLoss(const std::vec
     float beta = gamma1 / (gamma1 + gamma2);
 
     //データのmixup
-    input_tensor = beta * input_tensor + (1 - beta) * input_tensor.roll(1, 0);
+    input = beta * input + (1 - beta) * input.roll(1, 0);
     policy_target = beta * policy_target + (1 - beta) * policy_target.roll(1, 0);
     value_target = beta * value_target + (1 - beta) * value_target.roll(1, 0);
 
-    auto out = network_->forward(input_tensor);
-    torch::Tensor policy = out.first;
-    torch::Tensor value = out.second;
+    auto [policy_logit, value, ponder] = network_->forward(input);
 
-    torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
-
-    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
+    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logit, 1), 1, false);
 
 #ifdef USE_CATEGORICAL
     torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_target);
