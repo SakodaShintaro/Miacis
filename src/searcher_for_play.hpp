@@ -1,8 +1,8 @@
 ﻿#ifndef MIACIS_SEARCHER_FOR_PLAY_HPP
 #define MIACIS_SEARCHER_FOR_PLAY_HPP
 
-#include "infer_model.hpp"
-#include "neural_network.hpp"
+#include "model/infer_model.hpp"
+#include "model/neural_network.hpp"
 #include "searcher.hpp"
 #include "searcher_for_mate.hpp"
 #include <mutex>

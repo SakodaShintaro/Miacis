@@ -2,8 +2,8 @@
 #include "game.hpp"
 #include "hyperparameter_loader.hpp"
 #include "include_switch.hpp"
-#include "infer_dlshogi_model.hpp"
-#include "libtorch_model.hpp"
+#include "model/infer_dlshogi_model.hpp"
+#include "model/libtorch_model.hpp"
 #include <iomanip>
 #include <random>
 #include <sstream>

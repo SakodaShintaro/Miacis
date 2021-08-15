@@ -19,7 +19,9 @@ set(TENSORRT_INCLUDE ../../TensorRT-7.2.2.3/include)
 file(GLOB TENSORRT_LIBRARIES ../../TensorRT-7.2.2.3/lib/*.so)
 
 # 各ゲームで共通する部分のソース
-file(GLOB SRCS ./*.cpp)
+file(GLOB COMMON_SRCS ./*.cpp)
+file(GLOB MODEL_SRCS ./model/*.cpp)
+set(SRCS ${COMMON_SRCS} ${MODEL_SRCS})
 
 # 将棋用のバイナリをコンパイルするのに必要なソース
 file(GLOB SHOGI_SRCS ./shogi/*.cpp)

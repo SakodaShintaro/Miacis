@@ -3,7 +3,7 @@
 
 #include "common.hpp"
 #include "include_switch.hpp"
-#include "neural_network.hpp"
+#include "model/neural_network.hpp"
 
 using Index = int32_t;
 

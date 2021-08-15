@@ -2,7 +2,7 @@
 #define MIACIS_GAME_GENERATOR_HPP
 
 #include "game.hpp"
-#include "infer_model.hpp"
+#include "model/infer_model.hpp"
 #include "replay_buffer.hpp"
 #include "search_options.hpp"
 #include "searcher.hpp"

@@ -2,7 +2,7 @@
 
 #ifdef DLSHOGI
 
-#include "learn.hpp"
+#include "../learn.hpp"
 
 class Logger : public nvinfer1::ILogger {
     const char* error_type(Severity severity) {
@@ -193,7 +193,8 @@ void InferDLShogiOnnxModel::forward(const int64_t batch_size, void* x1, void* x2
     checkCudaErrors(cudaMemcpy(y2, y2_dev_, batch_size * sizeof(DType), cudaMemcpyDeviceToHost));
 }
 
-std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferDLShogiOnnxModel::policyAndValueBatch(const std::vector<float>& inputs) {
+std::pair<std::vector<PolicyType>, std::vector<ValueType>>
+InferDLShogiOnnxModel::policyAndValueBatch(const std::vector<float>& inputs) {
     constexpr int64_t element_num = INPUT_CHANNEL_NUM * SQUARE_NUM;
     const int64_t batch_size = inputs.size() / element_num;
 

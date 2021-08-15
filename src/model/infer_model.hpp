@@ -1,8 +1,8 @@
 #ifndef INFER_MODEL_HPP
 #define INFER_MODEL_HPP
 
+#include "../search_options.hpp"
 #include "neural_network.hpp"
-#include "search_options.hpp"
 #include <torch/script.h>
 
 #ifdef DLSHOGI

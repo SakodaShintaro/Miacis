@@ -2,7 +2,7 @@
 #define MIACIS_GAME_HPP
 
 #include "include_switch.hpp"
-#include "neural_network.hpp"
+#include "model/neural_network.hpp"
 #ifdef _MSC_VER
 #include <filesystem>
 #elif __GNUC__

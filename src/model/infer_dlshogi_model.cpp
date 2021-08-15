@@ -2,11 +2,11 @@
 
 #ifdef DLSHOGI
 
-#include "common.hpp"
+#include "../common.hpp"
+#include "../include_switch.hpp"
+#include "../learn.hpp"
 #include "dataset.hpp"
-#include "include_switch.hpp"
 #include "infer_model.hpp"
-#include "learn.hpp"
 #include <torch/torch.h>
 #include <trtorch/ptq.h>
 #include <trtorch/trtorch.h>

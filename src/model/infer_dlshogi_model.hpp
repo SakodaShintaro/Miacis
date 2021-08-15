@@ -3,8 +3,8 @@
 
 #ifdef DLSHOGI
 
+#include "../search_options.hpp"
 #include "neural_network.hpp"
-#include "search_options.hpp"
 #include <torch/script.h>
 
 class InferDLShogiModel {

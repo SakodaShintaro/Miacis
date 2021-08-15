@@ -3,9 +3,9 @@
 
 #ifdef DLSHOGI
 
-#include "include_switch.hpp"
+#include "../include_switch.hpp"
+#include "../search_options.hpp"
 #include "neural_network.hpp"
-#include "search_options.hpp"
 #include <NvInfer.h>
 #include <NvInferRuntimeCommon.h>
 #include <NvOnnxParser.h>

@@ -1,7 +1,7 @@
 ﻿#ifndef MIACIS_NEURAL_NETWORK_HPP
 #define MIACIS_NEURAL_NETWORK_HPP
 
-#include "types.hpp"
+#include "../types.hpp"
 #include <torch/torch.h>
 
 //型のエイリアス

@@ -1,6 +1,6 @@
 #include "hyperparameter_loader.hpp"
-#include "infer_model.hpp"
 #include "learn.hpp"
+#include "model/infer_model.hpp"
 #include "random_game_generator.hpp"
 #include <torch/torch.h>
 

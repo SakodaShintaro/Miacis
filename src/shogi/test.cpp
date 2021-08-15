@@ -1,8 +1,8 @@
 ﻿#include "test.hpp"
 #include "../game_generator.hpp"
-#include "../infer_dlshogi_model.hpp"
-#include "../infer_dlshogi_onnx_model.hpp"
-#include "../infer_model.hpp"
+#include "../model/infer_dlshogi_model.hpp"
+#include "../model/infer_dlshogi_onnx_model.hpp"
+#include "../model/infer_model.hpp"
 #include "../searcher_for_play.hpp"
 #include "book.hpp"
 

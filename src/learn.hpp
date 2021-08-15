@@ -1,9 +1,9 @@
 ﻿#ifndef MIACIS_LEARN_HPP
 #define MIACIS_LEARN_HPP
 
-#include "infer_model.hpp"
-#include "learning_model.hpp"
-#include "neural_network.hpp"
+#include "model/infer_model.hpp"
+#include "model/learning_model.hpp"
+#include "model/neural_network.hpp"
 #include "timer.hpp"
 
 //標準出力とファイルストリームに同時に出力するためのクラス

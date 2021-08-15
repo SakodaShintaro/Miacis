@@ -1,6 +1,6 @@
 ﻿#include "neural_network.hpp"
-#include "common.hpp"
-#include "include_switch.hpp"
+#include "../common.hpp"
+#include "../include_switch.hpp"
 
 #ifdef USE_CATEGORICAL
 #ifdef SHOGI

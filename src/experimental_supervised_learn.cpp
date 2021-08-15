@@ -2,7 +2,7 @@
 #include "game.hpp"
 #include "hyperparameter_loader.hpp"
 #include "learn.hpp"
-#include "libtorch_model.hpp"
+#include "model/libtorch_model.hpp"
 
 void experimentalSupervisedLearn() {
     // clang-format off
