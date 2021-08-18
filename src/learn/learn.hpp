@@ -96,6 +96,9 @@ private:
     //その他周期的なスケジューリングの周期
     int64_t learn_rate_decay_period_;
 
+    //warmupのステップ数
+    int64_t warm_up_step_;
+
     //mixupを行う場合の混合比を決定する値
     float mixup_alpha_;
 

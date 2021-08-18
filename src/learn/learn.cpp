@@ -117,6 +117,11 @@ template<class LearningClass> LearnManager<LearningClass>::LearnManager(const st
     learn_rate_decay_step4_ = settings.get<int64_t>("learn_rate_decay_step4");
     learn_rate_decay_period_ = settings.get<int64_t>("learn_rate_decay_period");
 
+    warm_up_step_ = settings.get<int64_t>("warm_up_step");
+    if (warm_up_step_ > 0) {
+        (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() = 0;
+    }
+
     //mixupの混合比を決定する値
     mixup_alpha_ = settings.get<float>("mixup_alpha");
 
@@ -259,6 +264,11 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
         if (stem_num % learn_rate_decay_period_ == 0) {
             (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() *= 0.9;
         }
+    }
+
+    if (stem_num <= warm_up_step_) {
+        (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
+            learn_rate_ * stem_num / warm_up_step_;
     }
 
     return loss_sum.detach();
