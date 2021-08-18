@@ -27,7 +27,7 @@ struct LearningData {
 
 //ネットワークの設定
 #ifdef SHOGI
-constexpr int32_t BLOCK_NUM = 10;
+constexpr int32_t BLOCK_NUM = 40;
 constexpr int32_t CHANNEL_NUM = 256;
 #elif defined(OTHELLO)
 constexpr int32_t BLOCK_NUM = 5;

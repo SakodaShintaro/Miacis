@@ -150,50 +150,71 @@ void LibTorchModel::load(const std::string& model_path, int64_t gpu_id) {
 
 void LibTorchModel::save(const std::string& model_path) { torch::save(network_, model_path); }
 
+//std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::loss(const std::vector<LearningData>& data) {
+//    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
+//    auto out = network_->forward(input);
+//    torch::Tensor x = network_->firstEncode(input);
+//
+//    const int64_t batch_size = data.size();
+//    torch::Tensor policy_loss_sum = torch::zeros({ batch_size }).to(device_);
+//    torch::Tensor value_loss_sum = torch::zeros({ batch_size }).to(device_);
+//    torch::Tensor ponder_loss_sum = torch::zeros({ batch_size }).to(device_);
+//    torch::Tensor remaining_prob = torch::ones({ batch_size }).to(device_);
+//    torch::Tensor target_remaining_prob = torch::ones({ batch_size }).to(device_);
+//    constexpr int64_t BASE_LOOP_NUM = BLOCK_NUM / SHARE_BLOCK_NUM;
+//    constexpr float TARGET_CONSTANT_PROB = (1.0 / BASE_LOOP_NUM);
+//
+//    for (int64_t loop_num = 0; loop_num < 2 * BLOCK_NUM / SHARE_BLOCK_NUM; loop_num++) {
+//        x = network_->applyOneLoop(x);
+//        auto [policy, value, ponder] = network_->decode(x);
+//
+//        //今回で初めて推論が止まる確率 = (まだ推論が止まっていない確率) * (今回で止めると決断する確率)
+//        torch::Tensor halt_prob = remaining_prob * ponder;
+//        torch::Tensor target_halt_prob = target_remaining_prob * TARGET_CONSTANT_PROB;
+//
+//        torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy, 1), 1, false);
+//        policy_loss_sum = policy_loss_sum + policy_loss * halt_prob;
+//
+//#ifdef USE_CATEGORICAL
+//        torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_target);
+//#else
+//        value = value.view(-1);
+//#ifdef USE_SIGMOID
+//        torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
+//#else
+//        torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
+//#endif
+//#endif
+//        value_loss_sum = value_loss_sum + value_loss * halt_prob;
+//
+//        ponder_loss_sum = ponder_loss_sum + torch::binary_cross_entropy(halt_prob, target_halt_prob);
+//
+//        remaining_prob = remaining_prob * (1 - ponder);
+//        target_halt_prob = target_halt_prob * (1 - TARGET_CONSTANT_PROB);
+//    }
+//
+//    return { policy_loss_sum, value_loss_sum };
+//}
+
 std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::loss(const std::vector<LearningData>& data) {
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
-    auto out = network_->forward(input);
-    torch::Tensor x = network_->firstEncode(input);
+    auto [policy, value, _] = network_->forward(input);
 
-    const int64_t batch_size = data.size();
-    torch::Tensor policy_loss_sum = torch::zeros({ batch_size }).to(device_);
-    torch::Tensor value_loss_sum = torch::zeros({ batch_size }).to(device_);
-    torch::Tensor ponder_loss_sum = torch::zeros({ batch_size }).to(device_);
-    torch::Tensor remaining_prob = torch::ones({ batch_size }).to(device_);
-    torch::Tensor target_remaining_prob = torch::ones({ batch_size }).to(device_);
-    constexpr int64_t BASE_LOOP_NUM = BLOCK_NUM / SHARE_BLOCK_NUM;
-    constexpr float TARGET_CONSTANT_PROB = (1.0 / BASE_LOOP_NUM);
-
-    for (int64_t loop_num = 0; loop_num < 2 * BLOCK_NUM / SHARE_BLOCK_NUM; loop_num++) {
-        x = network_->applyOneLoop(x);
-        auto [policy, value, ponder] = network_->decode(x);
-
-        //今回で初めて推論が止まる確率 = (まだ推論が止まっていない確率) * (今回で止めると決断する確率)
-        torch::Tensor halt_prob = remaining_prob * ponder;
-        torch::Tensor target_halt_prob = target_remaining_prob * TARGET_CONSTANT_PROB;
-
-        torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy, 1), 1, false);
-        policy_loss_sum = policy_loss_sum + policy_loss * halt_prob;
+    torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
+    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
 
 #ifdef USE_CATEGORICAL
-        torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_target);
+    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_target);
 #else
-        value = value.view(-1);
+    value = value.view(-1);
 #ifdef USE_SIGMOID
-        torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
+    torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
-        torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
+    torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
 #endif
 #endif
-        value_loss_sum = value_loss_sum + value_loss * halt_prob;
 
-        ponder_loss_sum = ponder_loss_sum + torch::binary_cross_entropy(halt_prob, target_halt_prob);
-
-        remaining_prob = remaining_prob * (1 - ponder);
-        target_halt_prob = target_halt_prob * (1 - TARGET_CONSTANT_PROB);
-    }
-
-    return { policy_loss_sum, value_loss_sum };
+    return { policy_loss, value_loss };
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::validLoss(const std::vector<LearningData>& data, int64_t loop_num) {
