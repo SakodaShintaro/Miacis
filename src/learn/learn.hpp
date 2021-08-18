@@ -53,7 +53,7 @@ public:
 template<class LearningClass> class LearnManager {
 public:
     explicit LearnManager(const std::string& learn_name);
-    torch::Tensor learnOneStep(const std::vector<LearningData>& curr_data, int64_t stem_num);
+    torch::Tensor learnOneStep(const std::vector<LearningData>& curr_data, int64_t step_num);
     void saveModelAsDefaultName();
 
 private:

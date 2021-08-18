@@ -136,7 +136,7 @@ template<class LearningClass> LearnManager<LearningClass>::LearnManager(const st
 }
 
 template<class LearningClass>
-torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<LearningData>& curr_data, int64_t stem_num) {
+torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<LearningData>& curr_data, int64_t step_num) {
     //バッチサイズを取得
     const int64_t batch_size = curr_data.size();
 
@@ -216,15 +216,15 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
     optimizer_->step();
 
     //表示
-    if (stem_num % std::max(validation_interval_ / 1000, (int64_t)1) == 0) {
-        dout(std::cout, train_log_) << timer_.elapsedTimeStr() << "\t" << stem_num << "\t";
+    if (step_num % std::max(validation_interval_ / 1000, (int64_t)1) == 0) {
+        dout(std::cout, train_log_) << timer_.elapsedTimeStr() << "\t" << step_num << "\t";
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             dout(std::cout, train_log_) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
         }
         dout(std::cout, train_log_) << std::flush;
     }
 
-    if (stem_num % validation_interval_ == 0) {
+    if (step_num % validation_interval_ == 0) {
         //validation_lossを計算
         neural_network_.eval();
         std::array<float, LOSS_TYPE_NUM> valid_loss = validation(neural_network_, valid_data_, batch_size);
@@ -235,7 +235,7 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
         }
 
         //表示
-        dout(std::cout, valid_log_) << timer_.elapsedTimeStr() << "\t" << stem_num << "\t";
+        dout(std::cout, valid_log_) << timer_.elapsedTimeStr() << "\t" << step_num << "\t";
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
             dout(std::cout, valid_log_) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
         }
@@ -243,32 +243,32 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
     }
 
     //パラメータをステップ付きで保存
-    if (stem_num % save_interval_ == 0) {
-        neural_network_.save(MODEL_PREFIX + "_" + std::to_string(stem_num) + ".model");
+    if (step_num % save_interval_ == 0) {
+        neural_network_.save(MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
     }
 
     //学習率の変化はoptimizer_->defaults();を使えそうな気がする
     if (learn_rate_decay_mode_ == 1) {
         //特定ステップに達したら1/10にするスケジューリング
-        if (stem_num == learn_rate_decay_step1_ || stem_num == learn_rate_decay_step2_ || stem_num == learn_rate_decay_step3_ ||
-            stem_num == learn_rate_decay_step4_) {
+        if (step_num == learn_rate_decay_step1_ || step_num == learn_rate_decay_step2_ || step_num == learn_rate_decay_step3_ ||
+            step_num == learn_rate_decay_step4_) {
             (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() /= 10;
         }
     } else if (learn_rate_decay_mode_ == 2) {
         //Cosine annealing
-        int64_t curr_step = stem_num % learn_rate_decay_period_;
+        int64_t curr_step = step_num % learn_rate_decay_period_;
         (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
             0.5 * learn_rate_ * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period_));
     } else if (learn_rate_decay_mode_ == 3) {
         //指数的な減衰
-        if (stem_num % learn_rate_decay_period_ == 0) {
+        if (step_num % learn_rate_decay_period_ == 0) {
             (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() *= 0.9;
         }
     }
 
-    if (stem_num <= warm_up_step_) {
+    if (step_num <= warm_up_step_) {
         (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
-            learn_rate_ * stem_num / warm_up_step_;
+            learn_rate_ * step_num / warm_up_step_;
     }
 
     return loss_sum.detach();
