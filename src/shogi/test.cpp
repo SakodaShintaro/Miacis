@@ -593,7 +593,7 @@ void checkValLibTorchModel() {
         return losses;
     };
 
-    for (int64_t loop_num = 1; loop_num <= 10; loop_num++) {
+    for (int64_t loop_num = 1; loop_num <= 25; loop_num++) {
         std::array<float, LOSS_TYPE_NUM> validation_loss = validation(loop_num);
         std::cout << std::setw(2) << loop_num << "\t";
         std::cout << std::fixed << std::setprecision(4);
@@ -601,6 +601,7 @@ void checkValLibTorchModel() {
             std::cout << validation_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
         }
     }
+    std::cout << "finish checkLibTorchModel" << std::endl;
 }
 
 void checkLibTorchModel() {
