@@ -5,66 +5,55 @@ from torch import nn
 from generate_cnn_model import PolicyHead, ValueHead
 
 
-class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(dim, hidden_dim),
-            nn.GELU(),
-            nn.Linear(hidden_dim, dim),
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-
 class MixerBlock(nn.Module):
-    def __init__(self, dim, num_patch, token_dim, channel_dim):
+    def __init__(self, dim, board_size, token_dim, channel_dim):
         super().__init__()
-        self.token_norm = nn.LayerNorm(dim)
-        self.token_forward = FeedForward(num_patch, token_dim)
-        self.channel_mix = nn.Sequential(
-            nn.LayerNorm(dim),
-            FeedForward(dim, channel_dim),
-        )
+        self.act = nn.GELU()
+
+        num_patch = board_size ** 2
+        self.board_size = board_size
+
+        self.token_norm = nn.LayerNorm([dim, num_patch])
+        self.token_linear1 = nn.Linear(num_patch, token_dim)
+        self.token_linear2 = nn.Linear(token_dim, num_patch)
+
+        self.channel_norm = nn.LayerNorm([dim, num_patch])
+        self.channel_cnn1 = nn.Conv2d(dim, channel_dim, kernel_size=1, padding=0)
+        self.channel_cnn2 = nn.Conv2d(channel_dim, dim, kernel_size=1, padding=0)
 
     def forward(self, x):
         s = x
         x = self.token_norm(x)
-        x = x.permute([0, 2, 1])
-        x = self.token_forward(x)
-        x = x.permute([0, 2, 1])
+        x = self.token_linear1(x)
+        x = self.act(x)
+        x = self.token_linear2(x)
         x = x + s
 
-        x = x + self.channel_mix(x)
+        s = x
+        x = self.channel_norm(x)
+        x = x.view([-1, x.shape[1], self.board_size, self.board_size])
+        x = self.channel_cnn1(x)
+        x = self.act(x)
+        x = self.channel_cnn2(x)
+        x = x.view([-1, x.shape[1], self.board_size ** 2])
+        x = x + s
         return x
 
 
-class Conv2DwithBatchNorm(nn.Module):
-    def __init__(self, input_ch, output_ch, kernel_size):
-        super(Conv2DwithBatchNorm, self).__init__()
-        self.conv_ = nn.Conv2d(input_ch, output_ch, kernel_size, bias=False, padding=kernel_size // 2)
-        self.norm_ = nn.BatchNorm2d(output_ch)
-
-    def forward(self, x):
-        t = self.conv_.forward(x)
-        t = self.norm_.forward(t)
-        return t
-
-
 class MLPMixer(nn.Module):
-    def __init__(self, in_channels, dim, board_size, depth, token_dim, channel_dim):
+    def __init__(self, in_channels, dim, board_size, depth):
         super().__init__()
 
+        token_dim = dim
+        channel_dim = dim * 2
+
         self.num_patch = board_size ** 2
-        self.to_patch_embedding = nn.Sequential(
-            nn.Conv2d(in_channels, dim, 1, 1),
-        )
+        self.first_conv = nn.Conv2d(in_channels, dim, 1, 1)
 
         self.mixer_blocks = nn.ModuleList([])
         for _ in range(depth):
-            self.mixer_blocks.append(MixerBlock(dim, self.num_patch, token_dim, channel_dim))
-        self.layer_norm = nn.LayerNorm(dim)
+            self.mixer_blocks.append(MixerBlock(dim, board_size, token_dim, channel_dim))
+        self.layer_norm = nn.LayerNorm([dim, self.num_patch])
         self.dim = dim
         self.board_size = board_size
         self.policy_head_ = PolicyHead(dim, policy_channel_num)
@@ -72,9 +61,8 @@ class MLPMixer(nn.Module):
 
     def forward(self, x):
         batch_size = x.shape[0]
-        x = self.to_patch_embedding(x)
-        x = x.permute([0, 2, 3, 1])
-        x = x.view([-1, self.board_size ** 2, self.dim])
+        x = self.first_conv(x)
+        x = x.view([-1, self.dim, self.board_size ** 2])
         for mixer_block in self.mixer_blocks:
             x = mixer_block(x)
         x = self.layer_norm(x)
@@ -105,8 +93,7 @@ if __name__ == "__main__":
     else:
         exit(1)
 
-    model = MLPMixer(in_channels=input_channel_num, board_size=board_size, dim=args.channel_num, depth=args.block_num,
-                     token_dim=256, channel_dim=512)
+    model = MLPMixer(in_channels=input_channel_num, board_size=board_size, dim=args.channel_num, depth=args.block_num)
 
     params = 0
     for p in model.parameters():
