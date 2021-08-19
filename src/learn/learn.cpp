@@ -62,6 +62,64 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
         }
     }
 
+    //**********
+    // 重複削除 *
+    //**********
+    std::sort(data_buffer.begin(), data_buffer.end(),
+              [](LearningData& lhs, LearningData& rhs) { return lhs.position_str < rhs.position_str; });
+
+    std::vector<LearningData> remain;
+    remain.reserve(data_buffer.size());
+    //統計情報
+    int64_t redundant_num = 0;
+    float value_sum = 0;
+    std::map<int64_t, float> policy_map;
+
+    for (uint64_t i = 0; i < data_buffer.size(); i++) {
+        const LearningData& curr = data_buffer[i];
+        redundant_num++;
+#ifdef USE_CATEGORICAL
+        value_sum += (MIN_SCORE + (curr.value + 0.5) * VALUE_WIDTH);
+#else
+        value_sum += curr.value;
+#endif
+        for (auto [label, prob] : curr.policy) {
+            policy_map[label] += prob;
+        }
+
+        if (i == data_buffer.size() - 1 || curr.position_str != data_buffer[i + 1].position_str) {
+            LearningData datum;
+            datum.position_str = curr.position_str;
+            float v = value_sum / redundant_num;
+#ifdef USE_CATEGORICAL
+            datum.value = valueToIndex(v);
+#else
+            datum.value = v;
+#endif
+            for (auto [label, prob_sum] : policy_map) {
+                datum.policy.push_back({ label, prob_sum / redundant_num });
+            }
+
+            //            if (redundant_num > 100) {
+            //                std::cout << "redundant_num = " << redundant_num << std::endl;
+            //                Position pos;
+            //                pos.fromStr(datum.position_str);
+            //                pos.print();
+            //                std::cout << "v = " << v << std::endl;
+            //                for (auto [label, prob] : datum.policy) {
+            //                    std::cout << label << " " << prob << std::endl;
+            //                }
+            //            }
+
+            remain.push_back(datum);
+
+            redundant_num = 0;
+            value_sum = 0;
+            policy_map.clear();
+        }
+    }
+
+    data_buffer = remain;
     return data_buffer;
 }
 
