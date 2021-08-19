@@ -603,4 +603,64 @@ void checkValLibTorchModel() {
     }
 }
 
+void checkLibTorchModel() {
+    //データを取得
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
+    int64_t batch_size;
+    std::cout << "batch_size : ";
+    std::cin >> batch_size;
+    std::string model_file;
+    std::cout << "model_file : ";
+    std::cin >> model_file;
+    float rate_threshold;
+    std::cout << "rate_threshold : ";
+    std::cin >> rate_threshold;
+
+    std::vector<LearningData> valid_data = loadData(path, false, rate_threshold);
+    std::cout << "valid_data.size() = " << valid_data.size() << std::endl;
+
+    //ネットワークの準備
+    LibTorchModel model;
+    model.load(model_file, 0);
+    model.eval();
+
+    std::cout << std::fixed;
+
+    torch::NoGradGuard no_grad_guard;
+    std::array<float, LOSS_TYPE_NUM> losses{};
+    for (uint64_t index = 0; index < valid_data.size();) {
+        std::vector<LearningData> curr_data;
+        while (index < valid_data.size() && curr_data.size() < batch_size) {
+            curr_data.push_back(valid_data[index++]);
+        }
+
+        std::vector<torch::Tensor> reps = model.getRepresentations(curr_data);
+        for (torch::Tensor& t : reps) {
+            t = t.flatten(1);
+        }
+
+        for (int64_t i = 1; i < reps.size(); i++) {
+            torch::Tensor cos_sim = torch::cosine_similarity(reps[i], reps[i - 1]);
+            for (int64_t j = 0; j < batch_size; j++) {
+                std::cout << cos_sim[j].item<float>() << "\t\n"[j == batch_size - 1];
+            }
+        }
+
+        // 0と1の表現について見てみよう
+        std::cout << "先頭2データの表現について" << std::endl;
+        for (int64_t i = 0; i < reps.size(); i++) {
+            for (int64_t j = 0; j < reps.size(); j++) {
+                torch::Tensor cos_sim = torch::cosine_similarity(reps[i][0], reps[j][1], 0);
+                std::cout << cos_sim.item<float>() << "\t\n"[j == reps.size() - 1];
+            }
+        }
+
+        break;
+    }
+
+    std::cout << "finish checkLibTorchModel" << std::endl;
+}
+
 } // namespace Shogi

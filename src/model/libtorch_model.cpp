@@ -142,6 +142,20 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> NetworkImpl::forward(con
     return decode(encode(x, loop_num));
 }
 
+std::vector<torch::Tensor> NetworkImpl::getRepresentations(const torch::Tensor& x, int64_t loop_num) {
+    std::vector<torch::Tensor> results;
+    torch::Tensor r = x;
+    r = first_conv_and_norm_->forward(r);
+    r = activation(r);
+
+    for (int64_t _ = 0; _ < loop_num; _++) {
+        r = applyOneLoop(r);
+        results.push_back(r);
+    }
+
+    return results;
+}
+
 void LibTorchModel::load(const std::string& model_path, int64_t gpu_id) {
     torch::load(network_, model_path);
     device_ = (torch::cuda::is_available() ? torch::Device(torch::kCUDA, gpu_id) : torch::Device(torch::kCPU));
@@ -291,3 +305,8 @@ torch::Tensor LibTorchModel::contrastiveLoss(const std::vector<LearningData>& da
 }
 
 std::vector<torch::Tensor> LibTorchModel::parameters() { return network_->parameters(); }
+
+std::vector<torch::Tensor> LibTorchModel::getRepresentations(const std::vector<LearningData>& data) {
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
+    return network_->getRepresentations(input);
+}

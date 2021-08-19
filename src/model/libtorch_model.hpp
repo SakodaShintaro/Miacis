@@ -54,6 +54,7 @@ public:
     torch::Tensor applyOneLoop(const torch::Tensor& x);
     torch::Tensor encode(const torch::Tensor& x, int64_t loop_num = DEFAULT_LOOP_NUM);
     std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> decode(const torch::Tensor& representation);
+    std::vector<torch::Tensor> getRepresentations(const torch::Tensor& x, int64_t loop_num = DEFAULT_LOOP_NUM);
 
 private:
     Conv2DwithNorm first_conv_and_norm_{ nullptr };
@@ -82,6 +83,8 @@ public:
 
     void train() { network_->train(); }
     void eval() { network_->eval(); }
+
+    std::vector<torch::Tensor> getRepresentations(const std::vector<LearningData>& data);
 
 private:
     Network network_;
