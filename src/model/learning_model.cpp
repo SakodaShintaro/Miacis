@@ -13,7 +13,7 @@ void LearningModel::load(const std::string& model_path, int64_t gpu_id) {
 void LearningModel::save(const std::string& model_path) { module_.save(model_path); }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<LearningData>& data) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
     auto out = module_.forward({ input });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
@@ -38,7 +38,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<L
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vector<LearningData>& data) {
 #ifdef USE_CATEGORICAL
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, true);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
     auto out = module_.forward({ input });
     auto tuple = out.toTuple();
     torch::Tensor policy_logit = tuple->elements()[0].toTensor();
@@ -61,6 +61,9 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vec
     //Categorical分布と内積を取ることで期待値を求める
     torch::Tensor value = (each_value_tensor * value_cat).sum(1);
 
+    //target側も数値に変換
+    value_target = MIN_SCORE + (value_target + 0.5f) * VALUE_WIDTH;
+
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
@@ -75,7 +78,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vec
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::mixUpLoss(const std::vector<LearningData>& data, float alpha) {
-    auto [input_tensor, policy_target, value_target] = learningDataToTensor(data, device_, false);
+    auto [input_tensor, policy_target, value_target] = learningDataToTensor(data, device_);
 
     //混合比率の振り出し
     std::gamma_distribution<float> gamma_dist(alpha);
@@ -119,7 +122,7 @@ std::vector<torch::Tensor> LearningModel::parameters() {
 }
 
 torch::Tensor LearningModel::contrastiveLoss(const std::vector<LearningData>& data) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
     torch::Tensor representation = module_.get_method("encode")({ input }).toTensor();
     torch::Tensor loss = representation.norm();
     return loss;

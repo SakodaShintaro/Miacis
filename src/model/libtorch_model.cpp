@@ -211,7 +211,7 @@ void LibTorchModel::save(const std::string& model_path) { torch::save(network_, 
 //}
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::loss(const std::vector<LearningData>& data) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
     auto [policy, value, _] = network_->forward(input);
 
     torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
@@ -233,7 +233,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::loss(const std::vector<L
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::validLoss(const std::vector<LearningData>& data, int64_t loop_num) {
 #ifdef USE_CATEGORICAL
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, true);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
     auto [policy_logit, value_logit, ponder] = network_->forward(input, loop_num);
 
     torch::Tensor logits = policy_logit.view({ -1, POLICY_DIM });
@@ -253,6 +253,9 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::validLoss(const std::vec
     //Categorical分布と内積を取ることで期待値を求める
     torch::Tensor value = (each_value_tensor * value_cat).sum(1);
 
+    //target側も数値に変換
+    value_target = MIN_SCORE + (value_target + 0.5f) * VALUE_WIDTH;
+
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
@@ -267,7 +270,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::validLoss(const std::vec
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::mixUpLoss(const std::vector<LearningData>& data, float alpha) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
 
     //混合比率の振り出し
     std::gamma_distribution<float> gamma_dist(alpha);
@@ -298,7 +301,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::mixUpLoss(const std::vec
 }
 
 torch::Tensor LibTorchModel::contrastiveLoss(const std::vector<LearningData>& data) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
     torch::Tensor representation = network_->encode(input);
     torch::Tensor loss = representation.norm();
     return loss;
@@ -307,6 +310,6 @@ torch::Tensor LibTorchModel::contrastiveLoss(const std::vector<LearningData>& da
 std::vector<torch::Tensor> LibTorchModel::parameters() { return network_->parameters(); }
 
 std::vector<torch::Tensor> LibTorchModel::getRepresentations(const std::vector<LearningData>& data) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, false);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
     return network_->getRepresentations(input);
 }

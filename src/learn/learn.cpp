@@ -337,7 +337,7 @@ template<class LearningClass> void LearnManager<LearningClass>::saveModelAsDefau
 }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
-                                                                             torch::Device device, bool valid) {
+                                                                             torch::Device device) {
     static Position pos;
     std::vector<float> inputs;
     std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
@@ -356,21 +356,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(con
         }
 
         //valueの教師信号
-        if (!valid) {
-            //trainモードのときはそのまま突っ込めば良い
-            value_teachers.push_back(data[i].value);
-        } else {
-            //validモードのときはCategoricalモデルを使うとしてもfloatのvalueをターゲットにしたい
-#ifdef USE_CATEGORICAL
-            if (data[i].value != 0 && data[i].value != BIN_SIZE - 1) {
-                std::cerr << "Categoricalの検証データは現状のところValueが-1 or 1でないといけない" << std::endl;
-                std::exit(1);
-            }
-            value_teachers.push_back(data[i].value == 0 ? MIN_SCORE : MAX_SCORE);
-#else
-            value_teachers.push_back(data[i].value);
-#endif
-        }
+        value_teachers.push_back(data[i].value);
     }
 
     torch::Tensor input_tensor = inputVectorToTensor(inputs).to(device);

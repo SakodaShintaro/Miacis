@@ -81,7 +81,7 @@ std::tuple<torch::Tensor, torch::Tensor> InferModel::infer(const std::vector<flo
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector<LearningData>& data) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_, true);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
     if (use_fp16_) {
         input = input.to(torch::kFloat16);
     }
@@ -105,6 +105,9 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
 
     //Categorical分布と内積を取ることで期待値を求める
     value = (each_value_tensor * value_cat).sum(1);
+
+    //target側も数値に変換
+    value_target = MIN_SCORE + (value_target + 0.5f) * VALUE_WIDTH;
 
 #else //Scalarモデルの場合
     value = value.view(-1);

@@ -229,7 +229,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferDLShogiOnnxModel::validLoss(const 
     std::cout << "dlshogiモデルはCategoricalモードに対応していない" << std::endl;
     std::exit(1);
 #else
-    auto [input, policy_target, value_target] = learningDataToTensor(data, torch::Device(torch::kCPU), true);
+    auto [input, policy_target, value_target] = learningDataToTensor(data, torch::Device(torch::kCPU));
 
     std::vector<torch::Tensor> xs = input.split(DLSHOGI_FEATURES1_NUM, 1);
     torch::Tensor x1_tensor = xs[0].contiguous();

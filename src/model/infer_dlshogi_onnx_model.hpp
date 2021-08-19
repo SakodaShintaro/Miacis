@@ -4,7 +4,7 @@
 #ifdef DLSHOGI
 
 #include "../include_switch.hpp"
-#include "../search_options.hpp"
+#include "../search/search_options.hpp"
 #include "model_common.hpp"
 #include <NvInfer.h>
 #include <NvInferRuntimeCommon.h>
