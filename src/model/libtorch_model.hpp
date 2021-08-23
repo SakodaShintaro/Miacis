@@ -73,6 +73,8 @@ public:
     std::array<torch::Tensor, LOSS_TYPE_NUM> loss(const std::vector<LearningData>& data);
     std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data,
                                                        int64_t loop_num = DEFAULT_LOOP_NUM);
+    std::vector<std::array<torch::Tensor, LOSS_TYPE_NUM>> validLosses(const std::vector<LearningData>& data,
+                                                                      int64_t loop_num = DEFAULT_LOOP_NUM);
 
     //MixUpを行って損失を返す関数
     std::array<torch::Tensor, LOSS_TYPE_NUM> mixUpLoss(const std::vector<LearningData>& data, float alpha);

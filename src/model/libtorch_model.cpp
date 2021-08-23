@@ -269,6 +269,48 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::validLoss(const std::vec
 #endif
 }
 
+std::vector<std::array<torch::Tensor, LOSS_TYPE_NUM>> LibTorchModel::validLosses(const std::vector<LearningData>& data,
+                                                                                 int64_t loop_num) {
+#ifdef USE_CATEGORICAL
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
+    std::vector<torch::Tensor> representations = network_->getRepresentations(input, loop_num);
+
+    //target側を数値に変換
+    value_target = MIN_SCORE + (value_target + 0.5f) * VALUE_WIDTH;
+
+    std::vector<std::array<torch::Tensor, LOSS_TYPE_NUM>> losses;
+    for (int64_t l = 0; l < loop_num; l++) {
+        auto [policy_logit, value_logit, ponder] = network_->decode(representations[l]);
+        torch::Tensor logits = policy_logit.view({ -1, POLICY_DIM });
+        torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(logits, 1), 1, false);
+
+        //Valueの分布を取得
+        torch::Tensor value_cat = torch::softmax(value_logit, 1);
+
+        //i番目の要素が示す値はMIN_SCORE + (i + 0.5) * VALUE_WIDTH
+        std::vector<float> each_value;
+        for (int64_t i = 0; i < BIN_SIZE; i++) {
+            each_value.emplace_back(MIN_SCORE + (i + 0.5) * VALUE_WIDTH);
+        }
+        torch::Tensor each_value_tensor = torch::tensor(each_value).to(device_);
+
+        //Categorical分布と内積を取ることで期待値を求める
+        torch::Tensor value = (each_value_tensor * value_cat).sum(1);
+
+#ifdef USE_SIGMOID
+        torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
+#else
+        torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
+#endif
+        losses.push_back({ policy_loss, value_loss });
+#else
+    //Scalarモデルの場合はloss関数と同じ
+    losses.push_back(loss(data));
+#endif
+    }
+    return losses;
+}
+
 std::array<torch::Tensor, LOSS_TYPE_NUM> LibTorchModel::mixUpLoss(const std::vector<LearningData>& data, float alpha) {
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
 
