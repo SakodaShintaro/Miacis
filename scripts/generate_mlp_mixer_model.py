@@ -10,7 +10,7 @@ class MixerBlock(nn.Module):
         super().__init__()
         self.act = nn.GELU()
 
-        num_patch = board_size ** 2
+        num_patch = board_size * board_size
         self.board_size = board_size
 
         self.token_norm = nn.LayerNorm([dim, num_patch])
@@ -35,7 +35,7 @@ class MixerBlock(nn.Module):
         x = self.channel_cnn1(x)
         x = self.act(x)
         x = self.channel_cnn2(x)
-        x = x.view([-1, x.shape[1], self.board_size ** 2])
+        x = x.view([-1, x.shape[1], self.board_size * self.board_size])
         x = x + s
         return x
 
@@ -62,7 +62,7 @@ class MLPMixer(nn.Module):
     def forward(self, x):
         batch_size = x.shape[0]
         x = self.first_conv(x)
-        x = x.view([-1, self.dim, self.board_size ** 2])
+        x = x.view([-1, self.dim, self.board_size * self.board_size])
         for mixer_block in self.mixer_blocks:
             x = mixer_block(x)
         x = self.layer_norm(x)
@@ -72,6 +72,16 @@ class MLPMixer(nn.Module):
         policy = self.policy_head_.forward(x)
         value = self.value_head_.forward(x)
         return policy, value
+
+    @torch.jit.export
+    def getRepresentations(self, x):
+        x = self.first_conv(x)
+        x = x.view([-1, self.dim, self.board_size * self.board_size])
+        result = []
+        for mixer_block in self.mixer_blocks:
+            x = mixer_block(x)
+            result.append(x)
+        return result
 
 
 if __name__ == "__main__":
@@ -101,11 +111,18 @@ if __name__ == "__main__":
             params += p.numel()
     print(f"パラメータ数 : {params:,}")
 
-    model.cuda()
-    input_data = torch.randn([512, input_channel_num, board_size, board_size]).cuda()
+    input_data = torch.randn([128, input_channel_num, board_size, board_size])
     script_model = torch.jit.trace(model, input_data)
     # script_model = torch.jit.script(model)
     model_path = f"./{args.game}_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.model"
     script_model.save(model_path)
 
     print(f"{model_path}にパラメータを保存")
+
+    model = torch.jit.load(model_path)
+    reps = model.getRepresentations(input_data)
+    for i, r in enumerate(reps, 1):
+        m = r.mean([0, 2])
+        m = (m * m).mean()
+        v = r.var([0, 2]).mean()
+        print(f"{i}\t{m.item():.4f}\t{v.item():.4f}")
