@@ -629,7 +629,7 @@ void checkLibTorchModel() {
 
     //ネットワークの準備
     LibTorchModel model;
-    model.load(model_file, 0);
+    //    model.load(model_file, 0);
     model.eval();
 
     std::cout << std::fixed;
@@ -643,10 +643,28 @@ void checkLibTorchModel() {
         }
 
         std::vector<torch::Tensor> reps = model.getRepresentations(curr_data);
+
+        std::cout << "表現の平均\t";
+        for (int64_t i = 0; i < reps.size(); i++) {
+            torch::Tensor r = reps[i];
+            r = r.mean({ 0, 2, 3 });
+            r = (r * r).mean();
+            std::cout << r.item<float>() << "\t\n"[i == reps.size() - 1];
+        }
+
+        std::cout << "表現の分散\t";
+        for (int64_t i = 0; i < reps.size(); i++) {
+            torch::Tensor r = reps[i];
+            r = r.var({ 0, 2, 3 });
+            r = r.mean();
+            std::cout << r.item<float>() << "\t\n"[i == reps.size() - 1];
+        }
+
         for (torch::Tensor& t : reps) {
             t = t.flatten(1);
         }
 
+        std::cout << "1ループ前の表現とのコサイン類似度" << std::endl;
         for (int64_t i = 1; i < reps.size(); i++) {
             torch::Tensor cos_sim = torch::cosine_similarity(reps[i], reps[i - 1]);
             for (int64_t j = 0; j < batch_size; j++) {
