@@ -49,15 +49,25 @@ class Encoder(nn.Module):
     def __init__(self, input_channel_num, block_num, channel_num, kernel_size=3, reduction=8):
         super(Encoder, self).__init__()
         self.first_conv_and_norm_ = Conv2DwithBatchNorm(input_channel_num, channel_num, 3)
-        self.blocks = nn.Sequential()
+        self.blocks = nn.ModuleList()
         for i in range(block_num):
             self.blocks.add_module(f"block{i}", ResidualBlock(channel_num, kernel_size, reduction))
 
     def forward(self, x):
         x = self.first_conv_and_norm_.forward(x)
         x = F.relu(x)
-        x = self.blocks.forward(x)
+        for b in self.blocks:
+            x = b.forward(x)
         return x
+
+    def getRepresentations(self, x):
+        x = self.first_conv_and_norm_.forward(x)
+        x = F.relu(x)
+        result = []
+        for b in self.blocks:
+            x = b.forward(x)
+            result.append(x)
+        return result
 
 
 class PolicyHead(nn.Module):
@@ -139,6 +149,10 @@ class CategoricalNetwork(nn.Module):
         x = self.encoder_head.forward(x)
         return x
 
+    @torch.jit.export
+    def getRepresentations(self, x):
+        return self.encoder_.getRepresentations(x)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -171,12 +185,20 @@ def main():
             params += p.numel()
     print(f"パラメータ数 : {params:,}")
 
-    input_data = torch.randn([8, input_channel_num, board_size, board_size])
-    # script_model = torch.jit.trace(model, input_data)
+    input_data = torch.randn([16, input_channel_num, board_size, board_size])
+    script_model = torch.jit.trace(model, input_data)
     script_model = torch.jit.script(model)
     model_path = f"./{args.game}_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.model"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
+
+    model = torch.jit.load(model_path)
+    reps = model.getRepresentations(input_data)
+    for i, r in enumerate(reps, 1):
+        m = r.mean([0, 2, 3])
+        m = (m * m).mean()
+        v = r.var([0, 2, 3]).mean()
+        print(f"{i}\t{m.item():.4f}\t{v.item():.4f}")
 
 
 if __name__ == "__main__":
