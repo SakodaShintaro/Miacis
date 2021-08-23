@@ -629,7 +629,7 @@ void checkLibTorchModel() {
 
     //ネットワークの準備
     LibTorchModel model;
-    //    model.load(model_file, 0);
+    model.load(model_file, 0);
     model.eval();
 
     std::cout << std::fixed;
@@ -685,6 +685,40 @@ void checkLibTorchModel() {
     }
 
     std::cout << "finish checkLibTorchModel" << std::endl;
+}
+
+void checkInitLibTorchModel() {
+    //データを取得
+    int64_t batch_size = 512;
+
+    //ネットワークの準備
+    LibTorchModel model;
+    model.eval();
+
+    std::cout << std::fixed;
+
+    torch::NoGradGuard no_grad_guard;
+
+    torch::Tensor dummy_input = torch::randn({ batch_size, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+    std::vector<torch::Tensor> reps = model.getRepresentations(dummy_input);
+
+    std::cout << "表現の平均\t";
+    for (int64_t i = 0; i < reps.size(); i++) {
+        torch::Tensor r = reps[i];
+        r = r.mean({ 0, 2, 3 });
+        r = (r * r).mean();
+        std::cout << r.item<float>() << "\t\n"[i == reps.size() - 1];
+    }
+
+    std::cout << "表現の分散\t";
+    for (int64_t i = 0; i < reps.size(); i++) {
+        torch::Tensor r = reps[i];
+        r = r.var({ 0, 2, 3 });
+        r = r.mean();
+        std::cout << r.item<float>() << "\t\n"[i == reps.size() - 1];
+    }
+
+    std::cout << "finish checkInitLibTorchModel" << std::endl;
 }
 
 } // namespace Shogi

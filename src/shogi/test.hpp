@@ -18,6 +18,7 @@ void testLoad();
 void testModel();
 void checkValLibTorchModel();
 void checkLibTorchModel();
+void checkInitLibTorchModel();
 
 } // namespace Shogi
 

@@ -355,3 +355,5 @@ std::vector<torch::Tensor> LibTorchModel::getRepresentations(const std::vector<L
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
     return network_->getRepresentations(input);
 }
+
+std::vector<torch::Tensor> LibTorchModel::getRepresentations(const torch::Tensor& x) { return network_->getRepresentations(x); }

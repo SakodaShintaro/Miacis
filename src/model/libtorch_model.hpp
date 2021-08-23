@@ -87,6 +87,7 @@ public:
     void eval() { network_->eval(); }
 
     std::vector<torch::Tensor> getRepresentations(const std::vector<LearningData>& data);
+    std::vector<torch::Tensor> getRepresentations(const torch::Tensor& x);
 
 private:
     Network network_;
