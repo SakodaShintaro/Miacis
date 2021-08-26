@@ -306,7 +306,9 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
     }
 
     //学習率の変化はoptimizer_->defaults();を使えそうな気がする
-    if (learn_rate_decay_mode_ == 1) {
+    if (learn_rate_decay_mode_ == 0) {
+        // なにもしない
+    } else if (learn_rate_decay_mode_ == 1) {
         //特定ステップに達したら1/10にするスケジューリング
         if (step_num == learn_rate_decay_step1_ || step_num == learn_rate_decay_step2_ || step_num == learn_rate_decay_step3_ ||
             step_num == learn_rate_decay_step4_) {
@@ -314,7 +316,7 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
         }
     } else if (learn_rate_decay_mode_ == 2) {
         //Cosine annealing
-        int64_t curr_step = step_num % learn_rate_decay_period_;
+        const int64_t curr_step = step_num % learn_rate_decay_period_;
         (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
             0.5 * learn_rate_ * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period_));
     } else if (learn_rate_decay_mode_ == 3) {
@@ -322,6 +324,15 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
         if (step_num % learn_rate_decay_period_ == 0) {
             (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() *= 0.9;
         }
+    } else if (learn_rate_decay_mode_ == 4) {
+        //線形な減衰
+        const int64_t curr_step = step_num % learn_rate_decay_period_;
+        const int64_t rem_step = (learn_rate_decay_period_ - curr_step);
+        (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
+            learn_rate_ * rem_step / learn_rate_decay_period_;
+    } else {
+        std::cout << "Invalid learn_rate_decay_mode_: " << learn_rate_decay_mode_ << std::endl;
+        std::exit(1);
     }
 
     if (step_num <= warm_up_step_) {
