@@ -5,38 +5,38 @@ from torch import nn
 from generate_cnn_model import PolicyHead, ValueHead
 
 
-class MixerBlock(nn.Module):
-    def __init__(self, dim, board_size, token_dim, channel_dim):
+class FeedForward(nn.Module):
+    def __init__(self, dim, hidden_dim):
         super().__init__()
-        self.act = nn.GELU()
+        self.net = nn.Sequential(
+            nn.Linear(dim, hidden_dim),
+            nn.GELU(),
+            nn.Linear(hidden_dim, dim),
+        )
 
-        num_patch = board_size * board_size
-        self.board_size = board_size
+    def forward(self, x):
+        return self.net(x)
 
-        self.token_norm = nn.LayerNorm([dim, num_patch])
-        self.token_linear1 = nn.Linear(num_patch, token_dim)
-        self.token_linear2 = nn.Linear(token_dim, num_patch)
 
-        self.channel_norm = nn.LayerNorm([dim, num_patch])
-        self.channel_cnn1 = nn.Conv2d(dim, channel_dim, kernel_size=1, padding=0)
-        self.channel_cnn2 = nn.Conv2d(channel_dim, dim, kernel_size=1, padding=0)
+class MixerBlock(nn.Module):
+    def __init__(self, dim, num_patch, token_dim, channel_dim):
+        super().__init__()
+        self.token_norm = nn.LayerNorm(dim)
+        self.token_forward = FeedForward(num_patch, token_dim)
+        self.channel_mix = nn.Sequential(
+            nn.LayerNorm(dim),
+            FeedForward(dim, channel_dim),
+        )
 
     def forward(self, x):
         s = x
         x = self.token_norm(x)
-        x = self.token_linear1(x)
-        x = self.act(x)
-        x = self.token_linear2(x)
+        x = x.permute([0, 2, 1])
+        x = self.token_forward(x)
+        x = x.permute([0, 2, 1])
         x = x + s
 
-        s = x
-        x = self.channel_norm(x)
-        x = x.view([-1, x.shape[1], self.board_size, self.board_size])
-        x = self.channel_cnn1(x)
-        x = self.act(x)
-        x = self.channel_cnn2(x)
-        x = x.view([-1, x.shape[1], self.board_size * self.board_size])
-        x = x + s
+        x = x + self.channel_mix(x)
         return x
 
 
@@ -47,13 +47,13 @@ class MLPMixer(nn.Module):
         token_dim = dim
         channel_dim = dim * 2
 
-        self.num_patch = board_size ** 2
+        self.num_patch = board_size * board_size
         self.first_conv = nn.Conv2d(in_channels, dim, 1, 1)
 
         self.mixer_blocks = nn.ModuleList([])
         for _ in range(depth):
-            self.mixer_blocks.append(MixerBlock(dim, board_size, token_dim, channel_dim))
-        self.layer_norm = nn.LayerNorm([dim, self.num_patch])
+            self.mixer_blocks.append(MixerBlock(dim, self.num_patch, token_dim, channel_dim))
+        self.layer_norm = nn.LayerNorm(dim)
         self.dim = dim
         self.board_size = board_size
         self.policy_head_ = PolicyHead(dim, policy_channel_num)
@@ -61,8 +61,9 @@ class MLPMixer(nn.Module):
 
     def forward(self, x):
         batch_size = x.shape[0]
-        x = self.first_conv(x)
-        x = x.view([-1, self.dim, self.board_size * self.board_size])
+        x = self.first_conv.forward(x)
+        x = x.permute([0, 2, 3, 1])
+        x = x.view([-1, self.board_size * self.board_size, self.dim])
         for mixer_block in self.mixer_blocks:
             x = mixer_block(x)
         x = self.layer_norm(x)
@@ -76,7 +77,8 @@ class MLPMixer(nn.Module):
     @torch.jit.export
     def getRepresentations(self, x):
         x = self.first_conv(x)
-        x = x.view([-1, self.dim, self.board_size * self.board_size])
+        x = x.permute([0, 2, 3, 1])
+        x = x.view([-1, self.board_size * self.board_size, self.dim])
         result = []
         for mixer_block in self.mixer_blocks:
             x = mixer_block(x)
