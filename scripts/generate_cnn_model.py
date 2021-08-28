@@ -143,15 +143,15 @@ class CategoricalNetwork(nn.Module):
         value = self.value_head_.forward(x)
         return policy, value
 
-    @torch.jit.export
-    def encode(self, x):
-        x = self.encoder_.forward(x)
-        x = self.encoder_head.forward(x)
-        return x
-
-    @torch.jit.export
-    def getRepresentations(self, x):
-        return self.encoder_.getRepresentations(x)
+    # @torch.jit.export
+    # def encode(self, x):
+    #     x = self.encoder_.forward(x)
+    #     x = self.encoder_head.forward(x)
+    #     return x
+    #
+    # @torch.jit.export
+    # def getRepresentations(self, x):
+    #     return self.encoder_.getRepresentations(x)
 
 
 def main():
@@ -192,13 +192,13 @@ def main():
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
 
-    model = torch.jit.load(model_path)
-    reps = model.getRepresentations(input_data)
-    for i, r in enumerate(reps, 1):
-        m = r.mean([0, 2, 3])
-        m = (m * m).mean()
-        v = r.var([0, 2, 3]).mean()
-        print(f"{i}\t{m.item():.4f}\t{v.item():.4f}")
+    # model = torch.jit.load(model_path)
+    # reps = model.getRepresentations(input_data)
+    # for i, r in enumerate(reps, 1):
+    #     m = r.mean([0, 2, 3])
+    #     m = (m * m).mean()
+    #     v = r.var([0, 2, 3]).mean()
+    #     print(f"{i}\t{m.item():.4f}\t{v.item():.4f}")
 
 
 if __name__ == "__main__":
