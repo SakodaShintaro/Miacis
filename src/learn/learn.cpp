@@ -151,9 +151,9 @@ template<class LearningClass> LearnManager<LearningClass>::LearnManager(const st
         //ヘッダを書き込む
         tout(std::cout, train_log_, valid_log_) << std::fixed << "time\tstep\t";
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            tout(std::cout, train_log_, valid_log_) << LOSS_TYPE_NAME[i] + "_loss"
-                                                    << "\t\n"[i == LOSS_TYPE_NUM - 1];
+            tout(std::cout, train_log_, valid_log_) << LOSS_TYPE_NAME[i] + "_loss\t";
         }
+        tout(std::cout, train_log_, valid_log_) << "learn_rate" << std::endl;
     }
 
     //評価関数読み込み
@@ -283,9 +283,10 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
     if (step_num % std::max(validation_interval_ / 1000, (int64_t)1) == 0) {
         dout(std::cout, train_log_) << timer_.elapsedTimeStr() << "\t" << step_num << "\t";
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            dout(std::cout, train_log_) << loss[i].mean().item<float>() << "\t\r"[i == LOSS_TYPE_NUM - 1];
+            dout(std::cout, train_log_) << loss[i].mean().item<float>() << "\t";
         }
-        dout(std::cout, train_log_) << std::flush;
+        dout(std::cout, train_log_)
+            << (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() << "\r" << std::flush;
     }
 
     if (step_num % validation_interval_ == 0) {
@@ -301,9 +302,10 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
         //表示
         dout(std::cout, valid_log_) << timer_.elapsedTimeStr() << "\t" << step_num << "\t";
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            dout(std::cout, valid_log_) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
+            dout(std::cout, valid_log_) << valid_loss[i] << "\t";
         }
-        dout(std::cout, valid_log_) << std::flush;
+        dout(std::cout, valid_log_)
+            << (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() << std::endl;
 
         neural_network_.save(DEFAULT_MODEL_NAME);
         torch::save(*optimizer_, optimizer_file_name);
