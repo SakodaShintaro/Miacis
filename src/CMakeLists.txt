@@ -15,8 +15,8 @@ set(TRTORCH_INCLUDE ../../trtorch/include)
 file(GLOB TRTORCH_LIBRARIES ../../trtorch/lib/*.so)
 
 # TensorRT
-set(TENSORRT_INCLUDE ../../TensorRT-7.2.2.3/include)
-file(GLOB TENSORRT_LIBRARIES ../../TensorRT-7.2.2.3/lib/*.so)
+set(TENSORRT_INCLUDE ../../TensorRT-8.0.1.6/include)
+file(GLOB TENSORRT_LIBRARIES ../../TensorRT-8.0.1.6/lib/*.so)
 
 # 各ゲームで共通する部分のソース
 file(GLOB COMMON_SRCS ./*.cpp)

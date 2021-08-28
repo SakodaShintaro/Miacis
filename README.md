@@ -30,8 +30,8 @@ Dockerおよび[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/clo
 
 ```shell
 wget https://raw.githubusercontent.com/SakodaShintaro/Miacis/master/scripts/Dockerfile
-docker build -t miacis_trtorch:pytorch1.7-cuda11.1-trt7.2.1 .
-docker run --gpus all -it --name miacis_container miacis_trtorch:pytorch1.7-cuda11.1-trt7.2.1 bash
+docker build -t miacis_trtorch:0.4.0 .
+docker run --gpus all -it --name miacis_container miacis_trtorch:0.4.0 bash
 ```
 
 正常にコンパイルが進むとコンテナ内の```/root/Miacis/src/cmake-build-release```以下に```Miacis_shogi_categorical```というプログラムが得られます。
