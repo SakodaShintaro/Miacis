@@ -8,6 +8,9 @@
 #include <random>
 #include <sstream>
 
+// optimizerの保存名
+static const std::string optimizer_file_name = "optimizer.pt";
+
 template<class ModelType>
 std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
     torch::NoGradGuard no_grad_guard;
@@ -163,6 +166,9 @@ template<class LearningClass> LearnManager<LearningClass>::LearnManager(const st
     sgd_option.weight_decay(settings.get<float>("weight_decay"));
     std::vector<torch::Tensor> parameters;
     optimizer_ = std::make_unique<torch::optim::SGD>(neural_network_.parameters(), sgd_option);
+    if (std::ifstream(optimizer_file_name).is_open()) {
+        torch::load(*optimizer_, optimizer_file_name);
+    }
 
     //パラメータの保存間隔
     save_interval_ = settings.get<int64_t>("save_interval");
@@ -302,7 +308,9 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
 
     //パラメータをステップ付きで保存
     if (step_num % save_interval_ == 0) {
+        neural_network_.save(DEFAULT_MODEL_NAME);
         neural_network_.save(MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
+        torch::save(*optimizer_, optimizer_file_name);
     }
 
     //学習率の変化はoptimizer_->defaults();を使えそうな気がする
