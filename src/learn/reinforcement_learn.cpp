@@ -75,7 +75,7 @@ void reinforcementLearn() {
     }
 
     //学習ループ
-    for (int64_t step_num = curr_step_num; step_num <= max_step_num; step_num++) {
+    for (int64_t step_num = curr_step_num + 1; step_num <= max_step_num; step_num++) {
         //バッチサイズ分データを選択
         std::vector<LearningData> curr_data = replay_buffer.makeBatch(batch_size);
 
