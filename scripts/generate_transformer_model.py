@@ -11,7 +11,7 @@ class TransformerModel(nn.Module):
     def __init__(self, input_channel_num, layer_num, channel_num, policy_channel_num, board_size):
         super(TransformerModel, self).__init__()
         self.first_encoding_ = torch.nn.Linear(input_channel_num, channel_num)
-        encoder_layer = torch.nn.TransformerEncoderLayer(channel_num, nhead=8, dim_feedforward=256)
+        encoder_layer = torch.nn.TransformerEncoderLayer(channel_num, nhead=8, dim_feedforward=channel_num * 4)
         self.encoder_ = torch.nn.TransformerEncoder(encoder_layer, layer_num)
         self.board_size = board_size
         square_num = board_size ** 2
