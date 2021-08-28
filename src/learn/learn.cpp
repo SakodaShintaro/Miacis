@@ -308,13 +308,14 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
             dout(std::cout, valid_log_) << valid_loss[i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
         }
         dout(std::cout, valid_log_) << std::flush;
+
+        neural_network_.save(DEFAULT_MODEL_NAME);
+        torch::save(*optimizer_, optimizer_file_name);
     }
 
     //パラメータをステップ付きで保存
     if (step_num % save_interval_ == 0) {
-        neural_network_.save(DEFAULT_MODEL_NAME);
         neural_network_.save(MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
-        torch::save(*optimizer_, optimizer_file_name);
     }
 
     //学習率の更新
