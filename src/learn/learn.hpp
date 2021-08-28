@@ -89,13 +89,7 @@ private:
     //学習率のスケジューリングモード指定
     int64_t learn_rate_decay_mode_;
 
-    //ステップdecayのタイミング
-    int64_t learn_rate_decay_step1_;
-    int64_t learn_rate_decay_step2_;
-    int64_t learn_rate_decay_step3_;
-    int64_t learn_rate_decay_step4_;
-
-    //その他周期的なスケジューリングの周期
+    //学習率スケジューリングの動作周期
     int64_t learn_rate_decay_period_;
 
     //warmupのステップ数

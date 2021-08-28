@@ -18,10 +18,6 @@ batch_size              512
 thread_num_per_gpu      3
 max_step_num            1000000
 learn_rate_decay_mode   1
-learn_rate_decay_step1  800000
-learn_rate_decay_step2  2000000
-learn_rate_decay_step3  2000000
-learn_rate_decay_step4  2000000
 learn_rate_decay_period 100000
 warm_up_step            25000
 update_interval         1000

@@ -10,10 +10,6 @@ max_step                3000000
 validation_interval     100000
 save_interval           100000
 learn_rate_decay_mode   1
-learn_rate_decay_step1  600000
-learn_rate_decay_step2  1200000
-learn_rate_decay_step3  1800000
-learn_rate_decay_step4  2400000
 learn_rate_decay_period 100000
 warm_up_step            100000
 use_sam_optim           0

@@ -179,10 +179,6 @@ template<class LearningClass> LearnManager<LearningClass>::LearnManager(const st
 
     //学習率のスケジューリングについての変数
     learn_rate_decay_mode_ = settings.get<int64_t>("learn_rate_decay_mode");
-    learn_rate_decay_step1_ = settings.get<int64_t>("learn_rate_decay_step1");
-    learn_rate_decay_step2_ = settings.get<int64_t>("learn_rate_decay_step2");
-    learn_rate_decay_step3_ = settings.get<int64_t>("learn_rate_decay_step3");
-    learn_rate_decay_step4_ = settings.get<int64_t>("learn_rate_decay_step4");
     learn_rate_decay_period_ = settings.get<int64_t>("learn_rate_decay_period");
 
     warm_up_step_ = settings.get<int64_t>("warm_up_step");
@@ -338,21 +334,20 @@ template<class LearningClass> void LearnManager<LearningClass>::setLearnRate(int
     if (learn_rate_decay_mode_ == 0) {
         // なにもしない
     } else if (learn_rate_decay_mode_ == 1) {
-        //特定ステップに達したら1/10にするスケジューリング
-        if (step_num == learn_rate_decay_step1_ || step_num == learn_rate_decay_step2_ || step_num == learn_rate_decay_step3_ ||
-            step_num == learn_rate_decay_step4_) {
-            (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() /= 10;
-        }
+        //指数的な減衰(0.1)
+        const int64_t div_num = step_num / learn_rate_decay_period_;
+        (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
+            learn_rate_ * std::pow(0.1, div_num);
     } else if (learn_rate_decay_mode_ == 2) {
         //Cosine annealing
         const int64_t curr_step = step_num % learn_rate_decay_period_;
         (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
             0.5 * learn_rate_ * (1 + cos(acos(-1) * curr_step / learn_rate_decay_period_));
     } else if (learn_rate_decay_mode_ == 3) {
-        //指数的な減衰
-        if (step_num % learn_rate_decay_period_ == 0) {
-            (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() *= 0.9;
-        }
+        //指数的な減衰(0.9)
+        const int64_t div_num = step_num / learn_rate_decay_period_;
+        (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
+            learn_rate_ * std::pow(0.9, div_num);
     } else if (learn_rate_decay_mode_ == 4) {
         //線形な減衰
         const int64_t curr_step = step_num % learn_rate_decay_period_;
