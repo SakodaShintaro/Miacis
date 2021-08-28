@@ -39,11 +39,13 @@ void experimentalSupervisedLearn() {
     dout(std::cout, epoch_log) << "dir_path.size() = " << dir_paths.size() << std::endl;
     epoch_log << "0 0 " << train_data.size() << std::endl;
 
-    //学習クラスを生成
-    LearnManager<LibTorchModel> learn_manager("supervised");
+    const std::string prefix = "supervised";
 
     //エポックを超えたステップ数を初期化
-    int64_t global_step = 0;
+    int64_t global_step = loadStepNumFromValidLog(prefix + "_valid_log.txt");
+
+    //学習クラスを生成
+    LearnManager<LearningModel> learn_manager(prefix, global_step);
 
     //学習開始
     for (int64_t epoch = 1; global_step < max_step; epoch++) {

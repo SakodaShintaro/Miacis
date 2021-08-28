@@ -40,8 +40,12 @@ void reinforcementLearn() {
     search_options.calibration_kifu_path = settings.get<std::string>("calibration_kifu_path");
     // clang-format on
 
+    const std::string prefix = "reinforcement";
+
+    int64_t curr_step_num = loadStepNumFromValidLog(prefix + "_valid_log.txt");
+
     //学習クラスを生成
-    LearnManager<LearningModel> learn_manager("reinforcement");
+    LearnManager<LearningModel> learn_manager(prefix, curr_step_num);
 
     //カテゴリカルモデルでもQをもとに探索したい場合
     if (Q_search) {
@@ -71,7 +75,7 @@ void reinforcementLearn() {
     }
 
     //学習ループ
-    for (int64_t step_num = 1; step_num <= max_step_num; step_num++) {
+    for (int64_t step_num = curr_step_num; step_num <= max_step_num; step_num++) {
         //バッチサイズ分データを選択
         std::vector<LearningData> curr_data = replay_buffer.makeBatch(batch_size);
 

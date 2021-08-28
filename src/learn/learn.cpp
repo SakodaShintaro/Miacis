@@ -126,7 +126,7 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
     return data_buffer;
 }
 
-template<class LearningClass> LearnManager<LearningClass>::LearnManager(const std::string& learn_name) {
+template<class LearningClass> LearnManager<LearningClass>::LearnManager(const std::string& learn_name, int64_t initial_step_num) {
     assert(learn_name == "supervised" || learn_name == "reinforcement" || learn_name == "contrastive");
     HyperparameterLoader settings(learn_name + "_learn_settings.txt");
 
@@ -145,12 +145,15 @@ template<class LearningClass> LearnManager<LearningClass>::LearnManager(const st
     std::cout << "valid_data.size() = " << valid_data_.size() << std::endl;
 
     //学習推移のログファイル
-    train_log_.open(learn_name + "_train_log.txt");
-    valid_log_.open(learn_name + "_valid_log.txt");
-    tout(std::cout, train_log_, valid_log_) << std::fixed << "time\tstep\t";
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        tout(std::cout, train_log_, valid_log_) << LOSS_TYPE_NAME[i] + "_loss"
-                                                << "\t\n"[i == LOSS_TYPE_NUM - 1];
+    train_log_.open(learn_name + "_train_log.txt", std::ios::app);
+    valid_log_.open(learn_name + "_valid_log.txt", std::ios::app);
+    if (initial_step_num == 0) {
+        //ヘッダを書き込む
+        tout(std::cout, train_log_, valid_log_) << std::fixed << "time\tstep\t";
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            tout(std::cout, train_log_, valid_log_) << LOSS_TYPE_NAME[i] + "_loss"
+                                                    << "\t\n"[i == LOSS_TYPE_NUM - 1];
+        }
     }
 
     //評価関数読み込み
@@ -169,6 +172,7 @@ template<class LearningClass> LearnManager<LearningClass>::LearnManager(const st
     if (std::ifstream(optimizer_file_name).is_open()) {
         torch::load(*optimizer_, optimizer_file_name);
     }
+    setLearnRate(initial_step_num);
 
     //パラメータの保存間隔
     save_interval_ = settings.get<int64_t>("save_interval");
@@ -313,7 +317,23 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
         torch::save(*optimizer_, optimizer_file_name);
     }
 
-    //学習率の変化はoptimizer_->defaults();を使えそうな気がする
+    //学習率の更新
+    setLearnRate(step_num);
+
+    return loss_sum.detach();
+}
+
+template<class LearningClass> void LearnManager<LearningClass>::saveModelAsDefaultName() {
+    neural_network_.save(DEFAULT_MODEL_NAME);
+}
+
+template<class LearningClass> void LearnManager<LearningClass>::setLearnRate(int64_t step_num) {
+    if (step_num <= warm_up_step_) {
+        (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
+            learn_rate_ * step_num / warm_up_step_;
+        return;
+    }
+
     if (learn_rate_decay_mode_ == 0) {
         // なにもしない
     } else if (learn_rate_decay_mode_ == 1) {
@@ -342,17 +362,6 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
         std::cout << "Invalid learn_rate_decay_mode_: " << learn_rate_decay_mode_ << std::endl;
         std::exit(1);
     }
-
-    if (step_num <= warm_up_step_) {
-        (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
-            learn_rate_ * step_num / warm_up_step_;
-    }
-
-    return loss_sum.detach();
-}
-
-template<class LearningClass> void LearnManager<LearningClass>::saveModelAsDefaultName() {
-    neural_network_.save(DEFAULT_MODEL_NAME);
 }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
@@ -383,6 +392,23 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(con
     torch::Tensor value_target = torch::tensor(value_teachers).to(device);
 
     return std::make_tuple(input_tensor, policy_target, value_target);
+}
+
+int64_t loadStepNumFromValidLog(const std::string& valid_log_name) {
+    std::ifstream valid_log(valid_log_name);
+    if (!valid_log.is_open()) {
+        return 0;
+    }
+
+    //validの最終行から読み込む
+    std::string line, final_line;
+    while (getline(valid_log, line)) {
+        final_line = line;
+    }
+    int64_t first_tab = final_line.find('\t');
+    int64_t second_tab = final_line.find('\t', first_tab + 1);
+    std::string step_num_str = final_line.substr(first_tab + 1, second_tab - first_tab - 1);
+    return std::stoll(step_num_str);
 }
 
 void initLibTorchModel() {

@@ -52,11 +52,13 @@ public:
 
 template<class LearningClass> class LearnManager {
 public:
-    explicit LearnManager(const std::string& learn_name);
+    explicit LearnManager(const std::string& learn_name, int64_t initial_step_num);
     torch::Tensor learnOneStep(const std::vector<LearningData>& curr_data, int64_t step_num);
     void saveModelAsDefaultName();
 
 private:
+    void setLearnRate(int64_t step_num);
+
     //学習するモデル
     LearningClass neural_network_;
 
@@ -119,6 +121,9 @@ std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<
 //学習データをtensorへ変換する関数
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
                                                                              torch::Device device);
+
+//valid_logから最終ステップ数を読み込む関数
+int64_t loadStepNumFromValidLog(const std::string& valid_log_name);
 
 //棋譜からの教師あり学習
 void supervisedLearn();
