@@ -62,6 +62,9 @@ private:
     //学習するモデル
     LearningClass neural_network_;
 
+    //学習するモデルの名前
+    std::string model_prefix_;
+
     //Optimizer
     std::unique_ptr<torch::optim::SGD> optimizer_;
 

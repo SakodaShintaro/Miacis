@@ -11,6 +11,9 @@
 // optimizerの保存名
 static const std::string optimizer_file_name = "optimizer.pt";
 
+// モデルの拡張子 .ptの方が普通そうだが……
+static const std::string MODEL_SUFFIX = ".model";
+
 template<class ModelType>
 std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
     torch::NoGradGuard no_grad_guard;
@@ -156,11 +159,13 @@ template<class LearningClass> LearnManager<LearningClass>::LearnManager(const st
         tout(std::cout, train_log_, valid_log_) << "learn_rate" << std::endl;
     }
 
+    model_prefix_ = settings.get<std::string>("model_prefix");
+
     //評価関数読み込み
-    neural_network_.load(DEFAULT_MODEL_NAME, 0);
+    neural_network_.load(model_prefix_ + MODEL_SUFFIX, 0);
 
     //学習前のパラメータを出力
-    neural_network_.save(MODEL_PREFIX + "_before_learn.model");
+    neural_network_.save(model_prefix_ + "_before_learn.model");
 
     //optimizerの準備
     learn_rate_ = settings.get<float>("learn_rate");
@@ -307,13 +312,13 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
         dout(std::cout, valid_log_)
             << (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() << std::endl;
 
-        neural_network_.save(DEFAULT_MODEL_NAME);
+        neural_network_.save(model_prefix_ + MODEL_SUFFIX);
         torch::save(*optimizer_, optimizer_file_name);
     }
 
     //パラメータをステップ付きで保存
     if (step_num % save_interval_ == 0) {
-        neural_network_.save(MODEL_PREFIX + "_" + std::to_string(step_num) + ".model");
+        neural_network_.save(model_prefix_ + "_" + std::to_string(step_num) + MODEL_SUFFIX);
     }
 
     //学習率の更新
@@ -323,7 +328,7 @@ torch::Tensor LearnManager<LearningClass>::learnOneStep(const std::vector<Learni
 }
 
 template<class LearningClass> void LearnManager<LearningClass>::saveModelAsDefaultName() {
-    neural_network_.save(DEFAULT_MODEL_NAME);
+    neural_network_.save(model_prefix_ + MODEL_SUFFIX);
 }
 
 template<class LearningClass> void LearnManager<LearningClass>::setLearnRate(int64_t step_num) {

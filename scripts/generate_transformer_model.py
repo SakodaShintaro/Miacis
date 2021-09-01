@@ -44,7 +44,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-game", default="shogi", choices=["shogi", "othello", "go"])
     parser.add_argument("-value_type", default="cat", choices=["sca", "cat"])
-    parser.add_argument("--layer_num", type=int, default=10)
+    parser.add_argument("--block_num", type=int, default=10)
     parser.add_argument("--channel_num", type=int, default=256)
     args = parser.parse_args()
 
@@ -59,7 +59,7 @@ def main():
     else:
         exit(1)
 
-    model = TransformerModel(input_channel_num, args.layer_num, args.channel_num, policy_channel_num, board_size)
+    model = TransformerModel(input_channel_num, args.block_num, args.channel_num, policy_channel_num, board_size)
 
     params = 0
     for p in model.parameters():
@@ -70,7 +70,7 @@ def main():
     input_data = torch.randn([8, input_channel_num, board_size, board_size])
     script_model = torch.jit.trace(model, input_data)
     script_model = torch.jit.script(model)
-    model_path = f"./{args.game}_transformer_cat_layer{args.layer_num}_ch{args.channel_num}.model"
+    model_path = f"./{args.game}_cat_transformer_bl{args.block_num}_ch{args.channel_num}.model"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
 
