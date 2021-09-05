@@ -90,7 +90,8 @@ class ValueHead(nn.Module):
     def forward(self, x):
         value = self.value_conv_and_norm_.forward(x)
         value = F.relu(value)
-        value = F.avg_pool2d(value, [value.shape[2], value.shape[3]])
+        # value = F.avg_pool2d(value, [int(value.shape[2]), int(value.shape[3])])
+        value = F.adaptive_avg_pool2d(value, [1, 1])
         value = value.view([-1, value.shape[1]])
         value = self.value_linear0_.forward(value)
         value = F.relu(value)
