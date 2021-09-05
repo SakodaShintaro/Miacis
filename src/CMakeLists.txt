@@ -65,11 +65,7 @@ if (MSVC)
     endforeach ()
 else ()
     foreach (bin IN ITEMS ${BIN})
-        target_link_libraries(${bin} pthread stdc++fs ${TORCH_LIBRARIES} ${TRTORCH_LIBRARIES})
-        target_include_directories(${bin} PRIVATE ${TRTORCH_INCLUDE})
+        target_link_libraries(${bin} pthread stdc++fs ${TORCH_LIBRARIES} ${TRTORCH_LIBRARIES} ${TENSORRT_LIBRARIES})
+        target_include_directories(${bin} PRIVATE ${TRTORCH_INCLUDE} ${TENSORRT_INCLUDE})
     endforeach ()
 endif ()
-
-# dlshogi版については加えてTensorRTもinclude/libに追加
-target_link_libraries(Miacis_shogi_dlshogi ${TENSORRT_LIBRARIES})
-target_include_directories(Miacis_shogi_dlshogi PRIVATE ${TENSORRT_INCLUDE})
