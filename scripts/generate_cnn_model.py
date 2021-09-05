@@ -32,7 +32,7 @@ class ResidualBlock(nn.Module):
         t = F.relu(t)
         t = self.conv_and_norm1_.forward(t)
 
-        y = F.avg_pool2d(t, [t.shape[2], t.shape[3]])
+        y = F.adaptive_avg_pool2d(t, [1, 1])
         y = y.view([-1, t.shape[1]])
         y = self.linear0_.forward(y)
         y = F.relu(y)
@@ -106,7 +106,7 @@ class EncodeHead(nn.Module):
         self.linear1 = nn.Linear(hidden_features, out_features)
 
     def forward(self, x):
-        y = F.avg_pool2d(x, [x.shape[2], x.shape[3]])
+        y = F.adaptive_avg_pool2d(x, [1, 1])
         y = y.view([-1, x.shape[1]])
         y = y.flatten(1)
         y = self.linear0(y)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from generate_transformer_model import *
+from generate_cnn_model import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("model_path", type=str)
@@ -15,9 +15,9 @@ input_tensor = torch.randn([batch_size, input_channel_num, board_size, board_siz
 
 script_model = torch.jit.load(args.model_path)
 
-model = TransformerModel(input_channel_num, layer_num=args.block_num, channel_num=args.channel_num,
-                         policy_channel_num=policy_channel_num,
-                         board_size=board_size)
+model = CategoricalNetwork(input_channel_num, block_num=args.block_num, channel_num=args.channel_num,
+                           policy_channel_num=policy_channel_num,
+                           board_size=board_size)
 model.load_state_dict(script_model.state_dict())
 
 model.eval()
