@@ -204,6 +204,7 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
 
 #ifdef USE_CATEGORICAL
         std::vector<float> softmaxed(value_buffer.begin() + i * BIN_SIZE, value_buffer.begin() + (i + 1) * BIN_SIZE);
+        softmaxed = softmax(softmaxed);
         std::copy_n(softmaxed.begin(), BIN_SIZE, value[i].begin());
 #else
 #ifdef USE_SIGMOID
