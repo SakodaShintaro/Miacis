@@ -15,6 +15,7 @@ warm_up_step            100000
 use_sam_optim           0
 clip_grad_norm          10
 model_prefix            shogi_cat_bl40_ch256
+break_near_24h          false
 
 # Shogi(AobaZero)
 load_multi_dir       1

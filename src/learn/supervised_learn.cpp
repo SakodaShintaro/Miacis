@@ -9,6 +9,7 @@ void supervisedLearn() {
     float train_rate_threshold  = settings.get<float>("train_rate_threshold");
     bool data_augmentation      = settings.get<bool>("data_augmentation");
     bool load_multi_dir         = settings.get<bool>("load_multi_dir");
+    bool break_near_24h         = settings.get<bool>("break_near_24h");
     int64_t batch_size          = settings.get<int64_t>("batch_size");
     int64_t max_step            = settings.get<int64_t>("max_step");
     std::string train_kifu_path = settings.get<std::string>("train_kifu_path");
@@ -46,6 +47,10 @@ void supervisedLearn() {
     //学習クラスを生成
     LearnManager<LearningModel> learn_manager(prefix, global_step);
 
+    //24時間超えそうになったら切るためのタイマー
+    constexpr int64_t TIME_LIMIT = 23.50 * 3600;
+    Timer timer;
+
     //学習開始
     for (int64_t epoch = 1; global_step < max_step; epoch++) {
         //データをシャッフル
@@ -62,6 +67,10 @@ void supervisedLearn() {
         if (load_multi_dir) {
             train_data = loadData(dir_paths[epoch % dir_paths.size()], data_augmentation, train_rate_threshold);
             epoch_log << epoch << " " << global_step << " " << train_data.size() << std::endl;
+        }
+
+        if (break_near_24h && timer.elapsedSeconds() >= TIME_LIMIT) {
+            break;
         }
     }
 
