@@ -15,7 +15,7 @@ input_tensor = torch.randn([batch_size, input_channel_num, board_size, board_siz
 
 script_model = torch.jit.load(args.model_path)
 
-model = TransformerModel(input_channel_num, layer_num=args.block_num, channel_num=args.channel_num,
+model = TransformerModel(input_channel_num, block_num=args.block_num, channel_num=args.channel_num,
                          policy_channel_num=policy_channel_num,
                          board_size=board_size)
 model.load_state_dict(script_model.state_dict())
