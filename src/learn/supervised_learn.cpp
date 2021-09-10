@@ -62,15 +62,19 @@ void supervisedLearn() {
                                                 train_data.begin() + batch_size * (step + 1));
 
             learn_manager.learnOneStep(curr_data, ++global_step);
+
+            if (break_near_24h && timer.elapsedSeconds() >= TIME_LIMIT) {
+                break;
+            }
+        }
+
+        if (break_near_24h && timer.elapsedSeconds() >= TIME_LIMIT) {
+            break;
         }
 
         if (load_multi_dir) {
             train_data = loadData(dir_paths[epoch % dir_paths.size()], data_augmentation, train_rate_threshold);
             epoch_log << epoch << " " << global_step << " " << train_data.size() << std::endl;
-        }
-
-        if (break_near_24h && timer.elapsedSeconds() >= TIME_LIMIT) {
-            break;
         }
     }
 
