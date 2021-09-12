@@ -77,7 +77,7 @@ void InferModel::build(const std::string& onnx_filename) {
     builder->setMaxBatchSize(max_batch_size_);
 
     //MByte単位で指定
-    config->setMaxWorkspaceSize(64 * (1ull << 20));
+    config->setMaxWorkspaceSize(1ull << 31);
 
     std::unique_ptr<nvinfer1::IInt8Calibrator> calibrator;
     if (builder->platformHasFastInt8()) {
@@ -173,15 +173,10 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
 }
 
 void InferModel::forward(const int64_t batch_size, const float* x1, void* y1, void* y2) {
-    input_dims1_.d[0] = batch_size;
-
-    context_->setBindingDimensions(0, input_dims1_);
-
     checkCudaErrors(cudaMemcpy(x1_dev_, x1, batch_size * sizeof(float) * INPUT_CHANNEL_NUM * BOARD_WIDTH * BOARD_WIDTH,
                                cudaMemcpyHostToDevice));
 
-    const bool status = context_->executeV2(input_bindings_.data());
-    assert(status);
+    context_->execute(batch_size, input_bindings_.data());
 
     checkCudaErrors(cudaMemcpy(y1, y1_dev_, batch_size * sizeof(float) * POLICY_DIM, cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaMemcpy(y2, y2_dev_, batch_size * sizeof(float) * BIN_SIZE, cudaMemcpyDeviceToHost));
@@ -220,38 +215,68 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector<LearningData>& data) {
+    static Position pos;
+    std::vector<float> inputs;
+    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
+    std::vector<ValueTeacherType> value_teachers;
+
+    for (uint64_t i = 0; i < data.size(); i++) {
+        pos.fromStr(data[i].position_str);
+
+        //入力
+        const std::vector<float> feature = pos.makeFeature();
+        inputs.insert(inputs.end(), feature.begin(), feature.end());
+
+        //policyの教師信号
+        for (const std::pair<int32_t, float>& e : data[i].policy) {
+            policy_teachers[i * POLICY_DIM + e.first] = e.second;
+        }
+
+        //valueの教師信号
+        value_teachers.push_back(data[i].value);
+    }
+
+    const int64_t batch_size = data.size();
+    std::vector<float> policy_buffer(batch_size * POLICY_DIM);
+    std::vector<float> value_buffer(batch_size * BIN_SIZE);
+    forward(batch_size, inputs.data(), policy_buffer.data(), value_buffer.data());
+
+    torch::Tensor policy_target = torch::tensor(policy_teachers).view({ batch_size, POLICY_DIM });
+    torch::Tensor value_target = torch::tensor(value_teachers);
+
+    torch::Tensor policy_logit = torch::tensor(policy_buffer).view({ batch_size, POLICY_DIM });
+    torch::Tensor value = torch::tensor(value_buffer).view({ batch_size, BIN_SIZE });
+    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logit, 1), 1, false);
+
 #ifdef USE_CATEGORICAL
-    std::cout << "dlshogiモデルはCategoricalモードに対応していない" << std::endl;
-    std::exit(1);
-#else
-    auto [input, policy_target, value_target] = learningDataToTensor(data, torch::Device(torch::kCPU));
+    //Valueの分布を取得
+    torch::Tensor value_cat = torch::softmax(value, 1);
 
-    std::vector<torch::Tensor> xs = input.split(DLSHOGI_FEATURES1_NUM, 1);
-    torch::Tensor x1_tensor = xs[0].contiguous();
-    torch::Tensor x2_tensor = xs[1].contiguous();
+    //i番目の要素が示す値はMIN_SCORE + (i + 0.5) * VALUE_WIDTH
+    std::vector<float> each_value;
+    for (int64_t i = 0; i < BIN_SIZE; i++) {
+        each_value.emplace_back(MIN_SCORE + (i + 0.5) * VALUE_WIDTH);
+    }
+    torch::Tensor each_value_tensor = torch::tensor(each_value);
 
-    const int64_t batch_size = x1_tensor.size(0);
+    //Categorical分布と内積を取ることで期待値を求める
+    value = (each_value_tensor * value_cat).sum(1);
 
-    std::vector<DType> policy_buffer(batch_size * POLICY_DIM, -1);
-    std::vector<DType> value_buffer(batch_size, -1);
+    //target側も数値に変換
+    value_target = MIN_SCORE + (value_target + 0.5f) * VALUE_WIDTH;
 
-    forward(batch_size, x1_tensor.data_ptr(), x2_tensor.data_ptr(), policy_buffer.data(), value_buffer.data());
-
-    torch::Tensor policy_logits = torch::tensor(policy_buffer).view({ -1, POLICY_DIM });
-    torch::Tensor value = torch::tensor(value_buffer);
-
-    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
-
+#else //Scalarモデルの場合
     value = value.view(-1);
+#endif
+
+    //Sigmoidのときはbce, tanhのときはmse
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
-    value = value * 2 - 1;
     torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
 #endif
 
     return { policy_loss, value_loss };
-#endif
 }
 
 #endif
