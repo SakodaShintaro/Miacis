@@ -7,7 +7,7 @@ parser.add_argument("--block_num", type=int, default=10)
 parser.add_argument("--channel_num", type=int, default=256)
 args = parser.parse_args()
 
-batch_size = 4
+batch_size = 128
 input_channel_num = 42
 board_size = 9
 policy_channel_num = 27
