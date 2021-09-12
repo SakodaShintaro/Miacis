@@ -39,6 +39,23 @@ class TransformerModel(nn.Module):
 
     def forward(self, x):
         return self.decode(self.encode(x))
+    
+    @torch.jit.export
+    def get_representations(self, x):
+        x = x.view([x.shape[0], x.shape[1], x.shape[2] * x.shape[3]])
+        x = x.permute([2, 0, 1])
+        x = self.first_encoding_(x)
+        x = F.relu(x)
+        x = x + self.positional_encoding_
+
+        representations = list()
+        for _ in range(self.block_num + 5):
+            x = self.encoder_layer_(x)
+            curr_x = x
+            curr_x = curr_x.permute([1, 2, 0])
+            curr_x = curr_x.view([curr_x.shape[0], curr_x.shape[1], self.board_size, self.board_size])
+            representations.append(curr_x)
+        return representations
 
 
 def main():
@@ -74,6 +91,9 @@ def main():
     model_path = f"./{args.game}_cat_transformer_bl{args.block_num}_ch{args.channel_num}.model"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
+
+    representations = model.get_representations(input_data)
+    print(f"len(representations) = {len(representations)}")
 
 
 if __name__ == "__main__":

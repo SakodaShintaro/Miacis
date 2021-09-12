@@ -19,6 +19,8 @@ public:
 
     std::vector<torch::Tensor> parameters();
 
+    std::vector<torch::Tensor> getRepresentations(const std::vector<LearningData>& data);
+
     void train() { module_.train(); }
     void eval() { module_.eval(); }
 

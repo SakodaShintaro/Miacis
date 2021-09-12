@@ -127,3 +127,16 @@ torch::Tensor LearningModel::contrastiveLoss(const std::vector<LearningData>& da
     torch::Tensor loss = representation.norm();
     return loss;
 }
+
+std::vector<torch::Tensor> LearningModel::getRepresentations(const std::vector<LearningData>& data) {
+    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
+    auto output = module_.get_method("get_representations")({ input });
+    auto list = output.toTensorList();
+    std::vector<torch::Tensor> result;
+    for (auto t : list) {
+        result.push_back(torch::Tensor(t));
+    }
+    return result;
+    // module_->ge
+    // return module_->getRepresentations(input);
+}
