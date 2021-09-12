@@ -213,8 +213,11 @@ void checkValInfer() {
     std::cin >> search_options.calibration_kifu_path;
     std::cout << "fp16 : ";
     std::cin >> search_options.use_fp16;
+    float rate_threshold;
+    std::cout << "rate_threshold : ";
+    std::cin >> rate_threshold;
 
-    std::vector<LearningData> data = loadData(path, false, 3000);
+    std::vector<LearningData> data = loadData(path, false, rate_threshold);
     std::cout << "data.size() = " << data.size() << std::endl;
 
     //ネットワークの準備
