@@ -802,4 +802,48 @@ void checkLearningModel() {
     std::cout << "finish checkLibTorchModel" << std::endl;
 }
 
+void checkValidData() {
+    //データを取得
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
+    float rate_threshold;
+    std::cout << "rate_threshold : ";
+    std::cin >> rate_threshold;
+
+    std::vector<LearningData> valid_data = loadData(path, false, rate_threshold);
+    std::cout << "valid_data.size() = " << valid_data.size() << std::endl;
+
+    std::vector<float> sum(SQUARE_NUM * POLICY_CHANNEL_NUM);
+
+    for (const LearningData& data : valid_data) {
+        for (const auto [label, prob] : data.policy) {
+            sum[label] += prob;
+        }
+    }
+
+    std::ofstream ofs("valid_data_total.txt");
+    for (int64_t i = 0; i < SQUARE_NUM * POLICY_CHANNEL_NUM; i++) {
+        ofs << i << "\t" << sum[i] << std::endl;
+    }
+
+    std::vector<std::pair<int64_t, float>> policy;
+    for (int64_t i = 0; i < SQUARE_NUM * POLICY_CHANNEL_NUM; i++) {
+        policy.emplace_back(i, sum[i]);
+    }
+
+    std::sort(policy.begin(), policy.end(),
+              [](std::pair<int64_t, float>& lhs, std::pair<int64_t, float>& rhs) { return lhs.second > rhs.second; });
+
+    std::ofstream ofs2("valid_data_total2.txt");
+    for (int64_t i = 0; i < SQUARE_NUM * POLICY_CHANNEL_NUM; i++) {
+        int64_t sq_num = policy[i].first % SQUARE_NUM;
+        Square sq = SquareList[sq_num];
+        ofs2 << policy[i].first << "\t" << policy[i].second << "\t" << sq << "\t"
+             << policy[i].first / SQUARE_NUM << std::endl;
+    }
+
+    std::cout << "finish checkValidData" << std::endl;
+}
+
 } // namespace Shogi
