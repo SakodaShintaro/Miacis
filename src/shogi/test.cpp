@@ -839,7 +839,7 @@ void checkValidData() {
     for (int64_t i = 0; i < SQUARE_NUM * POLICY_CHANNEL_NUM; i++) {
         int64_t sq_num = policy[i].first % SQUARE_NUM;
         Square sq = SquareList[sq_num];
-        ofs2 << policy[i].first << "\t" << policy[i].second << "\t" << sq << "\t"
+        ofs2 << i + 1 << "\t" << policy[i].first << "\t" << 100 * policy[i].second / valid_data.size() << "\t" << sq << "\t"
              << policy[i].first / SQUARE_NUM << std::endl;
     }
 
