@@ -822,11 +822,6 @@ void checkValidData() {
         }
     }
 
-    std::ofstream ofs("valid_data_total.txt");
-    for (int64_t i = 0; i < SQUARE_NUM * POLICY_CHANNEL_NUM; i++) {
-        ofs << i << "\t" << sum[i] << std::endl;
-    }
-
     std::vector<std::pair<int64_t, float>> policy;
     for (int64_t i = 0; i < SQUARE_NUM * POLICY_CHANNEL_NUM; i++) {
         policy.emplace_back(i, sum[i]);
@@ -835,13 +830,133 @@ void checkValidData() {
     std::sort(policy.begin(), policy.end(),
               [](std::pair<int64_t, float>& lhs, std::pair<int64_t, float>& rhs) { return lhs.second > rhs.second; });
 
-    std::ofstream ofs2("valid_data_total2.txt");
+    std::ofstream ofs("valid_data_total.txt");
+    int64_t count = 0;
+    int64_t ng_hand = 0;
+    int64_t ng_from = 0;
+    int64_t ng_promote = 0;
+    int64_t ng_knight = 0;
     for (int64_t i = 0; i < SQUARE_NUM * POLICY_CHANNEL_NUM; i++) {
         int64_t sq_num = policy[i].first % SQUARE_NUM;
-        Square sq = SquareList[sq_num];
-        ofs2 << i + 1 << "\t" << policy[i].first << "\t" << 100 * policy[i].second / valid_data.size() << "\t" << sq << "\t"
-             << policy[i].first / SQUARE_NUM << std::endl;
+        Square to_sq = SquareList[sq_num];
+        int64_t dir = policy[i].first / SQUARE_NUM;
+        Square from_sq = to_sq;
+        //enum MOVE_DIRECTION { UP, UP_LEFT, UP_RIGHT, LEFT, RIGHT, DOWN, DOWN_LEFT, DOWN_RIGHT, UP2_LEFT, UP2_RIGHT, MOVE_DIRECTION_NUM };
+
+        bool ok = true;
+        if (dir >= 20) {
+            //打つ手
+            if (dir == 20 || dir == 21) {
+                //歩 or 香車
+                if (SquareToRank[to_sq] <= Rank1) {
+                    ok = false;
+                    ng_hand++;
+                }
+            } else if (dir == 22) {
+                if (SquareToRank[to_sq] <= Rank2) {
+                    ok = false;
+                    ng_hand++;
+                }
+            }
+        } else {
+            //移動手
+            bool promote = (dir >= 10);
+            switch (dir % 10) {
+            case 0:
+                from_sq = to_sq + D;
+                if (isOnBoard(from_sq) && promote && (SquareToRank[to_sq] > Rank3)) {
+                    ok = false;
+                    ng_promote++;
+                }
+                break;
+            case 1:
+                from_sq = to_sq + RD;
+                if (isOnBoard(from_sq) && promote && (SquareToRank[to_sq] > Rank3)) {
+                    ok = false;
+                    ng_promote++;
+                }
+                break;
+            case 2:
+                from_sq = to_sq + LD;
+                if (isOnBoard(from_sq) && promote && (SquareToRank[to_sq] > Rank3)) {
+                    ok = false;
+                    ng_promote++;
+                }
+                break;
+            case 3:
+                from_sq = to_sq + R;
+                if (isOnBoard(from_sq) && promote && (SquareToRank[to_sq] > Rank3)) {
+                    ok = false;
+                    ng_promote++;
+                }
+                break;
+            case 4:
+                from_sq = to_sq + L;
+                if (isOnBoard(from_sq) && promote && (SquareToRank[to_sq] > Rank3)) {
+                    ok = false;
+                    ng_promote++;
+                }
+                break;
+            case 5:
+                from_sq = to_sq + U;
+                break;
+            case 6:
+                from_sq = to_sq + RU;
+                if (isOnBoard(from_sq) && promote && (SquareToRank[to_sq] > SquareToFile[to_sq] + 2)) {
+                    ok = false;
+                    ng_promote++;
+                }
+                break;
+            case 7:
+                from_sq = to_sq + LU;
+                if (isOnBoard(from_sq) && promote && (SquareToRank[to_sq] > 12 - SquareToFile[to_sq])) {
+                    ok = false;
+                    ng_promote++;
+                }
+                break;
+            case 8:
+                from_sq = to_sq + RDD;
+                if (isOnBoard(from_sq) && !promote && (SquareToRank[to_sq] <= Rank2)) {
+                    ok = false;
+                    ng_knight++;
+                }
+                if (isOnBoard(from_sq) && promote && (SquareToRank[to_sq] > Rank3)) {
+                    ok = false;
+                    ng_promote++;
+                }
+                break;
+            case 9:
+                from_sq = to_sq + LDD;
+                if (isOnBoard(from_sq) && !promote && (SquareToRank[to_sq] <= Rank2)) {
+                    ok = false;
+                    ng_knight++;
+                }
+                if (isOnBoard(from_sq) && promote && (SquareToRank[to_sq] > Rank3)) {
+                    ok = false;
+                    ng_promote++;
+                }
+                break;
+            default:
+                break;
+            }
+            if (ok && !isOnBoard(from_sq)) {
+                ok = false;
+                ng_from++;
+            }
+        }
+
+        if (!ok) {
+            continue;
+        }
+
+        ofs << ++count << "\t" << policy[i].first << "\t" << 100 * policy[i].second / valid_data.size() << "\t" << to_sq << "\t"
+            << dir << std::endl;
     }
+
+    std::cout << "ng_hand    = " << ng_hand << std::endl;
+    std::cout << "ng_from    = " << ng_from << std::endl;
+    std::cout << "ng_promote = " << ng_promote << std::endl;
+    std::cout << "ng_knight  = " << ng_knight << std::endl;
 
     std::cout << "finish checkValidData" << std::endl;
 }
