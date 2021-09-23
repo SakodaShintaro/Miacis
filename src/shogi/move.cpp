@@ -9,6 +9,50 @@ std::array<MOVE_DIRECTION, MOVE_DIRECTION_NUM> mirror = {
     UP, UP_RIGHT, UP_LEFT, RIGHT, LEFT, DOWN, DOWN_RIGHT, DOWN_LEFT, UP2_RIGHT, UP2_LEFT,
 };
 
+// 旧バージョン
+// uint32_t Move::toLabel() const {
+//     Color c = pieceToColor(subject());
+
+//     Square to_sq = (c == BLACK ? to() : InvSquare[to()]);
+//     File to_file = SquareToFile[to_sq];
+//     Rank to_rank = SquareToRank[to_sq];
+//     Square from_sq = (c == BLACK ? from() : InvSquare[from()]);
+//     File from_file = SquareToFile[from_sq];
+//     Rank from_rank = SquareToRank[from_sq];
+
+//     int32_t direction = {};
+//     if (from() == WALL00) { //打つ手
+//         direction = 20 + kind(subject()) - PAWN;
+//     } else if (to_file == from_file - 1 && to_rank == from_rank + 2) { //桂馬
+//         direction = 4;
+//     } else if (to_file == from_file + 1 && to_rank == from_rank + 2) { //桂馬
+//         direction = 6;
+//     } else if (to_file == from_file && to_rank > from_rank) { //上
+//         direction = 0;
+//     } else if (to_file > from_file && to_rank > from_rank) { //右上
+//         direction = 1;
+//     } else if (to_file > from_file && to_rank == from_rank) { //右
+//         direction = 2;
+//     } else if (to_file > from_file && to_rank < from_rank) { //右下
+//         direction = 3;
+//     } else if (to_file == from_file && to_rank < from_rank) { //下
+//         direction = 5;
+//     } else if (to_file < from_file && to_rank < from_rank) { //左下
+//         direction = 7;
+//     } else if (to_file < from_file && to_rank == from_rank) { //左
+//         direction = 8;
+//     } else if (to_file < from_file && to_rank > from_rank) { //左上
+//         direction = 9;
+//     } else {
+//         assert(false);
+//     }
+//     if (isPromote()) {
+//         direction += 10;
+//     }
+
+//     return static_cast<uint32_t>(SquareToNum[to_sq] + SQUARE_NUM * direction);
+// }
+
 uint32_t Move::toLabel() const {
     Color c = pieceToColor(subject());
 
