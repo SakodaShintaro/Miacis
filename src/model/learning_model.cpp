@@ -20,7 +20,9 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<L
     torch::Tensor value = tuple->elements()[1].toTensor();
 
     torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
-    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
+    torch::Tensor policy_softmax = torch::softmax(policy_logits, 1);
+    torch::Tensor focal_coeff = torch::pow(1 - policy_softmax, 2);
+    torch::Tensor policy_loss = torch::sum(-policy_target * focal_coeff * torch::log_softmax(policy_logits, 1), 1, false);
 
 #ifdef USE_CATEGORICAL
     torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_target);
