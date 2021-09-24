@@ -5,8 +5,6 @@ from generate_transformer_model import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument("model_path", type=str)
-parser.add_argument("--block_num", type=int, default=10)
-parser.add_argument("--channel_num", type=int, default=256)
 parser.add_argument("--batch_size", type=int, default=128)
 args = parser.parse_args()
 
@@ -32,11 +30,11 @@ print(f"block_num = {block_num}, channel_num = {channel_num}")
 
 model = None
 if "transformer" in args.model_path:
-    model = TransformerModel(input_channel_num, block_num=args.block_num, channel_num=args.channel_num,
-                            policy_channel_num=policy_channel_num,
-                            board_size=board_size)
+    model = TransformerModel(input_channel_num, block_num=block_num, channel_num=channel_num,
+                             policy_channel_num=policy_channel_num,
+                             board_size=board_size)
 else:
-    model = CategoricalNetwork(input_channel_num, block_num=args.block_num, channel_num=args.channel_num,
+    model = CategoricalNetwork(input_channel_num, block_num=block_num, channel_num=channel_num,
                                policy_channel_num=policy_channel_num,
                                board_size=board_size)
 
