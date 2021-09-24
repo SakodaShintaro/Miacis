@@ -961,4 +961,21 @@ void checkValidData() {
     std::cout << "finish checkValidData" << std::endl;
 }
 
+void checkBuildOnnx() {
+    LearningModel model;
+    model.load(DEFAULT_MODEL_NAME, 0);
+    model.save(DEFAULT_MODEL_NAME);
+    const std::string filepath = __FILE__;
+    const std::string dirpath = filepath.substr(0, filepath.rfind('/'));
+    const std::string script_dirpath = dirpath + "/../../scripts/convert_ts_model_to_onnx.py";
+    const std::string command = script_dirpath + " " + DEFAULT_MODEL_NAME;
+    std::cout << "command = " << command << std::endl;
+    system(command.c_str());
+    InferModel infer_model;
+    SearchOptions search_options;
+    search_options.model_name = DEFAULT_ONNX_NAME;
+    search_options.use_fp16 = true;
+    infer_model.load(0, search_options);
+}
+
 } // namespace Shogi

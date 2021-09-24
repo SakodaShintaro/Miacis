@@ -21,6 +21,7 @@ const std::string MODEL_PREFIX = "go_sca_bl" + std::to_string(BLOCK_NUM) + "_ch"
 #endif
 //デフォルトで読み書きするファイル名
 const std::string DEFAULT_MODEL_NAME = MODEL_PREFIX + ".model";
+const std::string DEFAULT_ONNX_NAME = MODEL_PREFIX + ".onnx";
 
 torch::Tensor inputVectorToTensor(const std::vector<float>& input) {
     return torch::tensor(input).view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });

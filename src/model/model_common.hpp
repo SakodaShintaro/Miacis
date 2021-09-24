@@ -27,7 +27,7 @@ struct LearningData {
 
 //ネットワークの設定
 #ifdef SHOGI
-constexpr int32_t BLOCK_NUM = 40;
+constexpr int32_t BLOCK_NUM = 10;
 constexpr int32_t CHANNEL_NUM = 256;
 #elif defined(OTHELLO)
 constexpr int32_t BLOCK_NUM = 5;
@@ -39,6 +39,7 @@ constexpr int32_t CHANNEL_NUM = 64;
 
 extern const std::string MODEL_PREFIX;
 extern const std::string DEFAULT_MODEL_NAME;
+extern const std::string DEFAULT_ONNX_NAME;
 
 //損失の種類
 enum LossType { POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM };

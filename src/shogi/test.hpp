@@ -21,6 +21,7 @@ void checkLibTorchModel();
 void checkLearningModel();
 void checkInitLibTorchModel();
 void checkValidData();
+void checkBuildOnnx();
 
 } // namespace Shogi
 
