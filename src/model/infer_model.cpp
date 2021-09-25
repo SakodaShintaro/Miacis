@@ -9,6 +9,7 @@
 
 #ifndef DLSHOGI
 #include "../learn/learn.hpp"
+#include "calibrator.hpp"
 
 class Logger : public nvinfer1::ILogger {
     const char* error_type(Severity severity) {
@@ -117,12 +118,12 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
         std::unique_ptr<nvinfer1::IInt8Calibrator> calibrator;
         if (builder->platformHasFastInt8() && !search_option.use_fp16) {
             config->setFlag(nvinfer1::BuilderFlag::kINT8);
-            calibrator.reset(new Int8EntropyCalibrator2(onnx_filename.c_str(), 1));
+            calibrator.reset(new Int8EntropyCalibrator2(onnx_filename, max_batch_size_, search_option.calibration_kifu_path));
             config->setInt8Calibrator(calibrator.get());
         } else if (builder->platformHasFastFp16() && search_option.use_fp16) {
             config->setFlag(nvinfer1::BuilderFlag::kFP16);
         } else {
-            std::cout << "Fail to decide fp mode" << std::endl;
+            std::cout << "Fail to decide precision" << std::endl;
             std::exit(1);
         }
 
@@ -131,12 +132,13 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
 
         // Optimization Profiles
         auto profile = builder->createOptimizationProfile();
-        const auto dims = network->getInput(0)->getDimensions().d;
-        profile->setDimensions("input", nvinfer1::OptProfileSelector::kMIN, nvinfer1::Dims4(1, dims[1], dims[2], dims[3]));
-        profile->setDimensions("input", nvinfer1::OptProfileSelector::kOPT,
-                               nvinfer1::Dims4(opt_batch_size_, dims[1], dims[2], dims[3]));
-        profile->setDimensions("input", nvinfer1::OptProfileSelector::kMAX,
-                               nvinfer1::Dims4(max_batch_size_, dims[1], dims[2], dims[3]));
+        nvinfer1::Dims dims = network->getInput(0)->getDimensions();
+        dims.d[0] = 1;
+        profile->setDimensions("input", nvinfer1::OptProfileSelector::kMIN, dims);
+        dims.d[0] = opt_batch_size_;
+        profile->setDimensions("input", nvinfer1::OptProfileSelector::kOPT, dims);
+        dims.d[0] = max_batch_size_;
+        profile->setDimensions("input", nvinfer1::OptProfileSelector::kMAX, dims);
         config->addOptimizationProfile(profile);
 
         engine_ = builder->buildEngineWithConfig(*network, *config);
