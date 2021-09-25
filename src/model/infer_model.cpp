@@ -47,7 +47,6 @@ InferModel::~InferModel() {
 }
 
 void InferModel::build(const std::string& onnx_filename) {
-    std::cout << "start build" << std::endl;
     auto builder = InferUniquePtr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(gLogger));
     if (!builder) {
         throw std::runtime_error("createInferBuilder");
@@ -76,7 +75,6 @@ void InferModel::build(const std::string& onnx_filename) {
 
     builder->setMaxBatchSize(max_batch_size_);
 
-    //MByte単位で指定
     config->setMaxWorkspaceSize(1ull << 31);
 
     std::unique_ptr<nvinfer1::IInt8Calibrator> calibrator;
@@ -113,10 +111,20 @@ void InferModel::build(const std::string& onnx_filename) {
     if (!engine_) {
         throw std::runtime_error("buildEngineWithConfig");
     }
-    std::cout << "start build" << std::endl;
 }
 
-void InferModel::load_model(const std::string& filename) {
+void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
+    gpu_id_ = gpu_id;
+    opt_batch_size_ = search_option.search_batch_size;
+    max_batch_size_ = search_option.search_batch_size * 2;
+    // Create host and device buffers
+    checkCudaErrors(cudaMalloc((void**)&x1_dev_, max_batch_size_ * sizeof(float) * INPUT_CHANNEL_NUM * SQUARE_NUM));
+    checkCudaErrors(cudaMalloc((void**)&y1_dev_, max_batch_size_ * sizeof(float) * POLICY_DIM));
+    checkCudaErrors(cudaMalloc((void**)&y2_dev_, max_batch_size_ * sizeof(float) * BIN_SIZE));
+
+    input_bindings_ = { x1_dev_, y1_dev_, y2_dev_ };
+
+    const std::string filename = search_option.model_name;
     std::string serialized_filename =
         filename + "." + std::to_string(gpu_id_) + "." + std::to_string(max_batch_size_) + ".serialized";
     std::ifstream serializedFile(serialized_filename, std::ios::binary);
@@ -153,28 +161,10 @@ void InferModel::load_model(const std::string& filename) {
     if (!context_) {
         throw std::runtime_error("createExecutionContext");
     }
-
-    input_dims1_ = engine_->getBindingDimensions(0);
-}
-
-void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
-    gpu_id_ = gpu_id;
-    opt_batch_size_ = search_option.search_batch_size;
-    max_batch_size_ = search_option.search_batch_size * 2;
-    // Create host and device buffers
-    checkCudaErrors(
-        cudaMalloc((void**)&x1_dev_, max_batch_size_ * sizeof(float) * INPUT_CHANNEL_NUM * BOARD_WIDTH * BOARD_WIDTH));
-    checkCudaErrors(cudaMalloc((void**)&y1_dev_, max_batch_size_ * sizeof(float) * POLICY_DIM));
-    checkCudaErrors(cudaMalloc((void**)&y2_dev_, max_batch_size_ * sizeof(float) * BIN_SIZE));
-
-    input_bindings_ = { x1_dev_, y1_dev_, y2_dev_ };
-
-    load_model(search_option.model_name);
 }
 
 void InferModel::forward(const int64_t batch_size, const float* x1, void* y1, void* y2) {
-    checkCudaErrors(cudaMemcpy(x1_dev_, x1, batch_size * sizeof(float) * INPUT_CHANNEL_NUM * BOARD_WIDTH * BOARD_WIDTH,
-                               cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(x1_dev_, x1, batch_size * sizeof(float) * INPUT_CHANNEL_NUM * SQUARE_NUM, cudaMemcpyHostToDevice));
 
     context_->execute(batch_size, input_bindings_.data());
 

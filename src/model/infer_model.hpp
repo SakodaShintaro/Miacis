@@ -156,9 +156,7 @@ private:
     void* y2_dev_;
     std::vector<void*> input_bindings_;
     nvinfer1::IExecutionContext* context_;
-    nvinfer1::Dims input_dims1_;
 
-    void load_model(const std::string& filename);
     void build(const std::string& onnx_filename);
     void forward(const int64_t batch_size, const float* x1, void* y1, void* y2);
 };
