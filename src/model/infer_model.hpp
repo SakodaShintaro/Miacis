@@ -150,12 +150,12 @@ private:
     int64_t gpu_id_;
     int64_t opt_batch_size_;
     int64_t max_batch_size_;
-    nvinfer1::ICudaEngine* engine_;
+    nvinfer1::ICudaEngine* engine_ = nullptr;
     void* x1_dev_;
     void* y1_dev_;
     void* y2_dev_;
     std::vector<void*> input_bindings_;
-    nvinfer1::IExecutionContext* context_;
+    nvinfer1::IExecutionContext* context_ = nullptr;
 
     void forward(const int64_t batch_size, const float* x1, void* y1, void* y2);
 };

@@ -51,9 +51,21 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     opt_batch_size_ = search_option.search_batch_size;
     max_batch_size_ = search_option.search_batch_size * 2;
     // Create host and device buffers
-    checkCudaErrors(cudaMalloc((void**)&x1_dev_, max_batch_size_ * sizeof(float) * INPUT_CHANNEL_NUM * SQUARE_NUM));
-    checkCudaErrors(cudaMalloc((void**)&y1_dev_, max_batch_size_ * sizeof(float) * POLICY_DIM));
-    checkCudaErrors(cudaMalloc((void**)&y2_dev_, max_batch_size_ * sizeof(float) * BIN_SIZE));
+    if (x1_dev_ == nullptr) {
+        checkCudaErrors(cudaMalloc((void**)&x1_dev_, max_batch_size_ * sizeof(float) * INPUT_CHANNEL_NUM * SQUARE_NUM));
+    }
+    if (y1_dev_ == nullptr) {
+        checkCudaErrors(cudaMalloc((void**)&y1_dev_, max_batch_size_ * sizeof(float) * POLICY_DIM));
+    }
+    if (y2_dev_ == nullptr) {
+        checkCudaErrors(cudaMalloc((void**)&y2_dev_, max_batch_size_ * sizeof(float) * BIN_SIZE));
+    }
+    if (context_ != nullptr) {
+        context_->destroy();
+    }
+    if (engine_ != nullptr) {
+        engine_->destroy();
+    }
 
     input_bindings_ = { x1_dev_, y1_dev_, y2_dev_ };
 
