@@ -157,7 +157,6 @@ private:
     std::vector<void*> input_bindings_;
     nvinfer1::IExecutionContext* context_;
 
-    void build(const std::string& onnx_filename);
     void forward(const int64_t batch_size, const float* x1, void* y1, void* y2);
 };
 

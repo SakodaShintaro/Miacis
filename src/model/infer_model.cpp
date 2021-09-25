@@ -46,73 +46,6 @@ InferModel::~InferModel() {
     //context_->destroy();
 }
 
-void InferModel::build(const std::string& onnx_filename) {
-    auto builder = InferUniquePtr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(gLogger));
-    if (!builder) {
-        throw std::runtime_error("createInferBuilder");
-    }
-
-    const auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
-    auto network = InferUniquePtr<nvinfer1::INetworkDefinition>(builder->createNetworkV2(explicitBatch));
-    if (!network) {
-        throw std::runtime_error("createNetworkV2");
-    }
-
-    auto config = InferUniquePtr<nvinfer1::IBuilderConfig>(builder->createBuilderConfig());
-    if (!config) {
-        throw std::runtime_error("createBuilderConfig");
-    }
-
-    auto parser = InferUniquePtr<nvonnxparser::IParser>(nvonnxparser::createParser(*network, gLogger));
-    if (!parser) {
-        throw std::runtime_error("createParser");
-    }
-
-    auto parsed = parser->parseFromFile(onnx_filename.c_str(), (int)nvinfer1::ILogger::Severity::kWARNING);
-    if (!parsed) {
-        throw std::runtime_error("parseFromFile");
-    }
-
-    builder->setMaxBatchSize(max_batch_size_);
-
-    config->setMaxWorkspaceSize(1ull << 31);
-
-    std::unique_ptr<nvinfer1::IInt8Calibrator> calibrator;
-    if (builder->platformHasFastInt8()) {
-        std::string calibration_cache_filename = std::string(onnx_filename) + ".calibcache";
-        std::ifstream calibcache(calibration_cache_filename);
-        if (calibcache.is_open()) {
-            calibcache.close();
-
-            config->setFlag(nvinfer1::BuilderFlag::kINT8);
-            calibrator.reset(new Int8EntropyCalibrator2(onnx_filename.c_str(), 1));
-            config->setInt8Calibrator(calibrator.get());
-        } else if (builder->platformHasFastFp16()) {
-            config->setFlag(nvinfer1::BuilderFlag::kFP16);
-        }
-    } else if (builder->platformHasFastFp16()) {
-        config->setFlag(nvinfer1::BuilderFlag::kFP16);
-    }
-
-    assert(network->getNbInputs() == 1);
-    assert(network->getNbOutputs() == 2);
-
-    // Optimization Profiles
-    auto profile = builder->createOptimizationProfile();
-    const auto dims = network->getInput(0)->getDimensions().d;
-    profile->setDimensions("input", nvinfer1::OptProfileSelector::kMIN, nvinfer1::Dims4(1, dims[1], dims[2], dims[3]));
-    profile->setDimensions("input", nvinfer1::OptProfileSelector::kOPT,
-                           nvinfer1::Dims4(opt_batch_size_, dims[1], dims[2], dims[3]));
-    profile->setDimensions("input", nvinfer1::OptProfileSelector::kMAX,
-                           nvinfer1::Dims4(max_batch_size_, dims[1], dims[2], dims[3]));
-    config->addOptimizationProfile(profile);
-
-    engine_ = builder->buildEngineWithConfig(*network, *config);
-    if (!engine_) {
-        throw std::runtime_error("buildEngineWithConfig");
-    }
-}
-
 void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     gpu_id_ = gpu_id;
     opt_batch_size_ = search_option.search_batch_size;
@@ -124,35 +57,92 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
 
     input_bindings_ = { x1_dev_, y1_dev_, y2_dev_ };
 
-    const std::string filename = search_option.model_name;
-    std::string serialized_filename =
-        filename + "." + std::to_string(gpu_id_) + "." + std::to_string(max_batch_size_) + ".serialized";
-    std::ifstream serializedFile(serialized_filename, std::ios::binary);
-    if (serializedFile.is_open()) {
+    const std::string onnx_filename = search_option.model_name;
+    const std::string basename = onnx_filename.substr(0, onnx_filename.rfind('.'));
+    const std::string serialized_filename = basename + ".engine";
+    std::ifstream serialized_file(serialized_filename, std::ios::binary);
+    if (serialized_file.is_open()) {
         // deserializing a model
-        serializedFile.seekg(0, std::ios_base::end);
-        const size_t modelSize = serializedFile.tellg();
-        serializedFile.seekg(0, std::ios_base::beg);
+        serialized_file.seekg(0, std::ios_base::end);
+        const size_t modelSize = serialized_file.tellg();
+        serialized_file.seekg(0, std::ios_base::beg);
         std::unique_ptr<char[]> blob(new char[modelSize]);
-        serializedFile.read(blob.get(), modelSize);
+        serialized_file.read(blob.get(), modelSize);
         auto runtime = InferUniquePtr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(gLogger));
         engine_ = runtime->deserializeCudaEngine(blob.get(), modelSize, nullptr);
     } else {
-
         // build
-        build(filename);
+        auto builder = InferUniquePtr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(gLogger));
+        if (!builder) {
+            throw std::runtime_error("createInferBuilder");
+        }
+
+        const auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
+        auto network = InferUniquePtr<nvinfer1::INetworkDefinition>(builder->createNetworkV2(explicitBatch));
+        if (!network) {
+            throw std::runtime_error("createNetworkV2");
+        }
+
+        auto config = InferUniquePtr<nvinfer1::IBuilderConfig>(builder->createBuilderConfig());
+        if (!config) {
+            throw std::runtime_error("createBuilderConfig");
+        }
+
+        auto parser = InferUniquePtr<nvonnxparser::IParser>(nvonnxparser::createParser(*network, gLogger));
+        if (!parser) {
+            throw std::runtime_error("createParser");
+        }
+
+        auto parsed = parser->parseFromFile(onnx_filename.c_str(), (int)nvinfer1::ILogger::Severity::kWARNING);
+        if (!parsed) {
+            throw std::runtime_error("parseFromFile");
+        }
+
+        builder->setMaxBatchSize(max_batch_size_);
+
+        config->setMaxWorkspaceSize(1ull << 31);
+
+        std::unique_ptr<nvinfer1::IInt8Calibrator> calibrator;
+        if (builder->platformHasFastInt8() && !search_option.use_fp16) {
+            config->setFlag(nvinfer1::BuilderFlag::kINT8);
+            calibrator.reset(new Int8EntropyCalibrator2(onnx_filename.c_str(), 1));
+            config->setInt8Calibrator(calibrator.get());
+        } else if (builder->platformHasFastFp16() && search_option.use_fp16) {
+            config->setFlag(nvinfer1::BuilderFlag::kFP16);
+        } else {
+            std::cout << "Fail to decide fp mode" << std::endl;
+            std::exit(1);
+        }
+
+        assert(network->getNbInputs() == 1);
+        assert(network->getNbOutputs() == 2);
+
+        // Optimization Profiles
+        auto profile = builder->createOptimizationProfile();
+        const auto dims = network->getInput(0)->getDimensions().d;
+        profile->setDimensions("input", nvinfer1::OptProfileSelector::kMIN, nvinfer1::Dims4(1, dims[1], dims[2], dims[3]));
+        profile->setDimensions("input", nvinfer1::OptProfileSelector::kOPT,
+                               nvinfer1::Dims4(opt_batch_size_, dims[1], dims[2], dims[3]));
+        profile->setDimensions("input", nvinfer1::OptProfileSelector::kMAX,
+                               nvinfer1::Dims4(max_batch_size_, dims[1], dims[2], dims[3]));
+        config->addOptimizationProfile(profile);
+
+        engine_ = builder->buildEngineWithConfig(*network, *config);
+        if (!engine_) {
+            throw std::runtime_error("buildEngineWithConfig");
+        }
 
         // serializing a model
-        auto serializedEngine = InferUniquePtr<nvinfer1::IHostMemory>(engine_->serialize());
-        if (!serializedEngine) {
+        auto serialized_engine = InferUniquePtr<nvinfer1::IHostMemory>(engine_->serialize());
+        if (!serialized_engine) {
             throw std::runtime_error("Engine serialization failed");
         }
-        std::ofstream engineFile(serialized_filename, std::ios::binary);
-        if (!engineFile) {
+        std::ofstream engine_file(serialized_filename, std::ios::binary);
+        if (!engine_file) {
             throw std::runtime_error("Cannot open engine file");
         }
-        engineFile.write(static_cast<char*>(serializedEngine->data()), serializedEngine->size());
-        if (engineFile.fail()) {
+        engine_file.write(static_cast<char*>(serialized_engine->data()), serialized_engine->size());
+        if (engine_file.fail()) {
             throw std::runtime_error("Cannot open engine file");
         }
     }
