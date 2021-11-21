@@ -1,6 +1,5 @@
 ﻿#include "../common.hpp"
 #include "../game.hpp"
-#include "../model/libtorch_model.hpp"
 #include "hyperparameter_loader.hpp"
 #include "learn.hpp"
 

@@ -1,8 +1,7 @@
 ﻿#include "learn.hpp"
 #include "../game.hpp"
 #include "../include_switch.hpp"
-#include "../model/infer_dlshogi_model.hpp"
-#include "../model/libtorch_model.hpp"
+#include "../model/infer_model.hpp"
 #include "hyperparameter_loader.hpp"
 #include <iomanip>
 #include <random>
@@ -414,11 +413,4 @@ int64_t loadStepNumFromValidLog(const std::string& valid_log_name) {
     return std::stoll(step_num_str);
 }
 
-void initLibTorchModel() {
-    LibTorchModel model;
-    model.save(DEFAULT_MODEL_NAME);
-    std::cout << DEFAULT_MODEL_NAME << "にパラメータを保存" << std::endl;
-}
-
 template class LearnManager<LearningModel>;
-template class LearnManager<LibTorchModel>;

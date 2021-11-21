@@ -16,8 +16,6 @@ void makeBook();
 void searchWithLog();
 void testLoad();
 void testModel();
-void checkValLibTorchModel();
-void checkLibTorchModel();
 void checkLearningModel();
 void checkInitLibTorchModel();
 void checkValidData();
