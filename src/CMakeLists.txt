@@ -7,16 +7,16 @@ set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 # LibTorch
-list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.8.1)
+list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.10.0)
 find_package(Torch REQUIRED)
 
 # TRTorch
-set(TRTORCH_INCLUDE ../../trtorch/include)
-file(GLOB TRTORCH_LIBRARIES ../../trtorch/lib/*.so)
+set(TRTORCH_INCLUDE ../../torch_tensorrt/include)
+file(GLOB TRTORCH_LIBRARIES ../../torch_tensorrt/lib/*.so)
 
 # TensorRT
-set(TENSORRT_INCLUDE ../../TensorRT-7.2.2.3/include)
-file(GLOB TENSORRT_LIBRARIES ../../TensorRT-7.2.2.3/lib/*.so)
+set(TENSORRT_INCLUDE ../../TensorRT-8.0.1.6/include)
+file(GLOB TENSORRT_LIBRARIES ../../TensorRT-8.0.1.6/lib/*.so)
 
 # 各ゲームで共通する部分のソース
 file(GLOB COMMON_SRCS ./*.cpp)
