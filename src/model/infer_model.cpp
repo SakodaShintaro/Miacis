@@ -60,9 +60,6 @@ InferModel::policyAndValueBatch(const std::vector<float>& inputs) {
 
 std::tuple<torch::Tensor, torch::Tensor> InferModel::infer(const std::vector<float>& inputs) {
     torch::Tensor x = inputVectorToTensor(inputs).to(device_);
-    if (use_fp16_) {
-        x = x.to(torch::kFloat16);
-    }
     auto out = module_.forward({ x });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
@@ -83,9 +80,6 @@ std::tuple<torch::Tensor, torch::Tensor> InferModel::infer(const std::vector<flo
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector<LearningData>& data) {
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
-    if (use_fp16_) {
-        input = input.to(torch::kFloat16);
-    }
     auto out = module_.forward({ input });
     auto tuple = out.toTuple();
     torch::Tensor policy_logit = tuple->elements()[0].toTensor().view({ -1, POLICY_DIM });
