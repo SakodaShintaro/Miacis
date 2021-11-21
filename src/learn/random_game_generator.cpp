@@ -1,6 +1,6 @@
 #include "random_game_generator.hpp"
 #include <thread>
-#include <trtorch/trtorch.h>
+#include <torch_tensorrt/torch_tensorrt.h>
 
 void RandomGameGenerator::start() {
     //停止信号が来るまで生成し続けるループ

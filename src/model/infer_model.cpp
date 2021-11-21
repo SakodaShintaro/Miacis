@@ -1,11 +1,11 @@
+#include "infer_model.hpp"
 #include "../common.hpp"
 #include "../include_switch.hpp"
 #include "../learn/learn.hpp"
 #include "dataset.hpp"
-#include "infer_model.hpp"
 #include <torch/torch.h>
-#include <trtorch/ptq.h>
-#include <trtorch/trtorch.h>
+#include <torch_tensorrt/ptq.h>
+#include <torch_tensorrt/torch_tensorrt.h>
 
 void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     //マルチGPU環境で同時にloadすると時々Segmentation Faultが発生するので排他制御を入れる
@@ -24,11 +24,11 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
 
     use_fp16_ = search_option.use_fp16;
     if (use_fp16_) {
-        trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
-        trtorch::CompileSpec info({ range });
-        info.op_precision = torch::kHalf;
+        torch_tensorrt::Input range(in_min, in_opt, in_max);
+        torch_tensorrt::ts::CompileSpec info({ range });
+        info.enabled_precisions.insert(torch::kFloat16);
         info.device.gpu_id = gpu_id;
-        module_ = trtorch::CompileGraph(module, info);
+        module_ = torch_tensorrt::ts::compile(module, info);
     } else {
         using namespace torch::data;
         const bool use_calibration_cache = search_option.use_calibration_cache;
@@ -37,18 +37,19 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
         auto dataset = raw_dataset.map(transforms::Stack<>());
         auto dataloader = make_data_loader(std::move(dataset), DataLoaderOptions().batch_size(opt_batch_size).workers(1));
 
-        auto calibrator = trtorch::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(
+        auto calibrator = torch_tensorrt::ptq::make_int8_calibrator<nvinfer1::IInt8MinMaxCalibrator>(
             std::move(dataloader), search_option.calibration_cache_path, use_calibration_cache);
 
-        trtorch::CompileSpec::InputRange range(in_min, in_opt, in_max);
-        trtorch::CompileSpec info({ range });
-        info.op_precision = torch::kI8;
+        torch_tensorrt::Input range(in_min, in_opt, in_max);
+        torch_tensorrt::ts::CompileSpec info({ range });
+        info.enabled_precisions.insert(torch::kFloat16);
+        info.enabled_precisions.insert(torch::kInt8);
         info.device.gpu_id = gpu_id;
         info.ptq_calibrator = calibrator;
         info.workspace_size = (1ull << 29);
         info.max_batch_size = opt_batch_size * 2;
 
-        module_ = trtorch::CompileGraph(module, info);
+        module_ = torch_tensorrt::ts::compile(module, info);
     }
 }
 

@@ -22,7 +22,7 @@ RUN mkdir TensorRT-8.0.1.6/lib
 RUN ln -s /usr/lib/x86_64-linux-gnu/libnv*.so ./TensorRT-8.0.1.6/lib/
 
 # 環境変数の設定
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/libtorch-1.10.0/lib:/root/trtorch/lib
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/libtorch-1.10.0/lib:/root/torch_tensorrt/lib
 
 # Miacisの導入
 RUN git clone https://github.com/SakodaShintaro/Miacis -b Torch-TensorRT
