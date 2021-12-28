@@ -2,12 +2,11 @@
 #include "../common.hpp"
 #include "../include_switch.hpp"
 #include "../learn/learn.hpp"
+#include "calibrator.hpp"
 #include "dataset.hpp"
 #include <torch/torch.h>
 #include <trtorch/ptq.h>
 #include <trtorch/trtorch.h>
-#include "../learn/learn.hpp"
-#include "calibrator.hpp"
 
 class Logger : public nvinfer1::ILogger {
     const char* error_type(Severity severity) {
@@ -104,7 +103,7 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option, bool u
             throw std::runtime_error("createParser");
         }
 
-        auto parsed = parser->parseFromFile(onnx_filename.c_str(), (int)nvinfer1::ILogger::Severity::kWARNING);
+        auto parsed = parser->parseFromFile(onnx_filename.c_str(), (int)nvinfer1::ILogger::Severity::kINTERNAL_ERROR);
         if (!parsed) {
             throw std::runtime_error("parseFromFile");
         }

@@ -7,7 +7,6 @@ class Int8EntropyCalibrator2 : public nvinfer1::IInt8EntropyCalibrator2 {
 public:
     Int8EntropyCalibrator2(const std::string& model_filename, const int64_t batch_size, const std::string& kifu_dir)
         : batch_size_(batch_size) {
-        std::cout << "Int8EntropyCalibrator2 Constructor" << std::endl;
         calibration_cache_filename = model_filename + ".calibcache";
         checkCudaErrors(cudaMalloc(&input_dev_, sizeof(float) * batch_size * INPUT_CHANNEL_NUM * SQUARE_NUM));
         data_ = loadData(kifu_dir, false, rate_threshold_);
@@ -39,14 +38,15 @@ public:
     }
 
     const void* readCalibrationCache(size_t& length) override {
-        calibration_cache.clear();
-        std::ifstream input(calibration_cache_filename, std::ios::binary);
-        input >> std::noskipws;
-        if (input.good()) {
-            std::copy(std::istream_iterator<char>(input), std::istream_iterator<char>(), std::back_inserter(calibration_cache));
-        }
-        length = calibration_cache.size();
-        return length ? calibration_cache.data() : nullptr;
+        return nullptr;
+        // calibration_cache.clear();
+        // std::ifstream input(calibration_cache_filename, std::ios::binary);
+        // input >> std::noskipws;
+        // if (input.good()) {
+        //     std::copy(std::istream_iterator<char>(input), std::istream_iterator<char>(), std::back_inserter(calibration_cache));
+        // }
+        // length = calibration_cache.size();
+        // return length ? calibration_cache.data() : nullptr;
     }
 
     void writeCalibrationCache(const void* cache, size_t length) override {

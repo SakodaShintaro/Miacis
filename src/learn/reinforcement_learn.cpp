@@ -118,8 +118,7 @@ void reinforcementLearn() {
             const std::string filepath = __FILE__;
             const std::string dirpath = filepath.substr(0, filepath.rfind('/'));
             const std::string script_dirpath = dirpath + "/../../scripts/convert_ts_model_to_onnx.py";
-            const std::string command = script_dirpath + " " + model_prefix + ".model";
-            std::cout << "command = " << command << std::endl;
+            const std::string command = script_dirpath + " " + model_prefix + ".model" + " --no_message";
             int result = system(command.c_str());
 
             //各ネットワークで保存されたパラメータを読み込み

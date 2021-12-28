@@ -6,6 +6,7 @@ from generate_transformer_model import *
 parser = argparse.ArgumentParser()
 parser.add_argument("model_path", type=str)
 parser.add_argument("--batch_size", type=int, default=1)
+parser.add_argument("--no_message", action="store_true")
 args = parser.parse_args()
 
 input_channel_num = 42
@@ -26,7 +27,8 @@ for part in parts:
     if "ch" in part:
         channel_num = int(part.replace("ch", ""))
 
-print(f"block_num = {block_num}, channel_num = {channel_num}")
+if not args.no_message:
+    print(f"block_num = {block_num}, channel_num = {channel_num}")
 
 model = None
 if "transformer" in args.model_path:
@@ -45,4 +47,5 @@ model.cuda()
 
 save_path = args.model_path.replace(".model", ".onnx")
 torch.onnx.export(model, input_tensor, save_path, dynamic_axes={"input": {0: "batch_size"}}, input_names=["input"])
-print(f"export to {save_path}")
+if not args.no_message:
+    print(f"export to {save_path}")
