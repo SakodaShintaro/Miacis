@@ -748,7 +748,7 @@ void checkBuildOnnx() {
     const std::string script_dirpath = dirpath + "/../../scripts/convert_ts_model_to_onnx.py";
     const std::string command = script_dirpath + " " + DEFAULT_MODEL_NAME;
     std::cout << "command = " << command << std::endl;
-    system(command.c_str());
+    int result = system(command.c_str());
     InferModel infer_model;
     SearchOptions search_options;
     search_options.model_name = DEFAULT_ONNX_NAME;
