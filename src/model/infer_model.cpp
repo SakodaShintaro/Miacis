@@ -168,7 +168,10 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
 void InferModel::forward(const int64_t batch_size, const float* x1, void* y1, void* y2) {
     checkCudaErrors(cudaMemcpy(x1_dev_, x1, batch_size * sizeof(float) * INPUT_CHANNEL_NUM * SQUARE_NUM, cudaMemcpyHostToDevice));
 
-    context_->execute(batch_size, input_bindings_.data());
+    nvinfer1::Dims dims = engine_->getBindingDimensions(0);
+    dims.d[0] = batch_size;
+    context_->setBindingDimensions(0, dims);
+    context_->executeV2(input_bindings_.data());
 
     checkCudaErrors(cudaMemcpy(y1, y1_dev_, batch_size * sizeof(float) * POLICY_DIM, cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaMemcpy(y2, y2_dev_, batch_size * sizeof(float) * BIN_SIZE, cudaMemcpyDeviceToHost));

@@ -44,5 +44,5 @@ model.eval()
 model.cuda()
 
 save_path = args.model_path.replace(".model", ".onnx")
-torch.onnx.export(model, input_tensor, save_path)
+torch.onnx.export(model, input_tensor, save_path, dynamic_axes={"input": {0: "batch_size"}}, input_names=["input"])
 print(f"export to {save_path}")
