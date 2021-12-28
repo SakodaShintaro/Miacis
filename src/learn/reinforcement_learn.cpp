@@ -33,10 +33,10 @@ void reinforcementLearn() {
     int64_t sleep_msec                = settings.get<int64_t>("sleep_msec");
     int64_t init_buffer_by_kifu       = settings.get<int64_t>("init_buffer_by_kifu");
     int64_t noise_mode                = settings.get<int64_t>("noise_mode");
-    int64_t wait_sec_per_load         = settings.get<int64_t>("wait_sec_per_load");
     bool data_augmentation            = settings.get<bool>("data_augmentation");
     bool Q_search                     = settings.get<bool>("Q_search");
     std::string train_kifu_path       = settings.get<std::string>("train_kifu_path");
+    search_options.model_name         = settings.get<std::string>("model_prefix") + ".onnx";
     search_options.calibration_kifu_path = settings.get<std::string>("calibration_kifu_path");
     // clang-format on
 
@@ -118,7 +118,9 @@ void reinforcementLearn() {
             }
 
             //int8の場合は特にloadで時間がかかるのでその期間スリープ
-            std::this_thread::sleep_for(std::chrono::seconds(wait_sec_per_load));
+            //厳密にこの時間ずっと止まっていなければエラーになるわけではない
+            //とりあえず90秒で
+            std::this_thread::sleep_for(std::chrono::seconds(90));
         }
 
         //学習スレッドを眠らせることで擬似的にActorの数を増やす
