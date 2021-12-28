@@ -16,7 +16,7 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
     //GPUを準備
     for (int64_t i = 0; i < search_options.gpu_num; i++) {
         neural_networks_.emplace_back();
-        neural_networks_[i].load(i, search_options);
+        neural_networks_[i].load(i, search_options, true);
     }
 
     //GPUに対するmutexを準備

@@ -219,7 +219,7 @@ void checkValInfer() {
 
     //ネットワークの準備
     InferModel nn;
-    nn.load(0, search_options);
+    nn.load(0, search_options, false);
 
     std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, search_options.search_batch_size);
     std::cout << std::fixed << std::setprecision(4);
@@ -238,7 +238,7 @@ void checkPredictSpeed() {
     SearchOptions search_options;
 
     InferModel nn;
-    nn.load(0, search_options);
+    nn.load(0, search_options, false);
 
     for (int64_t batch_size = 1; batch_size <= BATCH_SIZE; batch_size *= 2) {
         //バッチサイズ分入力を取得
@@ -471,52 +471,6 @@ void searchWithLog() {
     }
 }
 
-void testLoad() {
-    constexpr int64_t LOOP_NUM = 20;
-
-    SearchOptions search_options;
-
-    //時間計測開始
-    Timer timer;
-    timer.start();
-    int64_t pre = 0;
-    //通常試行
-    std::cout << "通常の試行" << std::endl;
-    for (int64_t num = 0; num < 0; num++) {
-        InferModel model;
-        model.load(0, search_options);
-        int64_t ela = timer.elapsedSeconds();
-        int64_t curr = ela - pre;
-        pre = ela;
-        std::cout << std::setw(3) << num + 1 << "回目終了, 今回" << curr << "秒, 平均" << ela / (num + 1.0) << "秒" << std::endl;
-    }
-
-    //スレッドを作成しての試行
-    timer.start();
-    pre = 0;
-    std::cout << "スレッドを作成しての試行" << std::endl;
-    const int64_t gpu_num = torch::getNumGPUs();
-    for (int64_t num = 0; num < LOOP_NUM; num++) {
-        std::vector<std::thread> threads;
-        for (int64_t i = 0; i < gpu_num; i++) {
-            threads.emplace_back([i, search_options]() {
-                InferModel model;
-                model.load(i, search_options);
-            });
-        }
-        for (int64_t i = 0; i < gpu_num; i++) {
-            threads[i].join();
-        }
-        int64_t ela = timer.elapsedSeconds();
-        int64_t curr = ela - pre;
-        pre = ela;
-        std::cout << std::setw(3) << num + 1 << "回目終了, 今回" << curr << "秒, 平均" << ela / (num + 1.0) << "秒" << std::endl;
-    }
-
-    std::cout << "finish testLoad" << std::endl;
-    std::exit(0);
-}
-
 void testModel() {
     //ネットワークの準備
     SearchOptions search_options;
@@ -527,7 +481,7 @@ void testModel() {
     std::cin >> search_options.model_name;
 
     InferModel nn;
-    nn.load(0, search_options);
+    nn.load(0, search_options, false);
 
     Position pos;
     pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
@@ -799,7 +753,7 @@ void checkBuildOnnx() {
     SearchOptions search_options;
     search_options.model_name = DEFAULT_ONNX_NAME;
     search_options.use_fp16 = true;
-    infer_model.load(0, search_options);
+    infer_model.load(0, search_options, false);
 }
 
 } // namespace Shogi

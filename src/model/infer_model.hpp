@@ -43,7 +43,7 @@ class InferModel {
 public:
     InferModel() = default;
     ~InferModel();
-    void load(int64_t gpu_id, const SearchOptions& search_option);
+    void load(int64_t gpu_id, const SearchOptions& search_option, bool use_serialized_engine);
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
     std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data);
 

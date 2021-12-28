@@ -38,7 +38,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["checkBook"]          = checkBook;
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
-    command_["testLoad"]           = testLoad;
     command_["testModel"]          = testModel;
     command_["checkLearningModel"] = checkLearningModel;
     command_["checkValidData"]     = checkValidData;

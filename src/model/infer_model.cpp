@@ -45,7 +45,7 @@ InferModel::~InferModel() {
     //context_->destroy();
 }
 
-void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
+void InferModel::load(int64_t gpu_id, const SearchOptions& search_option, bool use_serialized_engine) {
     gpu_id_ = gpu_id;
     opt_batch_size_ = search_option.search_batch_size;
     max_batch_size_ = search_option.search_batch_size * 2;
@@ -72,7 +72,7 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     const std::string basename = onnx_filename.substr(0, onnx_filename.rfind('.'));
     const std::string serialized_filename = basename + ".engine";
     std::ifstream serialized_file(serialized_filename, std::ios::binary);
-    if (serialized_file.is_open()) {
+    if (use_serialized_engine && serialized_file.is_open()) {
         // deserializing a model
         serialized_file.seekg(0, std::ios_base::end);
         const size_t modelSize = serialized_file.tellg();

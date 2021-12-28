@@ -14,7 +14,6 @@ void checkMirror();
 void checkBook();
 void makeBook();
 void searchWithLog();
-void testLoad();
 void testModel();
 void checkLearningModel();
 void checkValidData();
