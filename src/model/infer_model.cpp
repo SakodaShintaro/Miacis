@@ -6,8 +6,6 @@
 #include <torch/torch.h>
 #include <trtorch/ptq.h>
 #include <trtorch/trtorch.h>
-
-#ifndef DLSHOGI
 #include "../learn/learn.hpp"
 #include "calibrator.hpp"
 
@@ -272,5 +270,3 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
 
     return { policy_loss, value_loss };
 }
-
-#endif

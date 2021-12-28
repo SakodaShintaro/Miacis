@@ -4,15 +4,6 @@
 #include "../search/search_options.hpp"
 #include "model_common.hpp"
 #include <torch/script.h>
-
-#ifdef DLSHOGI
-
-#include "infer_dlshogi_model.hpp"
-#include "infer_dlshogi_onnx_model.hpp"
-using InferModel = InferDLShogiOnnxModel;
-
-#else
-
 #include "../include_switch.hpp"
 #include "../search/search_options.hpp"
 #include "model_common.hpp"
@@ -69,7 +60,5 @@ private:
 
     void forward(const int64_t batch_size, const float* x1, void* y1, void* y2);
 };
-
-#endif
 
 #endif

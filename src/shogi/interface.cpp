@@ -27,7 +27,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["supervisedLearn"]    = supervisedLearn;
     command_["reinforcementLearn"] = reinforcementLearn;
     command_["contrastiveLearn"]   = contrastiveLearn;
-    command_["experimentalSupervisedLearn"] = experimentalSupervisedLearn;
     command_["checkSearchSpeed"]   = checkSearchSpeed;
     command_["checkSearchSpeed2"]  = checkSearchSpeed2;
     command_["checkGenSpeed"]      = checkGenSpeed;
@@ -41,12 +40,8 @@ Interface::Interface() : searcher_(nullptr) {
     command_["searchWithLog"]      = searchWithLog;
     command_["testLoad"]           = testLoad;
     command_["testModel"]          = testModel;
-    command_["initLibTorchModel"]  = initLibTorchModel;
-    command_["checkValLibTorchModel"] = checkValLibTorchModel;
-    command_["checkLibTorchModel"] = checkLibTorchModel;
     command_["checkLearningModel"] = checkLearningModel;
-    command_["checkInitLibTorchModel"] = checkInitLibTorchModel;
-    command_["checkValidData"] = checkValidData;
+    command_["checkValidData"]     = checkValidData;
     command_["checkBuildOnnx"]     = checkBuildOnnx;
     // clang-format on
 }
