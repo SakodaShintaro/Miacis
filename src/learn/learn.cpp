@@ -39,36 +39,7 @@ std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<
 template std::array<float, LOSS_TYPE_NUM> validation<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data,
                                                                  uint64_t batch_size);
 
-std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold) {
-    //棋譜を読み込めるだけ読み込む
-    std::vector<Game> games = loadGames(file_path, rate_threshold);
-
-    //データを局面単位にバラす
-    std::vector<LearningData> data_buffer;
-    for (const Game& game : games) {
-        Position pos;
-        for (const OneTurnElement& e : game.elements) {
-            const Move& move = e.move;
-            uint32_t label = move.toLabel();
-            std::string position_str = pos.toStr();
-            for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
-                LearningData datum{};
-                datum.policy.push_back({ Move::augmentLabel(label, i), 1.0 });
-#ifdef USE_CATEGORICAL
-                datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
-#else
-                datum.value = (float)(pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
-#endif
-                datum.position_str = Position::augmentStr(position_str, i);
-                data_buffer.push_back(datum);
-            }
-            pos.doMove(move);
-        }
-    }
-
-    //**********
-    // 重複削除 *
-    //**********
+std::vector<LearningData> deleteDuplicate(std::vector<LearningData>& data_buffer) {
     std::sort(data_buffer.begin(), data_buffer.end(),
               [](LearningData& lhs, LearningData& rhs) { return lhs.position_str < rhs.position_str; });
 
@@ -123,8 +94,38 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
         }
     }
 
-    data_buffer = remain;
-    return data_buffer;
+    return remain;
+}
+
+std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold) {
+    //棋譜を読み込めるだけ読み込む
+    std::vector<Game> games = loadGames(file_path, rate_threshold);
+
+    //データを局面単位にバラす
+    std::vector<LearningData> data_buffer;
+    for (const Game& game : games) {
+        Position pos;
+        for (const OneTurnElement& e : game.elements) {
+            const Move& move = e.move;
+            uint32_t label = move.toLabel();
+            std::string position_str = pos.toStr();
+            for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
+                LearningData datum{};
+                datum.policy.push_back({ Move::augmentLabel(label, i), 1.0 });
+#ifdef USE_CATEGORICAL
+                datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
+#else
+                datum.value = (float)(pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
+#endif
+                datum.position_str = Position::augmentStr(position_str, i);
+                data_buffer.push_back(datum);
+            }
+            pos.doMove(move);
+        }
+    }
+
+    //重複を削除して返す
+    return deleteDuplicate(data_buffer);
 }
 
 // make move
@@ -177,21 +178,22 @@ std::vector<LearningData> __hcpe_decode_with_value(const size_t len, char* ndhcp
 
         float score = 1.0f / (1.0f + expf(-(float)hcpe->eval * 0.0013226f)) * (MAX_SCORE - MIN_SCORE) + MIN_SCORE;
         float result = make_result(hcpe->gameResult, pos.color());
+        float target_value = (score + result) / 2;
 
         for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
             LearningData datum{};
             datum.policy.push_back({ Move::augmentLabel(label, i), 1.0 });
 #ifdef USE_CATEGORICAL
-            datum.value = valueToIndex(result);
+            datum.value = valueToIndex(target_value);
 #else
-            datum.value = result;
+            datum.value = target_value;
 #endif
             datum.position_str = Position::augmentStr(position_str, i);
             data_buffer.push_back(datum);
         }
     }
 
-    return data_buffer;
+    return deleteDuplicate(data_buffer);
 }
 
 std::vector<LearningData> loadHCPE(const std::string& file_path, bool data_augmentation) {
