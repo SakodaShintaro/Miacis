@@ -128,7 +128,7 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
 }
 
 // make move
-Move make_move_label(const uint16_t move16) {
+Move make_move_label(const uint16_t move16, const Color color) {
     // xxxxxxxx x1111111  移動先
     // xx111111 1xxxxxxx  移動元。駒打ちの際には、PieceType + SquareNum - 1
     // x1xxxxxx xxxxxxxx  1 なら成り
@@ -137,13 +137,15 @@ Move make_move_label(const uint16_t move16) {
 
     Square to = SquareList[to_sq];
 
-    if (from_sq < SquareNum) {
+    if (from_sq < SQUARE_NUM) {
         Square from = SquareList[from_sq];
-        return Move(to, from, false);
+        bool promote = (move16 & 0b100000000000000) > 0;
+        return Move(to, from, false, promote);
     } else {
         // 持ち駒の場合
-        const int hand_piece = from_sq - (int)SquareNum;
-        return dropMove(to, Piece(hand_piece));
+        const int hand_piece = from_sq - (uint16_t)SQUARE_NUM;
+        Piece p = coloredPiece(color, DLShogiPieceKindList[hand_piece]);
+        return dropMove(to, p);
     }
 }
 
@@ -169,11 +171,11 @@ std::vector<LearningData> __hcpe_decode_with_value(const size_t len, char* ndhcp
         pos.fromHCP(hcpe->hcp);
         std::string position_str = pos.toStr();
 
-        Move move = make_move_label(hcpe->bestMove16);
+        Move move = make_move_label(hcpe->bestMove16, pos.color());
         move = pos.transformValidMove(move);
         uint32_t label = move.toLabel();
 
-        // game result
+        float score = 1.0f / (1.0f + expf(-(float)hcpe->eval * 0.0013226f)) * (MAX_SCORE - MIN_SCORE) + MIN_SCORE;
         float result = make_result(hcpe->gameResult, pos.color());
 
         for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {

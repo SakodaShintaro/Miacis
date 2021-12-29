@@ -66,7 +66,7 @@ const HuffmanCode HuffmanCodedPos::boardCodeTable[PieceNum] = {
     {Binary<    101011>::value, 6}, // 52.BProSilver
     {Binary<         0>::value, 0}, // 53.使用しないので numOfBit を 0 にしておく。
     {Binary<  10011111>::value, 8}, // 54.BHorse
-    {Binary<  10111111>::value, 8}, // 55.BDragona
+    {Binary<  10111111>::value, 8}, // 55.BDragon
     {Binary<         0>::value, 0}, // 56.使用しないので numOfBit を 0 にしておく。
     {Binary<         0>::value, 0}, // 57.使用しないので numOfBit を 0 にしておく。
     {Binary<         0>::value, 0}, // 58.使用しないので numOfBit を 0 にしておく。
