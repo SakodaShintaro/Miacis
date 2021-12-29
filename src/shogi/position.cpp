@@ -578,12 +578,16 @@ bool Position::fromHCP(const HuffmanCodedPos& hcp) {
     for (Piece& p : board_) p = WALL;
     for (Square sq : SquareList) board_[sq] = EMPTY;
 
+    //持ち駒初期化
+    hand_[BLACK].clear();
+    hand_[WHITE].clear();
+
     // 手番
     color_ = static_cast<Color>(bs.getBit());
 
     // 玉の位置
-    Square sq0 = (Square)bs.getBits(7);
-    Square sq1 = (Square)bs.getBits(7);
+    Square sq0 = SquareList[bs.getBits(7)];
+    Square sq1 = SquareList[bs.getBits(7)];
     board_[sq0] = BLACK_KING;
     king_sq_[BLACK] = sq0;
     board_[sq1] = WHITE_KING;
@@ -597,16 +601,17 @@ bool Position::fromHCP(const HuffmanCodedPos& hcp) {
         HuffmanCode hc = { 0, 0 };
         while (hc.numOfBits <= 8) {
             hc.code |= (bs.getBit() << hc.numOfBits++);
-            if (HuffmanCodedPos::boardCodeToPieceHash.value(hc.key) != PieceNum) {
-                const Piece pc = HuffmanCodedPos::boardCodeToPieceHash.value(hc.key);
+            const Piece pc = HuffmanCodedPos::boardCodeToPieceHash.value(hc.key);
+            if (pc != PieceNum) {
                 if (pc != EMPTY) {
-                    board_[sq] = HuffmanCodedPos::boardCodeToPieceHash.value(hc.key);
+                    board_[sq] = pc;
                 }
                 break;
             }
         }
         if (HuffmanCodedPos::boardCodeToPieceHash.value(hc.key) == PieceNum) {
-            goto INCORRECT_HUFFMAN_CODE;
+            std::cout << "incorrect Huffman code. 盤面に異常" << std::endl;
+            return false;
         }
     }
     while (bs.data() != std::end(tmp.data)) {
@@ -620,7 +625,8 @@ bool Position::fromHCP(const HuffmanCodedPos& hcp) {
             }
         }
         if (HuffmanCodedPos::handCodeToPieceHash.value(hc.key) == PieceNum) {
-            goto INCORRECT_HUFFMAN_CODE;
+            std::cout << "incorrect Huffman code. 持ち駒に異常" << std::endl;
+            return false;
         }
     }
 
@@ -648,15 +654,16 @@ bool Position::fromHCP(const HuffmanCodedPos& hcp) {
     }
     occupied_all_ = occupied_bb_[BLACK] | occupied_bb_[WHITE];
 
-    is_checked_ = false;
+    //pinners
+    computePinners();
+
+    //王手の確認
+    is_checked_ = isThereControl(~color_, king_sq_[color_]);
 
     //合法手生成のフラグを降ろす
     already_generated_moves_ = false;
 
     return true;
-INCORRECT_HUFFMAN_CODE:
-    std::cout << "incorrect Huffman code." << std::endl;
-    return false;
 }
 
 std::string Position::toStr() const {

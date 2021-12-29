@@ -91,6 +91,8 @@ struct HuffmanCodedPos {
     static HuffmanCodeToPieceHash boardCodeToPieceHash;
     static HuffmanCodeToPieceHash handCodeToPieceHash;
     static void init() {
+        // 空マス
+        boardCodeToPieceHash[boardCodeTable[EMPTY].key] = EMPTY;
         for (Piece pc : PieceList) {
             // 玉は位置で符号化するので、駒の種類では符号化しない。
             if (kind(pc) != KING) {
@@ -99,7 +101,7 @@ struct HuffmanCodedPos {
         }
         for (int32_t hp = PAWN; hp < KING; ++hp) {
             for (int32_t c = BLACK; c < ColorNum; ++c) {
-                handCodeToPieceHash[handCodeTable[hp][c].key] = coloredPiece(Color(c), Piece(hp));
+                handCodeToPieceHash[handCodeTable[hp - 1][c].key] = coloredPiece(Color(c), Piece(hp));
             }
         }
     }

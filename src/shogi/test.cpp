@@ -756,4 +756,13 @@ void checkBuildOnnx() {
     infer_model.load(0, search_options, false);
 }
 
+void testHuffmanDecode() {
+    std::vector<LearningData> data = loadHCPE("../../data/ShogiAIBookData/dlshogi_with_gct-001.hcpe", false);
+    for (const LearningData& datum : data) {
+        Position pos;
+        pos.fromStr(datum.position_str);
+        pos.print();        
+    }
+}
+
 } // namespace Shogi
