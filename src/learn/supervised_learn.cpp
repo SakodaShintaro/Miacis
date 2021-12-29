@@ -32,7 +32,7 @@ void supervisedLearn() {
     }
 
     //データを取得
-    std::vector<LearningData> train_data = loadData(train_kifu_path, data_augmentation, train_rate_threshold);
+    std::vector<LearningData> train_data = loadHCPE(train_kifu_path, data_augmentation);
 
     //どのEpochでどのデータを使っているかを記録する
     std::ofstream epoch_log("epoch_log.txt");
@@ -73,7 +73,7 @@ void supervisedLearn() {
         }
 
         if (load_multi_dir) {
-            train_data = loadData(dir_paths[epoch % dir_paths.size()], data_augmentation, train_rate_threshold);
+            train_data = loadHCPE(dir_paths[epoch % dir_paths.size()], data_augmentation);
             epoch_log << epoch << " " << global_step << " " << train_data.size() << std::endl;
         }
     }
