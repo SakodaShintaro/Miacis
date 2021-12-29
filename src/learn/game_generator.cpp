@@ -137,7 +137,7 @@ void GameGenerator::loadNeuralNetwork() {
     SearchOptions tmp_option = search_options_;
     tmp_option.search_batch_size *= worker_num_;
     tmp_option.use_calibration_cache = false;
-    neural_network_.load(gpu_id_, tmp_option);
+    neural_network_.load(gpu_id_, tmp_option, false);
 }
 
 GenerateWorker::GenerateWorker(const SearchOptions& search_options, GPUQueue& gpu_queue, float Q_dist_lambda, ReplayBuffer& rb)

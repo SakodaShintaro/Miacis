@@ -9,6 +9,8 @@ int main() {
 
     Bitboard::init();
 
+    HuffmanCodedPos::init();
+
     Interface usi;
     usi.loop();
 }

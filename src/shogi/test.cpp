@@ -1,9 +1,6 @@
 ﻿#include "test.hpp"
 #include "../learn/game_generator.hpp"
-#include "../model/infer_dlshogi_model.hpp"
-#include "../model/infer_dlshogi_onnx_model.hpp"
 #include "../model/infer_model.hpp"
-#include "../model/libtorch_model.hpp"
 #include "../search/searcher_for_play.hpp"
 #include "book.hpp"
 
@@ -222,7 +219,7 @@ void checkValInfer() {
 
     //ネットワークの準備
     InferModel nn;
-    nn.load(0, search_options);
+    nn.load(0, search_options, false);
 
     std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, search_options.search_batch_size);
     std::cout << std::fixed << std::setprecision(4);
@@ -241,7 +238,7 @@ void checkPredictSpeed() {
     SearchOptions search_options;
 
     InferModel nn;
-    nn.load(0, search_options);
+    nn.load(0, search_options, false);
 
     for (int64_t batch_size = 1; batch_size <= BATCH_SIZE; batch_size *= 2) {
         //バッチサイズ分入力を取得
@@ -474,52 +471,6 @@ void searchWithLog() {
     }
 }
 
-void testLoad() {
-    constexpr int64_t LOOP_NUM = 20;
-
-    SearchOptions search_options;
-
-    //時間計測開始
-    Timer timer;
-    timer.start();
-    int64_t pre = 0;
-    //通常試行
-    std::cout << "通常の試行" << std::endl;
-    for (int64_t num = 0; num < 0; num++) {
-        InferModel model;
-        model.load(0, search_options);
-        int64_t ela = timer.elapsedSeconds();
-        int64_t curr = ela - pre;
-        pre = ela;
-        std::cout << std::setw(3) << num + 1 << "回目終了, 今回" << curr << "秒, 平均" << ela / (num + 1.0) << "秒" << std::endl;
-    }
-
-    //スレッドを作成しての試行
-    timer.start();
-    pre = 0;
-    std::cout << "スレッドを作成しての試行" << std::endl;
-    const int64_t gpu_num = torch::getNumGPUs();
-    for (int64_t num = 0; num < LOOP_NUM; num++) {
-        std::vector<std::thread> threads;
-        for (int64_t i = 0; i < gpu_num; i++) {
-            threads.emplace_back([i, search_options]() {
-                InferModel model;
-                model.load(i, search_options);
-            });
-        }
-        for (int64_t i = 0; i < gpu_num; i++) {
-            threads[i].join();
-        }
-        int64_t ela = timer.elapsedSeconds();
-        int64_t curr = ela - pre;
-        pre = ela;
-        std::cout << std::setw(3) << num + 1 << "回目終了, 今回" << curr << "秒, 平均" << ela / (num + 1.0) << "秒" << std::endl;
-    }
-
-    std::cout << "finish testLoad" << std::endl;
-    std::exit(0);
-}
-
 void testModel() {
     //ネットワークの準備
     SearchOptions search_options;
@@ -530,7 +481,7 @@ void testModel() {
     std::cin >> search_options.model_name;
 
     InferModel nn;
-    nn.load(0, search_options);
+    nn.load(0, search_options, false);
 
     Position pos;
     pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
@@ -549,179 +500,6 @@ void testModel() {
     }
     std::cout << "finish testModel" << std::endl;
     std::exit(0);
-}
-
-void checkValLibTorchModel() {
-    //データを取得
-    std::string path;
-    std::cout << "validation kifu path : ";
-    std::cin >> path;
-    int64_t batch_size;
-    std::cout << "batch_size : ";
-    std::cin >> batch_size;
-    std::string model_file;
-    std::cout << "model_file : ";
-    std::cin >> model_file;
-    float rate_threshold;
-    std::cout << "rate_threshold : ";
-    std::cin >> rate_threshold;
-
-    std::vector<LearningData> valid_data = loadData(path, false, rate_threshold);
-    std::cout << "valid_data.size() = " << valid_data.size() << std::endl;
-
-    //ネットワークの準備
-    LibTorchModel model;
-    model.load(model_file, 0);
-    model.eval();
-
-    torch::NoGradGuard no_grad_guard;
-
-    constexpr int64_t loop_num = DEFAULT_LOOP_NUM + 5;
-    std::vector<std::array<float, LOSS_TYPE_NUM>> losses(loop_num);
-
-    for (uint64_t index = 0; index < valid_data.size();) {
-        std::vector<LearningData> curr_data;
-        while (index < valid_data.size() && curr_data.size() < batch_size) {
-            curr_data.push_back(valid_data[index++]);
-        }
-
-        std::cout << index << " / " << valid_data.size() << std::endl;
-
-        std::vector<std::array<torch::Tensor, LOSS_TYPE_NUM>> curr_losses = model.validLosses(curr_data, loop_num);
-        for (int64_t l = 0; l < loop_num; l++) {
-            for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-                losses[l][i] += curr_losses[l][i].sum().item<float>();
-            }
-        }
-    }
-
-    //データサイズで割って平均
-    for (int64_t l = 0; l < loop_num; l++) {
-        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            losses[l][i] /= valid_data.size();
-        }
-    }
-
-    for (int64_t l = 0; l < loop_num; l++) {
-        std::cout << std::setw(2) << l + 1 << "\t";
-        std::cout << std::fixed << std::setprecision(4);
-        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            std::cout << losses[l][i] << "\t\n"[i == LOSS_TYPE_NUM - 1];
-        }
-    }
-    std::cout << "finish checkLibTorchModel" << std::endl;
-}
-
-void checkLibTorchModel() {
-    //データを取得
-    std::string path;
-    std::cout << "validation kifu path : ";
-    std::cin >> path;
-    int64_t batch_size;
-    std::cout << "batch_size : ";
-    std::cin >> batch_size;
-    std::string model_file;
-    std::cout << "model_file : ";
-    std::cin >> model_file;
-    float rate_threshold;
-    std::cout << "rate_threshold : ";
-    std::cin >> rate_threshold;
-
-    std::vector<LearningData> valid_data = loadData(path, false, rate_threshold);
-    std::cout << "valid_data.size() = " << valid_data.size() << std::endl;
-
-    //ネットワークの準備
-    LibTorchModel model;
-    model.load(model_file, 0);
-    model.eval();
-
-    std::cout << std::fixed;
-
-    torch::NoGradGuard no_grad_guard;
-    std::array<float, LOSS_TYPE_NUM> losses{};
-    for (uint64_t index = 0; index < valid_data.size();) {
-        std::vector<LearningData> curr_data;
-        while (index < valid_data.size() && curr_data.size() < batch_size) {
-            curr_data.push_back(valid_data[index++]);
-        }
-
-        std::vector<torch::Tensor> reps = model.getRepresentations(curr_data);
-
-        std::cout << "表現の平均\t";
-        for (int64_t i = 0; i < reps.size(); i++) {
-            torch::Tensor r = reps[i];
-            r = r.mean({ 0, 2, 3 });
-            r = (r * r).mean();
-            std::cout << r.item<float>() << "\t\n"[i == reps.size() - 1];
-        }
-
-        std::cout << "表現の分散\t";
-        for (int64_t i = 0; i < reps.size(); i++) {
-            torch::Tensor r = reps[i];
-            r = r.var({ 0, 2, 3 });
-            r = r.mean();
-            std::cout << r.item<float>() << "\t\n"[i == reps.size() - 1];
-        }
-
-        for (torch::Tensor& t : reps) {
-            t = t.flatten(1);
-        }
-
-        std::cout << "1ループ前の表現とのコサイン類似度" << std::endl;
-        for (int64_t i = 1; i < reps.size(); i++) {
-            torch::Tensor cos_sim = torch::cosine_similarity(reps[i], reps[i - 1]);
-            for (int64_t j = 0; j < batch_size; j++) {
-                std::cout << cos_sim[j].item<float>() << "\t\n"[j == batch_size - 1];
-            }
-        }
-
-        // 0と1の表現について見てみよう
-        std::cout << "先頭2データの表現について" << std::endl;
-        for (int64_t i = 0; i < reps.size(); i++) {
-            for (int64_t j = 0; j < reps.size(); j++) {
-                torch::Tensor cos_sim = torch::cosine_similarity(reps[i][0], reps[j][1], 0);
-                std::cout << cos_sim.item<float>() << "\t\n"[j == reps.size() - 1];
-            }
-        }
-
-        break;
-    }
-
-    std::cout << "finish checkLibTorchModel" << std::endl;
-}
-
-void checkInitLibTorchModel() {
-    //データを取得
-    int64_t batch_size = 512;
-
-    //ネットワークの準備
-    LibTorchModel model;
-    model.eval();
-
-    std::cout << std::fixed;
-
-    torch::NoGradGuard no_grad_guard;
-
-    torch::Tensor dummy_input = torch::randn({ batch_size, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
-    std::vector<torch::Tensor> reps = model.getRepresentations(dummy_input);
-
-    std::cout << "表現の平均\t";
-    for (int64_t i = 0; i < reps.size(); i++) {
-        torch::Tensor r = reps[i];
-        r = r.mean({ 0, 2, 3 });
-        r = (r * r).mean();
-        std::cout << r.item<float>() << "\t\n"[i == reps.size() - 1];
-    }
-
-    std::cout << "表現の分散\t";
-    for (int64_t i = 0; i < reps.size(); i++) {
-        torch::Tensor r = reps[i];
-        r = r.var({ 0, 2, 3 });
-        r = r.mean();
-        std::cout << r.item<float>() << "\t\n"[i == reps.size() - 1];
-    }
-
-    std::cout << "finish checkInitLibTorchModel" << std::endl;
 }
 
 void checkLearningModel() {
@@ -970,12 +748,17 @@ void checkBuildOnnx() {
     const std::string script_dirpath = dirpath + "/../../scripts/convert_ts_model_to_onnx.py";
     const std::string command = script_dirpath + " " + DEFAULT_MODEL_NAME;
     std::cout << "command = " << command << std::endl;
-    system(command.c_str());
+    int result = system(command.c_str());
     InferModel infer_model;
     SearchOptions search_options;
     search_options.model_name = DEFAULT_ONNX_NAME;
     search_options.use_fp16 = true;
-    infer_model.load(0, search_options);
+    infer_model.load(0, search_options, false);
+}
+
+void testHuffmanDecode() {
+    std::vector<LearningData> data = loadHCPE("../../data/ShogiAIBookData/dlshogi_with_gct-001.hcpe", false);
+    std::cout << "data.size() = " << data.size() << std::endl;
 }
 
 } // namespace Shogi

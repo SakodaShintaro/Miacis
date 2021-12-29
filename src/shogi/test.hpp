@@ -14,14 +14,11 @@ void checkMirror();
 void checkBook();
 void makeBook();
 void searchWithLog();
-void testLoad();
 void testModel();
-void checkValLibTorchModel();
-void checkLibTorchModel();
 void checkLearningModel();
-void checkInitLibTorchModel();
 void checkValidData();
 void checkBuildOnnx();
+void testHuffmanDecode();
 
 } // namespace Shogi
 

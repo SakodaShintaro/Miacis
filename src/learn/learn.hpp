@@ -110,6 +110,7 @@ private:
 
 //教師データを読み込む関数
 std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold);
+std::vector<LearningData> loadHCPE(const std::string& file_path, bool data_augmentation);
 
 //validationを行う関数
 template<class ModelType>
@@ -133,8 +134,5 @@ void contrastiveLearn();
 
 //実験的にLibTorchモデルを教師あり学習する関数
 void experimentalSupervisedLearn();
-
-//LibTorchモデルの初期化したパラメータをセーブする関数
-void initLibTorchModel();
 
 #endif //MIACIS_LEARN_HPP

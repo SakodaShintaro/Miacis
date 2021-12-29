@@ -1,8 +1,6 @@
 ﻿#include "learn.hpp"
 #include "../game.hpp"
 #include "../include_switch.hpp"
-#include "../model/infer_dlshogi_model.hpp"
-#include "../model/libtorch_model.hpp"
 #include "hyperparameter_loader.hpp"
 #include <iomanip>
 #include <random>
@@ -41,36 +39,7 @@ std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<
 template std::array<float, LOSS_TYPE_NUM> validation<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data,
                                                                  uint64_t batch_size);
 
-std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold) {
-    //棋譜を読み込めるだけ読み込む
-    std::vector<Game> games = loadGames(file_path, rate_threshold);
-
-    //データを局面単位にバラす
-    std::vector<LearningData> data_buffer;
-    for (const Game& game : games) {
-        Position pos;
-        for (const OneTurnElement& e : game.elements) {
-            const Move& move = e.move;
-            uint32_t label = move.toLabel();
-            std::string position_str = pos.toStr();
-            for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
-                LearningData datum{};
-                datum.policy.push_back({ Move::augmentLabel(label, i), 1.0 });
-#ifdef USE_CATEGORICAL
-                datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
-#else
-                datum.value = (float)(pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
-#endif
-                datum.position_str = Position::augmentStr(position_str, i);
-                data_buffer.push_back(datum);
-            }
-            pos.doMove(move);
-        }
-    }
-
-    //**********
-    // 重複削除 *
-    //**********
+std::vector<LearningData> deleteDuplicate(std::vector<LearningData>& data_buffer) {
     std::sort(data_buffer.begin(), data_buffer.end(),
               [](LearningData& lhs, LearningData& rhs) { return lhs.position_str < rhs.position_str; });
 
@@ -125,8 +94,117 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
         }
     }
 
-    data_buffer = remain;
-    return data_buffer;
+    return remain;
+}
+
+std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold) {
+    //棋譜を読み込めるだけ読み込む
+    std::vector<Game> games = loadGames(file_path, rate_threshold);
+
+    //データを局面単位にバラす
+    std::vector<LearningData> data_buffer;
+    for (const Game& game : games) {
+        Position pos;
+        for (const OneTurnElement& e : game.elements) {
+            const Move& move = e.move;
+            uint32_t label = move.toLabel();
+            std::string position_str = pos.toStr();
+            for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
+                LearningData datum{};
+                datum.policy.push_back({ Move::augmentLabel(label, i), 1.0 });
+#ifdef USE_CATEGORICAL
+                datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
+#else
+                datum.value = (float)(pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
+#endif
+                datum.position_str = Position::augmentStr(position_str, i);
+                data_buffer.push_back(datum);
+            }
+            pos.doMove(move);
+        }
+    }
+
+    //重複を削除して返す
+    return deleteDuplicate(data_buffer);
+}
+
+// make move
+Move make_move_label(const uint16_t move16, const Color color) {
+    // xxxxxxxx x1111111  移動先
+    // xx111111 1xxxxxxx  移動元。駒打ちの際には、PieceType + SquareNum - 1
+    // x1xxxxxx xxxxxxxx  1 なら成り
+    uint16_t to_sq = move16 & 0b1111111;
+    uint16_t from_sq = (move16 >> 7) & 0b1111111;
+
+    Square to = SquareList[to_sq];
+
+    if (from_sq < SQUARE_NUM) {
+        Square from = SquareList[from_sq];
+        bool promote = (move16 & 0b100000000000000) > 0;
+        return Move(to, from, false, promote);
+    } else {
+        // 持ち駒の場合
+        const int hand_piece = from_sq - (uint16_t)SQUARE_NUM;
+        Piece p = coloredPiece(color, DLShogiPieceKindList[hand_piece]);
+        return dropMove(to, p);
+    }
+}
+
+// make result
+inline float make_result(const uint8_t result, const Color color) {
+    const GameResult gameResult = (GameResult)(result & 0x3);
+    if (gameResult == Draw) return (MAX_SCORE + MIN_SCORE) / 2;
+
+    if ((color == BLACK && gameResult == BlackWin) || (color == WHITE && gameResult == WhiteWin)) {
+        return MAX_SCORE;
+    } else {
+        return MIN_SCORE;
+    }
+}
+
+std::vector<LearningData> __hcpe_decode_with_value(const size_t len, char* ndhcpe, bool data_augmentation) {
+    HuffmanCodedPosAndEval* hcpe = reinterpret_cast<HuffmanCodedPosAndEval*>(ndhcpe);
+
+    std::vector<LearningData> data_buffer;
+
+    Position pos;
+    for (size_t i = 0; i < len; i++, hcpe++) {
+        pos.fromHCP(hcpe->hcp);
+        std::string position_str = pos.toStr();
+
+        Move move = make_move_label(hcpe->bestMove16, pos.color());
+        move = pos.transformValidMove(move);
+        uint32_t label = move.toLabel();
+
+        float score = 1.0f / (1.0f + expf(-(float)hcpe->eval * 0.0013226f)) * (MAX_SCORE - MIN_SCORE) + MIN_SCORE;
+        float result = make_result(hcpe->gameResult, pos.color());
+        float target_value = (score + result) / 2;
+
+        for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
+            LearningData datum{};
+            datum.policy.push_back({ Move::augmentLabel(label, i), 1.0 });
+#ifdef USE_CATEGORICAL
+            datum.value = valueToIndex(target_value);
+#else
+            datum.value = target_value;
+#endif
+            datum.position_str = Position::augmentStr(position_str, i);
+            data_buffer.push_back(datum);
+        }
+    }
+
+    return deleteDuplicate(data_buffer);
+}
+
+std::vector<LearningData> loadHCPE(const std::string& file_path, bool data_augmentation) {
+    std::ifstream hcpe_file(file_path, std::ios::binary);
+    hcpe_file.seekg(0, std::ios_base::end);
+    const size_t file_size = hcpe_file.tellg();
+    hcpe_file.seekg(0, std::ios_base::beg);
+    std::unique_ptr<char[]> blob(new char[file_size]);
+    hcpe_file.read(blob.get(), file_size);
+    const size_t len = file_size / sizeof(HuffmanCodedPosAndEval);
+    return __hcpe_decode_with_value(len, blob.get(), data_augmentation);
 }
 
 template<class LearningClass> LearnManager<LearningClass>::LearnManager(const std::string& learn_name, int64_t initial_step_num) {
@@ -414,11 +492,4 @@ int64_t loadStepNumFromValidLog(const std::string& valid_log_name) {
     return std::stoll(step_num_str);
 }
 
-void initLibTorchModel() {
-    LibTorchModel model;
-    model.save(DEFAULT_MODEL_NAME);
-    std::cout << DEFAULT_MODEL_NAME << "にパラメータを保存" << std::endl;
-}
-
 template class LearnManager<LearningModel>;
-template class LearnManager<LibTorchModel>;

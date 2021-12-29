@@ -570,6 +570,102 @@ void Position::fromStr(const std::string& sfen) {
     kifu_.reserve(512);
 }
 
+bool Position::fromHCP(const HuffmanCodedPos& hcp) {
+    HuffmanCodedPos tmp = hcp; // ローカルにコピー
+    BitStream bs(tmp.data);
+
+    //盤上の初期化
+    for (Piece& p : board_) p = WALL;
+    for (Square sq : SquareList) board_[sq] = EMPTY;
+
+    //持ち駒初期化
+    hand_[BLACK].clear();
+    hand_[WHITE].clear();
+
+    // 手番
+    color_ = static_cast<Color>(bs.getBit());
+
+    // 玉の位置
+    Square sq0 = SquareList[bs.getBits(7)];
+    Square sq1 = SquareList[bs.getBits(7)];
+    board_[sq0] = BLACK_KING;
+    king_sq_[BLACK] = sq0;
+    board_[sq1] = WHITE_KING;
+    king_sq_[WHITE] = sq1;
+
+    // 盤上の駒
+    for (Square sq : SquareList) {
+        if (kind(board_[sq]) == KING) {
+            continue;
+        }
+        HuffmanCode hc = { 0, 0 };
+        while (hc.numOfBits <= 8) {
+            hc.code |= (bs.getBit() << hc.numOfBits++);
+            const Piece pc = HuffmanCodedPos::boardCodeToPieceHash.value(hc.key);
+            if (pc != PieceNum) {
+                if (pc != EMPTY) {
+                    board_[sq] = pc;
+                }
+                break;
+            }
+        }
+        if (HuffmanCodedPos::boardCodeToPieceHash.value(hc.key) == PieceNum) {
+            std::cout << "incorrect Huffman code. 盤面に異常" << std::endl;
+            return false;
+        }
+    }
+    while (bs.data() != std::end(tmp.data)) {
+        HuffmanCode hc = { 0, 0 };
+        while (hc.numOfBits <= 8) {
+            hc.code |= (bs.getBit() << hc.numOfBits++);
+            const Piece pc = HuffmanCodedPos::handCodeToPieceHash.value(hc.key);
+            if (pc != PieceNum) {
+                hand_[pieceToColor(pc)].add(pc);
+                break;
+            }
+        }
+        if (HuffmanCodedPos::handCodeToPieceHash.value(hc.key) == PieceNum) {
+            std::cout << "incorrect Huffman code. 持ち駒に異常" << std::endl;
+            return false;
+        }
+    }
+
+    // 手数の情報は持っていないので 1 にしておく。
+    turn_number_ = 1; 
+    //ハッシュ値の初期化
+    initHashValue();
+
+    stack_.clear();
+    stack_.reserve(512);
+    kifu_.clear();
+    kifu_.reserve(512);
+
+    //Bitboard
+    occupied_bb_[BLACK] = Bitboard(0, 0);
+    occupied_bb_[WHITE] = Bitboard(0, 0);
+    for (Bitboard& bb : pieces_bb_) {
+        bb = Bitboard(0, 0);
+    }
+    for (Square sq : SquareList) {
+        if (board_[sq] != EMPTY) {
+            pieces_bb_[board_[sq]] |= SQUARE_BB[sq];
+            occupied_bb_[pieceToColor(board_[sq])] |= SQUARE_BB[sq];
+        }
+    }
+    occupied_all_ = occupied_bb_[BLACK] | occupied_bb_[WHITE];
+
+    //pinners
+    computePinners();
+
+    //王手の確認
+    is_checked_ = isThereControl(~color_, king_sq_[color_]);
+
+    //合法手生成のフラグを降ろす
+    already_generated_moves_ = false;
+
+    return true;
+}
+
 std::string Position::toStr() const {
     std::string result;
     for (int64_t r = Rank1; r <= Rank9; r++) {

@@ -2,14 +2,11 @@
 #include "../common.hpp"
 #include "../include_switch.hpp"
 #include "../learn/learn.hpp"
+#include "calibrator.hpp"
 #include "dataset.hpp"
 #include <torch/torch.h>
 #include <trtorch/ptq.h>
 #include <trtorch/trtorch.h>
-
-#ifndef DLSHOGI
-#include "../learn/learn.hpp"
-#include "calibrator.hpp"
 
 class Logger : public nvinfer1::ILogger {
     const char* error_type(Severity severity) {
@@ -47,7 +44,7 @@ InferModel::~InferModel() {
     //context_->destroy();
 }
 
-void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
+void InferModel::load(int64_t gpu_id, const SearchOptions& search_option, bool use_serialized_engine) {
     gpu_id_ = gpu_id;
     opt_batch_size_ = search_option.search_batch_size;
     max_batch_size_ = search_option.search_batch_size * 2;
@@ -74,7 +71,7 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     const std::string basename = onnx_filename.substr(0, onnx_filename.rfind('.'));
     const std::string serialized_filename = basename + ".engine";
     std::ifstream serialized_file(serialized_filename, std::ios::binary);
-    if (serialized_file.is_open()) {
+    if (use_serialized_engine && serialized_file.is_open()) {
         // deserializing a model
         serialized_file.seekg(0, std::ios_base::end);
         const size_t modelSize = serialized_file.tellg();
@@ -106,7 +103,7 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
             throw std::runtime_error("createParser");
         }
 
-        auto parsed = parser->parseFromFile(onnx_filename.c_str(), (int)nvinfer1::ILogger::Severity::kWARNING);
+        auto parsed = parser->parseFromFile(onnx_filename.c_str(), (int)nvinfer1::ILogger::Severity::kINTERNAL_ERROR);
         if (!parsed) {
             throw std::runtime_error("parseFromFile");
         }
@@ -170,7 +167,10 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
 void InferModel::forward(const int64_t batch_size, const float* x1, void* y1, void* y2) {
     checkCudaErrors(cudaMemcpy(x1_dev_, x1, batch_size * sizeof(float) * INPUT_CHANNEL_NUM * SQUARE_NUM, cudaMemcpyHostToDevice));
 
-    context_->execute(batch_size, input_bindings_.data());
+    nvinfer1::Dims dims = engine_->getBindingDimensions(0);
+    dims.d[0] = batch_size;
+    context_->setBindingDimensions(0, dims);
+    context_->executeV2(input_bindings_.data());
 
     checkCudaErrors(cudaMemcpy(y1, y1_dev_, batch_size * sizeof(float) * POLICY_DIM, cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaMemcpy(y2, y2_dev_, batch_size * sizeof(float) * BIN_SIZE, cudaMemcpyDeviceToHost));
@@ -272,5 +272,3 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
 
     return { policy_loss, value_loss };
 }
-
-#endif

@@ -33,12 +33,14 @@ void reinforcementLearn() {
     int64_t sleep_msec                = settings.get<int64_t>("sleep_msec");
     int64_t init_buffer_by_kifu       = settings.get<int64_t>("init_buffer_by_kifu");
     int64_t noise_mode                = settings.get<int64_t>("noise_mode");
-    int64_t wait_sec_per_load         = settings.get<int64_t>("wait_sec_per_load");
     bool data_augmentation            = settings.get<bool>("data_augmentation");
     bool Q_search                     = settings.get<bool>("Q_search");
     std::string train_kifu_path       = settings.get<std::string>("train_kifu_path");
+    std::string model_prefix          = settings.get<std::string>("model_prefix");
     search_options.calibration_kifu_path = settings.get<std::string>("calibration_kifu_path");
     // clang-format on
+
+    search_options.model_name = model_prefix + ".onnx";
 
     const std::string prefix = "reinforcement";
 
@@ -107,18 +109,31 @@ void reinforcementLearn() {
             //学習パラメータを保存
             learn_manager.saveModelAsDefaultName();
 
-            //各ネットワークで保存されたパラメータを読み込み
+            //ONNX変換でGPUを使うのでロックを取る
             for (uint64_t i = 0; i < gpu_num; i++) {
                 generators[i]->gpu_mutex.lock();
+            }
 
+            //保存されたパラメータをONNXへ変換
+            const std::string filepath = __FILE__;
+            const std::string dirpath = filepath.substr(0, filepath.rfind('/'));
+            const std::string script_dirpath = dirpath + "/../../scripts/convert_ts_model_to_onnx.py";
+            const std::string command = script_dirpath + " " + model_prefix + ".model" + " --no_message";
+            int result = system(command.c_str());
+
+            //各ネットワークで保存されたパラメータを読み込み
+            for (uint64_t i = 0; i < gpu_num; i++) {
                 //パラメータをロードするべきというシグナルを出す
                 generators[i]->need_load = true;
 
+                //ロック解除
                 generators[i]->gpu_mutex.unlock();
             }
 
             //int8の場合は特にloadで時間がかかるのでその期間スリープ
-            std::this_thread::sleep_for(std::chrono::seconds(wait_sec_per_load));
+            //厳密にこの時間ずっと止まっていなければエラーになるわけではない
+            //とりあえず90秒で
+            std::this_thread::sleep_for(std::chrono::seconds(90));
         }
 
         //学習スレッドを眠らせることで擬似的にActorの数を増やす
