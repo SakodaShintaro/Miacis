@@ -127,6 +127,82 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
     return data_buffer;
 }
 
+// make move
+Move make_move_label(const uint16_t move16) {
+    // xxxxxxxx x1111111  移動先
+    // xx111111 1xxxxxxx  移動元。駒打ちの際には、PieceType + SquareNum - 1
+    // x1xxxxxx xxxxxxxx  1 なら成り
+    uint16_t to_sq = move16 & 0b1111111;
+    uint16_t from_sq = (move16 >> 7) & 0b1111111;
+
+    Square to = SquareList[to_sq];
+
+    if (from_sq < SquareNum) {
+        Square from = SquareList[from_sq];
+        return Move(to, from, false);
+    } else {
+        // 持ち駒の場合
+        const int hand_piece = from_sq - (int)SquareNum;
+        return dropMove(to, Piece(hand_piece));
+    }
+}
+
+// make result
+inline float make_result(const uint8_t result, const Color color) {
+    const GameResult gameResult = (GameResult)(result & 0x3);
+    if (gameResult == Draw) return (MAX_SCORE + MIN_SCORE) / 2;
+
+    if ((color == BLACK && gameResult == BlackWin) || (color == WHITE && gameResult == WhiteWin)) {
+        return MAX_SCORE;
+    } else {
+        return MIN_SCORE;
+    }
+}
+
+std::vector<LearningData> __hcpe_decode_with_value(const size_t len, char* ndhcpe, bool data_augmentation) {
+    HuffmanCodedPosAndEval* hcpe = reinterpret_cast<HuffmanCodedPosAndEval*>(ndhcpe);
+
+    std::vector<LearningData> data_buffer;
+
+    Position pos;
+    for (size_t i = 0; i < len; i++, hcpe++) {
+        pos.fromHCP(hcpe->hcp);
+        std::string position_str = pos.toStr();
+
+        Move move = make_move_label(hcpe->bestMove16);
+        move = pos.transformValidMove(move);
+        uint32_t label = move.toLabel();
+
+        // game result
+        float result = make_result(hcpe->gameResult, pos.color());
+
+        for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
+            LearningData datum{};
+            datum.policy.push_back({ Move::augmentLabel(label, i), 1.0 });
+#ifdef USE_CATEGORICAL
+            datum.value = valueToIndex(result);
+#else
+            datum.value = result;
+#endif
+            datum.position_str = Position::augmentStr(position_str, i);
+            data_buffer.push_back(datum);
+        }
+    }
+
+    return data_buffer;
+}
+
+std::vector<LearningData> loadHCPE(const std::string& file_path, bool data_augmentation) {
+    std::ifstream hcpe_file(file_path, std::ios::binary);
+    hcpe_file.seekg(0, std::ios_base::end);
+    const size_t file_size = hcpe_file.tellg();
+    hcpe_file.seekg(0, std::ios_base::beg);
+    std::unique_ptr<char[]> blob(new char[file_size]);
+    hcpe_file.read(blob.get(), file_size);
+    const size_t len = file_size / sizeof(HuffmanCodedPosAndEval);
+    return __hcpe_decode_with_value(len, blob.get(), data_augmentation);
+}
+
 template<class LearningClass> LearnManager<LearningClass>::LearnManager(const std::string& learn_name, int64_t initial_step_num) {
     assert(learn_name == "supervised" || learn_name == "reinforcement" || learn_name == "contrastive");
     HyperparameterLoader settings(learn_name + "_learn_settings.txt");

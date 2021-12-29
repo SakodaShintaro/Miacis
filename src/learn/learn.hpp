@@ -110,6 +110,7 @@ private:
 
 //教師データを読み込む関数
 std::vector<LearningData> loadData(const std::string& file_path, bool data_augmentation, float rate_threshold);
+std::vector<LearningData> loadHCPE(const std::string& file_path, bool data_augmentation);
 
 //validationを行う関数
 template<class ModelType>

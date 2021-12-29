@@ -4,6 +4,7 @@
 #include "bitboard.hpp"
 #include "hand.hpp"
 #include "move.hpp"
+#include "huffmancodedpos.hpp"
 
 namespace Shogi {
 
@@ -50,6 +51,7 @@ public:
 
     //sfenの入出力
     void fromStr(const std::string& sfen);
+    bool fromHCP(const HuffmanCodedPos& hcp);
     std::string toStr() const;
 
     //ハッシュ
