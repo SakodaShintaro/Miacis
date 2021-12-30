@@ -1,9 +1,6 @@
 #ifndef INFER_MODEL_HPP
 #define INFER_MODEL_HPP
 
-#include "../search/search_options.hpp"
-#include "model_common.hpp"
-#include <torch/script.h>
 #include "../include_switch.hpp"
 #include "../search/search_options.hpp"
 #include "model_common.hpp"
@@ -18,6 +15,7 @@
 #include <iterator>
 #include <memory>
 #include <sstream>
+#include <torch/script.h>
 
 inline void checkCudaErrors(cudaError_t status) {
     if (status != 0) {
@@ -39,6 +37,8 @@ struct InferDeleter {
 
 template<typename T> using InferUniquePtr = std::unique_ptr<T, InferDeleter>;
 
+enum FP_MODE { FP16, INT8, FP_MODE_NUM };
+
 class InferModel {
 public:
     InferModel() = default;
@@ -46,6 +46,8 @@ public:
     void load(int64_t gpu_id, const SearchOptions& search_option, bool use_serialized_engine);
     std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
     std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data);
+    static void convertOnnxToEngine(const std::string& onnx_path, const FP_MODE fp_mode, const int64_t opt_batch_size,
+                                    const std::string& calibration_data_path);
 
 private:
     int64_t gpu_id_;

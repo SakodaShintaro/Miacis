@@ -19,7 +19,6 @@ void contrastiveLearn() {
     int64_t output_interval           = LLONG_MAX;
     int64_t sleep_msec                = settings.get<int64_t>("sleep_msec");
     bool data_augmentation            = settings.get<bool>("data_augmentation");
-    search_options.calibration_kifu_path = settings.get<std::string>("calibration_kifu_path");
     // clang-format on
 
     //学習推移のログファイル

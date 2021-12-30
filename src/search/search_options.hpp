@@ -65,8 +65,6 @@ public:
         spin_options.emplace("hold_moves_num",           SpinOption(hold_moves_num           =    32,    1,  593));
         filename_options.emplace("model_name",           FilenameOption(model_name = DEFAULT_MODEL_NAME));
         filename_options.emplace("book_file_name",       FilenameOption(book_file_name       = "book.txt"));
-        filename_options.emplace("calibration_kifu_path",  FilenameOption(calibration_kifu_path = "../../data/floodgate_kifu/valid"));
-        filename_options.emplace("calibration_cache_path", FilenameOption(calibration_cache_path = "./calibration_cache_file.txt"));
         // clang-format on
     }
     bool USI_Ponder;
@@ -99,8 +97,6 @@ public:
     int64_t hold_moves_num;
     std::string model_name;
     std::string book_file_name;
-    std::string calibration_kifu_path;
-    std::string calibration_cache_path;
 
     std::map<std::string, CheckOption> check_options;
     std::map<std::string, SpinOption> spin_options;

@@ -206,10 +206,6 @@ void checkValInfer() {
     std::cin >> search_options.search_batch_size;
     std::cout << "model_file : ";
     std::cin >> search_options.model_name;
-    std::cout << "calibration_kifu_path : ";
-    std::cin >> search_options.calibration_kifu_path;
-    std::cout << "fp16 : ";
-    std::cin >> search_options.use_fp16;
     float rate_threshold;
     std::cout << "rate_threshold : ";
     std::cin >> rate_threshold;

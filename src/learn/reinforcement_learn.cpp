@@ -37,7 +37,6 @@ void reinforcementLearn() {
     bool Q_search                     = settings.get<bool>("Q_search");
     std::string train_kifu_path       = settings.get<std::string>("train_kifu_path");
     std::string model_prefix          = settings.get<std::string>("model_prefix");
-    search_options.calibration_kifu_path = settings.get<std::string>("calibration_kifu_path");
     // clang-format on
 
     search_options.model_name = model_prefix + ".onnx";

@@ -18,6 +18,9 @@ Interface::Interface() : searcher_(nullptr) {
     command_["quit"]       = [this] { quit(); };
     command_["gameover"]   = [this] { gameover(); };
 
+    // エンジン作成
+    command_["convertOnnxToEngine"] = [this] { convertOnnxToEngine(); };
+
     //テスト
     command_["test"]         = [this] { testSelfPlay(1); };
     command_["infiniteTest"] = [this] { testSelfPlay(INT_MAX); };
@@ -262,6 +265,14 @@ void Interface::testSelfPlay(int64_t game_num) {
     }
     std::cout << "finish testSelfPlay" << std::endl;
     std::exit(0);
+}
+
+void Interface::convertOnnxToEngine() {
+    std::string onnx_path;
+    std::cin >> onnx_path;
+    std::string calibration_data_path;
+    std::cin >> calibration_data_path;
+    InferModel::convertOnnxToEngine(onnx_path, INT8, search_options_.search_batch_size, calibration_data_path);
 }
 
 } // namespace Shogi

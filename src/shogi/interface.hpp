@@ -27,6 +27,9 @@ public:
     //setoptionで設定した後テストする関数
     void testSelfPlay(int64_t game_num);
 
+    //onnxをTensorRTエンジンへ変換する
+    void convertOnnxToEngine();
+
 private:
     std::unordered_map<std::string, std::function<void()>> command_;
     Position root_;
