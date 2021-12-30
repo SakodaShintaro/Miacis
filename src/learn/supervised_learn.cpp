@@ -25,6 +25,10 @@ void supervisedLearn() {
 #endif
         const sys::path dir(train_kifu_path);
         for (sys::directory_iterator p(dir); p != sys::directory_iterator(); p++) {
+            const std::string path = p->path().string();
+            if (path.find("dlshogi_with_gct") == std::string::npos) {
+                continue;
+            }
             dir_paths.push_back(p->path().string());
         }
         std::shuffle(dir_paths.begin(), dir_paths.end(), engine);
