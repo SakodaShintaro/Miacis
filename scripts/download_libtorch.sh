@@ -3,7 +3,7 @@ cd $(dirname $0)
 # どこに保存するかの基準位置
 root_dir=../..
 
-version=1.8.1
+version=1.10.1
 url_file_name=libtorch-cxx11-abi-shared-with-deps-${version}%2Bcu102.zip
 file_name=libtorch-cxx11-abi-shared-with-deps-${version}+cu102.zip
 
