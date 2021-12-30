@@ -4,7 +4,6 @@
 namespace Shogi {
 
 void checkSearchSpeed();
-void checkSearchSpeed2();
 void checkGenSpeed();
 void checkPredictSpeed();
 void checkVal();

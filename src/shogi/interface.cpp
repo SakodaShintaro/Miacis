@@ -31,7 +31,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["reinforcementLearn"] = reinforcementLearn;
     command_["contrastiveLearn"]   = contrastiveLearn;
     command_["checkSearchSpeed"]   = checkSearchSpeed;
-    command_["checkSearchSpeed2"]  = checkSearchSpeed2;
     command_["checkGenSpeed"]      = checkGenSpeed;
     command_["checkPredictSpeed"]  = checkPredictSpeed;
     command_["checkVal"]           = checkVal;

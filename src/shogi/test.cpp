@@ -125,46 +125,6 @@ void checkSearchSpeed() {
     std::cout << "finish checkSearchSpeed" << std::endl;
 }
 
-void checkSearchSpeed2() {
-    constexpr int64_t time_limit = 10000;
-    constexpr int64_t trial_num = 10;
-    SearchOptions search_options;
-    search_options.print_interval = time_limit * 2;
-    search_options.print_info = false;
-    search_options.USI_Hash = 8192;
-
-    std::cout << std::fixed << std::setprecision(1);
-
-    for (search_options.search_batch_size = 1; search_options.search_batch_size <= 256; search_options.search_batch_size++) {
-        Position pos;
-        float sum_init = 0.0, sum_mid = 0.0;
-        for (int64_t _ = 0; _ < trial_num; _++) {
-            SearcherForPlay searcher(search_options);
-            Move best_move = searcher.think(pos, time_limit);
-            const HashTable& hash_table = searcher.hashTable();
-            const HashEntry& root_entry = hash_table[hash_table.root_index];
-            float curr_nps = root_entry.sum_N / (time_limit / 1000.0);
-            std::cout << "s:" << _ << " " << curr_nps << "\t" << best_move << "  \r" << std::flush;
-            sum_init += curr_nps;
-        }
-
-        pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
-        for (int64_t _ = 0; _ < trial_num; _++) {
-            SearcherForPlay searcher(search_options);
-            Move best_move = searcher.think(pos, time_limit);
-            const HashTable& hash_table = searcher.hashTable();
-            const HashEntry& root_entry = hash_table[hash_table.root_index];
-            float curr_nps = root_entry.sum_N / (time_limit / 1000.0);
-            std::cout << "m:" << _ << " " << curr_nps << "\t" << best_move << "  \r" << std::flush;
-            sum_mid += curr_nps;
-        }
-
-        std::cout << search_options.search_batch_size << " " << sum_init / trial_num << " " << sum_mid / trial_num << std::endl;
-    }
-
-    std::cout << "finish checkSearchSpeed" << std::endl;
-}
-
 void checkVal() {
     //データを取得
     std::string path;
