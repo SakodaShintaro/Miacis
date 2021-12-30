@@ -6,9 +6,11 @@ from generate_cnn_model import PolicyHead, ValueHead
 
 
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim):
+    def __init__(self, dim):
         super().__init__()
+        hidden_dim = dim * 2
         self.net = nn.Sequential(
+            nn.LayerNorm(dim),
             nn.Linear(dim, hidden_dim),
             nn.GELU(),
             nn.Linear(hidden_dim, dim),
@@ -19,45 +21,39 @@ class FeedForward(nn.Module):
 
 
 class MixerBlock(nn.Module):
-    def __init__(self, dim, num_patch, token_dim, channel_dim):
+    def __init__(self, dim, num_patch):
         super().__init__()
-        self.token_norm = nn.LayerNorm(dim)
-        self.token_forward = FeedForward(num_patch, token_dim)
-        self.channel_mix = nn.Sequential(
-            nn.LayerNorm(dim),
-            FeedForward(dim, channel_dim),
-        )
+        self.token_mix = FeedForward(num_patch)
+        self.channel_mix = FeedForward(dim)
 
     def forward(self, x):
+        # token mix
         s = x
-        x = self.token_norm(x)
         x = x.permute([0, 2, 1])
-        x = self.token_forward(x)
+        x = self.token_mix(x)
         x = x.permute([0, 2, 1])
         x = x + s
 
+        # channel mix
         x = x + self.channel_mix(x)
         return x
 
 
 class MLPMixer(nn.Module):
-    def __init__(self, in_channels, dim, board_size, depth):
+    def __init__(self, input_channel_num, block_num, channel_num, policy_channel_num, board_size):
         super().__init__()
 
-        token_dim = dim
-        channel_dim = dim * 2
-
+        self.board_size = board_size
         self.num_patch = board_size * board_size
-        self.first_conv = nn.Conv2d(in_channels, dim, 1, 1)
+        self.first_conv = nn.Conv2d(input_channel_num, channel_num, 1, 1)
 
         self.mixer_blocks = nn.ModuleList([])
-        for _ in range(depth):
-            self.mixer_blocks.append(MixerBlock(dim, self.num_patch, token_dim, channel_dim))
-        self.layer_norm = nn.LayerNorm(dim)
-        self.dim = dim
-        self.board_size = board_size
-        self.policy_head_ = PolicyHead(dim, policy_channel_num)
-        self.value_head_ = ValueHead(dim, 51)
+        for _ in range(block_num):
+            self.mixer_blocks.append(MixerBlock(channel_num, self.num_patch))
+        self.layer_norm = nn.LayerNorm(channel_num)
+        self.dim = channel_num
+        self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
+        self.value_head_ = ValueHead(channel_num, 51)
 
     def forward(self, x):
         batch_size = x.shape[0]
@@ -105,7 +101,12 @@ if __name__ == "__main__":
     else:
         exit(1)
 
-    model = MLPMixer(in_channels=input_channel_num, board_size=board_size, dim=args.channel_num, depth=args.block_num)
+    model = MLPMixer(
+        input_channel_num=input_channel_num,
+        board_size=board_size,
+        channel_num=args.channel_num,
+        block_num=args.block_num,
+        policy_channel_num=policy_channel_num)
 
     params = 0
     for p in model.parameters():
@@ -116,15 +117,7 @@ if __name__ == "__main__":
     input_data = torch.randn([128, input_channel_num, board_size, board_size])
     script_model = torch.jit.trace(model, input_data)
     # script_model = torch.jit.script(model)
-    model_path = f"./{args.game}_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.model"
+    model_path = f"./{args.game}_{args.value_type}_mlp_mixer_bl{args.block_num}_ch{args.channel_num}.model"
     script_model.save(model_path)
 
     print(f"{model_path}にパラメータを保存")
-
-    model = torch.jit.load(model_path)
-    reps = model.getRepresentations(input_data)
-    for i, r in enumerate(reps, 1):
-        m = r.mean([0, 2])
-        m = (m * m).mean()
-        v = r.var([0, 2]).mean()
-        print(f"{i}\t{m.item():.4f}\t{v.item():.4f}")
