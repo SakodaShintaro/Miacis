@@ -136,7 +136,6 @@ void GameGenerator::loadNeuralNetwork() {
     //探索バッチサイズのworker_num_倍が実際の推論バッチサイズなので無理やり変更する
     SearchOptions tmp_option = search_options_;
     tmp_option.search_batch_size *= worker_num_;
-    tmp_option.use_calibration_cache = false;
     neural_network_.load(gpu_id_, tmp_option);
 }
 

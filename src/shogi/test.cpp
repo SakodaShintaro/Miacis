@@ -470,7 +470,6 @@ void searchWithLog() {
 void testModel() {
     //ネットワークの準備
     SearchOptions search_options;
-    search_options.use_calibration_cache = false;
     search_options.search_batch_size = 2;
 
     std::cout << "model_file : ";
