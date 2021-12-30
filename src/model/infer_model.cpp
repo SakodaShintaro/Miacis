@@ -129,7 +129,7 @@ InferModel::~InferModel() {
     //context_->destroy();
 }
 
-void InferModel::load(int64_t gpu_id, const SearchOptions& search_option, bool use_serialized_engine) {
+void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     gpu_id_ = gpu_id;
     opt_batch_size_ = search_option.search_batch_size;
     max_batch_size_ = search_option.search_batch_size * 2;
@@ -152,20 +152,26 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option, bool u
 
     input_bindings_ = { x1_dev_, y1_dev_, y2_dev_ };
 
-    const std::string onnx_filename = search_option.model_name;
-    const std::string basename = onnx_filename.substr(0, onnx_filename.rfind('.'));
-    const std::string serialized_filename = basename + ".engine";
-    std::ifstream serialized_file(serialized_filename, std::ios::binary);
-    if (use_serialized_engine && serialized_file.is_open()) {
-        // deserializing a model
-        serialized_file.seekg(0, std::ios_base::end);
-        const size_t modelSize = serialized_file.tellg();
-        serialized_file.seekg(0, std::ios_base::beg);
-        std::unique_ptr<char[]> blob(new char[modelSize]);
-        serialized_file.read(blob.get(), modelSize);
-        auto runtime = InferUniquePtr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(gLogger));
-        engine_ = runtime->deserializeCudaEngine(blob.get(), modelSize, nullptr);
+    const std::string engine_path = search_option.model_name;
+
+    if (engine_path.substr(engine_path.size() - 7) != ".engine") {
+        std::cerr << "エンジンパスは拡張子.engineである必要があります: " << engine_path << std::endl;
+        std::exit(1);
     }
+    std::ifstream serialized_file(engine_path, std::ios::binary);
+    if (!serialized_file.is_open()) {
+        std::cerr << "!serialized_file.is_open(): " << engine_path << std::endl;
+        std::exit(1);
+    }
+
+    // deserializing a model
+    serialized_file.seekg(0, std::ios_base::end);
+    const size_t modelSize = serialized_file.tellg();
+    serialized_file.seekg(0, std::ios_base::beg);
+    std::unique_ptr<char[]> blob(new char[modelSize]);
+    serialized_file.read(blob.get(), modelSize);
+    auto runtime = InferUniquePtr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(gLogger));
+    engine_ = runtime->deserializeCudaEngine(blob.get(), modelSize, nullptr);
 
     context_ = engine_->createExecutionContext();
     if (!context_) {

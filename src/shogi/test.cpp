@@ -215,7 +215,7 @@ void checkValInfer() {
 
     //ネットワークの準備
     InferModel nn;
-    nn.load(0, search_options, false);
+    nn.load(0, search_options);
 
     std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, search_options.search_batch_size);
     std::cout << std::fixed << std::setprecision(4);
@@ -234,7 +234,7 @@ void checkPredictSpeed() {
     SearchOptions search_options;
 
     InferModel nn;
-    nn.load(0, search_options, false);
+    nn.load(0, search_options);
 
     for (int64_t batch_size = 1; batch_size <= BATCH_SIZE; batch_size *= 2) {
         //バッチサイズ分入力を取得
@@ -477,7 +477,7 @@ void testModel() {
     std::cin >> search_options.model_name;
 
     InferModel nn;
-    nn.load(0, search_options, false);
+    nn.load(0, search_options);
 
     Position pos;
     pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
@@ -749,7 +749,7 @@ void checkBuildOnnx() {
     SearchOptions search_options;
     search_options.model_name = DEFAULT_ONNX_NAME;
     search_options.use_fp16 = true;
-    infer_model.load(0, search_options, false);
+    infer_model.load(0, search_options);
 }
 
 void testHuffmanDecode() {
