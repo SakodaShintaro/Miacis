@@ -32,7 +32,6 @@ public:
         // clang-format off
         check_options.emplace("USI_Ponder",              CheckOption(USI_Ponder = false));
         check_options.emplace("leave_root",              CheckOption(leave_root = true));
-        check_options.emplace("use_fp16",                CheckOption(use_fp16   = false));
         check_options.emplace("use_book",                CheckOption(use_book   = false));
         check_options.emplace("print_info",              CheckOption(print_info = true));
         check_options.emplace("output_log_file",         CheckOption(output_log_file = false));
@@ -68,7 +67,6 @@ public:
     }
     bool USI_Ponder;
     bool leave_root;
-    bool use_fp16;
     bool use_book;
     bool print_info;
     bool output_log_file;

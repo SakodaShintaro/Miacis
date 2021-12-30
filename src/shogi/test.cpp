@@ -747,7 +747,6 @@ void checkBuildOnnx() {
     InferModel infer_model;
     SearchOptions search_options;
     search_options.model_name = DEFAULT_ONNX_NAME;
-    search_options.use_fp16 = true;
     infer_model.load(0, search_options);
 }
 
