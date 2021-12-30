@@ -10,10 +10,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.8.1)
 find_package(Torch REQUIRED)
 
-# TRTorch
-set(TRTORCH_INCLUDE ../../trtorch/include)
-file(GLOB TRTORCH_LIBRARIES ../../trtorch/lib/*.so)
-
 # TensorRT
 set(TENSORRT_INCLUDE ../../TensorRT-7.2.2.3/include)
 file(GLOB TENSORRT_LIBRARIES ../../TensorRT-7.2.2.3/lib/*.so)

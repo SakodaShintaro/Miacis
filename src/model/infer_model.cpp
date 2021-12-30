@@ -4,8 +4,6 @@
 #include "../learn/learn.hpp"
 #include "calibrator.hpp"
 #include <torch/torch.h>
-#include <trtorch/ptq.h>
-#include <trtorch/trtorch.h>
 
 class Logger : public nvinfer1::ILogger {
     const char* error_type(Severity severity) {

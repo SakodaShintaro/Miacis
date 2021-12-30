@@ -16,7 +16,6 @@ void reinforcementLearn() {
     float train_rate_threshold        = settings.get<float>("train_rate_threshold");
     search_options.temperature_x1000  = settings.get<float>("Q_dist_temperature") * 1000;
     search_options.C_PUCT_x1000       = settings.get<float>("C_PUCT") * 1000;
-    search_options.use_fp16           = settings.get<bool>("use_fp16");
     search_options.draw_turn          = settings.get<int64_t>("draw_turn");
     search_options.random_turn        = settings.get<int64_t>("random_turn");
     search_options.thread_num_per_gpu = settings.get<int64_t>("thread_num_per_gpu");
