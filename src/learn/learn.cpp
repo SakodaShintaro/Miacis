@@ -255,7 +255,6 @@ template<class LearningClass> LearnManager<LearningClass>::LearnManager(const st
     if (std::ifstream(optimizer_file_name).is_open()) {
         torch::load(*optimizer_, optimizer_file_name);
     }
-    setLearnRate(initial_step_num);
 
     //パラメータの保存間隔
     save_interval_ = settings.get<int64_t>("save_interval");
@@ -264,10 +263,11 @@ template<class LearningClass> LearnManager<LearningClass>::LearnManager(const st
     learn_rate_decay_mode_ = settings.get<int64_t>("learn_rate_decay_mode");
     learn_rate_decay_period_ = settings.get<int64_t>("learn_rate_decay_period");
 
+    //warm-upにかけるステップ数
     warm_up_step_ = settings.get<int64_t>("warm_up_step");
-    if (warm_up_step_ > 0) {
-        (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() = 0;
-    }
+
+    //学習率の設定
+    setLearnRate(initial_step_num);
 
     //mixupの混合比を決定する値
     mixup_alpha_ = settings.get<float>("mixup_alpha");
@@ -410,7 +410,7 @@ template<class LearningClass> void LearnManager<LearningClass>::saveModelAsDefau
 }
 
 template<class LearningClass> void LearnManager<LearningClass>::setLearnRate(int64_t step_num) {
-    if (step_num <= warm_up_step_) {
+    if (warm_up_step_ > 0 && step_num <= warm_up_step_) {
         (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
             learn_rate_ * step_num / warm_up_step_;
         return;
