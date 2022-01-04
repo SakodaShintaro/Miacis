@@ -631,7 +631,7 @@ bool Position::fromHCP(const HuffmanCodedPos& hcp) {
     }
 
     // 手数の情報は持っていないので 1 にしておく。
-    turn_number_ = 1; 
+    turn_number_ = 1;
     //ハッシュ値の初期化
     initHashValue();
 
@@ -1259,13 +1259,11 @@ bool Position::isLastMoveDropPawn() const { return (lastMove().isDrop() && kind(
 
 bool Position::isFinish(float& score, bool check_repeat) {
     //詰みの確認
-    if (is_checked_) {
-        std::vector<Move> moves = generateAllMoves();
-        if (moves.empty()) {
-            //打ち歩詰めなら手番側（詰まされた側）が勝ち、そうでないなら手番側が負け
-            score = isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE;
-            return true;
-        }
+    std::vector<Move> moves = generateAllMoves();
+    if (moves.empty()) {
+        //打ち歩詰めなら手番側（詰まされた側）が勝ち、そうでないなら手番側が負け
+        score = isLastMoveDropPawn() ? MAX_SCORE : MIN_SCORE;
+        return true;
     }
 
     //千日手の確認
