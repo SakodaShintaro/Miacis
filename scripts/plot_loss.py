@@ -24,7 +24,7 @@ def get_labels_and_data(file_name):
         for i in range(len(line)):
             try:
                 data[i].append(float(line[i]))
-            except:
+            except BaseException:
                 e = line[i].split(":")
                 hour = float(e[0]) + float(e[1]) / 60 + float(e[2]) / 3600
                 data[i].append(hour)
@@ -50,6 +50,7 @@ for dir_name in args.dirs:
     # trainデータは1ステップごとに記録されていて多すぎるのでSKIP個になるようにまとめて平均を取る
     SKIP = 200
     for i in range(len(t_data)):
+        t_data[i] = t_data[i][0:len(t_data) // SKIP * SKIP]
         t_data[i] = np.array(t_data[i]).reshape(SKIP, -1).mean(axis=1)
     train_data.append(t_data)
     valid_labels, v_data = get_labels_and_data(dir_name + f"{args.prefix}_valid_log.txt")
