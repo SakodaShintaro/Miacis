@@ -9,7 +9,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--dirs", type=(lambda x: x.split()), required=True)
 parser.add_argument("--labels", type=(lambda x: x.split()), required=True)
-parser.add_argument("--prefix", type=str, required=True)
+parser.add_argument("--prefix", type=str, default="supervised")
 args = parser.parse_args()
 assert len(args.dirs) == len(args.labels)
 
