@@ -29,9 +29,9 @@ Dockerおよび[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/clo
 を行うコマンドを示します。適当な空のディレクトリ内で実行してください。
 
 ```shell
-wget https://raw.githubusercontent.com/SakodaShintaro/Miacis/master/scripts/Dockerfile
-docker build -t miacis_trtorch:pytorch1.7-cuda11.1-trt7.2.1 .
-docker run --gpus all -it --name miacis_container miacis_trtorch:pytorch1.7-cuda11.1-trt7.2.1 bash
+wget https://raw.githubusercontent.com/SakodaShintaro/Miacis/master/docker/Dockerfile
+docker build -t miacis_image:latest .
+docker run --gpus all -it --name miacis_container miacis_image:latest bash
 ```
 
 正常にコンパイルが進むとコンテナ内の```/root/Miacis/src/cmake-build-release```以下に```Miacis_shogi_categorical```というプログラムが得られます。
