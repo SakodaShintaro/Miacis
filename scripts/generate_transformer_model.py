@@ -3,7 +3,6 @@ import argparse
 import torch
 import torch.jit
 import torch.nn as nn
-import torch.nn.functional as F
 from generate_cnn_model import PolicyHead, ValueHead
 
 
@@ -23,11 +22,9 @@ class TransformerModel(nn.Module):
         x = x.view([x.shape[0], x.shape[1], x.shape[2] * x.shape[3]])
         x = x.permute([2, 0, 1])
         x = self.first_encoding_(x)
-        x = F.relu(x)
         x = x + self.positional_encoding_
         x = self.encoder_(x)
         x = x.permute([1, 2, 0])
-
         x = x.view([x.shape[0], x.shape[1], self.board_size, self.board_size])
         return x
 
