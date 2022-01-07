@@ -13,28 +13,30 @@ MiacisはUSIプロトコルに対応した将棋用思考エンジンです。[�
 * CUDA(cuDNN含む)
 * LibTorch
 * TensorRT
-* TRTorch
 
 を必要とします。環境構築は複雑なのでDockerを利用することをお勧めします。
 
 ## Dockerによる環境構築
 
 Dockerおよび[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker)をインストールしてあるUbuntuを前提とします。
-以下に
 
 1. Dockerfileをダウンロードする
-2. miacis_trtorchというイメージをタグをpytorch1.7-cuda11.1-trt7.2.1として作成する
-3. miacis_trtorchというイメージをもとにmiacis_containerという名前でコンテナを作成する
-
-を行うコマンドを示します。適当な空のディレクトリ内で実行してください。
-
 ```shell
 wget https://raw.githubusercontent.com/SakodaShintaro/Miacis/master/docker/Dockerfile
+```
+
+
+2. miacis_imageというイメージを作成する
+```shell
 docker build -t miacis_image:latest .
+```
+
+3. miacis_imageをもとにmiacis_containerというコンテナを作成する
+```shell
 docker run --gpus all -it --name miacis_container miacis_image:latest bash
 ```
 
-正常にコンパイルが進むとコンテナ内の```/root/Miacis/src/cmake-build-release```以下に```Miacis_shogi_categorical```というプログラムが得られます。
+正常にコンパイルが進むとコンテナ内の```/root/Miacis/build```以下に```Miacis_shogi_categorical```というプログラムが得られます。
 
 ## 対局方法
 
