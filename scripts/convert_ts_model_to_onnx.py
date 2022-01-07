@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 import os
-from generate_cnn_model import *
-from generate_transformer_model import *
-from generate_mlp_mixer_model import *
+import argparse
+import torch
+from generate_cnn_model import CategoricalNetwork
+from generate_transformer_model import TransformerModel
+from generate_mlp_mixer_model import MLPMixer
+from generate_poolformer_model import PoolFormerModel
 
 parser = argparse.ArgumentParser()
 parser.add_argument("model_path", type=str)
@@ -40,6 +43,10 @@ elif "mlp_mixer" in args.model_path:
     model = MLPMixer(input_channel_num, block_num=block_num, channel_num=channel_num,
                      policy_channel_num=policy_channel_num,
                      board_size=board_size)
+elif "poolformer" in args.model_path:
+    model = PoolFormerModel(input_channel_num, block_num=block_num, channel_num=channel_num,
+                            policy_channel_num=policy_channel_num,
+                            board_size=board_size)
 else:
     model = CategoricalNetwork(input_channel_num, block_num=block_num, channel_num=channel_num,
                                policy_channel_num=policy_channel_num,
