@@ -19,9 +19,6 @@ RUN ln -s /usr/include/x86_64-linux-gnu/ ./TensorRT-7.2.2.3/include
 RUN mkdir TensorRT-7.2.2.3/lib
 RUN ln -s /usr/lib/x86_64-linux-gnu/libnv*.so ./TensorRT-7.2.2.3/lib/
 
-# 環境変数の設定
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/libtorch-1.10.1/lib
-
 # Miacisの導入
 RUN git clone https://github.com/SakodaShintaro/Miacis
 RUN sh /root/Miacis/scripts/download_libtorch.sh
