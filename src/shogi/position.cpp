@@ -1148,7 +1148,7 @@ std::vector<int64_t> Position::makeFeature() const {
     for (int64_t i = 0; i < SQUARE_NUM; i++) {
         //後手のときは盤面を180度反転させる
         Square sq = SquareList[i];
-        Piece p = (color_ == BLACK ? board_[sq] : board_[InvSquare[sq]]);
+        Piece p = (color_ == BLACK ? board_[sq] : oppositeColor(board_[InvSquare[sq]]));
         features[i] = p;
     }
 
