@@ -186,8 +186,8 @@ class CategoricalNetwork(nn.Module):
         board, hand = self.input_converter_(x)
         hand = hand.expand((hand.shape[0], 81, 256))
         x = board + hand
-        x = x.view([x.shape[0], 9, 9, x.shape[2]])
-        x = x.permute([0, 3, 1, 2])
+        x = x.reshape([x.shape[0], 9, 9, x.shape[2]])
+        x = x.permute([0, 3, 1, 2]).contiguous()
         x = self.encoder_.forward(x)
         policy = self.policy_head_.forward(x)
         value = self.value_head_.forward(x)
