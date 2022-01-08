@@ -35,7 +35,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["checkPredictSpeed"]  = checkPredictSpeed;
     command_["checkVal"]           = checkVal;
     command_["checkValInfer"]      = checkValInfer;
-    command_["checkDoAndUndo"]     = checkDoAndUndo;
+    command_["checkFunction"]     = checkFunction;
     command_["checkMirror"]        = checkMirror;
     command_["checkBook"]          = checkBook;
     command_["makeBook"]           = makeBook;

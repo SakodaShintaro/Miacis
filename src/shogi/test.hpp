@@ -8,7 +8,7 @@ void checkGenSpeed();
 void checkPredictSpeed();
 void checkVal();
 void checkValInfer();
-void checkDoAndUndo();
+void checkFunction();
 void checkMirror();
 void checkBook();
 void makeBook();
