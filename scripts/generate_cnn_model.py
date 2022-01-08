@@ -6,6 +6,52 @@ import torch.jit
 import argparse
 
 
+class HandEncoder(nn.Module):
+    def __init__(self, channel_num) -> None:
+        super().__init__()
+        self.linear_pawn = nn.Linear(18, channel_num)
+        self.linear_lance = nn.Linear(4, channel_num)
+        self.linear_knight = nn.Linear(4, channel_num)
+        self.linear_silver = nn.Linear(4, channel_num)
+        self.linear_gold = nn.Linear(4, channel_num)
+        self.linear_bishop = nn.Linear(2, channel_num)
+        self.linear_rook = nn.Linear(2, channel_num)
+    
+    def forward(self, hand):
+        hand = hand.to(torch.float)
+        pawn, lance, knight, silver, gold, bishop, rook = torch.split(hand, [18, 4, 4, 4, 4, 2, 2], 1)
+        pawn = self.linear_pawn(pawn)
+        lance = self.linear_lance(lance)
+        knight = self.linear_knight(knight)
+        silver = self.linear_silver(silver)
+        gold = self.linear_gold(gold)
+        bishop = self.linear_bishop(bishop)
+        rook = self.linear_rook(rook)
+        hand_sum = pawn + lance + knight + silver + gold + bishop + rook
+        hand_sum = hand_sum.unsqueeze(1)
+        return hand_sum
+
+
+class InputConverter(nn.Module):
+    def __init__(self, channel_num) -> None:
+        super().__init__()
+        self.embedding_board_ = nn.Embedding(88, channel_num)
+        self.hand_encoder_for_turn_player_ = HandEncoder(channel_num)
+        self.hand_encoder_for_opp_player_ = HandEncoder(channel_num)
+
+    def forward(self, x):
+        # xのshapeは[batch_size, 157]
+        # 先頭81個が盤面、それ以降が持ち駒
+        board, hand = torch.split(x, 81, 1)
+        board = self.embedding_board_(board)
+
+        hand_for_turn_player, hand_for_opp_player = torch.split(hand, 38, 1)
+        hand_for_turn_player = self.hand_encoder_for_turn_player_(hand_for_turn_player)
+        hand_for_opp_player = self.hand_encoder_for_opp_player_(hand_for_opp_player)
+        hand = hand_for_turn_player + hand_for_opp_player
+        return board, hand
+
+
 class Conv2DwithBatchNorm(nn.Module):
     def __init__(self, input_ch, output_ch, kernel_size):
         super(Conv2DwithBatchNorm, self).__init__()
@@ -48,14 +94,11 @@ class ResidualBlock(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, input_channel_num, block_num, channel_num, kernel_size=3, reduction=8):
         super(Encoder, self).__init__()
-        self.first_conv_and_norm_ = Conv2DwithBatchNorm(input_channel_num, channel_num, 3)
         self.blocks = nn.ModuleList()
         for i in range(block_num):
             self.blocks.add_module(f"block{i}", ResidualBlock(channel_num, kernel_size, reduction))
 
     def forward(self, x):
-        x = self.first_conv_and_norm_.forward(x)
-        x = F.relu(x)
         for b in self.blocks:
             x = b.forward(x)
         return x
@@ -137,8 +180,14 @@ class CategoricalNetwork(nn.Module):
         self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
         self.value_head_ = ValueHead(channel_num, 51)
         self.encoder_head = EncodeHead(channel_num, channel_num, channel_num)
+        self.input_converter_ = InputConverter(channel_num)
 
     def forward(self, x):
+        board, hand = self.input_converter_(x)
+        hand = hand.expand((hand.shape[0], 81, 256))
+        x = board + hand
+        x = x.view([x.shape[0], 9, 9, x.shape[2]])
+        x = x.permute([0, 3, 1, 2])
         x = self.encoder_.forward(x)
         policy = self.policy_head_.forward(x)
         value = self.value_head_.forward(x)
@@ -186,7 +235,7 @@ def main():
             params += p.numel()
     print(f"パラメータ数 : {params:,}")
 
-    input_data = torch.randn([16, input_channel_num, board_size, board_size])
+    input_data = torch.tensor([[66, 0, 65, 0, 0, 0, 33, 0, 34, 67, 70, 65, 0, 0, 0, 33, 39, 35, 68, 0, 65, 0, 0, 0, 33, 0, 36, 69, 0, 65, 0, 0, 0, 33, 0, 37, 72, 0, 65, 0, 0, 0, 33, 0, 40, 69, 0, 65, 0, 0, 0, 33, 0, 37, 68, 0, 65, 0, 0, 0, 33, 0, 36, 67, 71, 65, 0, 0, 0, 33, 38, 35, 66, 0, 65, 0, 0, 0, 33, 0, 34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=torch.int64)
     script_model = torch.jit.trace(model, input_data)
     script_model = torch.jit.script(model)
     model_path = f"./{args.game}_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.model"
