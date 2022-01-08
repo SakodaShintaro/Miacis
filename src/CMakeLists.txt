@@ -11,8 +11,8 @@ list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.10.1)
 find_package(Torch REQUIRED)
 
 # TensorRT
-set(TENSORRT_INCLUDE ../../TensorRT-7.2.2.3/include)
-file(GLOB TENSORRT_LIBRARIES ../../TensorRT-7.2.2.3/lib/*.so)
+set(TENSORRT_INCLUDE ../../TensorRT-8.2.2.1/include)
+file(GLOB TENSORRT_LIBRARIES ../../TensorRT-8.2.2.1/lib/*.so)
 
 # 各ゲームで共通する部分のソース
 file(GLOB COMMON_SRCS ./*.cpp)

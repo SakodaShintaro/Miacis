@@ -13,9 +13,9 @@ public:
 
     ~Int8EntropyCalibrator2() { checkCudaErrors(cudaFree(input_dev_)); }
 
-    int getBatchSize() const override { return batch_size_; }
+    int getBatchSize() const noexcept override { return batch_size_; }
 
-    bool getBatch(void* bindings[], const char* names[], int nbBindings) override {
+    bool getBatch(void* bindings[], const char* names[], int nbBindings) noexcept override {
         if (batch_num_ >= BATCH_NUM) {
             return false;
         }
@@ -37,9 +37,9 @@ public:
         return (curr_batch_size == batch_size_);
     }
 
-    const void* readCalibrationCache(size_t& length) override { return nullptr; }
+    const void* readCalibrationCache(size_t& length) noexcept override { return nullptr; }
 
-    void writeCalibrationCache(const void* cache, size_t length) override {}
+    void writeCalibrationCache(const void* cache, size_t length) noexcept override {}
 
 private:
     static constexpr int64_t BATCH_NUM = 10;
