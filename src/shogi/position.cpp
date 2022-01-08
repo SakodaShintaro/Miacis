@@ -1143,7 +1143,7 @@ void Position::initHashValue() {
 }
 
 std::vector<int64_t> Position::makeFeature() const {
-    std::vector<int64_t> features(SQUARE_NUM * HAND_FEATURE_NUM, 0);
+    std::vector<int64_t> features(SQUARE_NUM + HAND_FEATURE_NUM, 0);
 
     for (int64_t i = 0; i < SQUARE_NUM; i++) {
         //後手のときは盤面を180度反転させる
