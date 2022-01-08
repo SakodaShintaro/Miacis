@@ -133,7 +133,7 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     max_batch_size_ = search_option.search_batch_size * 2;
     // Create host and device buffers
     if (x1_dev_ == nullptr) {
-        checkCudaErrors(cudaMalloc((void**)&x1_dev_, max_batch_size_ * sizeof(float) * INPUT_CHANNEL_NUM * SQUARE_NUM));
+        checkCudaErrors(cudaMalloc((void**)&x1_dev_, max_batch_size_ * sizeof(int64_t) * (SQUARE_NUM + HAND_FEATURE_NUM)));
     }
     if (y1_dev_ == nullptr) {
         checkCudaErrors(cudaMalloc((void**)&y1_dev_, max_batch_size_ * sizeof(float) * POLICY_DIM));
@@ -177,8 +177,8 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     }
 }
 
-void InferModel::forward(const int64_t batch_size, const float* x1, void* y1, void* y2) {
-    checkCudaErrors(cudaMemcpy(x1_dev_, x1, batch_size * sizeof(float) * INPUT_CHANNEL_NUM * SQUARE_NUM, cudaMemcpyHostToDevice));
+void InferModel::forward(const int64_t batch_size, const int64_t* x1, void* y1, void* y2) {
+    checkCudaErrors(cudaMemcpy(x1_dev_, x1, batch_size * sizeof(int64_t) * (SQUARE_NUM + HAND_FEATURE_NUM), cudaMemcpyHostToDevice));
 
     nvinfer1::Dims dims = engine_->getBindingDimensions(0);
     dims.d[0] = batch_size;
@@ -189,7 +189,7 @@ void InferModel::forward(const int64_t batch_size, const float* x1, void* y1, vo
     checkCudaErrors(cudaMemcpy(y2, y2_dev_, batch_size * sizeof(float) * BIN_SIZE, cudaMemcpyDeviceToHost));
 }
 
-std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAndValueBatch(const std::vector<float>& inputs) {
+std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAndValueBatch(const std::vector<int64_t>& inputs) {
     constexpr int64_t element_num = INPUT_CHANNEL_NUM * SQUARE_NUM;
     const int64_t batch_size = inputs.size() / element_num;
 
@@ -223,7 +223,7 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector<LearningData>& data) {
     static Position pos;
-    std::vector<float> inputs;
+    std::vector<int64_t> inputs;
     std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
     std::vector<ValueTeacherType> value_teachers;
 
@@ -231,7 +231,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
         pos.fromStr(data[i].position_str);
 
         //入力
-        const std::vector<float> feature = pos.makeFeature();
+        const std::vector<int64_t> feature = pos.makeFeature();
         inputs.insert(inputs.end(), feature.begin(), feature.end());
 
         //policyの教師信号

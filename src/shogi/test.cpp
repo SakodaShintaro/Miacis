@@ -198,7 +198,7 @@ void checkPredictSpeed() {
 
     for (int64_t batch_size = 1; batch_size <= BATCH_SIZE; batch_size *= 2) {
         //バッチサイズ分入力を取得
-        std::vector<float> input;
+        std::vector<int64_t> input;
         for (int64_t k = 0; k < batch_size; k++) {
             auto f = pos.makeFeature();
             input.insert(input.end(), f.begin(), f.end());
@@ -441,7 +441,7 @@ void testModel() {
     Position pos;
     pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
     //    pos.fromStr("lnsgk4/9/pppp1ppp1/9/8+P/9/PPPP1PPP1/4+p4/LNSGK4 b RBGSNLPrbgsnlp 1");
-    std::vector<float> vec;
+    std::vector<int64_t> vec;
     for (int64_t i = 0; i < search_options.search_batch_size; i++) {
         auto f = pos.makeDLShogiFeature();
         vec.insert(vec.end(), f.begin(), f.end());

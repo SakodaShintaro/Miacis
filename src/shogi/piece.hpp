@@ -88,6 +88,8 @@ extern const ArrayMap<int64_t, PieceNum> DLShogiPieceToIndex;
 extern const std::array<Piece, PIECE_KIND_NUM> DLShogiPieceKindList;
 extern const std::array<Piece, HAND_PIECE_KIND_NUM> DLShogiHandPieceKindList;
 
+constexpr int64_t HAND_FEATURE_NUM = 38 * 2;
+
 // dlshogiの設定
 #ifdef DLSHOGI
 constexpr int64_t INPUT_CHANNEL_NUM = DLSHOGI_FEATURES1_NUM + DLSHOGI_FEATURES2_NUM;

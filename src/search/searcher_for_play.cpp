@@ -92,7 +92,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     //GPUで計算
     if (curr_node.nn_policy.size() != curr_node.moves.size()) {
         if (gpu_queues_[0][0].inputs.empty()) {
-            std::vector<float> feature = root.makeFeature();
+            std::vector<int64_t> feature = root.makeFeature();
             gpu_queues_[0][0].inputs.insert(gpu_queues_[0][0].inputs.begin(), feature.begin(), feature.end());
         }
         torch::NoGradGuard no_grad_guard;

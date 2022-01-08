@@ -44,7 +44,7 @@ public:
     InferModel() = default;
     ~InferModel();
     void load(int64_t gpu_id, const SearchOptions& search_option);
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<float>& inputs);
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> policyAndValueBatch(const std::vector<int64_t>& inputs);
     std::array<torch::Tensor, LOSS_TYPE_NUM> validLoss(const std::vector<LearningData>& data);
     static void convertOnnxToEngine(const std::string& onnx_path, const FP_MODE fp_mode, const int64_t opt_batch_size,
                                     const std::string& calibration_data_path);
@@ -60,7 +60,7 @@ private:
     void* y1_dev_ = nullptr;
     void* y2_dev_ = nullptr;
 
-    void forward(const int64_t batch_size, const float* x1, void* y1, void* y2);
+    void forward(const int64_t batch_size, const int64_t* x1, void* y1, void* y2);
 };
 
 #endif

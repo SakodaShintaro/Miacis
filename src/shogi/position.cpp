@@ -1142,38 +1142,28 @@ void Position::initHashValue() {
     hash_value_ &= ~1; //これで1bit目が0になる(先手番を表す)
 }
 
-std::vector<float> Position::makeFeature() const {
-#ifdef DLSHOGI
-    return makeDLShogiFeature();
-#endif
-    std::vector<float> features(SQUARE_NUM * INPUT_CHANNEL_NUM, 0);
+std::vector<int64_t> Position::makeFeature() const {
+    std::vector<int64_t> features(SQUARE_NUM * HAND_FEATURE_NUM, 0);
 
-    uint64_t i = 0;
-
-    //盤上の駒の特徴量
-    for (i = 0; i < PieceList.size(); i++) {
-        //いま考慮している駒
-        Piece t = (color_ == BLACK ? PieceList[i] : oppositeColor(PieceList[i]));
-
-        //各マスについてそこにあるなら1,ないなら0とする
-        for (Square sq : SquareList) {
-            //後手のときは盤面を180度反転させる
-            Piece p = (color_ == BLACK ? board_[sq] : board_[InvSquare[sq]]);
-            features[i * SQUARE_NUM + SquareToNum[sq]] = (t == p ? 1 : 0);
-        }
+    for (int64_t i = 0; i < SQUARE_NUM; i++) {
+        //後手のときは盤面を180度反転させる
+        Square sq = SquareList[i];
+        Piece p = (color_ == BLACK ? board_[sq] : board_[InvSquare[sq]]);
+        features[i] = p;
     }
 
     //持ち駒の特徴量:最大枚数で割って正規化する
     static constexpr std::array<Color, ColorNum> colors[2] = { { BLACK, WHITE }, { WHITE, BLACK } };
     static constexpr int32_t HAND_PIECE_NUM = 7;
     static constexpr std::array<Piece, HAND_PIECE_NUM> HAND_PIECES = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
-    static constexpr std::array<float, HAND_PIECE_NUM> MAX_NUMS = { 18.0, 4.0, 4.0, 4.0, 4.0, 2.0, 2.0 };
+    static constexpr std::array<int64_t, HAND_PIECE_NUM> MAX_NUMS = { 18, 4, 4, 4, 4, 2, 2 };
     for (int32_t c : colors[color_]) {
+        int64_t offset = 0;
         for (int32_t j = 0; j < HAND_PIECE_NUM; j++) {
-            for (Square sq : SquareList) {
-                features[i * SQUARE_NUM + SquareToNum[sq]] = hand_[c].num(HAND_PIECES[j]) / MAX_NUMS[j];
+            for (int64_t k = 0; k < hand_[c].num(HAND_PIECES[j]); k++) {
+                features[SQUARE_NUM + offset + k] = 1;
             }
-            i++;
+            offset += MAX_NUMS[j];
         }
     }
 

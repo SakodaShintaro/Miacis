@@ -448,7 +448,7 @@ template<class LearningClass> void LearnManager<LearningClass>::setLearnRate(int
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
                                                                              torch::Device device) {
     static Position pos;
-    std::vector<float> inputs;
+    std::vector<int64_t> inputs;
     std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
     std::vector<ValueTeacherType> value_teachers;
 
@@ -456,7 +456,7 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(con
         pos.fromStr(data[i].position_str);
 
         //入力
-        const std::vector<float> feature = pos.makeFeature();
+        const std::vector<int64_t> feature = pos.makeFeature();
         inputs.insert(inputs.end(), feature.begin(), feature.end());
 
         //policyの教師信号

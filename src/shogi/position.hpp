@@ -40,7 +40,7 @@ public:
     bool isRepeating(float& score) const;
 
     //特徴量作成
-    std::vector<float> makeFeature() const;
+    std::vector<int64_t> makeFeature() const;
     std::vector<float> makeDLShogiFeature() const;
 
     //toとfromしか与えられない状態から完全なMoveに変換する関数

@@ -49,7 +49,7 @@ enum LossType { POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM };
 const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{ "policy", "value" };
 
 //入力のvectorをTensorに変換する関数
-torch::Tensor inputVectorToTensor(const std::vector<float>& input);
+torch::Tensor inputVectorToTensor(const std::vector<int64_t>& input);
 
 //推論時の補助関数
 //CPU上にあるTensorのペア(それぞれPolicy, Value)をstd::vector<へ変換する

@@ -26,7 +26,7 @@ public:
         for (; index_ < data_.size() && curr_batch_size < batch_size_; index_++) {
             const LearningData& curr_data = data_[index_];
             pos.fromStr(curr_data.position_str);
-            std::vector<float> f = pos.makeFeature();
+            std::vector<int64_t> f = pos.makeFeature();
             curr_input.insert(curr_input.end(), f.begin(), f.end());
             curr_batch_size++;
         }

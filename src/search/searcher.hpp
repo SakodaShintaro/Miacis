@@ -9,7 +9,7 @@
 //GPUに対する評価要求を溜めるキュー
 //hash_tableのindexに相当する入力inputを計算して適切な場所に書き込むことを要求する
 struct GPUQueue {
-    std::vector<float> inputs;
+    std::vector<int64_t> inputs;
     std::vector<std::reference_wrapper<HashTable>> hash_tables;
     std::vector<Index> indices;
 };

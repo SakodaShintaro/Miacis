@@ -24,8 +24,8 @@ const std::string DEFAULT_MODEL_NAME = MODEL_PREFIX + ".model";
 const std::string DEFAULT_ONNX_NAME = MODEL_PREFIX + ".onnx";
 const std::string DEFAULT_ENGINE_NAME = MODEL_PREFIX + ".engine";
 
-torch::Tensor inputVectorToTensor(const std::vector<float>& input) {
-    return torch::tensor(input).view({ -1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH });
+torch::Tensor inputVectorToTensor(const std::vector<int64_t>& input) {
+    return torch::tensor(input).view({ -1, SQUARE_NUM + HAND_FEATURE_NUM });
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>

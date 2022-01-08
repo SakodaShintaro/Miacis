@@ -156,7 +156,7 @@ void GenerateWorker::prepareForCurrPos() {
     HashEntry& node = hash_table_[hash_table_.root_index];
     if (node.evaled && (node.moves.size() != node.nn_policy.size())) {
         //GPUへの計算要求を追加
-        std::vector<float> this_feature = position_.makeFeature();
+        std::vector<int64_t> this_feature = position_.makeFeature();
         gpu_queue_.inputs.insert(gpu_queue_.inputs.end(), this_feature.begin(), this_feature.end());
         gpu_queue_.hash_tables.emplace_back(hash_table_);
         gpu_queue_.indices.push_back(hash_table_.root_index);
