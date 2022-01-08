@@ -190,7 +190,7 @@ void InferModel::forward(const int64_t batch_size, const int64_t* x1, void* y1, 
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAndValueBatch(const std::vector<int64_t>& inputs) {
-    constexpr int64_t element_num = INPUT_CHANNEL_NUM * SQUARE_NUM;
+    constexpr int64_t element_num = SQUARE_NUM + HAND_FEATURE_NUM;
     const int64_t batch_size = inputs.size() / element_num;
 
     std::vector<float> policy_buffer(batch_size * POLICY_DIM);
