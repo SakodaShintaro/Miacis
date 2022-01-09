@@ -50,7 +50,6 @@ for dir_name in args.dirs:
     # trainデータは1ステップごとに記録されていて多すぎるのでSKIP個になるようにまとめて平均を取る
     SKIP = 200
     for i in range(len(t_data)):
-        t_data[i] = t_data[i][0:len(t_data) // SKIP * SKIP]
         t_data[i] = np.array(t_data[i]).reshape(SKIP, -1).mean(axis=1)
     train_data.append(t_data)
     valid_labels, v_data = get_labels_and_data(dir_name + f"{args.prefix}_valid_log.txt")
