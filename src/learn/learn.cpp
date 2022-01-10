@@ -439,6 +439,11 @@ template<class LearningClass> void LearnManager<LearningClass>::setLearnRate(int
         const int64_t rem_step = (learn_rate_decay_period_ - curr_step);
         (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
             learn_rate_ * rem_step / learn_rate_decay_period_;
+    } else if (learn_rate_decay_mode_ == 5) {
+        //ルートの逆数で減衰
+        const int64_t curr_step = step_num - warm_up_step_;
+        (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
+            learn_rate_ / std::sqrt(curr_step);
     } else {
         std::cout << "Invalid learn_rate_decay_mode_: " << learn_rate_decay_mode_ << std::endl;
         std::exit(1);
