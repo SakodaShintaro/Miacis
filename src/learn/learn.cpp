@@ -475,13 +475,13 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(con
     return std::make_tuple(input_tensor, policy_target, value_target);
 }
 
-int64_t loadStepNumFromValidLog(const std::string& valid_log_name) {
-    std::ifstream valid_log(valid_log_name);
+int64_t loadStepNumFromLog(const std::string& log_file_path) {
+    std::ifstream valid_log(log_file_path);
     if (!valid_log.is_open()) {
         return 0;
     }
 
-    //validの最終行から読み込む
+    // 最終行から読み込む
     std::string line, final_line;
     while (getline(valid_log, line)) {
         final_line = line;
@@ -489,6 +489,10 @@ int64_t loadStepNumFromValidLog(const std::string& valid_log_name) {
     int64_t first_tab = final_line.find('\t');
     int64_t second_tab = final_line.find('\t', first_tab + 1);
     std::string step_num_str = final_line.substr(first_tab + 1, second_tab - first_tab - 1);
+    if (step_num_str == "step") {
+        // ヘッダだけあって学習結果0行の場合、ステップ0からスタートで良い
+        return 0;
+    }
     return std::stoll(step_num_str);
 }
 

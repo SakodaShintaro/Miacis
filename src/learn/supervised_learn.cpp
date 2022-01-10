@@ -46,7 +46,7 @@ void supervisedLearn() {
     const std::string prefix = "supervised";
 
     //エポックを超えたステップ数を初期化
-    int64_t global_step = loadStepNumFromValidLog(prefix + "_valid_log.txt");
+    int64_t global_step = loadStepNumFromLog(prefix + "_train_log.txt");
 
     //学習クラスを生成
     LearnManager<LearningModel> learn_manager(prefix, global_step);

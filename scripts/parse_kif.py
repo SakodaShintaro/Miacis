@@ -87,7 +87,7 @@ for file_name in file_names:
                 print(f"勝者:{white}")
                 result = -1
             break
-        elif move == "持将棋":
+        elif move == "持将棋" or move == "千日手":
             print(file_name, move)
             turns.append(turn - 1)
 
