@@ -35,6 +35,12 @@ void supervisedLearn() {
         train_kifu_path = dir_paths[0];
     }
 
+    const std::string prefix = "supervised";
+
+    //エポックを超えたステップ数を初期化
+    int64_t global_step = loadStepNumFromLog(prefix + "_train_log.txt");
+    std::cout << "global_step = " << global_step << std::endl;
+
     //データを取得
     std::vector<LearningData> train_data = loadHCPE(train_kifu_path, data_augmentation);
 
@@ -42,11 +48,6 @@ void supervisedLearn() {
     std::ofstream epoch_log("epoch_log.txt");
     dout(std::cout, epoch_log) << "dir_path.size() = " << dir_paths.size() << std::endl;
     epoch_log << "0 0 " << train_data.size() << std::endl;
-
-    const std::string prefix = "supervised";
-
-    //エポックを超えたステップ数を初期化
-    int64_t global_step = loadStepNumFromLog(prefix + "_train_log.txt");
 
     //学習クラスを生成
     LearnManager<LearningModel> learn_manager(prefix, global_step);

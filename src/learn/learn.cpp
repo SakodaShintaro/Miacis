@@ -481,14 +481,14 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(con
 }
 
 int64_t loadStepNumFromLog(const std::string& log_file_path) {
-    std::ifstream valid_log(log_file_path);
-    if (!valid_log.is_open()) {
+    std::ifstream log_file(log_file_path);
+    if (!log_file.is_open()) {
         return 0;
     }
 
     // 最終行から読み込む
     std::string line, final_line;
-    while (getline(valid_log, line)) {
+    while (getline(log_file, line, '\r')) {
         final_line = line;
     }
     int64_t first_tab = final_line.find('\t');
