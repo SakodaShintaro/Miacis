@@ -45,6 +45,7 @@ std::array<float, LOSS_TYPE_NUM> validationWithSave(ModelType& model, const std:
     torch::NoGradGuard no_grad_guard;
     std::ofstream ofs("valid_loss.tsv");
     std::array<float, LOSS_TYPE_NUM> losses{};
+    Position pos;
     for (uint64_t index = 0; index < valid_data.size();) {
         std::vector<LearningData> curr_data;
         while (index < valid_data.size() && curr_data.size() < batch_size) {
@@ -55,7 +56,12 @@ std::array<float, LOSS_TYPE_NUM> validationWithSave(ModelType& model, const std:
 
         //各データについて処理
         for (uint64_t i = 0; i < curr_data.size(); i++) {
-            ofs << curr_data[i].position_str << "\t" << loss[0][i].item<float>() << "\t" << loss[1][i].item<float>() << std::endl;
+            const LearningData& datum = curr_data[i];
+            pos.fromStr(datum.position_str);
+            const auto [label, prob] = datum.policy[0];
+            Move move = pos.labelToMove(label);
+            ofs << datum.position_str << "\t" << move.toPrettyStr() << "\t" << prob << "\t" << datum.value
+                << "\t" << loss[0][i].item<float>() << "\t" << loss[1][i].item<float>() << std::endl;
         }
 
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
