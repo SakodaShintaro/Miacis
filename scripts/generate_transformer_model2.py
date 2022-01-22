@@ -10,7 +10,7 @@ class TransformerModel(nn.Module):
     def __init__(self, input_channel_num, block_num, channel_num, policy_channel_num, board_size):
         super(TransformerModel, self).__init__()
         self.first_encoding_ = torch.nn.Linear(input_channel_num, channel_num)
-        encoder_layer = torch.nn.TransformerEncoderLayer(channel_num, nhead=8, dim_feedforward=channel_num * 4, norm_first=True, activation="gelu")
+        encoder_layer = torch.nn.TransformerEncoderLayer(channel_num, nhead=6, dim_feedforward=channel_num * 4, norm_first=True, activation="gelu")
         self.encoder_ = torch.nn.TransformerEncoder(encoder_layer, block_num)
         self.board_size = board_size
         square_num = board_size ** 2
@@ -49,8 +49,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-game", default="shogi", choices=["shogi", "othello", "go"])
     parser.add_argument("-value_type", default="cat", choices=["sca", "cat"])
-    parser.add_argument("--block_num", type=int, default=10)
-    parser.add_argument("--channel_num", type=int, default=256)
+    parser.add_argument("--block_num", type=int, default=12)
+    parser.add_argument("--channel_num", type=int, default=384)
     args = parser.parse_args()
 
     if args.game == "shogi":
