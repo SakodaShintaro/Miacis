@@ -39,6 +39,41 @@ std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<
 template std::array<float, LOSS_TYPE_NUM> validation<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data,
                                                                  uint64_t batch_size);
 
+template<class ModelType>
+std::array<float, LOSS_TYPE_NUM> validationWithSave(ModelType& model, const std::vector<LearningData>& valid_data,
+                                                    uint64_t batch_size) {
+    torch::NoGradGuard no_grad_guard;
+    std::ofstream ofs("valid_loss.tsv");
+    std::array<float, LOSS_TYPE_NUM> losses{};
+    for (uint64_t index = 0; index < valid_data.size();) {
+        std::vector<LearningData> curr_data;
+        while (index < valid_data.size() && curr_data.size() < batch_size) {
+            curr_data.push_back(valid_data[index++]);
+        }
+
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = model.validLoss(curr_data);
+
+        //各データについて処理
+        for (uint64_t i = 0; i < curr_data.size(); i++) {
+            ofs << curr_data[i].position_str << "\t" << loss[0][i].item<float>() << "\t" << loss[1][i].item<float>() << std::endl;
+        }
+
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            losses[i] += loss[i].sum().item<float>();
+        }
+    }
+
+    //データサイズで割って平均
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        losses[i] /= valid_data.size();
+    }
+
+    return losses;
+}
+
+template std::array<float, LOSS_TYPE_NUM>
+validationWithSave<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
+
 std::vector<LearningData> deleteDuplicate(std::vector<LearningData>& data_buffer) {
     std::sort(data_buffer.begin(), data_buffer.end(),
               [](LearningData& lhs, LearningData& rhs) { return lhs.position_str < rhs.position_str; });

@@ -177,7 +177,7 @@ void checkValInfer() {
     InferModel nn;
     nn.load(0, search_options);
 
-    std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, search_options.search_batch_size);
+    std::array<float, LOSS_TYPE_NUM> v = validationWithSave(nn, data, search_options.search_batch_size);
     std::cout << std::fixed << std::setprecision(4);
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
