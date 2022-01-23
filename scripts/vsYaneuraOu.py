@@ -16,17 +16,16 @@ import argparse
 from calc_elo_rate import calc_elo_rate
 
 parser = argparse.ArgumentParser()
+parser.add_argument("engine_path", type=str)
 parser.add_argument("--time1", type=int, default=1000)
 parser.add_argument("--time2", type=int, default=1000)
 parser.add_argument("--NodesLimit", type=int, default=0)
 parser.add_argument("--game_num", type=int, default=1000)
-parser.add_argument("--init_model_step", type=int, default=0)
 parser.add_argument("--reverse", action="store_true")
 parser.add_argument("--option", type=str, default=None)
 parser.add_argument("--parameters", type=(lambda x: list(map(int, x.split()))))
 parser.add_argument("--Suisho", action="store_true")
 parser.add_argument("--total_num", type=(lambda x: list(map(int, x.split()))), default=[0, 0, 0])
-parser.add_argument("--onnx", action="store_true")
 args = parser.parse_args()
 
 # 対局数(先後行うので偶数でなければならない)
@@ -63,7 +62,7 @@ server.engines[1].set_engine_options({"USI_Ponder": "false",
                                       "NetworkDelay2": 0
                                       })
 if args.Suisho:
-    server.engines[1].connect(script_dir + "/../../Suisho/bin/YaneuraOu-by-gcc")
+    server.engines[1].connect(script_dir + "/../../Suisho/Suisho5-YaneuraOu-tournament-avx2")
 else:
     server.engines[1].connect(script_dir + "/../../YaneuraOu/bin/YaneuraOu-by-gcc")
 
@@ -77,86 +76,68 @@ if curr_path[-1] != "/":
 f = open(curr_path + "result.txt", mode="a")
 f.write(f"\ntime1 = {args.time1}, time2 = {args.time2}, NodesLimit = {args.NodesLimit}\n")
 
-# ディレクトリにある以下のsuffixを持ったパラメータを用いて対局を行う
-model_names = natsorted(glob.glob(curr_path + "*0.model")) if not args.onnx else glob.glob(curr_path + "*.onnx")
-assert len(model_names) > 0
+# 引数で指定したエンジンで対局
+model_name = args.engine_path
 
-if args.reverse:
-    model_names = model_names[::-1]
+binary_suffix = None
+if "sca" in model_name:
+    binary_suffix = "scalar"
+elif "cat" in model_name:
+    binary_suffix = "categorical"
+else:
+    print("unknown model_name")
+    exit()
 
 if args.option is None:
-    # 各ステップの勝率を計測
-    for model_name in model_names:
-        if not args.onnx:
-            # 最後に出てくるアンダーバーから.modelの直前までにステップ数が記録されているという前提
-            step = int(model_name[model_name.rfind("_") + 1:model_name.find(".model")])
+    # Miacisを準備
+    server.engines[0].set_engine_options({"random_turn": 30,
+                                          "print_interval": 10000000,
+                                          "USI_Hash": hash_size,
+                                          "model_name": model_name})
+    server.engines[0].connect(f"{script_dir}/../build/Miacis_shogi_{binary_suffix}")
 
-            # args.init_model_stepより小さいものは調べない
-            if step < args.init_model_step:
-                continue
+    # 戦績を初期化
+    total_num = args.total_num
+
+    # 引数で初期化するのは最初だけにしたいのでここで[0, 0, 0]を入れてしまう
+    args.total_num = [0, 0, 0]
+
+    # 棋譜の集合を初期化
+    sfens = defaultdict(int)
+
+    # iが偶数のときMiacis先手
+    for i in range(sum(total_num), args.game_num):
+        # 対局を実行
+        server.game_start()
+        while not server.game_result.is_gameover():
+            time.sleep(1)
+
+        # 重複を確認
+        if sfens[server.sfen] > 0:
+            # 同じ棋譜が2回生成された場合は記録しない
+            print(f"\n重複:", server.sfen)
         else:
-            step = 0
+            # 結果を記録
+            result = result_converter[server.game_result]
+            total_num[result if not server.flip_turn else LOSE - result] += 1
 
-        # Miacisを準備
-        server.engines[0].set_engine_options({"random_turn": 30,
-                                              "print_interval": 10000000,
-                                              "USI_Hash": hash_size,
-                                              "model_name": model_name,
-                                              "use_calibration_cache": "false"})
-        binary_suffix = None
-        if "sca" in model_name:
-            binary_suffix = "scalar"
-        elif "cat" in model_name:
-            binary_suffix = "categorical"
-        elif "onnx" in model_name:
-            binary_suffix = "dlshogi"
-        else:
-            print("unknown model_name")
-            exit()
-        server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{binary_suffix}")
+        sfens[server.sfen] += 1
 
-        # 戦績を初期化
-        total_num = args.total_num
+        # ここまでの結果を文字列化
+        winning_rate = (total_num[WIN] + 0.5 * total_num[DRAW]) / sum(total_num)
+        elo_rate = calc_elo_rate(winning_rate)
+        result_str = f"{total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
 
-        # 引数で初期化するのは最初だけにしたいのでここで[0, 0, 0]を入れてしまう
-        args.total_num = [0, 0, 0]
+        sys.stdout.write("\033[2K\033[G")
+        print(result_str, end="\n" if i == args.game_num - 1 else "")
+        sys.stdout.flush()
 
-        # 棋譜の集合を初期化
-        sfens = defaultdict(int)
+        # 手番反転
+        server.flip_turn = not server.flip_turn
 
-        # iが偶数のときMiacis先手
-        for i in range(sum(total_num), args.game_num):
-            # 対局を実行
-            server.game_start()
-            while not server.game_result.is_gameover():
-                time.sleep(1)
-
-            # 重複を確認
-            if sfens[server.sfen] > 0:
-                # 同じ棋譜が2回生成された場合は記録しない
-                print(f"\n重複:", server.sfen)
-            else:
-                # 結果を記録
-                result = result_converter[server.game_result]
-                total_num[result if not server.flip_turn else LOSE - result] += 1
-
-            sfens[server.sfen] += 1
-
-            # ここまでの結果を文字列化
-            winning_rate = (total_num[WIN] + 0.5 * total_num[DRAW]) / sum(total_num)
-            elo_rate = calc_elo_rate(winning_rate)
-            result_str = f"{step:7d}ステップ {total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
-
-            sys.stdout.write("\033[2K\033[G")
-            print(result_str, end="\n" if i == args.game_num - 1 else "")
-            sys.stdout.flush()
-
-            # 手番反転
-            server.flip_turn = not server.flip_turn
-
-        # ファイルに書き込み
-        f.write(result_str + "\n")
-        f.flush()
+    # ファイルに書き込み
+    f.write(result_str + "\n")
+    f.flush()
 else:
     # パラメータを探索
     for parameter in args.parameters:
@@ -165,18 +146,8 @@ else:
                                               "print_interval": 10000000,
                                               "USI_Hash": hash_size,
                                               args.option: parameter,
-                                              "model_name": model_names[-1]})
-        binary_suffix = None
-        if "sca" in model_names[-1]:
-            binary_suffix = "scalar"
-        elif "cat" in model_names[-1]:
-            binary_suffix = "categorical"
-        elif "onnx" in model_names[-1]:
-            binary_suffix = "dlshogi"
-        else:
-            print("unknown model_name")
-            exit()
-        server.engines[0].connect(f"{script_dir}/../src/cmake-build-release/Miacis_shogi_{binary_suffix}")
+                                              "model_name": model_name})
+        server.engines[0].connect(f"{script_dir}/../build/Miacis_shogi_{binary_suffix}")
 
         # 戦績を初期化
         total_num = args.total_num
