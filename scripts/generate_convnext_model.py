@@ -67,7 +67,8 @@ class Block(nn.Module):
     def __init__(self, dim):
         super().__init__()
 
-        self.token_mixer = nn.Conv2d(dim, dim, kernel_size=7, padding=7 // 2)
+        kernel_size = 5
+        self.token_mixer = nn.Conv2d(dim, dim, kernel_size=kernel_size, padding=kernel_size // 2)
         self.norm = LayerNormChannel(dim)
         self.mlp = Mlp(in_features=dim)
 
