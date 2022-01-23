@@ -97,7 +97,7 @@ df2 = pd.read_csv(args.tsv_file2, sep="\t", header=None)
 ######################
 # ソートして定性評価 #
 ######################
-# df1 = df1.set_axis(["SFEN", "move_str", "move_prob", "value_label", "policy_loss", "value_loss"], axis=1)
+df1 = df1.set_axis(["SFEN", "move_str", "move_prob", "value_label", "policy_loss", "value_loss"], axis=1)
 # df1 = df1.sort_values("value_loss", ascending=False)
 # for i in range(len(df1[0:5])):
 #     sfen1, move_str1, move_prob1, value_label1, policy_loss1, value_loss1 = df1.iloc[i]
@@ -105,6 +105,11 @@ df2 = pd.read_csv(args.tsv_file2, sep="\t", header=None)
 
 df2 = df2.set_axis(["SFEN", "move_str", "move_prob", "value_label", "policy_loss", "value_loss"], axis=1)
 df2 = df2.sort_values("value_loss", ascending=False)
-for i in range(len(df2[0:50])):
+for i in range(len(df2[0:10])):
     sfen2, move_str2, move_prob2, value_label2, policy_loss2, value_loss2 = df2.iloc[i]
-    print(sfen2, f"\t正解指し手:{move_str2}", move_prob2, value_label2, policy_loss2, f"{value_loss2:.4f}")
+    print(sfen2, f"\t正解指し手:{move_str2}", move_prob2, value_label2, f"{policy_loss2:.3f}", f"{value_loss2:.4f}")
+
+    # 1のほうも見る
+    sfen1, move_str1, move_prob1, value_label1, policy_loss1, value_loss1 = df1[df1["SFEN"] == sfen2].iloc[0]
+    print(sfen1, f"\t正解指し手:{move_str1}", move_prob1, value_label1, f"{policy_loss1:.3f}", f"{value_loss1:.4f}")
+    print()
