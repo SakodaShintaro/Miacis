@@ -87,6 +87,8 @@ else:
     print("unknown model_name")
     exit()
 
+start_time = time.time()
+
 if args.option is None:
     # Miacisを準備
     server.engines[0].set_engine_options({"random_turn": 30,
@@ -125,7 +127,11 @@ if args.option is None:
         # ここまでの結果を文字列化
         winning_rate = (total_num[WIN] + 0.5 * total_num[DRAW]) / sum(total_num)
         elo_rate = calc_elo_rate(winning_rate)
-        result_str = f"{total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
+        elapsed_time = int(time.time() - start_time)
+        remain_time = int(elapsed_time / (i + 1) * (args.game_num - (i + 1)))
+        elapsed_time_str = f"{elapsed_time // 60 // 60:02d}:{elapsed_time // 60 % 60:02d}:{elapsed_time % 60:02d}"
+        remain_time_str = f"{remain_time // 60 // 60:02d}:{remain_time // 60 % 60:02d}:{remain_time % 60:02d}"
+        result_str = f"経過{elapsed_time_str} 残{remain_time_str} {total_num[WIN]:3d}勝 {total_num[DRAW]:3d}引き分け {total_num[LOSE]:3d}敗 勝率 {100 * winning_rate:4.1f}% 相対レート {elo_rate:6.1f}"
 
         sys.stdout.write("\033[2K\033[G")
         print(result_str, end="\n" if i == args.game_num - 1 else "")
