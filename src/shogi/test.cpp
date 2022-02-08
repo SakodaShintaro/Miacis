@@ -63,10 +63,10 @@ void checkGenSpeed() {
 }
 
 void checkSearchSpeed() {
-    constexpr int64_t time_limit = 10000;
-    constexpr int64_t trial_num = 10;
+    constexpr int64_t kTimeLimit = 10000;
+    constexpr int64_t kTrialNum = 5;
     SearchOptions search_options;
-    search_options.print_interval = time_limit * 2;
+    search_options.print_interval = kTimeLimit * 2;
     search_options.print_info = false;
     while (true) {
         std::string input;
@@ -102,25 +102,27 @@ void checkSearchSpeed() {
 
     std::cout << std::fixed << std::setprecision(1);
 
-    Position pos;
-    std::cout << "初期局面" << std::endl;
-    for (int64_t _ = 0; _ < trial_num; _++) {
-        SearcherForPlay searcher(search_options);
-        Move best_move = searcher.think(pos, time_limit);
-        const HashTable& hash_table = searcher.hashTable();
-        const HashEntry& root_entry = hash_table[hash_table.root_index];
-        std::cout << root_entry.sum_N / (time_limit / 1000.0) << "\t" << best_move << std::endl;
-    }
+    auto measure_func = [&](Position& pos) {
+        double sum = 0.0;
+        for (int64_t _ = 0; _ < kTrialNum; _++) {
+            SearcherForPlay searcher(search_options);
+            Move best_move = searcher.think(pos, kTimeLimit);
+            const HashTable& hash_table = searcher.hashTable();
+            const HashEntry& root_entry = hash_table[hash_table.root_index];
+            double curr_nps = root_entry.sum_N / (kTimeLimit / 1000.0);
+            std::cout << curr_nps << "\t" << best_move << std::endl;
+            sum += curr_nps;
+        }
+        std::cout << "平均\t" << sum / kTrialNum << std::endl;
+    };
 
-    pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
+    std::cout << "初期局面" << std::endl;
+    Position pos;
+    measure_func(pos);
+
     std::cout << "中盤の局面" << std::endl;
-    for (int64_t _ = 0; _ < trial_num; _++) {
-        SearcherForPlay searcher(search_options);
-        Move best_move = searcher.think(pos, time_limit);
-        const HashTable& hash_table = searcher.hashTable();
-        const HashEntry& root_entry = hash_table[hash_table.root_index];
-        std::cout << root_entry.sum_N / (time_limit / 1000.0) << "\t" << best_move << std::endl;
-    }
+    pos.fromStr("l2+P4l/7s1/p2ppkngp/9/2p6/PG7/K2PP+r+b1P/1S5P1/L7L w RBGS2N5Pgsn2p 82");
+    measure_func(pos);
 
     std::cout << "finish checkSearchSpeed" << std::endl;
 }
