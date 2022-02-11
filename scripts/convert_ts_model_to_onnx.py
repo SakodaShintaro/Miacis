@@ -16,7 +16,18 @@ args = parser.parse_args()
 input_channel_num = 42
 board_size = 9
 policy_channel_num = 27
-input_tensor = torch.tensor([[66, 0, 65, 0, 0, 0, 33, 0, 34, 67, 70, 65, 0, 0, 0, 33, 39, 35, 68, 0, 65, 0, 0, 0, 33, 0, 36, 69, 0, 65, 0, 0, 0, 33, 0, 37, 72, 0, 65, 0, 0, 0, 33, 0, 40, 69, 0, 65, 0, 0, 0, 33, 0, 37, 68, 0, 65, 0, 0, 0, 33, 0, 36, 67, 71, 65, 0, 0, 0, 33, 38, 35, 66, 0, 65, 0, 0, 0, 33, 0, 34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=torch.int64)
+input_tensor = torch.tensor([[66,  0, 65, 0, 0, 0, 33,  0, 34,
+                              67, 70, 65, 0, 0, 0, 33, 39, 35,
+                              68,  0, 65, 0, 0, 0, 33,  0, 36,
+                              69,  0, 65, 0, 0, 0, 33,  0, 37,
+                              72,  0, 65, 0, 0, 0, 33,  0, 40,
+                              69,  0, 65, 0, 0, 0, 33,  0, 37,
+                              68,  0, 65, 0, 0, 0, 33,  0, 36,
+                              67, 71, 65, 0, 0, 0, 33, 38, 35,
+                              66,  0, 65, 0, 0, 0, 33,  0, 34,
+                              0, 0, 0, 0, 0, 0, 0,  # 手番側の持ち駒
+                              0, 0, 0, 0, 0, 0, 0   # 非手番側の持ち駒
+                              ]], dtype=torch.int64)
 input_tensor = input_tensor.cuda()
 
 script_model = torch.jit.load(args.model_path)
@@ -46,8 +57,8 @@ elif "mlp_mixer" in args.model_path:
                      board_size=board_size)
 elif "convnext" in args.model_path:
     model = ConvNeXt(input_channel_num, block_num=block_num, channel_num=channel_num,
-                            policy_channel_num=policy_channel_num,
-                            board_size=board_size)
+                     policy_channel_num=policy_channel_num,
+                     board_size=board_size)
 else:
     model = CategoricalNetwork(input_channel_num, block_num=block_num, channel_num=channel_num,
                                policy_channel_num=policy_channel_num,

@@ -1199,13 +1199,11 @@ std::vector<int64_t> Position::makeFeature() const {
     static constexpr int32_t HAND_PIECE_NUM = 7;
     static constexpr std::array<Piece, HAND_PIECE_NUM> HAND_PIECES = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
     static constexpr std::array<int64_t, HAND_PIECE_NUM> MAX_NUMS = { 18, 4, 4, 4, 4, 2, 2 };
-    for (int32_t c : colors[color_]) {
-        int64_t offset = 0;
+
+    for (int32_t i = 0; i < ColorNum; i++) {
+        Color c = colors[color_][i];
         for (int32_t j = 0; j < HAND_PIECE_NUM; j++) {
-            for (int64_t k = 0; k < hand_[c].num(HAND_PIECES[j]); k++) {
-                features[SQUARE_NUM + offset + k] = 1;
-            }
-            offset += MAX_NUMS[j];
+            features[SQUARE_NUM + i * HAND_PIECE_NUM + j] = hand_[c].num(HAND_PIECES[j]);
         }
     }
 
