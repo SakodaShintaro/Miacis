@@ -46,6 +46,9 @@ public:
     //toとfromしか与えられない状態から完全なMoveに変換する関数
     Move transformValidMove(Move move);
 
+    //指し手のラベルから指し手に復元する関数
+    Move labelToMove(uint32_t label);
+
     //合法手生成
     std::vector<Move> generateAllMoves();
 

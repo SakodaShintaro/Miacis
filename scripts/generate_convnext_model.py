@@ -38,36 +38,14 @@ class GroupNorm(nn.GroupNorm):
         super().__init__(1, num_channels, **kwargs)
 
 
-class Pooling(nn.Module):
-    """
-    Implementation of pooling for PoolFormer
-    --pool_size: pooling size
-    """
-
-    def __init__(self, pool_size=3):
-        super().__init__()
-        self.pool = nn.AvgPool2d(
-            pool_size, stride=1, padding=pool_size // 2, count_include_pad=False)
-
-    def forward(self, x):
-        return self.pool(x) - x
-
-
 class Mlp(nn.Module):
-    """
-    Implementation of MLP with 1*1 convolutions.
-    Input: tensor with shape [B, C, H, W]
-    """
-
-    def __init__(self, in_features, hidden_features=None,
-                 out_features=None, act_layer=nn.GELU, drop=0.):
+    def __init__(self, in_features):
         super().__init__()
-        out_features = out_features or in_features
-        hidden_features = hidden_features or in_features
+        hidden_features = in_features * 4
         self.fc1 = nn.Conv2d(in_features, hidden_features, 1)
-        self.act = act_layer()
-        self.fc2 = nn.Conv2d(hidden_features, out_features, 1)
-        self.drop = nn.Dropout(drop)
+        self.act = nn.GELU()
+        self.fc2 = nn.Conv2d(hidden_features, in_features, 1)
+        self.drop = nn.Dropout(0.)
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
@@ -85,87 +63,47 @@ class Mlp(nn.Module):
         return x
 
 
-class PoolFormerBlock(nn.Module):
-    """
-    Implementation of one PoolFormer block.
-    --dim: embedding dim
-    --pool_size: pooling size
-    --mlp_ratio: mlp expansion ratio
-    --act_layer: activation
-    --norm_layer: normalization
-    --drop: dropout rate
-    --drop path: Stochastic Depth,
-        refer to https://arxiv.org/abs/1603.09382
-    --use_layer_scale, --layer_scale_init_value: LayerScale,
-        refer to https://arxiv.org/abs/2103.17239
-    """
-
-    def __init__(self, dim, pool_size=3, mlp_ratio=4.,
-                 act_layer=nn.GELU, norm_layer=GroupNorm,
-                 drop=0., drop_path=0.,
-                 use_layer_scale=True, layer_scale_init_value=1e-5):
-
+class Block(nn.Module):
+    def __init__(self, dim):
         super().__init__()
 
-        self.norm1 = norm_layer(dim)
-        self.token_mixer = Pooling(pool_size=pool_size)
-        self.norm2 = norm_layer(dim)
-        mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim,
-                       act_layer=act_layer, drop=drop)
+        kernel_size = 5
+        self.token_mixer = nn.Conv2d(dim, dim, kernel_size=kernel_size, padding=kernel_size // 2)
+        self.norm = LayerNormChannel(dim)
+        self.mlp = Mlp(in_features=dim)
 
         # The following two techniques are useful to train deep PoolFormers.
+        drop_path = 0.
         self.drop_path = DropPath(drop_path) if drop_path > 0. \
             else nn.Identity()
-        self.use_layer_scale = use_layer_scale
-        if use_layer_scale:
-            self.layer_scale_1 = nn.Parameter(
-                layer_scale_init_value * torch.ones((dim)), requires_grad=True)
-            self.layer_scale_2 = nn.Parameter(
-                layer_scale_init_value * torch.ones((dim)), requires_grad=True)
+
+        self.use_layer_scale = False
+        layer_scale_init_value = 1e-5
+        self.layer_scale_1 = nn.Parameter(
+            layer_scale_init_value * torch.ones((dim)), requires_grad=True)
+        self.layer_scale_2 = nn.Parameter(
+            layer_scale_init_value * torch.ones((dim)), requires_grad=True)
 
     def forward(self, x):
         if self.use_layer_scale:
             x = x + self.drop_path(
                 self.layer_scale_1.unsqueeze(1).unsqueeze(2)
-                * self.token_mixer(self.norm1(x)))
+                * self.token_mixer(x))
             x = x + self.drop_path(
                 self.layer_scale_2.unsqueeze(1).unsqueeze(2)
-                * self.mlp(self.norm2(x)))
+                * self.mlp(self.norm(x)))
         else:
-            x = x + self.drop_path(self.token_mixer(self.norm1(x)))
-            x = x + self.drop_path(self.mlp(self.norm2(x)))
+            x = x + self.drop_path(self.token_mixer(x))
+            x = x + self.drop_path(self.mlp(self.norm(x)))
         return x
 
 
-def basic_blocks(dim, block_num,
-                 pool_size=3, mlp_ratio=4.,
-                 act_layer=nn.GELU, norm_layer=LayerNormChannel,
-                 drop_rate=.0, drop_path_rate=0.,
-                 use_layer_scale=True, layer_scale_init_value=1e-5):
-    """
-    generate PoolFormer blocks for a stage
-    return: PoolFormer blocks
-    """
-    blocks = []
-    for _ in range(block_num):
-        blocks.append(PoolFormerBlock(
-            dim, pool_size=pool_size, mlp_ratio=mlp_ratio,
-            act_layer=act_layer, norm_layer=norm_layer,
-            drop=drop_rate, drop_path=drop_path_rate,
-            use_layer_scale=use_layer_scale,
-            layer_scale_init_value=layer_scale_init_value,
-        ))
-    blocks = nn.Sequential(*blocks)
-
-    return blocks
-
-
-class PoolFormerModel(nn.Module):
+class ConvNeXt(nn.Module):
     def __init__(self, input_channel_num, block_num, channel_num, policy_channel_num, board_size):
-        super(PoolFormerModel, self).__init__()
+        super(ConvNeXt, self).__init__()
         self.first_conv1x1_ = nn.Conv2d(input_channel_num, channel_num, 1)
-        self.blocks_ = basic_blocks(channel_num, block_num)
+        self.blocks_ = [Block(channel_num) for _ in range(block_num)]
+        self.blocks_ = nn.Sequential(*self.blocks_)
         self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
         self.value_head_ = ValueHead(channel_num, 51)
 
@@ -202,7 +140,7 @@ def main():
     else:
         exit(1)
 
-    model = PoolFormerModel(input_channel_num, args.block_num, args.channel_num, policy_channel_num, board_size)
+    model = ConvNeXt(input_channel_num, args.block_num, args.channel_num, policy_channel_num, board_size)
 
     params = 0
     for p in model.parameters():
@@ -213,7 +151,7 @@ def main():
     input_data = torch.randn([8, input_channel_num, board_size, board_size])
     script_model = torch.jit.trace(model, input_data)
     script_model = torch.jit.script(model)
-    model_path = f"./{args.game}_cat_poolformer_bl{args.block_num}_ch{args.channel_num}.model"
+    model_path = f"./{args.game}_cat_convnext_bl{args.block_num}_ch{args.channel_num}.model"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
 

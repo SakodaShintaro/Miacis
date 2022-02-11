@@ -39,6 +39,47 @@ std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<
 template std::array<float, LOSS_TYPE_NUM> validation<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data,
                                                                  uint64_t batch_size);
 
+template<class ModelType>
+std::array<float, LOSS_TYPE_NUM> validationWithSave(ModelType& model, const std::vector<LearningData>& valid_data,
+                                                    uint64_t batch_size) {
+    torch::NoGradGuard no_grad_guard;
+    std::ofstream ofs("valid_loss.tsv");
+    std::array<float, LOSS_TYPE_NUM> losses{};
+    Position pos;
+    for (uint64_t index = 0; index < valid_data.size();) {
+        std::vector<LearningData> curr_data;
+        while (index < valid_data.size() && curr_data.size() < batch_size) {
+            curr_data.push_back(valid_data[index++]);
+        }
+
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = model.validLoss(curr_data);
+
+        //各データについて処理
+        for (uint64_t i = 0; i < curr_data.size(); i++) {
+            const LearningData& datum = curr_data[i];
+            pos.fromStr(datum.position_str);
+            const auto [label, prob] = datum.policy[0];
+            Move move = pos.labelToMove(label);
+            ofs << datum.position_str << "\t" << move.toPrettyStr() << "\t" << prob << "\t" << datum.value
+                << "\t" << loss[0][i].item<float>() << "\t" << loss[1][i].item<float>() << std::endl;
+        }
+
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            losses[i] += loss[i].sum().item<float>();
+        }
+    }
+
+    //データサイズで割って平均
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        losses[i] /= valid_data.size();
+    }
+
+    return losses;
+}
+
+template std::array<float, LOSS_TYPE_NUM>
+validationWithSave<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
+
 std::vector<LearningData> deleteDuplicate(std::vector<LearningData>& data_buffer) {
     std::sort(data_buffer.begin(), data_buffer.end(),
               [](LearningData& lhs, LearningData& rhs) { return lhs.position_str < rhs.position_str; });
@@ -439,6 +480,10 @@ template<class LearningClass> void LearnManager<LearningClass>::setLearnRate(int
         const int64_t rem_step = (learn_rate_decay_period_ - curr_step);
         (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
             learn_rate_ * rem_step / learn_rate_decay_period_;
+    } else if (learn_rate_decay_mode_ == 5) {
+        //ルートの逆数で減衰
+        (dynamic_cast<torch::optim::SGDOptions&>(optimizer_->param_groups().front().options())).lr() =
+            learn_rate_ * std::sqrt((double)warm_up_step_ / step_num);
     } else {
         std::cout << "Invalid learn_rate_decay_mode_: " << learn_rate_decay_mode_ << std::endl;
         std::exit(1);
@@ -475,20 +520,24 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(con
     return std::make_tuple(input_tensor, policy_target, value_target);
 }
 
-int64_t loadStepNumFromValidLog(const std::string& valid_log_name) {
-    std::ifstream valid_log(valid_log_name);
-    if (!valid_log.is_open()) {
+int64_t loadStepNumFromLog(const std::string& log_file_path) {
+    std::ifstream log_file(log_file_path);
+    if (!log_file.is_open()) {
         return 0;
     }
 
-    //validの最終行から読み込む
+    // 最終行から読み込む
     std::string line, final_line;
-    while (getline(valid_log, line)) {
+    while (getline(log_file, line, '\r')) {
         final_line = line;
     }
     int64_t first_tab = final_line.find('\t');
     int64_t second_tab = final_line.find('\t', first_tab + 1);
     std::string step_num_str = final_line.substr(first_tab + 1, second_tab - first_tab - 1);
+    if (step_num_str == "step") {
+        // ヘッダだけあって学習結果0行の場合、ステップ0からスタートで良い
+        return 0;
+    }
     return std::stoll(step_num_str);
 }
 

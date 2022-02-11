@@ -35,13 +35,11 @@ TIME = 0
 STEP = 1
 POLICY_LOSS = 2
 VALUE_LOSS = 3
-ELO_RATE = 4
 
 train_labels = None
 train_data = list()
 valid_labels = None
 valid_data = list()
-battle_result = list()
 
 for dir_name in args.dirs:
     if dir_name[-1] != "/":
@@ -50,35 +48,11 @@ for dir_name in args.dirs:
     # trainデータは1ステップごとに記録されていて多すぎるのでSKIP個になるようにまとめて平均を取る
     SKIP = 200
     for i in range(len(t_data)):
-        t_data[i] = t_data[i][0:len(t_data) // SKIP * SKIP]
+        t_data[i] = t_data[i][0:len(t_data[i]) // SKIP * SKIP]
         t_data[i] = np.array(t_data[i]).reshape(SKIP, -1).mean(axis=1)
     train_data.append(t_data)
     valid_labels, v_data = get_labels_and_data(dir_name + f"{args.prefix}_valid_log.txt")
     valid_data.append(v_data)
-
-    # 対局結果を取得
-    # 対局結果はresult.txtにある
-    result_file_name = dir_name + "/result.txt"
-    if not os.path.exists(result_file_name):
-        print("result.txt does not exist in ", dir_name)
-        continue
-
-    steps = list()
-    rates = list()
-    for line in open(result_file_name):
-        # 空白区切りで"相対レート"という要素の次にレートが記録されていることを前提とする
-        elements = line.strip().split()
-        for e in elements:
-            if "ステップ" in e:
-                steps.append(int(e.replace("ステップ", "")))
-        if "相対レート" in elements:
-            rates.append(float(elements[elements.index("相対レート") + 1]))
-
-    c = zip(steps, rates)
-    c = sorted(c)
-    steps, rates = zip(*c)
-
-    battle_result.append((steps, rates))
 
 # policy, valueそれぞれプロット
 for x in [STEP]:
@@ -113,10 +87,3 @@ for x in [STEP]:
         plt.legend()
         plt.savefig("compare_train_and_valid_" + train_labels[y] + ".png", bbox_inches="tight", pad_inches=0.1)
         plt.clf()
-
-# 対局結果をプロット
-for name, data in zip(args.labels, battle_result):
-    plt.plot(data[0], data[1], label=name)
-plt.legend()
-plt.savefig("compare_battle_result.png", bbox_inches="tight", pad_inches=0.1)
-plt.clf()

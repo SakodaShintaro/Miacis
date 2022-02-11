@@ -1127,6 +1127,48 @@ Move Position::transformValidMove(const Move move) {
                           : Move(move.to(), move.from(), false, move.isPromote(), board_[move.from()], board_[move.to()]));
 }
 
+Move Position::labelToMove(uint32_t label) {
+    int64_t sq_num = label % SQUARE_NUM;
+    Square to_sq = SquareList[sq_num];
+
+    Dir dir_list[] = { D, RD, LD, R, L, U, RU, LU, RDD, LDD };
+
+    // 後手の場合後手視点から見るようにするので反転
+    if (color_ == WHITE) {
+        to_sq = InvSquare[to_sq];
+        for (Dir& d : dir_list) {
+            d = Dir(-d);
+        }
+    }
+
+    int64_t dir = label / SQUARE_NUM;
+    Square from_sq = to_sq;
+
+    bool ok = true;
+
+    Move move;
+    if (dir >= 20) {
+        //打つ手
+        Piece subject = DLShogiPieceKindList[dir - 20];
+        move = dropMove(to_sq, coloredPiece(color_, subject));
+    } else {
+        //移動手
+        bool promote = (dir >= 10);
+        dir %= 10;
+        for (from_sq = to_sq + dir_list[dir]; board_[from_sq] == EMPTY; from_sq = from_sq + dir_list[dir]) {
+        }
+        move = Move(to_sq, from_sq, false, promote);
+        move = transformValidMove(move);
+    }
+
+    if (!isLegalMove(move)) {
+        print();
+        std::cout << "not LegalMove : " << label << " to " << move.toPrettyStr() << std::endl;
+        std::exit(1);
+    }
+    return move;
+}
+
 void Position::initHashValue() {
     hash_value_ = 0;
     board_hash_ = 0;

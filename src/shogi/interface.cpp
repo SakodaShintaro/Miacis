@@ -271,7 +271,7 @@ void Interface::convertOnnxToEngine() {
     std::cin >> onnx_path;
     std::string calibration_data_path;
     std::cin >> calibration_data_path;
-    InferModel::convertOnnxToEngine(onnx_path, INT8, search_options_.search_batch_size, calibration_data_path);
+    InferModel::convertOnnxToEngine(onnx_path, FP16, search_options_.search_batch_size, calibration_data_path);
 }
 
 } // namespace Shogi
