@@ -1,14 +1,6 @@
 ﻿#include "searcher_for_play.hpp"
 #include <thread>
 
-struct MoveWithScore {
-public:
-    Move move;
-    float score;
-    bool operator<(const MoveWithScore& rhs) const { return score < rhs.score; }
-    bool operator>(const MoveWithScore& rhs) const { return score > rhs.score; }
-};
-
 SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
     : stop_signal(false), search_options_(search_options),
       hash_table_(search_options.USI_Hash * 1024 * 1024 / (120 * search_options.hold_moves_num)),

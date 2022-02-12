@@ -717,4 +717,59 @@ void testHuffmanDecode() {
     std::cout << "data.size() = " << data.size() << std::endl;
 }
 
+void checkInfer() {
+    std::cout << std::fixed;
+
+    SearchOptions search_options;
+    std::string model_path;
+    std::cin >> search_options.model_name;
+    std::cout << "model_name = " << search_options.model_name << std::endl;
+
+    std::string board, turn, hand, turn_number;
+    std::cin >> board >> turn >> hand >> turn_number;
+    std::string sfen = board + " " + turn + " " + hand + " " + turn_number;
+    std::cout << "sfen = " << sfen << std::endl;
+
+    Position pos;
+    pos.fromStr(sfen);
+
+    InferModel nn;
+    nn.load(0, search_options);
+
+    //入力を取得
+    std::vector<float> input;
+    auto f = pos.makeFeature();
+    input.insert(input.end(), f.begin(), f.end());
+
+    std::vector<Move> moves = pos.generateAllMoves();
+
+    torch::NoGradGuard no_grad_guard;
+    auto [policy, value] = nn.policyAndValueBatch(input);
+
+    const int64_t batch_size = policy.size();
+    for (int64_t i = 0; i < batch_size; i++) {
+        std::cout << "Policy" << std::endl;
+
+        //Policyの大きい順にsearch_option.hold_moves_num個だけ残す
+        std::vector<MoveWithScore> moves_with_score(moves.size());
+        for (uint64_t j = 0; j < moves.size(); j++) {
+            moves_with_score[j].move = moves[j];
+            moves_with_score[j].score = policy[i][moves[j].toLabel()];
+        }
+        std::sort(moves_with_score.begin(), moves_with_score.end(), std::greater<>());
+        std::vector<float> nn_policy(moves.size());
+        for (int64_t j = 0; j < moves.size(); j++) {
+            nn_policy[j] = moves_with_score[j].score;
+        }
+        nn_policy = softmax(nn_policy, 1.0f);
+
+        for (int64_t j = 0; j < std::min(moves_with_score.size(), (size_t)10); j++) {
+            std::cout << nn_policy[j] << " " << moves_with_score[j].move.toPrettyStr() << std::endl;
+        }
+
+        float v = expOfValueDist(value[i]);
+        std::cout << "Value = " << v << std::endl;
+    }
+}
+
 } // namespace Shogi
