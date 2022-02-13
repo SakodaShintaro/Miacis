@@ -3,7 +3,6 @@ import argparse
 import torch
 import torch.jit
 import torch.nn as nn
-from generate_cnn_model import PolicyHead, ValueHead
 
 
 class TransformerModel(nn.Module):
@@ -20,7 +19,7 @@ class TransformerModel(nn.Module):
         self.encoder_ = torch.nn.TransformerEncoder(encoder_layer, block_num)
         self.board_size = board_size
         square_num = board_size ** 2
-        self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
+        self.policy_head_ = nn.Conv2d(channel_num, policy_channel_num, 1, bias=True, padding=0)
         self.value_head_ = nn.Conv2d(channel_num, 51, 1, bias=True, padding=0)
         self.positional_encoding_ = torch.nn.Parameter(torch.zeros([square_num, 1, channel_num]), requires_grad=True)
         self.value_token_ = torch.nn.Parameter(torch.zeros([1, 1, channel_num]), requires_grad=True)
