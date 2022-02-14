@@ -11,7 +11,7 @@ class TransformerModel(nn.Module):
         self.first_encoding_ = torch.nn.Linear(input_channel_num, channel_num)
         encoder_layer = torch.nn.TransformerEncoderLayer(
             channel_num,
-            nhead=8,
+            nhead=12,
             dim_feedforward=channel_num * 4,
             norm_first=True,
             activation="gelu",
@@ -54,8 +54,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-game", default="shogi", choices=["shogi", "othello", "go"])
     parser.add_argument("-value_type", default="cat", choices=["sca", "cat"])
-    parser.add_argument("--block_num", type=int, default=6)
-    parser.add_argument("--channel_num", type=int, default=256)
+    parser.add_argument("--block_num", type=int, default=12)
+    parser.add_argument("--channel_num", type=int, default=768)
     args = parser.parse_args()
 
     if args.game == "shogi":
