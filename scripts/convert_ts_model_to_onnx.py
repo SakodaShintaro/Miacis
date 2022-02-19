@@ -7,6 +7,7 @@ from generate_transformer_model import TransformerModel
 from generate_mlp_mixer_model import MLPMixer
 from generate_convnext_model import ConvNeXt
 from generate_hybrid_model import HybridNetwork
+from generate_timm_model import TimmModel
 
 parser = argparse.ArgumentParser()
 parser.add_argument("model_path", type=str)
@@ -52,6 +53,10 @@ elif "hybrid" in args.model_path:
     model = HybridNetwork(input_channel_num, block_num=block_num, channel_num=channel_num,
                           policy_channel_num=policy_channel_num,
                           board_size=board_size)
+elif "timm" in args.model_path:
+    model = TimmModel(input_channel_num, block_num=block_num, channel_num=channel_num,
+                                 policy_channel_num=policy_channel_num,
+                                 board_size=board_size)
 else:
     model = CategoricalNetwork(input_channel_num, block_num=block_num, channel_num=channel_num,
                                policy_channel_num=policy_channel_num,
