@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 # LibTorch
-list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.10.1)
+list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.10.1-cu113)
 find_package(Torch REQUIRED)
 
 # TensorRT
