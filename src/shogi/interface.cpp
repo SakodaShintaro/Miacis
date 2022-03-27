@@ -21,6 +21,9 @@ Interface::Interface() : searcher_(nullptr) {
     // エンジン作成
     command_["convertOnnxToEngine"] = [this] { convertOnnxToEngine(); };
 
+    // データセット構成
+    command_["makePlySideIsDominantDataset"] = [this] { makePlySideIsDominantDataset(); };
+
     //テスト
     command_["test"]         = [this] { testSelfPlay(1); };
     command_["infiniteTest"] = [this] { testSelfPlay(INT_MAX); };
@@ -273,6 +276,67 @@ void Interface::convertOnnxToEngine() {
     std::string calibration_data_path;
     std::cin >> calibration_data_path;
     InferModel::convertOnnxToEngine(onnx_path, FP16, search_options_.search_batch_size, calibration_data_path);
+}
+
+void Interface::makePlySideIsDominantDataset() {
+    std::cout << "kifu_path : ";
+    std::string kifu_path;
+    std::cin >> kifu_path;
+    std::vector<LearningData> data = loadData(kifu_path, false, 0);
+
+    Position pos;
+
+    std::ofstream ofs("ply_side_is_dominant.txt");
+
+    const float kThreshold = 0.6;
+
+    int64_t all_num = 0, ok_num = 0;
+
+    for (const LearningData datum : data) {
+        // 調査した数をカウント
+        all_num++;
+
+        // 局面を復元
+        pos.fromStr(datum.position_str);
+
+        // 王手をかけられている局面は手番入れ替えができないのでスルー
+        if (pos.isChecked()) {
+            continue;
+        }
+
+        std::cout << pos.toStr() << std::endl;
+
+        // この局面が条件に当てはまるかどうか
+        bool ok = true;
+
+        // 手番そのまま、手番入れ替えで2回実行
+        for (int64_t _ = 0; _ < 2; _++) {
+            Move best_move = searcher_->think(pos, 1000);
+            const HashTable& hash_table = searcher_->hashTable();
+            const HashEntry& root_node = hash_table[hash_table.root_index];
+            const float value = expOfValueDist(root_node.value);
+            if (value < kThreshold) {
+                ok = false;
+                break;
+            }
+
+
+            // NULL_MOVEで動かして手番だけ変更
+            pos.doMove(NULL_MOVE);
+        }
+
+        if (!ok) {
+            continue;
+        }
+
+        // ファイルに記録
+        ofs << pos.toStr() << std::endl;
+
+        // okだった数をカウント
+        ok_num++;
+
+        std::cout << ok << " / " << all_num << std::endl;
+    }
 }
 
 } // namespace Shogi

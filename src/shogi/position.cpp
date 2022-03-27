@@ -1042,6 +1042,10 @@ std::vector<Move> Position::generateAllMoves() {
 
 inline bool Position::isLastMoveCheck() {
     Move move = lastMove();
+    if (move == NULL_MOVE) {
+        return false;
+    }
+
     if (controlBB(move.to(), board_[move.to()], occupied_all_) & SQUARE_BB[king_sq_[color_]]) {
         //直接王手だったら即返す
         return true;
