@@ -30,9 +30,6 @@ public:
     //onnxをTensorRTエンジンへ変換する
     void convertOnnxToEngine();
 
-    //手番側が優勢データセットの作成
-    void makePlySideIsDominantDataset();
-
 private:
     std::unordered_map<std::string, std::function<void()>> command_;
     Position root_;
