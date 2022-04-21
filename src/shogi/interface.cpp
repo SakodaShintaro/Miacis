@@ -46,6 +46,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["checkBuildOnnx"]     = checkBuildOnnx;
     command_["testHuffmanDecode"]  = testHuffmanDecode;
     command_["checkInfer"]         = checkInfer;
+    command_["checkValInferSuisho"]= checkValInferSuisho;
     // clang-format on
 }
 
