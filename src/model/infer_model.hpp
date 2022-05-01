@@ -23,6 +23,7 @@ inline void checkCudaErrors(cudaError_t status) {
         _error << "Cuda failure\nError: " << cudaGetErrorString(status);
         std::cerr << _error.str() << "\nAborting...\n";
         cudaDeviceReset();
+        assert(false);
         exit(EXIT_FAILURE);
     }
 }
