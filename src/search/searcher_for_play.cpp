@@ -5,9 +5,10 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
     : stop_signal(false), search_options_(search_options),
       hash_table_(search_options.USI_Hash * 1024 * 1024 / (120 * search_options.hold_moves_num)),
       mate_searcher_(hash_table_, search_options) {
+
+    neural_networks_.resize(search_options.gpu_num);
     //GPUを準備
     for (int64_t i = 0; i < search_options.gpu_num; i++) {
-        neural_networks_.emplace_back();
         neural_networks_[i].load(i, search_options);
     }
 

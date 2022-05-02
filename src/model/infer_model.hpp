@@ -61,6 +61,9 @@ private:
     void* y1_dev_ = nullptr;
     void* y2_dev_ = nullptr;
 
+    // 一度でもロードされたかどうかのフラグ
+    bool loaded_ = false;
+
     void forward(const int64_t batch_size, const float* x1, void* y1, void* y2);
 };
 

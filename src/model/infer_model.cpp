@@ -117,15 +117,20 @@ void InferModel::convertOnnxToEngine(const std::string& onnx_path, const FP_MODE
 }
 
 InferModel::~InferModel() {
-    // cudaDeviceReset();
-    // checkCudaErrors(cudaFree(x1_dev_));
-    // checkCudaErrors(cudaFree(y1_dev_));
-    // checkCudaErrors(cudaFree(y2_dev_));
+    // 一度でもロードされた場合のみに解放
+    // 書き方によってはロードされるまでにデストラクタが呼ばれることがあるらしい
+    if (loaded_) {
+        // メモリの解放
+        checkCudaErrors(cudaSetDevice(gpu_id_));
+        checkCudaErrors(cudaFree(x1_dev_));
+        checkCudaErrors(cudaFree(y1_dev_));
+        checkCudaErrors(cudaFree(y2_dev_));
 
-    //destroyを入れるとむしろSegmentation Faultが発生するのでコメントアウト
-    //しかし何もしていないとリークしていそうだが、それは良いのか？
-    //engine_->destroy();
-    //context_->destroy();
+        //destroyを入れるとむしろSegmentation Faultが発生するのでコメントアウト
+        //しかし何もしていないとリークしていそうだが、それは良いのか？
+        // engine_->destroy();
+        // context_->destroy();
+    }
 }
 
 void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
@@ -177,6 +182,9 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     if (!context_) {
         throw std::runtime_error("createExecutionContext");
     }
+
+    // ロードされたのでフラグを立てる
+    loaded_ = true;
 }
 
 void InferModel::forward(const int64_t batch_size, const float* x1, void* y1, void* y2) {
