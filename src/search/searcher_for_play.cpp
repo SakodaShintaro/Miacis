@@ -34,9 +34,12 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
 #endif
 }
 
-Move SearcherForPlay::think(Position& root, int64_t time_limit) {
+Move SearcherForPlay::think(Position& root, int64_t time_limit, bool as_ponder) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
+
+    // ponderモードをセット
+    as_ponder_ = as_ponder;
 
 #ifdef SHOGI
     float score{};
@@ -102,7 +105,7 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
         curr_node.evaled = true;
     }
 
-    if (search_options_.output_log_file) {
+    if (search_options_.output_log_file && !as_ponder) {
         outputInfo(log_file_, 1);
     }
 
@@ -247,7 +250,8 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
         if (!gpu_queue.inputs.empty()) {
             torch::NoGradGuard no_grad_guard;
             gpu_mutexes_[gpu_id].lock();
-            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = neural_networks_[gpu_id].policyAndValueBatch(gpu_queue.inputs);
+            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y =
+                neural_networks_[gpu_id].policyAndValueBatch(gpu_queue.inputs);
             gpu_mutexes_[gpu_id].unlock();
 
             //書き込み
@@ -313,6 +317,10 @@ void SearcherForPlay::outputInfo(std::ostream& ost, int64_t gather_num) const {
     //最善手（探索回数最大手）の価値を計算
     int32_t best_index = (std::max_element(curr_node.N.begin(), curr_node.N.end()) - curr_node.N.begin());
     float best_value = hash_table_.expQfromNext(curr_node, best_index);
+
+    if (as_ponder_) {
+        best_value = MIN_SCORE + (MAX_SCORE - best_value);
+    }
 
 #ifdef USE_CATEGORICAL
     //分布の表示

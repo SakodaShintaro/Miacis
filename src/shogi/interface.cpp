@@ -216,7 +216,7 @@ void Interface::go() {
             root_.doMove(best_move);
             float score{};
             if (!root_.isFinish(score) && root_.turnNumber() <= search_options_.draw_turn) {
-                searcher_->think(root_, LLONG_MAX);
+                searcher_->think(root_, LLONG_MAX, true);
             }
         }
     });

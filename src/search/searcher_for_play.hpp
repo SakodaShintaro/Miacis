@@ -17,7 +17,7 @@ public:
     explicit SearcherForPlay(const SearchOptions& search_options);
 
     //探索を行って一番良い指し手を返す関数
-    Move think(Position& root, int64_t time_limit);
+    Move think(Position& root, int64_t time_limit, bool as_ponder = false);
 
     const HashTable& hashTable() { return hash_table_; }
 
@@ -69,6 +69,9 @@ private:
 
     //ログファイルを出力する場合のストリーム
     std::ofstream log_file_;
+
+    // ponderとして思考する場合のフラグ
+    bool as_ponder_;
 
 #ifdef SHOGI
     //定跡
