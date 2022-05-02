@@ -63,7 +63,7 @@ void Interface::loop() {
 
 void Interface::usi() {
 #ifdef USE_CATEGORICAL
-    std::cout << "id name Miacis_categorical" << std::endl;
+    std::cout << "id name Miacis_WCSC32" << std::endl;
 #else
     std::cout << "id name Miacis_scalar" << std::endl;
 #endif

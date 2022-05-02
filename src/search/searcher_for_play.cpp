@@ -6,7 +6,7 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
       hash_table_(search_options.USI_Hash * 1024 * 1024 / (120 * search_options.hold_moves_num)),
       mate_searcher_(hash_table_, search_options) {
     //GPUを準備
-    for (int64_t i = 0; i < search_options.gpu_num; i++) {
+    for (int64_t i = 0; i < 1; i++) {
         neural_networks_.emplace_back();
         neural_networks_[i].load(i, search_options);
     }
@@ -196,6 +196,10 @@ bool SearcherForPlay::shouldStop() {
 }
 
 void SearcherForPlay::gpuThreadFunc(const Position& root, int64_t gpu_id) {
+    if (gpu_id != 0) {
+        neural_networks_[gpu_id].load(gpu_id, search_options_);
+    }
+
     //workerを立ち上げ
     std::vector<std::thread> threads(search_options_.thread_num_per_gpu);
     for (int64_t i = 0; i < search_options_.thread_num_per_gpu; i++) {

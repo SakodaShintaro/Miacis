@@ -117,9 +117,10 @@ void InferModel::convertOnnxToEngine(const std::string& onnx_path, const FP_MODE
 }
 
 InferModel::~InferModel() {
-    checkCudaErrors(cudaFree(x1_dev_));
-    checkCudaErrors(cudaFree(y1_dev_));
-    checkCudaErrors(cudaFree(y2_dev_));
+    // cudaDeviceReset();
+    // checkCudaErrors(cudaFree(x1_dev_));
+    // checkCudaErrors(cudaFree(y1_dev_));
+    // checkCudaErrors(cudaFree(y2_dev_));
 
     //destroyを入れるとむしろSegmentation Faultが発生するのでコメントアウト
     //しかし何もしていないとリークしていそうだが、それは良いのか？
@@ -129,6 +130,7 @@ InferModel::~InferModel() {
 
 void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     gpu_id_ = gpu_id;
+    cudaSetDevice(gpu_id_);
     opt_batch_size_ = search_option.search_batch_size;
     max_batch_size_ = search_option.search_batch_size * 2;
     // Create host and device buffers
@@ -178,6 +180,8 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
 }
 
 void InferModel::forward(const int64_t batch_size, const float* x1, void* y1, void* y2) {
+    cudaSetDevice(gpu_id_);
+
     checkCudaErrors(cudaMemcpy(x1_dev_, x1, batch_size * sizeof(float) * INPUT_CHANNEL_NUM * SQUARE_NUM, cudaMemcpyHostToDevice));
 
     nvinfer1::Dims dims = engine_->getBindingDimensions(0);
