@@ -5,6 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import japanize_matplotlib
 from natsort import natsorted
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("dir", type=str)
+args = parser.parse_args()
 
 # もし序盤が弱い→序盤から悪くしてそのまま負ける
 # もし終盤が弱い→序盤・中盤は良いのに終盤で負ける
@@ -19,7 +24,7 @@ result_points_each_phase = [[list() for _ in range(BIN_SIZE)] for i in range(PHA
 
 total_result_for_miacis = [0, 0, 0]
 
-file_names = natsorted(glob.glob("./*.kif"))
+file_names = natsorted(glob.glob(f"{args.dir}/*.kif"))
 for file_name in file_names:
     f = codecs.open(file_name, 'r', 'shift_jis')
     date = f.readline().strip()
@@ -87,7 +92,7 @@ for file_name in file_names:
                 print(f"勝者:{white}")
                 result = -1
             break
-        elif move == "持将棋":
+        elif move == "持将棋" or move == "千日手":
             print(file_name, move)
             turns.append(turn - 1)
 
@@ -138,12 +143,9 @@ for i in range(BIN_SIZE):
         y_each_phase[p].append(np.mean(result_points_each_phase[p][i]))
 
 plt.plot(x, y, marker=".", label="Miacisの探索結果")
-# for p in range(PHASE_NUM):
-#     plt.plot(x, y_each_phase[p], marker=".", label=f"Miacis探索結果{p}")
-
 plt.plot(x, x, linestyle="dashed", label="理論値")
 plt.legend()
 
 plt.xlabel("評価値(探索結果)")
 plt.ylabel("平均報酬")
-plt.savefig("evaluation_curve.png", bbox_inches="tight", pad_inches=0.05)
+plt.savefig(f"{args.dir}/evaluation_curve.png", bbox_inches="tight", pad_inches=0.05)

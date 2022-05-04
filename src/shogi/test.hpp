@@ -18,6 +18,8 @@ void checkLearningModel();
 void checkValidData();
 void checkBuildOnnx();
 void testHuffmanDecode();
+void checkInfer();
+void checkValInferSuisho();
 
 } // namespace Shogi
 

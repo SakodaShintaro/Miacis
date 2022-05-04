@@ -42,7 +42,7 @@ void reinforcementLearn() {
 
     const std::string prefix = "reinforcement";
 
-    int64_t curr_step_num = loadStepNumFromValidLog(prefix + "_valid_log.txt");
+    int64_t curr_step_num = loadStepNumFromLog(prefix + "_train_log.txt");
 
     //学習クラスを生成
     LearnManager<LearningModel> learn_manager(prefix, curr_step_num);

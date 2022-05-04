@@ -6,11 +6,11 @@ import torch.jit
 import argparse
 
 
-class Conv2DwithLayerNorm(nn.Module):
+class Conv2DwithBatchNorm(nn.Module):
     def __init__(self, input_ch, output_ch, kernel_size):
-        super(Conv2DwithLayerNorm, self).__init__()
+        super(Conv2DwithBatchNorm, self).__init__()
         self.conv_ = nn.Conv2d(input_ch, output_ch, kernel_size, bias=False, padding=kernel_size // 2)
-        self.norm_ = nn.LayerNorm((output_ch, 9, 9))
+        self.norm_ = nn.BatchNorm2d(output_ch)
 
     def forward(self, x):
         t = self.conv_.forward(x)
@@ -18,75 +18,56 @@ class Conv2DwithLayerNorm(nn.Module):
         return t
 
 
-class Branch(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3):
-        super(Branch, self).__init__()
-        hidden_channels = in_channels // 2
-        self.conv0_ = Conv2DwithLayerNorm(in_channels, hidden_channels, kernel_size=kernel_size)
-        self.conv1_ = Conv2DwithLayerNorm(hidden_channels, out_channels, kernel_size=kernel_size)
+class ResidualBlock(nn.Module):
+    def __init__(self, channel_num, kernel_size, reduction):
+        super(ResidualBlock, self).__init__()
+        self.conv_and_norm0_ = Conv2DwithBatchNorm(channel_num, channel_num, kernel_size)
+        self.conv_and_norm1_ = Conv2DwithBatchNorm(channel_num, channel_num, kernel_size)
+        self.linear0_ = nn.Linear(channel_num, channel_num // reduction, bias=False)
+        self.linear1_ = nn.Linear(channel_num // reduction, channel_num, bias=False)
 
     def forward(self, x):
-        x = self.conv0_(x)
-        x = torch.relu(x)
-        x = self.conv1_(x)
-        return x
+        t = x
+        t = self.conv_and_norm0_.forward(t)
+        t = F.gelu(t)
+        t = self.conv_and_norm1_.forward(t)
 
+        y = F.adaptive_avg_pool2d(t, [1, 1])
+        y = y.view([-1, t.shape[1]])
+        y = self.linear0_.forward(y)
+        y = F.gelu(y)
+        y = self.linear1_.forward(y)
+        y = torch.sigmoid(y)
+        y = y.view([-1, t.shape[1], 1, 1])
+        t = t * y
 
-class ResidualBlock(nn.Module):
-    def __init__(self, hidden_channels, memory_channels, kernel_size):
-        super(ResidualBlock, self).__init__()
-        sum_channels = hidden_channels + memory_channels
-        self.conv_update_gate_ = Branch(sum_channels, memory_channels, kernel_size)
-        self.conv_forget_gate_ = Branch(sum_channels, memory_channels, kernel_size)
-        self.conv_update_value_ = Branch(sum_channels, memory_channels, kernel_size)
-        self.conv_forward_ = Branch(sum_channels, hidden_channels, kernel_size)
-
-    def forward(self, x, memory):
-        cat0 = torch.cat([x, memory], dim=1)
-
-        update_gate = torch.sigmoid(self.conv_update_gate_(cat0))
-        forget_gate = torch.sigmoid(self.conv_forget_gate_(cat0))
-        update_value = torch.tanh(self.conv_update_value_(cat0))
-
-        memory = update_gate * update_value + forget_gate * memory
-
-        cat1 = torch.cat([x, memory], dim=1)
-        next_x = torch.relu(x + self.conv_forward_(cat1))
-
-        return next_x, memory
-
-
-class ResidualLayer(nn.Module):
-    def __init__(self, block_num, hidden_channel_num, memory_channel_num, kernel_size=3):
-        super(ResidualLayer, self).__init__()
-        self.blocks = nn.ModuleList()
-        for i in range(block_num):
-            self.blocks.add_module(f"block{i}", ResidualBlock(hidden_channel_num, memory_channel_num, kernel_size))
-
-    def forward(self, x, memory):
-        for b in self.blocks:
-            x, memory = b.forward(x, memory)
-        return x, memory
+        t = F.gelu(x + t)
+        return t
 
 
 class Encoder(nn.Module):
     def __init__(self, input_channel_num, block_num, channel_num, kernel_size=3, reduction=8):
         super(Encoder, self).__init__()
-        self.hidden_channel_num = channel_num // 2
-        self.memory_channel_num = channel_num - self.hidden_channel_num
-        self.first_conv_and_norm_ = Conv2DwithLayerNorm(input_channel_num, self.hidden_channel_num, 3)
-        self.layer_ = ResidualLayer(2, self.hidden_channel_num, self.memory_channel_num, kernel_size)
-        self.iter_num_ = block_num // 2
-        self.memory = None
+        self.first_conv_and_norm_ = Conv2DwithBatchNorm(input_channel_num, channel_num, 3)
+        self.blocks = nn.ModuleList()
+        for i in range(block_num):
+            self.blocks.add_module(f"block{i}", ResidualBlock(channel_num, kernel_size, reduction))
 
     def forward(self, x):
         x = self.first_conv_and_norm_.forward(x)
-        x = F.relu(x)
-        memory = torch.zeros((x.shape[0], self.memory_channel_num, x.shape[2], x.shape[3]),
-                             ).to(x.device)
-        for _ in range(self.iter_num_):
-            x, memory = self.layer_.forward(x, memory)
-        return torch.cat((x, memory), dim=1)
+        x = F.gelu(x)
+        for b in self.blocks:
+            x = b.forward(x)
+        return x
+
+    def getRepresentations(self, x):
+        x = self.first_conv_and_norm_.forward(x)
+        x = F.gelu(x)
+        result = []
+        for b in self.blocks:
+            x = b.forward(x)
+            result.append(x)
+        return result
 
 
 class PolicyHead(nn.Module):
@@ -100,19 +81,20 @@ class PolicyHead(nn.Module):
 
 
 class ValueHead(nn.Module):
-    def __init__(self, channel_num, board_size, unit_num, hidden_size=256):
+    def __init__(self, channel_num, unit_num, hidden_size=256):
         super(ValueHead, self).__init__()
-        self.value_conv_and_norm_ = Conv2DwithLayerNorm(channel_num, channel_num, 1)
-        self.hidden_size = channel_num * board_size * board_size
-        self.value_linear0_ = nn.Linear(self.hidden_size, hidden_size)
+        self.value_conv_and_norm_ = Conv2DwithBatchNorm(channel_num, channel_num, 1)
+        self.value_linear0_ = nn.Linear(channel_num, hidden_size)
         self.value_linear1_ = nn.Linear(hidden_size, unit_num)
 
     def forward(self, x):
         value = self.value_conv_and_norm_.forward(x)
-        value = F.relu(value)
-        value = value.view([-1, self.hidden_size])
+        value = F.gelu(value)
+        # value = F.avg_pool2d(value, [int(value.shape[2]), int(value.shape[3])])
+        value = F.adaptive_avg_pool2d(value, [1, 1])
+        value = value.view([-1, value.shape[1]])
         value = self.value_linear0_.forward(value)
-        value = F.relu(value)
+        value = F.gelu(value)
         value = self.value_linear1_.forward(value)
         return value
 
@@ -124,11 +106,11 @@ class EncodeHead(nn.Module):
         self.linear1 = nn.Linear(hidden_features, out_features)
 
     def forward(self, x):
-        y = F.avg_pool2d(x, [x.shape[2], x.shape[3]])
+        y = F.adaptive_avg_pool2d(x, [1, 1])
         y = y.view([-1, x.shape[1]])
         y = y.flatten(1)
         y = self.linear0(y)
-        y = F.relu(y)
+        y = F.gelu(y)
         y = self.linear1(y)
         return y
 
@@ -138,7 +120,7 @@ class ScalarNetwork(nn.Module):
         super(ScalarNetwork, self).__init__()
         self.encoder_ = Encoder(input_channel_num, block_num, channel_num)
         self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
-        self.value_head_ = ValueHead(channel_num, board_size, 1)
+        self.value_head_ = ValueHead(channel_num, 1)
 
     def forward(self, x):
         x = self.encoder_.forward(x)
@@ -153,7 +135,7 @@ class CategoricalNetwork(nn.Module):
         super(CategoricalNetwork, self).__init__()
         self.encoder_ = Encoder(input_channel_num, block_num, channel_num)
         self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
-        self.value_head_ = ValueHead(channel_num, board_size, 51)
+        self.value_head_ = ValueHead(channel_num, 51)
         self.encoder_head = EncodeHead(channel_num, channel_num, channel_num)
 
     def forward(self, x):
@@ -162,11 +144,15 @@ class CategoricalNetwork(nn.Module):
         value = self.value_head_.forward(x)
         return policy, value
 
-    @torch.jit.export
-    def encode(self, x):
-        x = self.encoder_.forward(x)
-        x = self.encoder_head.forward(x)
-        return x
+    # @torch.jit.export
+    # def encode(self, x):
+    #     x = self.encoder_.forward(x)
+    #     x = self.encoder_head.forward(x)
+    #     return x
+    #
+    # @torch.jit.export
+    # def getRepresentations(self, x):
+    #     return self.encoder_.getRepresentations(x)
 
 
 def main():
@@ -194,18 +180,26 @@ def main():
     elif args.value_type == "cat":
         model = CategoricalNetwork(input_channel_num, args.block_num, args.channel_num, policy_channel_num, board_size)
 
-    # パラメータ数のカウント
     params = 0
     for p in model.parameters():
         if p.requires_grad:
             params += p.numel()
     print(f"パラメータ数 : {params:,}")
-    input_data = torch.randn([8, input_channel_num, board_size, board_size])
+
+    input_data = torch.randn([16, input_channel_num, board_size, board_size])
     script_model = torch.jit.trace(model, input_data)
     script_model = torch.jit.script(model)
     model_path = f"./{args.game}_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.model"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
+
+    # model = torch.jit.load(model_path)
+    # reps = model.getRepresentations(input_data)
+    # for i, r in enumerate(reps, 1):
+    #     m = r.mean([0, 2, 3])
+    #     m = (m * m).mean()
+    #     v = r.var([0, 2, 3]).mean()
+    #     print(f"{i}\t{m.item():.4f}\t{v.item():.4f}")
 
 
 if __name__ == "__main__":

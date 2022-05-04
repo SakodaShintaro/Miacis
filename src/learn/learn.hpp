@@ -116,12 +116,16 @@ std::vector<LearningData> loadHCPE(const std::string& file_path, bool data_augme
 template<class ModelType>
 std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
 
+//validationを行い、各局面の損失をtsvで出力する関数
+template<class ModelType>
+std::array<float, LOSS_TYPE_NUM> validationWithSave(ModelType& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
+
 //学習データをtensorへ変換する関数
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
                                                                              torch::Device device);
 
-//valid_logから最終ステップ数を読み込む関数
-int64_t loadStepNumFromValidLog(const std::string& valid_log_name);
+//log_fileから最終ステップ数を読み込む関数
+int64_t loadStepNumFromLog(const std::string& log_file_path);
 
 //棋譜からの教師あり学習
 void supervisedLearn();

@@ -1,8 +1,53 @@
 #!/usr/bin/env python3
+
+'''
+同じ層を何度も適用する重み共有モデル
+'''
+
 import argparse
 import torch
 import torch.jit
 import torch.nn as nn
+
+
+class TransformerBlock(nn.Module):
+    def __init__(self, d_model, nhead, alpha, beta):
+        super(TransformerBlock, self).__init__()
+        dim_feedforward = d_model * 4
+        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=0.0, batch_first=False)
+        # Implementation of Feedforward model
+        self.linear1 = nn.Linear(d_model, dim_feedforward)
+        self.linear2 = nn.Linear(dim_feedforward, d_model)
+
+        layer_norm_eps = 1e-5
+        self.norm1 = nn.LayerNorm(d_model, eps=layer_norm_eps)
+        self.norm2 = nn.LayerNorm(d_model, eps=layer_norm_eps)
+
+        self.activation = nn.GELU()
+        self.alpha = alpha
+
+        nn.init.xavier_uniform_(self.self_attn.in_proj_weight, gain=beta)
+        nn.init.xavier_uniform_(self.self_attn.out_proj.weight, gain=beta)
+        nn.init.xavier_uniform_(self.linear1.weight, gain=beta)
+        nn.init.xavier_uniform_(self.linear2.weight, gain=beta)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.norm1(x * self.alpha + self._sa_block(x))
+        x = self.norm2(x * self.alpha + self._ff_block(x))
+        return x
+
+    # self-attention block
+    def _sa_block(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.self_attn(x, x, x,
+                           attn_mask=None,
+                           key_padding_mask=None,
+                           need_weights=False)[0]
+        return x
+
+    # feed forward block
+    def _ff_block(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.linear2(self.activation(self.linear1(x)))
+        return x
 
 
 class TransformerModel(nn.Module):
@@ -16,14 +61,11 @@ class TransformerModel(nn.Module):
             nhead = 6
         elif channel_num == 768:
             nhead = 12
-        encoder_layer = torch.nn.TransformerEncoderLayer(
-            channel_num,
-            nhead=nhead,
-            dim_feedforward=channel_num * 4,
-            norm_first=True,
-            activation="gelu",
-            dropout=0.0)
-        self.encoder_ = torch.nn.TransformerEncoder(encoder_layer, block_num)
+        alpha = (2 * block_num) ** (1 / 4)
+        beta = (8 * block_num) ** (-1 / 4)
+        block = TransformerBlock(channel_num, nhead, alpha, beta)
+        self.encoder_ = [block for _ in range(block_num)]
+        self.encoder_ = nn.Sequential(*self.encoder_)
         self.board_size = board_size
         square_num = board_size ** 2
         self.policy_head_ = nn.Conv2d(channel_num, policy_channel_num, 1, bias=True, padding=0)
@@ -90,6 +132,10 @@ def main():
     model_path = f"./{args.game}_cat_transformer_bl{args.block_num}_ch{args.channel_num}.model"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
+
+    model = torch.jit.load(model_path)
+    out = model(input_data)
+    print(out[0].shape, out[1].shape)
 
 
 if __name__ == "__main__":

@@ -45,6 +45,8 @@ Interface::Interface() : searcher_(nullptr) {
     command_["checkValidData"]     = checkValidData;
     command_["checkBuildOnnx"]     = checkBuildOnnx;
     command_["testHuffmanDecode"]  = testHuffmanDecode;
+    command_["checkInfer"]         = checkInfer;
+    command_["checkValInferSuisho"]= checkValInferSuisho;
     // clang-format on
 }
 
@@ -271,7 +273,7 @@ void Interface::convertOnnxToEngine() {
     std::cin >> onnx_path;
     std::string calibration_data_path;
     std::cin >> calibration_data_path;
-    InferModel::convertOnnxToEngine(onnx_path, INT8, search_options_.search_batch_size, calibration_data_path);
+    InferModel::convertOnnxToEngine(onnx_path, FP16, search_options_.search_batch_size, calibration_data_path);
 }
 
 } // namespace Shogi

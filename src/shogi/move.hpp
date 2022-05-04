@@ -142,6 +142,15 @@ inline Move stringToMove(std::string input) {
     }
 }
 
+//ソート用のスコア付き構造体
+struct MoveWithScore {
+public:
+    Move move;
+    float score;
+    bool operator<(const MoveWithScore& rhs) const { return score < rhs.score; }
+    bool operator>(const MoveWithScore& rhs) const { return score > rhs.score; }
+};
+
 } // namespace Shogi
 
 #endif //MIACIS_SHOGI_MOVE_HPP

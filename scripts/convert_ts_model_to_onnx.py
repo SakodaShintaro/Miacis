@@ -5,7 +5,10 @@ import torch
 from generate_cnn_model import CategoricalNetwork
 from generate_transformer_model import TransformerModel
 from generate_mlp_mixer_model import MLPMixer
-from generate_poolformer_model import PoolFormerModel
+from generate_convnext_model import ConvNeXt
+from generate_hybrid_model import HybridNetwork
+from generate_timm_model import TimmModel
+from generate_convlstm_model import ConvLstmModel
 
 parser = argparse.ArgumentParser()
 parser.add_argument("model_path", type=str)
@@ -43,10 +46,22 @@ elif "mlp_mixer" in args.model_path:
     model = MLPMixer(input_channel_num, block_num=block_num, channel_num=channel_num,
                      policy_channel_num=policy_channel_num,
                      board_size=board_size)
-elif "poolformer" in args.model_path:
-    model = PoolFormerModel(input_channel_num, block_num=block_num, channel_num=channel_num,
-                            policy_channel_num=policy_channel_num,
-                            board_size=board_size)
+elif "convnext" in args.model_path:
+    model = ConvNeXt(input_channel_num, block_num=block_num, channel_num=channel_num,
+                     policy_channel_num=policy_channel_num,
+                     board_size=board_size)
+elif "hybrid" in args.model_path:
+    model = HybridNetwork(input_channel_num, block_num=block_num, channel_num=channel_num,
+                          policy_channel_num=policy_channel_num,
+                          board_size=board_size)
+elif "timm" in args.model_path:
+    model = TimmModel(input_channel_num, block_num=block_num, channel_num=channel_num,
+                                 policy_channel_num=policy_channel_num,
+                                 board_size=board_size)
+elif "convlstm" in args.model_path:
+    model = ConvLstmModel(input_channel_num, block_num=block_num, channel_num=channel_num,
+                                 policy_channel_num=policy_channel_num,
+                                 board_size=board_size)
 else:
     model = CategoricalNetwork(input_channel_num, block_num=block_num, channel_num=channel_num,
                                policy_channel_num=policy_channel_num,
