@@ -23,6 +23,7 @@ parser.add_argument("--break_near_24h", action="store_true")
 args = parser.parse_args()
 
 validation_interval = max(args.max_step // 40, 5)
+print_interval = max(validation_interval // 1000, 1)
 warmup_step = min(args.max_step // 20, 80000)
 
 with open("supervised_learn_settings.txt", "w") as f:
@@ -56,7 +57,6 @@ scheduler = LinearWarmupAndCooldownScheduler(optim, warmup_step, args.max_step)
 # valid data ファイルは水匠棋譜を決め打ち
 validset = HcpeDataSet(f"{args.valid_data_dir}/suisho3kai-001.hcpe", is_valid=True)
 validloader = torch.utils.data.DataLoader(validset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
-print(len(validset))
 
 # prepare output file
 train_log = open("supervised_train_log.txt", "w")
@@ -92,18 +92,18 @@ while total_step < args.max_step:
 
         model.train()
         policy_loss, value_loss = calc_loss(batch)
-
-        elapsed_sec = time.time() - start_time
-        time_str = seconds_to_pretty_str(elapsed_sec)
-        text = f"{time_str}\t{total_step}\t{policy_loss.item():.4f}\t{value_loss.item():.4f}\t{scheduler.get_last_lr()[0]:.5f}"
-        print(text, end="\r")
-        train_log.write(text + "\n")
-        train_log.flush()
-
         optim.zero_grad()
         (policy_loss + value_loss).backward()
         optim.step()
         scheduler.step()
+
+        if total_step % print_interval == 0:
+            elapsed_sec = time.time() - start_time
+            time_str = seconds_to_pretty_str(elapsed_sec)
+            text = f"{time_str}\t{total_step}\t{policy_loss.item():.4f}\t{value_loss.item():.4f}\t{scheduler.get_last_lr()[0]:.5f}"
+            print(text, end="\r")
+            train_log.write(text + "\n")
+            train_log.flush()
 
         if total_step % validation_interval == 0:
             model.eval()
