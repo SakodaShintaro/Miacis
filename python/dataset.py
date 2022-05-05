@@ -6,11 +6,16 @@ from constant import *
 import math
 
 
-class MiacisDataSet(Dataset):
-    def __init__(self, hcpe_file_path: str) -> None:
+class HcpeDataSet(Dataset):
+    def __init__(self, hcpe_file_path: str, is_valid: bool) -> None:
         super().__init__()
         self.hcpes_ = np.fromfile(hcpe_file_path, dtype=cshogi.HuffmanCodedPosAndEval)
         self.board_ = cshogi.Board()
+        self.is_valid_ = is_valid
+
+        # validデータのときは減らす
+        if is_valid:
+            self.hcpes_ = self.hcpes_[:len(self.hcpes_) // 20]
 
     def __len__(self):
         return len(self.hcpes_)
@@ -45,13 +50,13 @@ class MiacisDataSet(Dataset):
         # Policy教師
         move16 = hcpe["bestMove16"]
         move = self.board_.move_from_move16(move16)
-        policy_label = MiacisDataSet.make_output_label(move, self.board_.turn)
+        policy_label = HcpeDataSet.make_output_label(move, self.board_.turn)
         policy_label = torch.tensor(policy_label)
 
         # value教師
         score_eval = 1 / (1 + math.exp(-hcpe["eval"] * 0.0013226)) * (MAX_SCORE - MIN_SCORE) + MIN_SCORE
-        score_result = MiacisDataSet.make_value_label(hcpe["gameResult"], self.board_.turn)
-        score = (score_eval + score_result) / 2
+        score_result = HcpeDataSet.make_value_label(hcpe["gameResult"], self.board_.turn)
+        score = (score_eval + score_result) / 2 if not self.is_valid_ else score_result
         value_label = min(int((score - MIN_SCORE) // VALUE_WIDTH), int(BIN_SIZE - 1))
         value_label = torch.tensor(value_label)
 
