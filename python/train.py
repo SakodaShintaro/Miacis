@@ -3,11 +3,13 @@ from constant import *
 from dataset import MiacisDataSet
 import argparse
 from common import seconds_to_pretty_str
+from path_manager import PathManager
 from scheduler import LinearWarmupAndCooldownScheduler
 import time
 from model_dict import model_dict
 
 parser = argparse.ArgumentParser()
+parser.add_argument("train_data_dir", type=str)
 parser.add_argument("--learning_rate", type=float, default=0.01)
 parser.add_argument("--weight_decay", type=float, default=0.0001)
 parser.add_argument("--batch_size", type=int, default=256)
@@ -42,8 +44,7 @@ model_class = model_dict[args.model_name]
 model = model_class(INPUT_CHANNEL_NUM, block_num, channel_num, POLICY_CHANNEL_NUM, BOARD_SIZE)
 torch.save(model.state_dict(), f"{args.model_name}_bl{block_num}_ch{channel_num}_before_learn.pt")
 
-trainset = MiacisDataSet('/home/sakoda/data/ShogiAIBookData/dlshogi_with_gct-001.hcpe')
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=8, pin_memory=True)
+path_manager = PathManager(args.train_data_dir)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
@@ -62,30 +63,37 @@ print(header_text, end="")
 train_log.write(header_text)
 
 # train loop
-for step, batch in enumerate(trainloader):
-    if step >= args.max_step:
-        break
-    x, policy_label, value_label = batch
-    x, policy_label, value_label = x.to(device), policy_label.to(device), value_label.to(device)
+total_step = 0
+while total_step < args.max_step:
+    curr_data_path = path_manager.get_next_path()
+    trainset = MiacisDataSet(curr_data_path)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=8, pin_memory=True)
 
-    policy, value = model(x)
+    for batch in trainloader:
+        if total_step >= args.max_step:
+            break
+        total_step += 1
+        x, policy_label, value_label = batch
+        x, policy_label, value_label = x.to(device), policy_label.to(device), value_label.to(device)
 
-    policy = policy.flatten(1)
+        policy, value = model(x)
 
-    policy_loss = torch.nn.functional.cross_entropy(policy, policy_label)
-    value_loss = torch.nn.functional.cross_entropy(value, value_label)
+        policy = policy.flatten(1)
 
-    elapsed_sec = time.time() - start_time
-    time_str = seconds_to_pretty_str(elapsed_sec)
+        policy_loss = torch.nn.functional.cross_entropy(policy, policy_label)
+        value_loss = torch.nn.functional.cross_entropy(value, value_label)
 
-    text = f"{time_str}\t{step}\t{policy_loss.item():.4f}\t{value_loss.item():.4f}\t{scheduler.get_last_lr()[0]:.5f}\n"
-    print(text, end="")
-    train_log.write(text)
-    train_log.flush()
+        elapsed_sec = time.time() - start_time
+        time_str = seconds_to_pretty_str(elapsed_sec)
 
-    optim.zero_grad()
-    (policy_loss + value_loss).backward()
-    optim.step()
-    scheduler.step()
+        text = f"{time_str}\t{total_step}\t{policy_loss.item():.4f}\t{value_loss.item():.4f}\t{scheduler.get_last_lr()[0]:.5f}\n"
+        print(text, end="")
+        train_log.write(text)
+        train_log.flush()
+
+        optim.zero_grad()
+        (policy_loss + value_loss).backward()
+        optim.step()
+        scheduler.step()
 
 torch.save(model.state_dict(), f"{args.model_name}_bl{block_num}_ch{channel_num}.pt")
