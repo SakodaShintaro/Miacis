@@ -772,4 +772,31 @@ void checkInfer() {
     }
 }
 
+void checkValInferSuisho() {
+    //データを取得
+    SearchOptions search_options;
+
+    std::string path;
+    std::cout << "validation kifu path : ";
+    std::cin >> path;
+    std::cout << "batch_size : ";
+    std::cin >> search_options.search_batch_size;
+    std::cout << "model_file : ";
+    std::cin >> search_options.model_name;
+
+    std::vector<LearningData> data = loadHCPE(path, false);
+    std::cout << "data.size() = " << data.size() << std::endl;
+
+    //ネットワークの準備
+    InferModel nn;
+    nn.load(0, search_options);
+
+    std::array<float, LOSS_TYPE_NUM> v = validationWithSave(nn, data, search_options.search_batch_size);
+    std::cout << std::fixed << std::setprecision(4);
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
+    }
+    std::cout << "finish checkValInferSuisho" << std::endl;
+}
+
 } // namespace Shogi

@@ -60,8 +60,8 @@ std::array<float, LOSS_TYPE_NUM> validationWithSave(ModelType& model, const std:
             pos.fromStr(datum.position_str);
             const auto [label, prob] = datum.policy[0];
             Move move = pos.labelToMove(label);
-            ofs << datum.position_str << "\t" << move.toPrettyStr() << "\t" << prob << "\t" << datum.value
-                << "\t" << loss[0][i].item<float>() << "\t" << loss[1][i].item<float>() << std::endl;
+            ofs << datum.position_str << "\t" << move.toPrettyStr() << "\t" << prob << "\t" << datum.value << "\t"
+                << loss[0][i].item<float>() << "\t" << loss[1][i].item<float>() << std::endl;
         }
 
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
