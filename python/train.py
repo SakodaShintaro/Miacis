@@ -1,4 +1,3 @@
-from model.resnet import CategoricalNetwork
 import torch
 from constant import *
 from dataset import MiacisDataSet
@@ -39,11 +38,10 @@ with open("supervised_learn_settings.txt", "w") as f:
 
 block_num = 20
 channel_num = 512
-policy_channel_num = 27
 
 model_class = model_dict[args.model_name]
 
-model = model_class(INPUT_CHANNEL_NUM, block_num, channel_num, policy_channel_num, BOARD_SIZE)
+model = model_class(INPUT_CHANNEL_NUM, block_num, channel_num, POLICY_CHANNEL_NUM, BOARD_SIZE)
 torch.save(model.state_dict(), f"{args.model_name}_bl{block_num}_ch{channel_num}_before_learn.pt")
 
 trainset = MiacisDataSet('/home/sakoda/data/ShogiAIBookData/dlshogi_with_gct-001.hcpe')
