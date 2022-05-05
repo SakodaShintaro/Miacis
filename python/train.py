@@ -55,6 +55,13 @@ scheduler = LinearWarmupAndCooldownScheduler(optim, warmup_step, args.max_step)
 # timer start
 start_time = time.time()
 
+# prepare output file
+train_log = open("supervised_train_log.txt", "w")
+header_text = "time	step\tpolicy_loss\tvalue_loss\tlearn_rate\n"
+print(header_text, end="")
+train_log.write(header_text)
+
+# train loop
 for step, batch in enumerate(trainloader):
     if step >= args.max_step:
         break
@@ -75,6 +82,8 @@ for step, batch in enumerate(trainloader):
     text = f"{time_str}\t{step}\t{policy_loss.item():.4f}\t{value_loss.item():.4f}\t{scheduler.get_last_lr()[0]:.5f}\n"
 
     print(text, end="")
+    train_log.write(text)
+    train_log.flush()
     optim.zero_grad()
     (policy_loss + value_loss).backward()
     optim.step()
