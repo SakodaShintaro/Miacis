@@ -16,7 +16,6 @@ parser.add_argument("--validation_interval", type=int, default=40000)
 parser.add_argument("--save_interval", type=int, default=1600001)
 parser.add_argument("--learn_rate_decay_mode", type=int, default=0)
 parser.add_argument("--learn_rate_decay_period", type=int, default=1600000)
-parser.add_argument("--clip_grad_norm", type=float, default=10)
 parser.add_argument("--model_name", type=str, default="resnet")
 parser.add_argument("--break_near_24h", action="store_true")
 args = parser.parse_args()
@@ -33,7 +32,6 @@ with open("supervised_learn_settings.txt", "w") as f:
     f.write(f"learn_rate_decay_mode\t{args.learn_rate_decay_mode}\n")
     f.write(f"learn_rate_decay_period\t{args.learn_rate_decay_period}\n")
     f.write(f"warm_up_step\t{warmup_step}\n")
-    f.write(f"clip_grad_norm\t{args.clip_grad_norm}\n")
     f.write(f"model_name\t{args.model_name}\n")
 
 block_num = 20
@@ -75,17 +73,16 @@ for step, batch in enumerate(trainloader):
     policy = policy.flatten(1)
 
     policy_loss = torch.nn.functional.cross_entropy(policy, policy_label)
-
     value_loss = torch.nn.functional.cross_entropy(value, value_label)
 
     elapsed_sec = time.time() - start_time
     time_str = seconds_to_pretty_str(elapsed_sec)
 
     text = f"{time_str}\t{step}\t{policy_loss.item():.4f}\t{value_loss.item():.4f}\t{scheduler.get_last_lr()[0]:.5f}\n"
-
     print(text, end="")
     train_log.write(text)
     train_log.flush()
+
     optim.zero_grad()
     (policy_loss + value_loss).backward()
     optim.step()
