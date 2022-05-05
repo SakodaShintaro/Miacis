@@ -3,7 +3,9 @@ import torch
 from constant import *
 from dataset import MiacisDataSet
 import argparse
+from common import seconds_to_pretty_str
 from scheduler import LinearWarmupAndCooldownScheduler
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--learning_rate", type=float, default=0.01)
@@ -50,6 +52,9 @@ model.to(device)
 optim = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.weight_decay)
 scheduler = LinearWarmupAndCooldownScheduler(optim, warmup_step, args.max_step)
 
+# timer start
+start_time = time.time()
+
 for step, batch in enumerate(trainloader):
     if step >= args.max_step:
         break
@@ -64,7 +69,10 @@ for step, batch in enumerate(trainloader):
 
     value_loss = torch.nn.functional.cross_entropy(value, value_label)
 
-    text = f"{step}\t{policy_loss.item():.4f}\t{value_loss.item():.4f}\t{scheduler.get_last_lr()[0]:.5f}\n"
+    elapsed_sec = time.time() - start_time
+    time_str = seconds_to_pretty_str(elapsed_sec)
+
+    text = f"{time_str}\t{step}\t{policy_loss.item():.4f}\t{value_loss.item():.4f}\t{scheduler.get_last_lr()[0]:.5f}\n"
 
     print(text, end="")
     optim.zero_grad()
