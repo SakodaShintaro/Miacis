@@ -33,7 +33,7 @@ class HcpeDataSet(Dataset):
         for i, p in enumerate(PIECE_LIST):
             t = PIECE_LIST[i] if is_turn_black else PIECE_LIST[(i + num_piece // 2) % num_piece]
             for sq in cshogi.SQUARES:
-                p = self.board_.piece(sq) if is_turn_black else self.board_.piece(81 - sq)
+                p = self.board_.piece(sq) if is_turn_black else self.board_.piece(SQUARE_NUM - 1 - sq)
                 features[i * SQUARE_NUM + sq] = (1 if t == p else 0)
 
         # 持ち駒
