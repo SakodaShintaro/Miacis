@@ -107,13 +107,15 @@ def calc_loss(batch):
 start_time = time.time()
 
 # train loop
-while scheduler.last_epoch < args.max_step:
+continue_flag = True
+while continue_flag:
     curr_data_path = path_manager.get_next_path()
     trainset = HcpeDataSet(curr_data_path, is_valid=False)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
     for batch in trainloader:
         if scheduler.last_epoch >= args.max_step:
+            continue_flag = False
             break
 
         model.train()
@@ -130,6 +132,11 @@ while scheduler.last_epoch < args.max_step:
             print(text, end="\r")
             train_log.write(text + "\n")
             train_log.flush()
+
+            # Google Colaboratoryで動かすことを想定して24h近くになったら止める機能を準備する
+            if args.break_near_24h and elapsed_sec >= 23.5 * 3600:
+                continue_flag = False
+                break
 
         if scheduler.last_epoch % validation_interval == 0:
             model.eval()
