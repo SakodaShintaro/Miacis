@@ -23,10 +23,12 @@ parser.add_argument("--model_name", type=str, default="resnet")
 parser.add_argument("--block_num", type=int, default=20)
 parser.add_argument("--channel_num", type=int, default=512)
 parser.add_argument("--break_near_24h", action="store_true")
+parser.add_argument("--resume", action="store_true")
 args = parser.parse_args()
 
+# calc interval and warmup step
 validation_interval = max(args.max_step // 40, 5)
-print_interval = max(validation_interval // 1000, 1)
+print_interval = max(validation_interval // 500, 1)
 warmup_step = min(args.max_step // 20, 80000)
 
 with open("supervised_learn_settings.txt", "w") as f:
@@ -45,15 +47,12 @@ channel_num = args.channel_num
 
 model_class = model_dict[args.model_name]
 
+# name
 model_name_prefix = f"{args.model_name}_bl{block_num}_ch{channel_num}"
+optimizer_name = "optimizer.pt"
+scheduler_name = "scheduler.pt"
 
 model = model_class(INPUT_CHANNEL_NUM, block_num, channel_num, POLICY_CHANNEL_NUM, BOARD_SIZE)
-
-if os.path.exists(f"{model_name_prefix}.pt"):
-    print(f"load {model_name_prefix}.pt")
-    model.load_state_dict(torch.load(f"{model_name_prefix}.pt"))
-
-torch.save(model.state_dict(), f"{model_name_prefix}_before_learn.pt")
 
 path_manager = PathManager(args.train_data_dir)
 
@@ -64,17 +63,36 @@ model.to(device)
 optim = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.weight_decay)
 scheduler = LinearWarmupAndCooldownScheduler(optim, warmup_step, args.max_step)
 
+# resume
+if args.resume:
+    # load model
+    if os.path.exists(f"{model_name_prefix}.pt"):
+        print(f"load {model_name_prefix}.pt")
+        model.load_state_dict(torch.load(f"{model_name_prefix}.pt"))
+
+    # load optimizer
+    if os.path.exists(optimizer_name):
+        print(f"load {optimizer_name}")
+        optim.load_state_dict(torch.load(optimizer_name))
+
+    # load scheduler
+    if os.path.exists(scheduler_name):
+        print(f"load {scheduler_name}")
+        scheduler.load_state_dict(torch.load(scheduler_name))
+
 # valid data ファイルは水匠棋譜を決め打ち
 validset = HcpeDataSet(f"{args.valid_data_dir}/suisho3kai-001.hcpe", is_valid=True)
 validloader = torch.utils.data.DataLoader(validset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
 # prepare output file
-train_log = open("supervised_train_log.txt", "w")
-valid_log = open("supervised_valid_log.txt", "w")
+train_log = open("supervised_train_log.txt", "a")
+valid_log = open("supervised_valid_log.txt", "a")
 header_text = "time	step\tpolicy_loss\tvalue_loss\tlearn_rate\n"
 print(header_text, end="")
-train_log.write(header_text)
-valid_log.write(header_text)
+# 最初の学習のときだけヘッダーをファイルに書き込み
+if scheduler.last_epoch == 0:
+    train_log.write(header_text)
+    valid_log.write(header_text)
 
 def calc_loss(batch):
     x, policy_label, value_label = batch
@@ -89,16 +107,14 @@ def calc_loss(batch):
 start_time = time.time()
 
 # train loop
-total_step = 0
-while total_step < args.max_step:
+while scheduler.last_epoch < args.max_step:
     curr_data_path = path_manager.get_next_path()
     trainset = HcpeDataSet(curr_data_path, is_valid=False)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
     for batch in trainloader:
-        if total_step >= args.max_step:
+        if scheduler.last_epoch >= args.max_step:
             break
-        total_step += 1
 
         model.train()
         policy_loss, value_loss = calc_loss(batch)
@@ -107,15 +123,15 @@ while total_step < args.max_step:
         optim.step()
         scheduler.step()
 
-        if total_step % print_interval == 0:
+        if scheduler.last_epoch % print_interval == 0:
             elapsed_sec = time.time() - start_time
             time_str = seconds_to_pretty_str(elapsed_sec)
-            text = f"{time_str}\t{total_step}\t{policy_loss.item():.4f}\t{value_loss.item():.4f}\t{scheduler.get_last_lr()[0]:.5f}"
+            text = f"{time_str}\t{scheduler.last_epoch}\t{policy_loss.item():.4f}\t{value_loss.item():.4f}\t{scheduler.get_last_lr()[0]:.5f}"
             print(text, end="\r")
             train_log.write(text + "\n")
             train_log.flush()
 
-        if total_step % validation_interval == 0:
+        if scheduler.last_epoch % validation_interval == 0:
             model.eval()
             policy_loss_sum = 0
             value_loss_sum = 0
@@ -128,10 +144,14 @@ while total_step < args.max_step:
             value_loss = value_loss_sum / len(validset)
             elapsed_sec = time.time() - start_time
             time_str = seconds_to_pretty_str(elapsed_sec)
-            text = f"{time_str}\t{total_step}\t{policy_loss:.4f}\t{value_loss:.4f}\t{scheduler.get_last_lr()[0]:.5f}\n"
+            text = f"{time_str}\t{scheduler.last_epoch}\t{policy_loss:.4f}\t{value_loss:.4f}\t{scheduler.get_last_lr()[0]:.5f}\n"
             print(text, end="")
             valid_log.write(text)
             valid_log.flush()
             torch.save(model.state_dict(), f"{model_name_prefix}.pt")
+            torch.save(optim.state_dict(), optimizer_name)
+            torch.save(scheduler.state_dict(), scheduler_name)
 
 torch.save(model.state_dict(), f"{model_name_prefix}.pt")
+torch.save(optim.state_dict(), optimizer_name)
+torch.save(scheduler.state_dict(), scheduler_name)
