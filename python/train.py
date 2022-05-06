@@ -114,6 +114,13 @@ while continue_flag:
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
     for batch in trainloader:
+        # Google Colaboratoryで動かすことを想定して24h近くになったら止める機能を準備する
+        elapsed_sec = time.time() - start_time
+        if args.break_near_24h and elapsed_sec >= 23.5 * 3600:
+            continue_flag = False
+            break
+
+        # 指定ステップ数を超えていたら終了
         if scheduler.last_epoch >= args.max_step:
             continue_flag = False
             break
@@ -132,11 +139,6 @@ while continue_flag:
             print(text, end="\r")
             train_log.write(text + "\n")
             train_log.flush()
-
-            # Google Colaboratoryで動かすことを想定して24h近くになったら止める機能を準備する
-            if args.break_near_24h and elapsed_sec >= 23.5 * 3600:
-                continue_flag = False
-                break
 
         if scheduler.last_epoch % validation_interval == 0:
             model.eval()
