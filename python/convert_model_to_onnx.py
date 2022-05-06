@@ -30,8 +30,8 @@ if not args.no_message:
 
 model_name = parts[0]
 model_class = model_dict[model_name]
-model = CategoricalNetwork(INPUT_CHANNEL_NUM, block_num=block_num, channel_num=channel_num,
-                           policy_channel_num=POLICY_CHANNEL_NUM, board_size=BOARD_SIZE)
+model = model_class(INPUT_CHANNEL_NUM, block_num=block_num, channel_num=channel_num,
+                    policy_channel_num=POLICY_CHANNEL_NUM, board_size=BOARD_SIZE)
 
 saved_model = torch.load(args.model_path)
 model.load_state_dict(saved_model)
