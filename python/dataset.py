@@ -67,7 +67,9 @@ class HcpeDataSet(Dataset):
         move_to = cshogi.move_to(move)
         move_from = cshogi.move_from(move)
 
+        drop_piece = None
         if move_from >= SQUARE_NUM:
+            drop_piece = move_from - SQUARE_NUM
             move_from = None
 
         # 白の場合盤を回転
@@ -78,9 +80,9 @@ class HcpeDataSet(Dataset):
 
         # move direction
         if move_from is not None:
-            to_y, to_x = divmod(move_to, 9)
-            from_y, from_x = divmod(move_from, 9)
-            dir_x = to_x - from_x
+            to_x, to_y = divmod(move_to, 9)
+            from_x, from_y = divmod(move_from, 9)
+            dir_x = -(to_x - from_x)
             dir_y = to_y - from_y
             if dir_y < 0 and dir_x == 0:
                 move_direction = UP
@@ -108,7 +110,7 @@ class HcpeDataSet(Dataset):
                 move_direction = MOVE_DIRECTION_PROMOTED[move_direction]
         else:
             # 持ち駒
-            move_direction = len(MOVE_DIRECTION) + cshogi.move_drop_hand_piece(move) - 1
+            move_direction = len(MOVE_DIRECTION) + drop_piece
 
         move_label = 9 * 9 * move_direction + move_to
 
