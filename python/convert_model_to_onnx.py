@@ -19,16 +19,23 @@ parts = filename.split("_")
 block_num = None
 channel_num = None
 
+model_name = []
+get_model_name = True
+
 for part in parts:
     if "bl" in part:
         block_num = int(part.replace("bl", ""))
-    if "ch" in part:
+        get_model_name = False
+    elif "ch" in part:
         channel_num = int(part.replace("ch", ""))
+        get_model_name = False
+    elif get_model_name:
+        model_name.append(part)
 
 if not args.no_message:
     print(f"block_num = {block_num}, channel_num = {channel_num}")
 
-model_name = parts[0]
+model_name = "_".join(model_name)
 model_class = model_dict[model_name]
 model = model_class(INPUT_CHANNEL_NUM, block_num=block_num, channel_num=channel_num,
                     policy_channel_num=POLICY_CHANNEL_NUM, board_size=BOARD_SIZE)
