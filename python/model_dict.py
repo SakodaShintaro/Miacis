@@ -1,5 +1,7 @@
 from model.resnet import CategoricalNetwork
+from model.vit import TransformerModel
 
 model_dict = {
-    "resnet": CategoricalNetwork
+    "resnet": CategoricalNetwork,
+    "vit": TransformerModel
 }

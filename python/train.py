@@ -20,6 +20,8 @@ parser.add_argument("--save_interval", type=int, default=1600001)
 parser.add_argument("--learn_rate_decay_mode", type=int, default=0)
 parser.add_argument("--learn_rate_decay_period", type=int, default=1600000)
 parser.add_argument("--model_name", type=str, default="resnet")
+parser.add_argument("--block_num", type=int, default=20)
+parser.add_argument("--channel_num", type=int, default=512)
 parser.add_argument("--break_near_24h", action="store_true")
 args = parser.parse_args()
 
@@ -38,8 +40,8 @@ with open("supervised_learn_settings.txt", "w") as f:
     f.write(f"warm_up_step\t{warmup_step}\n")
     f.write(f"model_name\t{args.model_name}\n")
 
-block_num = 20
-channel_num = 512
+block_num = args.block_num
+channel_num = args.channel_num
 
 model_class = model_dict[args.model_name]
 
