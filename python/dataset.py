@@ -40,9 +40,9 @@ class HcpeDataSet(Dataset):
         colors = [cshogi.BLACK, cshogi.WHITE] if is_turn_black else [cshogi.WHITE, cshogi.BLACK]
         for c in colors:
             for j in range(len(cshogi.HAND_PIECES)):
+                i += 1
                 for sq in cshogi.SQUARES:
                     features[i * SQUARE_NUM + sq] = self.board_.pieces_in_hand[c][j] / cshogi.MAX_PIECES_IN_HAND[j]
-                i += 1
 
         x = torch.tensor(features)
         x = x.view([INPUT_CHANNEL_NUM, BOARD_SIZE, BOARD_SIZE])
