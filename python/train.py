@@ -7,6 +7,7 @@ from path_manager import PathManager
 from scheduler import LinearWarmupAndCooldownScheduler
 import time
 from model_dict import model_dict
+import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument("train_data_dir", type=str)
@@ -42,8 +43,15 @@ channel_num = 512
 
 model_class = model_dict[args.model_name]
 
+model_name_prefix = f"{args.model_name}_bl{block_num}_ch{channel_num}"
+
 model = model_class(INPUT_CHANNEL_NUM, block_num, channel_num, POLICY_CHANNEL_NUM, BOARD_SIZE)
-torch.save(model.state_dict(), f"{args.model_name}_bl{block_num}_ch{channel_num}_before_learn.pt")
+
+if os.path.exists(f"{model_name_prefix}.pt"):
+    print(f"load {model_name_prefix}.pt")
+    model.load_state_dict(torch.load(f"{model_name_prefix}.pt"))
+
+torch.save(model.state_dict(), f"{model_name_prefix}_before_learn.pt")
 
 path_manager = PathManager(args.train_data_dir)
 
@@ -122,6 +130,6 @@ while total_step < args.max_step:
             print(text, end="")
             valid_log.write(text)
             valid_log.flush()
-            torch.save(model.state_dict(), f"{args.model_name}_bl{block_num}_ch{channel_num}.pt")
+            torch.save(model.state_dict(), f"{model_name_prefix}.pt")
 
-torch.save(model.state_dict(), f"{args.model_name}_bl{block_num}_ch{channel_num}.pt")
+torch.save(model.state_dict(), f"{model_name_prefix}.pt")
