@@ -11,6 +11,8 @@ from timm.models.helpers import named_apply
 from timm.models.layers import PatchEmbed, trunc_normal_
 
 
+# 参考) timmのVisionTransformer
+# https://github.com/rwightman/pytorch-image-models/blob/5f81d4de234f579bdc988e8346da14b37a3af160/timm/models/vision_transformer.py
 class VisionTransformer(nn.Module):
     """ Vision Transformer
 
