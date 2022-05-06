@@ -72,9 +72,9 @@ class HcpeDataSet(Dataset):
 
         # 白の場合盤を回転
         if color == cshogi.WHITE:
-            move_to = SQUARES_R180[move_to]
+            move_to = SQUARE_NUM - 1 - move_to
             if move_from is not None:
-                move_from = SQUARES_R180[move_from]
+                move_from = SQUARE_NUM - 1 - move_from
 
         # move direction
         if move_from is not None:
@@ -118,15 +118,15 @@ class HcpeDataSet(Dataset):
     def make_value_label(result, color):
         if color == cshogi.BLACK:
             if result == cshogi.DRAW:
-                return 0
+                return (MIN_SCORE + MAX_SCORE) / 2
             elif result == cshogi.BLACK_WIN:
-                return 1
+                return MAX_SCORE
             else:
-                return -1
+                return MIN_SCORE
         else:
             if result == cshogi.DRAW:
-                return 0
+                return (MIN_SCORE + MAX_SCORE) / 2
             elif result == cshogi.BLACK_WIN:
-                return -1
+                return MIN_SCORE
             else:
-                return 1
+                return MAX_SCORE

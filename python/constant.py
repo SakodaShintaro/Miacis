@@ -80,16 +80,3 @@ MOVE_DIRECTION_PROMOTED = [
 
 # 指し手を表すラベルの数
 MOVE_DIRECTION_LABEL_NUM = len(MOVE_DIRECTION) + 7  # 7は持ち駒の種類
-
-# rotate 180degree
-SQUARES_R180 = [
-    cshogi.I1, cshogi.I2, cshogi.I3, cshogi.I4, cshogi.I5, cshogi.I6, cshogi.I7, cshogi.I8, cshogi.I9,
-    cshogi.H1, cshogi.H2, cshogi.H3, cshogi.H4, cshogi.H5, cshogi.H6, cshogi.H7, cshogi.H8, cshogi.H9,
-    cshogi.G1, cshogi.G2, cshogi.G3, cshogi.G4, cshogi.G5, cshogi.G6, cshogi.G7, cshogi.G8, cshogi.G9,
-    cshogi.F1, cshogi.F2, cshogi.F3, cshogi.F4, cshogi.F5, cshogi.F6, cshogi.F7, cshogi.F8, cshogi.F9,
-    cshogi.E1, cshogi.E2, cshogi.E3, cshogi.E4, cshogi.E5, cshogi.E6, cshogi.E7, cshogi.E8, cshogi.E9,
-    cshogi.D1, cshogi.D2, cshogi.D3, cshogi.D4, cshogi.D5, cshogi.D6, cshogi.D7, cshogi.D8, cshogi.D9,
-    cshogi.C1, cshogi.C2, cshogi.C3, cshogi.C4, cshogi.C5, cshogi.C6, cshogi.C7, cshogi.C8, cshogi.C9,
-    cshogi.B1, cshogi.B2, cshogi.B3, cshogi.B4, cshogi.B5, cshogi.B6, cshogi.B7, cshogi.B8, cshogi.B9,
-    cshogi.A1, cshogi.A2, cshogi.A3, cshogi.A4, cshogi.A5, cshogi.A6, cshogi.A7, cshogi.A8, cshogi.A9,
-]
