@@ -127,9 +127,6 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(con
 //log_fileから最終ステップ数を読み込む関数
 int64_t loadStepNumFromLog(const std::string& log_file_path);
 
-//棋譜からの教師あり学習
-void supervisedLearn();
-
 //AlphaZero式の強化学習
 void reinforcementLearn();
 
