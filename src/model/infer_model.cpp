@@ -164,7 +164,7 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     std::unique_ptr<char[]> blob(new char[modelSize]);
     serialized_file.read(blob.get(), modelSize);
     auto runtime = std::unique_ptr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(gLogger));
-    engine_ = runtime->deserializeCudaEngine(blob.get(), modelSize, nullptr);
+    engine_ = runtime->deserializeCudaEngine(blob.get(), modelSize);
 
     context_ = engine_->createExecutionContext();
     if (!context_) {
