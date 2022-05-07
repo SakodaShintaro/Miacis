@@ -10,8 +10,7 @@ from model_dict import model_dict
 import os
 
 parser = argparse.ArgumentParser()
-parser.add_argument("train_data_dir", type=str)
-parser.add_argument("valid_data_dir", type=str)
+parser.add_argument("--data_dir", type=str, required=True)
 parser.add_argument("--learning_rate", type=float, default=0.01)
 parser.add_argument("--weight_decay", type=float, default=0.0001)
 parser.add_argument("--batch_size", type=int, default=256)
@@ -54,7 +53,7 @@ scheduler_name = "scheduler.pt"
 
 model = model_class(INPUT_CHANNEL_NUM, block_num, channel_num, POLICY_CHANNEL_NUM, BOARD_SIZE)
 
-path_manager = PathManager(args.train_data_dir)
+path_manager = PathManager(args.data_dir)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
@@ -81,7 +80,7 @@ if args.resume:
         scheduler.load_state_dict(torch.load(scheduler_name))
 
 # valid data ファイルは水匠棋譜を決め打ち
-validset = HcpeDataSet(f"{args.valid_data_dir}/suisho3kai-001.hcpe", is_valid=True)
+validset = HcpeDataSet(f"{args.data_dir}/suisho3kai-001.hcpe", is_valid=True)
 validloader = torch.utils.data.DataLoader(validset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
 # prepare output file

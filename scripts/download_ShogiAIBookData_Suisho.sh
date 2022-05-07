@@ -2,7 +2,7 @@ set -eu
 
 # どこに保存するかの基準位置($0 = ./の２つ上がMiacisと同階層なのでそこに置く)
 root_dir=$(dirname "$0")/../../data
-download_path=${root_dir}/ShogiAIBookData_Suisho
+download_path=${root_dir}/ShogiAIBookData
 mkdir -p "${download_path}"
 
 FILE_ID01=17tU75ddw0Ee-Vol-8pW5QveAotv2CMy-
