@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <cuda_runtime_api.h>
 
 struct CheckOption {
     explicit CheckOption(bool& v) : value(v) {}
@@ -28,7 +29,8 @@ public:
         //上限ギリギリだとオーバーフローしかねないので適当な値で収める
         constexpr int32_t MAX = 1e9;
         //GPUの数を取得。GPUがない場合もとりあえずここでは1として、内部的にCPUで計算する
-        uint64_t gpu = std::max(torch::getNumGPUs(), (uint64_t)1);
+        int gpu;
+        cudaGetDeviceCount(&gpu);
         // clang-format off
         check_options.emplace("USI_Ponder",              CheckOption(USI_Ponder = false));
         check_options.emplace("leave_root",              CheckOption(leave_root = true));

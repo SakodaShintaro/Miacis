@@ -4,6 +4,7 @@
 #include "../common.hpp"
 #include "../model/model_common.hpp"
 #include "../shogi/position.hpp"
+#include <mutex>
 
 using Index = int32_t;
 

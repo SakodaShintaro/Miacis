@@ -2,7 +2,7 @@
 #define MIACIS_MODEL_COMMON_HPP
 
 #include "../types.hpp"
-#include <torch/torch.h>
+#include <vector>
 
 //型のエイリアス
 using PolicyType = std::vector<float>;
