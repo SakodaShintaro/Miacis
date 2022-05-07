@@ -2,7 +2,6 @@
 #define MIACIS_LEARN_HPP
 
 #include "../model/infer_model.hpp"
-#include "../model/learning_model.hpp"
 #include "../model/model_common.hpp"
 #include "../timer.hpp"
 

@@ -35,9 +35,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
     command_["testModel"]          = testModel;
-    command_["checkLearningModel"] = checkLearningModel;
     command_["checkValidData"]     = checkValidData;
-    command_["checkBuildOnnx"]     = checkBuildOnnx;
     command_["testHuffmanDecode"]  = testHuffmanDecode;
     command_["checkInfer"]         = checkInfer;
     command_["checkValInferSuisho"]= checkValInferSuisho;
