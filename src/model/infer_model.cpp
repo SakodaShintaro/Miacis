@@ -92,13 +92,8 @@ void InferModel::convertOnnxToEngine(const std::string& onnx_path, const FP_MODE
     profile->setDimensions("input", nvinfer1::OptProfileSelector::kMAX, dims);
     config->addOptimizationProfile(profile);
 
-    nvinfer1::ICudaEngine* engine = builder->buildEngineWithConfig(*network, *config);
-    if (!engine) {
-        throw std::runtime_error("buildEngineWithConfig");
-    }
-
     // serializing a model
-    auto serialized_engine = InferUniquePtr<nvinfer1::IHostMemory>(engine->serialize());
+    auto serialized_engine = builder->buildSerializedNetwork(*network, *config);
     if (!serialized_engine) {
         throw std::runtime_error("Engine serialization failed");
     }
