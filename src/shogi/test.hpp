@@ -1,8 +1,6 @@
 ﻿#ifndef MIACIS_SHOGI_TEST_HPP
 #define MIACIS_SHOGI_TEST_HPP
 
-namespace Shogi {
-
 void checkSearchSpeed();
 void checkGenSpeed();
 void checkPredictSpeed();
@@ -20,7 +18,5 @@ void checkBuildOnnx();
 void testHuffmanDecode();
 void checkInfer();
 void checkValInferSuisho();
-
-} // namespace Shogi
 
 #endif //MIACIS_SHOGI_TEST_HPP

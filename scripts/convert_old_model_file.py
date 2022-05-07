@@ -17,17 +17,11 @@ def load_conv_and_norm(dst, src):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--source_dir", type=str, required=True)
-parser.add_argument("--game", default="shogi", choices=["shogi", "othello"])
 args = parser.parse_args()
 
-if args.game == "shogi":
-    input_channel_num = 42
-    board_size = 9
-    policy_channel_num = 27
-elif args.game == "othello":
-    input_channel_num = 2
-    board_size = 8
-    policy_channel_num = 2
+input_channel_num = 42
+board_size = 9
+policy_channel_num = 27
 
 # ディレクトリにある以下のprefixを持ったパラメータを用いて対局を行う
 source_model_names = natsorted(glob.glob(f"{args.source_dir}/*.model"))

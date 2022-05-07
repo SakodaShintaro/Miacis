@@ -1,7 +1,7 @@
 #include "learning_model.hpp"
 #include "../common.hpp"
-#include "../include_switch.hpp"
 #include "../learn/learn.hpp"
+#include "../shogi/position.hpp"
 #include <torch/torch.h>
 
 void LearningModel::load(const std::string& model_path, int64_t gpu_id) {

@@ -45,10 +45,3 @@ train_rate_threshold    2800
 valid_rate_threshold    3000
 train_kifu_path         /root/data/floodgate_kifu/train
 valid_kifu_path         /root/data/floodgate_kifu/valid
-
-# Othello
-# init_buffer_by_kifu     0
-# train_rate_threshold    2200
-# valid_rate_threshold    2290
-# train_kifu_path         /root/othello_train_kifu
-# valid_kifu_path         /root/othello_valid_kifu

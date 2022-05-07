@@ -1,7 +1,5 @@
 ﻿#include "piece.hpp"
 
-namespace Shogi {
-
 // clang-format off
 const ArrayMap<std::string, PieceNum> PieceToStr({
     { PAWN,   "歩" },
@@ -216,6 +214,4 @@ const std::array<std::array<Piece, 3>, 2> ColoredJumpPieceList {{
 std::ostream& operator<<(std::ostream& os, const Piece piece) {
     os << PieceToStr[piece];
     return os;
-}
-
 }

@@ -1,6 +1,6 @@
 ﻿#include "learn.hpp"
-#include "../game.hpp"
-#include "../include_switch.hpp"
+#include "../shogi/game.hpp"
+#include "../shogi/position.hpp"
 #include "hyperparameter_loader.hpp"
 #include <iomanip>
 #include <random>

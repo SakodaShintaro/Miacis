@@ -59,22 +59,14 @@ class TransformerModel(nn.Module):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-game", default="shogi", choices=["shogi", "othello", "go"])
     parser.add_argument("-value_type", default="cat", choices=["sca", "cat"])
     parser.add_argument("--block_num", type=int, default=12)
     parser.add_argument("--channel_num", type=int, default=384)
     args = parser.parse_args()
 
-    if args.game == "shogi":
-        input_channel_num = 42
-        board_size = 9
-        policy_channel_num = 27
-    elif args.game == "othello":
-        input_channel_num = 2
-        board_size = 8
-        policy_channel_num = 2
-    else:
-        exit(1)
+    input_channel_num = 42
+    board_size = 9
+    policy_channel_num = 27
 
     model = TransformerModel(input_channel_num, args.block_num, args.channel_num, policy_channel_num, board_size)
 

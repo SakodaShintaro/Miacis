@@ -28,22 +28,18 @@ SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
         log_file_.open("search_log.txt");
     }
 
-#ifdef SHOGI
     book_.open(search_options.book_file_name);
-#endif
 }
 
 Move SearcherForPlay::think(Position& root, int64_t time_limit) {
     //思考開始時間をセット
     start_ = std::chrono::steady_clock::now();
 
-#ifdef SHOGI
     float score{};
     if (!root.isRepeating(score) && search_options_.use_book && book_.hasEntry(root)) {
         Move move = book_.pickOne(root, search_options_.book_temperature_x1000);
         return root.transformValidMove(move);
     }
-#endif
 
     //制限の設定
     time_limit_ = time_limit;

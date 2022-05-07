@@ -9,8 +9,6 @@
 #include <string>
 #include <unordered_map>
 
-namespace Shogi {
-
 // clang-format off
 enum Piece {
     PROMOTE_BIT = 5,
@@ -123,7 +121,5 @@ inline Piece oppositeColor(Piece p) {
 }
 
 std::ostream& operator<<(std::ostream&, Piece piece);
-
-} // namespace Shogi
 
 #endif //MIACIS_SHOGI_PIECE_HPP

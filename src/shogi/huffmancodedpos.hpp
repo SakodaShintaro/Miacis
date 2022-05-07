@@ -10,8 +10,6 @@
 #include <memory>
 #include <stack>
 
-namespace Shogi {
-
 enum GameResult : int8_t { Draw, BlackWin, WhiteWin, GameResultNum };
 
 class BitStream {
@@ -168,7 +166,5 @@ struct HuffmanCodedPosAndEval {
     GameResult gameResult; // 自己対局で勝ったかどうか。
 };
 static_assert(sizeof(HuffmanCodedPosAndEval) == 38, "");
-
-} // namespace Shogi
 
 #endif

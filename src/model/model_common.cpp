@@ -1,23 +1,11 @@
 ﻿#include "model_common.hpp"
 #include "../common.hpp"
-#include "../include_switch.hpp"
+#include "../shogi/position.hpp"
 
 #ifdef USE_CATEGORICAL
-#ifdef SHOGI
 const std::string MODEL_PREFIX = "shogi_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#elif defined(OTHELLO)
-const std::string MODEL_PREFIX = "othello_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#elif defined(GO)
-const std::string MODEL_PREFIX = "go_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#endif
 #else
-#ifdef SHOGI
 const std::string MODEL_PREFIX = "shogi_sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#elif defined(OTHELLO)
-const std::string MODEL_PREFIX = "othello_sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#elif defined(GO)
-const std::string MODEL_PREFIX = "go_sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#endif
 #endif
 //デフォルトで読み書きするファイル名
 const std::string DEFAULT_MODEL_NAME = MODEL_PREFIX + ".model";

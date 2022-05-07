@@ -6,8 +6,6 @@
 #include <bitset>
 #include <functional>
 
-namespace Shogi {
-
 class Bitboard {
 public:
     //引数なしコンストラクタは空でいいかな
@@ -215,7 +213,5 @@ inline Bitboard farRank1FromColor(const Color c) { return (c == BLACK ? RANK_BB[
 
 //手番側から見て奥から2つ目の段を返す(駒打ちの時に利用)
 inline Bitboard farRank2FromColor(const Color c) { return (c == BLACK ? RANK_BB[Rank2] : RANK_BB[Rank8]); }
-
-} // namespace Shogi
 
 #endif //MIACIS_SHOGI_BITBOARD_HPP

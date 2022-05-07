@@ -1,5 +1,5 @@
 ﻿#include "../common.hpp"
-#include "../game.hpp"
+#include "../shogi/game.hpp"
 #include "hyperparameter_loader.hpp"
 #include "learn.hpp"
 

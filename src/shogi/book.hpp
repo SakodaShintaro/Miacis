@@ -3,8 +3,6 @@
 
 #include "position.hpp"
 
-namespace Shogi {
-
 struct BookEntry {
     std::vector<Move> moves;
     std::vector<float> policies;
@@ -24,7 +22,5 @@ private:
     static std::string removeTurnNumber(const std::string& sfen);
     std::unordered_map<std::string, BookEntry> book_;
 };
-
-} // namespace Shogi
 
 #endif //MIACIS_SHOGI_BOOK_HPP

@@ -8,8 +8,6 @@
 #include <sstream>
 #include <unordered_map>
 
-namespace Shogi {
-
 enum MoveConst {
     //0000 0000 0000 0000 0000 0000 0111 1111 to
     //0000 0000 0000 0000 0011 1111 1000 0000 from
@@ -150,7 +148,5 @@ public:
     bool operator<(const MoveWithScore& rhs) const { return score < rhs.score; }
     bool operator>(const MoveWithScore& rhs) const { return score > rhs.score; }
 };
-
-} // namespace Shogi
 
 #endif //MIACIS_SHOGI_MOVE_HPP

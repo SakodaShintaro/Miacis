@@ -1,7 +1,6 @@
 #ifndef INFER_MODEL_HPP
 #define INFER_MODEL_HPP
 
-#include "../include_switch.hpp"
 #include "../search/search_options.hpp"
 #include "model_common.hpp"
 #include <NvInfer.h>

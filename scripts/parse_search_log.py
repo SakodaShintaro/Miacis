@@ -9,7 +9,6 @@ from PIL import Image, ImageDraw
 
 # ディレクトリの名前をコマンドライン引数として受け取る
 parser = argparse.ArgumentParser()
-parser.add_argument("-game", choices=["shogi", "othello"])
 parser.add_argument("--get_board", action="store_true")
 parser.add_argument("--mix", action="store_true")
 args = parser.parse_args()
@@ -86,31 +85,9 @@ while index < len(lines):
 
         print(pos_str)
         if args.get_board:
-            if args.game == "shogi":
-                r = requests.get(prefix + urllib.parse.quote(pos_str))
-                with open(f"board_{turn}.png", "wb") as out_file:
-                    out_file.write(r.content)
-            elif args.game == "othello":
-                IMAGE_SIZE = 600
-                BOARD_SIZE = 8
-                image = Image.new("RGB", (IMAGE_SIZE, IMAGE_SIZE), (255, 255, 255))
-                draw = ImageDraw.Draw(image)
-                width = IMAGE_SIZE // BOARD_SIZE
-                # 横線を引く
-                for i in range(0, width * BOARD_SIZE + 1, width):
-                    draw.line((0, i, IMAGE_SIZE, i), fill=(0, 0, 0), width=2)
-                # 縦線を引く
-                for i in range(0, width * BOARD_SIZE + 1, width):
-                    draw.line((i, 0, i, IMAGE_SIZE), fill=(0, 0, 0), width=2)
-
-                for i in range(BOARD_SIZE):
-                    for j in range(BOARD_SIZE):
-                        print(pos_str[i * BOARD_SIZE + j], end="")
-                        if pos_str[i * BOARD_SIZE + j] == 'o':
-                            draw.ellipse((j * width, i * width, (j + 1) * width, (i + 1) * width), fill=(255, 255, 255), outline=(0, 0, 0), width=2)
-                        elif pos_str[i * BOARD_SIZE + j] == 'x':
-                            draw.ellipse((j * width, i * width, (j + 1) * width, (i + 1) * width), fill=(0, 0, 0), outline=(0, 0, 0), width=2)
-                image.save(f"board_{turn}.png")
+            r = requests.get(prefix + urllib.parse.quote(pos_str))
+            with open(f"board_{turn}.png", "wb") as out_file:
+                out_file.write(r.content)
 
         turn += 1
 

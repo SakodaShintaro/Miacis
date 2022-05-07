@@ -1,4 +1,5 @@
-﻿#include "../game.hpp"
+﻿#include "game.hpp"
+#include "../shogi/position.hpp"
 
 #ifdef _MSC_VER
 namespace sys = std::filesystem;

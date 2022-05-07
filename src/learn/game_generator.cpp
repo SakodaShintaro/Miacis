@@ -1,4 +1,5 @@
 ﻿#include "game_generator.hpp"
+#include "../shogi/position.hpp"
 #include <thread>
 
 void GameGenerator::genGames() {

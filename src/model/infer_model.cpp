@@ -1,7 +1,7 @@
 #include "infer_model.hpp"
 #include "../common.hpp"
-#include "../include_switch.hpp"
 #include "../learn/learn.hpp"
+#include "../shogi/position.hpp"
 #include "calibrator.hpp"
 #include <torch/torch.h>
 
