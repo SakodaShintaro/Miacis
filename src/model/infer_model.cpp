@@ -209,7 +209,7 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
     return std::make_pair(policy, value);
 }
 
-std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector<LearningData>& data) {
+std::array<std::vector<float>, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector<LearningData>& data) {
     static Position pos;
     std::vector<float> inputs;
     std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
@@ -236,39 +236,59 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector
     std::vector<float> value_buffer(batch_size * BIN_SIZE);
     forward(batch_size, inputs.data(), policy_buffer.data(), value_buffer.data());
 
-    torch::Tensor policy_target = torch::tensor(policy_teachers).view({ batch_size, POLICY_DIM });
-    torch::Tensor value_target = torch::tensor(value_teachers);
+    std::vector<float> policy_loss(batch_size);
+    for (int64_t i = 0; i < batch_size; i++) {
+        policy_loss[i] = 0;
+        std::vector<float> curr_logit(policy_buffer.begin() + i * POLICY_DIM, policy_buffer.begin() + (i + 1) * POLICY_DIM);
 
-    torch::Tensor policy_logit = torch::tensor(policy_buffer).view({ batch_size, POLICY_DIM });
-    torch::Tensor value = torch::tensor(value_buffer).view({ batch_size, BIN_SIZE });
-    torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logit, 1), 1, false);
+        // log_softmaxの適用
+        // log_softmax(x_i) = x_i - log(sum_j exp(x_j - max_x)) - max_x
+        const float max_x = *std::max_element(curr_logit.begin(), curr_logit.end());
+
+        float sum_exp = 0;
+        for (int64_t j = 0; j < POLICY_DIM; j++) {
+            sum_exp += std::exp(curr_logit[j] - max_x);
+        }
+
+        for (int64_t j = 0; j < POLICY_DIM; j++) {
+            const float x_j = curr_logit[j] - std::log(sum_exp) - max_x;
+            policy_loss[i] += -policy_teachers[i * POLICY_DIM + j] * x_j;
+        }
+    }
 
 #ifdef USE_CATEGORICAL
-    //Valueの分布を取得
-    torch::Tensor value_cat = torch::softmax(value, 1);
-
     //i番目の要素が示す値はMIN_SCORE + (i + 0.5) * VALUE_WIDTH
-    std::vector<float> each_value;
-    for (int64_t i = 0; i < BIN_SIZE; i++) {
-        each_value.emplace_back(MIN_SCORE + (i + 0.5) * VALUE_WIDTH);
-    }
-    torch::Tensor each_value_tensor = torch::tensor(each_value);
-
     //Categorical分布と内積を取ることで期待値を求める
-    value = (each_value_tensor * value_cat).sum(1);
+    std::vector<float> value(batch_size, 0);
+    for (int64_t i = 0; i < batch_size; i++) {
+        std::vector<float> curr_value(value_buffer.begin() + i * BIN_SIZE, value_buffer.begin() + (i + 1) * BIN_SIZE);
+        curr_value = softmax(curr_value);
+
+        for (int64_t j = 0; j < BIN_SIZE; j++) {
+            value[i] += curr_value[j] * (MIN_SCORE + (j + 0.5) * VALUE_WIDTH);
+        }
+    }
 
     //target側も数値に変換
-    value_target = MIN_SCORE + (value_target + 0.5f) * VALUE_WIDTH;
+    std::vector<float> value_target(batch_size, 0);
+    for (int64_t i = 0; i < batch_size; i++) {
+        value_target[i] = MIN_SCORE + (value_teachers[i] + 0.5f) * VALUE_WIDTH;
+    }
 
 #else //Scalarモデルの場合
-    value = value.view(-1);
+    const std::vector<float>& value = value_buffer;
+    const std::vector<float>& value_target = value_teachers;
 #endif
 
     //Sigmoidのときはbce, tanhのときはmse
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
-    torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
+    // torch::Tensor value_loss = torch::mse_loss(value, value_target, torch::Reduction::None);
+    std::vector<float> value_loss(batch_size);
+    for (int64_t i = 0; i < batch_size; i++) {
+        value_loss[i] = std::pow(value[i] - value_target[i], 2);
+    }
 #endif
 
     return { policy_loss, value_loss };

@@ -14,9 +14,9 @@ std::array<float, LOSS_TYPE_NUM> validation(InferModel& model, const std::vector
             curr_data.push_back(valid_data[index++]);
         }
 
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = model.validLoss(curr_data);
+        std::array<std::vector<float>, LOSS_TYPE_NUM> loss = model.validLoss(curr_data);
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            losses[i] += loss[i].sum().item<float>();
+            losses[i] += std::accumulate(loss[i].begin(), loss[i].end(), 0.0f);
         }
     }
 
@@ -40,7 +40,7 @@ std::array<float, LOSS_TYPE_NUM> validationWithSave(InferModel& model, const std
             curr_data.push_back(valid_data[index++]);
         }
 
-        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = model.validLoss(curr_data);
+        std::array<std::vector<float>, LOSS_TYPE_NUM> loss = model.validLoss(curr_data);
 
         //各データについて処理
         for (uint64_t i = 0; i < curr_data.size(); i++) {
@@ -48,12 +48,12 @@ std::array<float, LOSS_TYPE_NUM> validationWithSave(InferModel& model, const std
             pos.fromStr(datum.position_str);
             const auto [label, prob] = datum.policy[0];
             Move move = pos.labelToMove(label);
-            ofs << datum.position_str << "\t" << move.toPrettyStr() << "\t" << prob << "\t" << datum.value << "\t"
-                << loss[0][i].item<float>() << "\t" << loss[1][i].item<float>() << std::endl;
+            ofs << datum.position_str << "\t" << move.toPrettyStr() << "\t" << prob << "\t" << datum.value << "\t" << loss[0][i]
+                << "\t" << loss[1][i] << std::endl;
         }
 
         for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-            losses[i] += loss[i].sum().item<float>();
+            losses[i] += std::accumulate(loss[i].begin(), loss[i].end(), 0.0f);
         }
     }
 
