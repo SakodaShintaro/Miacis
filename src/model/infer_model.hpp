@@ -42,8 +42,8 @@ private:
     int64_t gpu_id_;
     int64_t opt_batch_size_;
     int64_t max_batch_size_;
-    nvinfer1::ICudaEngine* engine_ = nullptr;
-    nvinfer1::IExecutionContext* context_ = nullptr;
+    std::shared_ptr<nvinfer1::ICudaEngine> engine_;
+    std::shared_ptr<nvinfer1::IExecutionContext> context_;
     std::vector<void*> input_bindings_;
     void* x1_dev_ = nullptr;
     void* y1_dev_ = nullptr;

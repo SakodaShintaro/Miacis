@@ -136,12 +136,6 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     if (y2_dev_ == nullptr) {
         checkCudaErrors(cudaMalloc((void**)&y2_dev_, max_batch_size_ * sizeof(float) * BIN_SIZE));
     }
-    if (context_ != nullptr) {
-        context_->destroy();
-    }
-    if (engine_ != nullptr) {
-        engine_->destroy();
-    }
 
     input_bindings_ = { x1_dev_, y1_dev_, y2_dev_ };
 
@@ -164,9 +158,9 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     std::unique_ptr<char[]> blob(new char[modelSize]);
     serialized_file.read(blob.get(), modelSize);
     auto runtime = std::unique_ptr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(gLogger));
-    engine_ = runtime->deserializeCudaEngine(blob.get(), modelSize);
+    engine_.reset(runtime->deserializeCudaEngine(blob.get(), modelSize));
 
-    context_ = engine_->createExecutionContext();
+    context_.reset(engine_->createExecutionContext());
     if (!context_) {
         throw std::runtime_error("createExecutionContext");
     }
