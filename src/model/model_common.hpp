@@ -55,6 +55,11 @@ inline float expOfValueDist(ValueType dist) {
     }
     return exp;
 }
+#else
+
+inline float expOfValueDist(ValueType dist) {
+    return dist;
+}
 #endif
 
 #endif //MIACIS_MODEL_COMMON_HPP
