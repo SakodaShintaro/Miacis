@@ -27,7 +27,6 @@ Interface::Interface() : searcher_(nullptr) {
     command_["cleanGames"]         = cleanGames;
     command_["supervisedLearn"]    = supervisedLearn;
     command_["reinforcementLearn"] = reinforcementLearn;
-    command_["contrastiveLearn"]   = contrastiveLearn;
     command_["checkSearchSpeed"]   = checkSearchSpeed;
     command_["checkGenSpeed"]      = checkGenSpeed;
     command_["checkPredictSpeed"]  = checkPredictSpeed;

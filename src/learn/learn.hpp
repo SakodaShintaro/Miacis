@@ -133,9 +133,6 @@ void supervisedLearn();
 //AlphaZero式の強化学習
 void reinforcementLearn();
 
-//ランダムに自己対局したラベルなしデータから教師なしで対比学習
-void contrastiveLearn();
-
 //実験的にLibTorchモデルを教師あり学習する関数
 void experimentalSupervisedLearn();
 
