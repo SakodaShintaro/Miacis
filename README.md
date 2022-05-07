@@ -11,7 +11,6 @@ MiacisはUSIプロトコルに対応した将棋用思考エンジンです。[�
 コンパイルにはcmakeを利用します。ライブラリとして
 
 * CUDA(cuDNN含む)
-* LibTorch
 * TensorRT
 
 を必要とします。環境構築は複雑なのでDockerを利用することをお勧めします。
@@ -25,7 +24,6 @@ Dockerおよび[NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/clo
 wget https://raw.githubusercontent.com/SakodaShintaro/Miacis/master/docker/Dockerfile
 ```
 
-
 2. miacis_imageというイメージを作成する
 ```shell
 docker build -t miacis_image:latest .
@@ -37,8 +35,3 @@ docker run --gpus all -it --name miacis_container miacis_image:latest bash
 ```
 
 正常にコンパイルが進むとコンテナ内の```/root/Miacis/build```以下に```Miacis_shogi_categorical```というプログラムが得られます。
-
-## 対局方法
-
-USIオプション```model_name```で指定するパスに評価関数パラメータを配置すると思考エンジンとして利用することができます。デフォルトでは```Miacis_shogi_categorical```
-と同じディレクトリに```shogi_cat_bl10_ch256.model```というファイルにパラメータが格納されている必要があります。(bl10はブロック数が10であること、ch256はチャネル数が256であることを示しています。)
