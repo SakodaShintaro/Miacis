@@ -3,14 +3,11 @@
 
 #include "../model/infer_model.hpp"
 #include "../model/model_common.hpp"
+#include "../shogi/book.hpp"
 #include "searcher.hpp"
 #include "searcher_for_mate.hpp"
 #include <mutex>
 #include <stack>
-
-#ifdef SHOGI
-#include "../shogi/book.hpp"
-#endif
 
 class SearcherForPlay {
 public:
@@ -70,10 +67,8 @@ private:
     //ログファイルを出力する場合のストリーム
     std::ofstream log_file_;
 
-#ifdef SHOGI
     //定跡
     Book book_;
-#endif
 };
 
 #endif //MIACIS_SEARCHER_FOR_PLAY_HPP

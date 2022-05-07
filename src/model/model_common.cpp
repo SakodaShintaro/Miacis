@@ -3,17 +3,9 @@
 #include "../include_switch.hpp"
 
 #ifdef USE_CATEGORICAL
-#ifdef SHOGI
 const std::string MODEL_PREFIX = "shogi_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#elif defined(GO)
-const std::string MODEL_PREFIX = "go_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#endif
 #else
-#ifdef SHOGI
 const std::string MODEL_PREFIX = "shogi_sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#elif defined(GO)
-const std::string MODEL_PREFIX = "go_sca_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
-#endif
 #endif
 //デフォルトで読み書きするファイル名
 const std::string DEFAULT_MODEL_NAME = MODEL_PREFIX + ".model";

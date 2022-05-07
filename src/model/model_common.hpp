@@ -26,13 +26,8 @@ struct LearningData {
 };
 
 //ネットワークの設定
-#ifdef SHOGI
 constexpr int32_t BLOCK_NUM = 10;
 constexpr int32_t CHANNEL_NUM = 256;
-#elif defined(GO)
-constexpr int32_t BLOCK_NUM = 5;
-constexpr int32_t CHANNEL_NUM = 64;
-#endif
 
 extern const std::string MODEL_PREFIX;
 extern const std::string DEFAULT_MODEL_NAME;

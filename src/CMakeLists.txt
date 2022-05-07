@@ -30,19 +30,9 @@ file(GLOB GO_SRCS ./go/*.cpp)
 # 実行ファイルの定義
 add_executable(Miacis_shogi_scalar ${SRCS} ${SHOGI_SRCS})
 add_executable(Miacis_shogi_categorical ${SRCS} ${SHOGI_SRCS})
-# add_executable(Miacis_shogi_dlshogi ${SRCS} ${SHOGI_SRCS})
 target_compile_definitions(Miacis_shogi_scalar PUBLIC SHOGI)
 target_compile_definitions(Miacis_shogi_categorical PUBLIC SHOGI USE_CATEGORICAL)
-# target_compile_definitions(Miacis_shogi_dlshogi PUBLIC SHOGI DLSHOGI)
 
-# add_executable(Miacis_go_categorical ${SRCS} ${GO_SRCS})
-# target_compile_definitions(Miacis_go_categorical PUBLIC GO USE_CATEGORICAL)
-
-# foreachで回すためにリスト化
-# set(BIN Miacis_shogi_scalar
-#         Miacis_shogi_categorical
-#         Miacis_shogi_dlshogi
-#         Miacis_go_categorical)
 set(BIN Miacis_shogi_scalar
         Miacis_shogi_categorical)
 
