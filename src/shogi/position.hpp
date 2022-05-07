@@ -3,10 +3,8 @@
 
 #include "bitboard.hpp"
 #include "hand.hpp"
-#include "move.hpp"
 #include "huffmancodedpos.hpp"
-
-namespace Shogi {
+#include "move.hpp"
 
 class Position {
 public:
@@ -151,7 +149,5 @@ private:
     Bitboard occupied_bb_[ColorNum];
     Bitboard pieces_bb_[PieceNum];
 };
-
-} // namespace Shogi
 
 #endif //MIACIS_SHOGI_POSITION_HPP

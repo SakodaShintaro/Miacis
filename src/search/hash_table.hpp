@@ -4,7 +4,6 @@
 #include "../common.hpp"
 #include "../model/model_common.hpp"
 #include "../shogi/position.hpp"
-using namespace Shogi;
 
 using Index = int32_t;
 

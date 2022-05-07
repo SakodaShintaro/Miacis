@@ -1,7 +1,5 @@
 #include "huffmancodedpos.hpp"
 
-namespace Shogi {
-
 // Binary表記
 // Binary<11110>::value とすれば、30 となる。
 // 符合なし64bitなので19桁まで表記可能。
@@ -116,4 +114,3 @@ const HuffmanCode HuffmanCodedPos::handCodeTable[HAND_PIECE_KIND_NUM][ColorNum] 
 
 HuffmanCodeToPieceHash HuffmanCodedPos::boardCodeToPieceHash;
 HuffmanCodeToPieceHash HuffmanCodedPos::handCodeToPieceHash;
-}

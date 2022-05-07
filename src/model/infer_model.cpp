@@ -4,7 +4,6 @@
 #include "../shogi/position.hpp"
 #include "calibrator.hpp"
 #include <torch/torch.h>
-using namespace Shogi;
 
 class Logger : public nvinfer1::ILogger {
     const char* error_type(Severity severity) {

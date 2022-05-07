@@ -4,8 +4,6 @@
 #include "../search/searcher_for_play.hpp"
 #include "book.hpp"
 
-namespace Shogi {
-
 void checkGenSpeed() {
     constexpr int64_t buffer_size = 1048576;
     SearchOptions search_options;
@@ -798,5 +796,3 @@ void checkValInferSuisho() {
     }
     std::cout << "finish checkValInferSuisho" << std::endl;
 }
-
-} // namespace Shogi

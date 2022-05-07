@@ -1,9 +1,7 @@
 ﻿#include "interface.hpp"
-#include "../shogi/game.hpp"
 #include "../learn/learn.hpp"
+#include "../shogi/game.hpp"
 #include "test.hpp"
-
-namespace Shogi {
 
 Interface::Interface() : searcher_(nullptr) {
     //メンバ関数
@@ -275,5 +273,3 @@ void Interface::convertOnnxToEngine() {
     std::cin >> calibration_data_path;
     InferModel::convertOnnxToEngine(onnx_path, FP16, search_options_.search_batch_size, calibration_data_path);
 }
-
-} // namespace Shogi

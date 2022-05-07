@@ -3,7 +3,6 @@
 
 #include "../learn/learn.hpp"
 #include "../shogi/position.hpp"
-using namespace Shogi;
 
 class Int8EntropyCalibrator2 : public nvinfer1::IInt8EntropyCalibrator2 {
 public:

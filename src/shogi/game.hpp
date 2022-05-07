@@ -11,7 +11,7 @@
 
 struct OneTurnElement {
     //このターンに選択された指し手
-    Shogi::Move move;
+    Move move;
 
     //探索した結果として得られた方策分布, 評価値
     //それぞれデータとして小さく済む保存方法にするとPolicyは教師データの型(int32_t, float)のペア, Valueは評価値(float)だけとなる

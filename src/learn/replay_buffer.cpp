@@ -4,7 +4,6 @@
 #include <iomanip>
 #include <random>
 #include <thread>
-using namespace Shogi;
 
 const std::string ReplayBuffer::KIFU_SAVE_DIR = "./learn_kifu/";
 

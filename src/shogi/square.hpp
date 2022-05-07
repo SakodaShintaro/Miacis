@@ -3,8 +3,6 @@
 
 #include "piece.hpp"
 
-namespace Shogi {
-
 // clang-format off
 enum Square {
     WALL00, WALL01, WALL02, WALL03, WALL04, WALL05, WALL06, WALL07, WALL08, WALL09, WALL0A,
@@ -166,7 +164,5 @@ extern const ArrayMap<std::string, FileNum> fileToString;
 extern const ArrayMap<std::string, RankNum> rankToString;
 
 std::ostream& operator<<(std::ostream&, Square sq);
-
-} // namespace Shogi
 
 #endif //MIACIS_SHOGI_SQUARE_HPP

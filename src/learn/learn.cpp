@@ -5,7 +5,6 @@
 #include <iomanip>
 #include <random>
 #include <sstream>
-using namespace Shogi;
 
 // optimizerの保存名
 static const std::string optimizer_file_name = "optimizer.pt";

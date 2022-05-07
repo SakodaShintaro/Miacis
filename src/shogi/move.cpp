@@ -1,8 +1,6 @@
 ﻿#include "move.hpp"
 #include "position.hpp"
 
-namespace Shogi {
-
 enum MOVE_DIRECTION { UP, UP_LEFT, UP_RIGHT, LEFT, RIGHT, DOWN, DOWN_LEFT, DOWN_RIGHT, UP2_LEFT, UP2_RIGHT, MOVE_DIRECTION_NUM };
 
 std::array<MOVE_DIRECTION, MOVE_DIRECTION_NUM> mirror = {
@@ -63,18 +61,29 @@ uint32_t Move::toLabel() const {
     File from_file = SquareToFile[from_sq];
     Rank from_rank = SquareToRank[from_sq];
 
-    int64_t direction = (from() == WALL00) ? 2 * MOVE_DIRECTION_NUM + DLShogiPieceToIndex[kind(subject())] - 1
-                        : (to_file == from_file - 1 && to_rank == from_rank - 2) ? UP2_RIGHT
-                        : (to_file == from_file + 1 && to_rank == from_rank - 2) ? UP2_LEFT
-                        : (to_file == from_file && to_rank > from_rank)          ? DOWN
-                        : (to_file > from_file && to_rank > from_rank)           ? DOWN_LEFT
-                        : (to_file > from_file && to_rank == from_rank)          ? LEFT
-                        : (to_file > from_file && to_rank < from_rank)           ? UP_LEFT
-                        : (to_file == from_file && to_rank < from_rank)          ? UP
-                        : (to_file < from_file && to_rank < from_rank)           ? UP_RIGHT
-                        : (to_file < from_file && to_rank == from_rank)          ? RIGHT
-                        : (to_file < from_file && to_rank > from_rank)           ? DOWN_RIGHT
-                                                                                 : -1;
+    int64_t direction = (from() == WALL00)
+                            ? 2 * MOVE_DIRECTION_NUM + DLShogiPieceToIndex[kind(subject())] - 1
+                            : (to_file == from_file - 1 && to_rank == from_rank - 2)
+                                  ? UP2_RIGHT
+                                  : (to_file == from_file + 1 && to_rank == from_rank - 2)
+                                        ? UP2_LEFT
+                                        : (to_file == from_file && to_rank > from_rank)
+                                              ? DOWN
+                                              : (to_file > from_file && to_rank > from_rank)
+                                                    ? DOWN_LEFT
+                                                    : (to_file > from_file && to_rank == from_rank)
+                                                          ? LEFT
+                                                          : (to_file > from_file && to_rank < from_rank)
+                                                                ? UP_LEFT
+                                                                : (to_file == from_file && to_rank < from_rank)
+                                                                      ? UP
+                                                                      : (to_file < from_file && to_rank < from_rank)
+                                                                            ? UP_RIGHT
+                                                                            : (to_file < from_file && to_rank == from_rank)
+                                                                                  ? RIGHT
+                                                                                  : (to_file < from_file && to_rank > from_rank)
+                                                                                        ? DOWN_RIGHT
+                                                                                        : -1;
 
     if (isPromote()) {
         direction += MOVE_DIRECTION_NUM;
@@ -147,5 +156,3 @@ std::string Move::toPrettyStr() const {
     //    }
     return str.str();
 }
-
-} // namespace Shogi
