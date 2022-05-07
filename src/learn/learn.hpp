@@ -59,8 +59,4 @@ std::array<float, LOSS_TYPE_NUM> validation(InferModel& model, const std::vector
 //validationを行い、各局面の損失をtsvで出力する関数
 std::array<float, LOSS_TYPE_NUM> validationWithSave(InferModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
 
-//学習データをtensorへ変換する関数
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
-                                                                             torch::Device device);
-
 #endif //MIACIS_LEARN_HPP
