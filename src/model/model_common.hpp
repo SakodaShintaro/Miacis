@@ -25,11 +25,7 @@ struct LearningData {
     ValueTeacherType value;
 };
 
-//ネットワークの設定
-constexpr int32_t BLOCK_NUM = 10;
-constexpr int32_t CHANNEL_NUM = 256;
-
-extern const std::string MODEL_PREFIX;
+extern const std::string DEFAULT_MODEL_PREFIX;
 extern const std::string DEFAULT_MODEL_NAME;
 extern const std::string DEFAULT_ONNX_NAME;
 extern const std::string DEFAULT_ENGINE_NAME;
