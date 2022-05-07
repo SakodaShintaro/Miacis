@@ -25,7 +25,6 @@ Interface::Interface() : searcher_(nullptr) {
 
     //メンバ関数以外
     command_["cleanGames"]         = cleanGames;
-    command_["reinforcementLearn"] = reinforcementLearn;
     command_["checkSearchSpeed"]   = checkSearchSpeed;
     command_["checkGenSpeed"]      = checkGenSpeed;
     command_["checkPredictSpeed"]  = checkPredictSpeed;
