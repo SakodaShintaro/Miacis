@@ -29,9 +29,6 @@ struct LearningData {
 #ifdef SHOGI
 constexpr int32_t BLOCK_NUM = 10;
 constexpr int32_t CHANNEL_NUM = 256;
-#elif defined(OTHELLO)
-constexpr int32_t BLOCK_NUM = 5;
-constexpr int32_t CHANNEL_NUM = 64;
 #elif defined(GO)
 constexpr int32_t BLOCK_NUM = 5;
 constexpr int32_t CHANNEL_NUM = 64;
