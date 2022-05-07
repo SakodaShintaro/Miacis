@@ -5,12 +5,6 @@
 #include <random>
 #include <sstream>
 
-// optimizerの保存名
-static const std::string optimizer_file_name = "optimizer.pt";
-
-// モデルの拡張子 .ptの方が普通そうだが……
-static const std::string MODEL_SUFFIX = ".model";
-
 std::array<float, LOSS_TYPE_NUM> validation(InferModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
     torch::NoGradGuard no_grad_guard;
     std::array<float, LOSS_TYPE_NUM> losses{};
