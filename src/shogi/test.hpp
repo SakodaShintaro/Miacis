@@ -4,7 +4,6 @@
 void checkSearchSpeed();
 void checkGenSpeed();
 void checkPredictSpeed();
-void checkVal();
 void checkValInfer();
 void checkDoAndUndo();
 void checkMirror();

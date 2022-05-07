@@ -125,36 +125,6 @@ void checkSearchSpeed() {
     std::cout << "finish checkSearchSpeed" << std::endl;
 }
 
-void checkVal() {
-    //データを取得
-    std::string path;
-    std::cout << "validation kifu path : ";
-    std::cin >> path;
-    int64_t batch_size;
-    std::cout << "batch_size : ";
-    std::cin >> batch_size;
-    std::string model_file;
-    std::cout << "model_file : ";
-    std::cin >> model_file;
-    float rate_threshold;
-    std::cout << "rate_threshold : ";
-    std::cin >> rate_threshold;
-
-    std::vector<LearningData> data = loadData(path, false, rate_threshold);
-    std::cout << "data.size() = " << data.size() << std::endl;
-
-    //ネットワークの準備
-    LearningModel nn;
-    nn.load(model_file, 0);
-    nn.eval();
-
-    std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, batch_size);
-    std::cout << std::fixed << std::setprecision(4);
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
-    }
-}
-
 void checkValInfer() {
     //データを取得
     SearchOptions search_options;
