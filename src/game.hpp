@@ -1,17 +1,17 @@
 ﻿#ifndef MIACIS_GAME_HPP
 #define MIACIS_GAME_HPP
 
-#include "include_switch.hpp"
 #include "model/model_common.hpp"
 #ifdef _MSC_VER
 #include <filesystem>
 #elif __GNUC__
 #include <experimental/filesystem>
 #endif
+#include "shogi/move.hpp"
 
 struct OneTurnElement {
     //このターンに選択された指し手
-    Move move;
+    Shogi::Move move;
 
     //探索した結果として得られた方策分布, 評価値
     //それぞれデータとして小さく済む保存方法にするとPolicyは教師データの型(int32_t, float)のペア, Valueは評価値(float)だけとなる

@@ -2,8 +2,9 @@
 #define MIACIS_HASH_TABLE_HPP
 
 #include "../common.hpp"
-#include "../include_switch.hpp"
 #include "../model/model_common.hpp"
+#include "../shogi/position.hpp"
+using namespace Shogi;
 
 using Index = int32_t;
 

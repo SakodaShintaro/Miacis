@@ -1,10 +1,11 @@
 ﻿#include "learn.hpp"
 #include "../game.hpp"
-#include "../include_switch.hpp"
+#include "../shogi/position.hpp"
 #include "hyperparameter_loader.hpp"
 #include <iomanip>
 #include <random>
 #include <sstream>
+using namespace Shogi;
 
 // optimizerの保存名
 static const std::string optimizer_file_name = "optimizer.pt";

@@ -1,5 +1,7 @@
 ﻿#include "game_generator.hpp"
+#include "../shogi/position.hpp"
 #include <thread>
+using namespace Shogi;
 
 void GameGenerator::genGames() {
     //まず最初のロード

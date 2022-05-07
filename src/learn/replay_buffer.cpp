@@ -1,9 +1,10 @@
 ﻿#include "replay_buffer.hpp"
 #include "../common.hpp"
-#include "../include_switch.hpp"
+#include "../shogi/position.hpp"
 #include <iomanip>
 #include <random>
 #include <thread>
+using namespace Shogi;
 
 const std::string ReplayBuffer::KIFU_SAVE_DIR = "./learn_kifu/";
 

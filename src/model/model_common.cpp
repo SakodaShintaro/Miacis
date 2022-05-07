@@ -1,6 +1,7 @@
 ﻿#include "model_common.hpp"
 #include "../common.hpp"
-#include "../include_switch.hpp"
+#include "../shogi/position.hpp"
+using namespace Shogi;
 
 #ifdef USE_CATEGORICAL
 const std::string MODEL_PREFIX = "shogi_cat_bl" + std::to_string(BLOCK_NUM) + "_ch" + std::to_string(CHANNEL_NUM);
