@@ -14,7 +14,6 @@
 #include <iterator>
 #include <memory>
 #include <sstream>
-#include <torch/script.h>
 
 inline void checkCudaErrors(cudaError_t status) {
     if (status != 0) {

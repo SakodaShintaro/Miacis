@@ -93,8 +93,9 @@ std::vector<float> GameGenerator::onehotNoise(uint64_t k) {
 void GameGenerator::evalWithGPU(int64_t thread_id) {
     //順伝播計算
     gpu_mutex.lock();
-    torch::NoGradGuard no_grad_guard;
-    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result = neural_network_.policyAndValueBatch(gpu_queues_[thread_id].inputs);
+
+    std::pair<std::vector<PolicyType>, std::vector<ValueType>> result =
+        neural_network_.policyAndValueBatch(gpu_queues_[thread_id].inputs);
     gpu_mutex.unlock();
 
     const std::vector<PolicyType>& policies = result.first;
@@ -215,9 +216,10 @@ OneTurnElement GenerateWorker::resultForCurrPos() {
             //選択回数が0ならMIN_SCORE
             //選択回数が0ではないのに未展開なら詰み探索が詰みを発見したということなのでMAX_SCORE
             //その他は普通に計算
-            Q_dist[i] = (N[i] == 0                                               ? MIN_SCORE
-                         : root_node.child_indices[i] == HashTable::NOT_EXPANDED ? MAX_SCORE
-                                                                                 : hash_table_.expQfromNext(root_node, i));
+            Q_dist[i] =
+                (N[i] == 0 ? MIN_SCORE
+                           : root_node.child_indices[i] == HashTable::NOT_EXPANDED ? MAX_SCORE
+                                                                                   : hash_table_.expQfromNext(root_node, i));
         }
         Q_dist = softmax(Q_dist, std::max(search_options_.temperature_x1000 / 1000.0f, 1e-4f));
 

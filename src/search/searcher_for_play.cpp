@@ -1,4 +1,5 @@
 ﻿#include "searcher_for_play.hpp"
+#include <iomanip>
 #include <thread>
 
 SearcherForPlay::SearcherForPlay(const SearchOptions& search_options)
@@ -83,7 +84,6 @@ Move SearcherForPlay::think(Position& root, int64_t time_limit) {
             std::vector<float> feature = root.makeFeature();
             gpu_queues_[0][0].inputs.insert(gpu_queues_[0][0].inputs.begin(), feature.begin(), feature.end());
         }
-        torch::NoGradGuard no_grad_guard;
         std::pair<std::vector<PolicyType>, std::vector<ValueType>> y =
             neural_networks_[0].policyAndValueBatch(gpu_queues_[0][0].inputs);
 
@@ -240,9 +240,9 @@ void SearcherForPlay::workerThreadFunc(Position root, int64_t gpu_id, int64_t th
 
         //評価要求をGPUで計算
         if (!gpu_queue.inputs.empty()) {
-            torch::NoGradGuard no_grad_guard;
             gpu_mutexes_[gpu_id].lock();
-            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y = neural_networks_[gpu_id].policyAndValueBatch(gpu_queue.inputs);
+            std::pair<std::vector<PolicyType>, std::vector<ValueType>> y =
+                neural_networks_[gpu_id].policyAndValueBatch(gpu_queue.inputs);
             gpu_mutexes_[gpu_id].unlock();
 
             //書き込み

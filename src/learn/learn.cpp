@@ -6,7 +6,6 @@
 #include <sstream>
 
 std::array<float, LOSS_TYPE_NUM> validation(InferModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
-    torch::NoGradGuard no_grad_guard;
     std::array<float, LOSS_TYPE_NUM> losses{};
     for (uint64_t index = 0; index < valid_data.size();) {
         std::vector<LearningData> curr_data;
@@ -30,7 +29,6 @@ std::array<float, LOSS_TYPE_NUM> validation(InferModel& model, const std::vector
 
 std::array<float, LOSS_TYPE_NUM> validationWithSave(InferModel& model, const std::vector<LearningData>& valid_data,
                                                     uint64_t batch_size) {
-    torch::NoGradGuard no_grad_guard;
     std::ofstream ofs("valid_loss.tsv");
     std::array<float, LOSS_TYPE_NUM> losses{};
     Position pos;

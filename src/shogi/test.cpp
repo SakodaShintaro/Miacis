@@ -3,6 +3,8 @@
 #include "../model/infer_model.hpp"
 #include "../search/searcher_for_play.hpp"
 #include "book.hpp"
+#include <iomanip>
+#include <thread>
 
 void checkGenSpeed() {
     constexpr int64_t buffer_size = 1048576;
@@ -185,7 +187,7 @@ void checkPredictSpeed() {
         float time = 0.0;
         for (int64_t i = 0; i < REPEAT_NUM; i++) {
             auto start = std::chrono::steady_clock::now();
-            torch::NoGradGuard no_grad_guard;
+
             nn.policyAndValueBatch(input);
             auto end = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
@@ -617,7 +619,6 @@ void checkInfer() {
 
     std::vector<Move> moves = pos.generateAllMoves();
 
-    torch::NoGradGuard no_grad_guard;
     auto [policy, value] = nn.policyAndValueBatch(input);
 
     const int64_t batch_size = policy.size();
