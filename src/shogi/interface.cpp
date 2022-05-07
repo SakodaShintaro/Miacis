@@ -1,5 +1,5 @@
 ﻿#include "interface.hpp"
-#include "../game.hpp"
+#include "../shogi/game.hpp"
 #include "../learn/learn.hpp"
 #include "test.hpp"
 

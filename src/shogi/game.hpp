@@ -1,13 +1,13 @@
 ﻿#ifndef MIACIS_GAME_HPP
 #define MIACIS_GAME_HPP
 
-#include "model/model_common.hpp"
+#include "../model/model_common.hpp"
 #ifdef _MSC_VER
 #include <filesystem>
 #elif __GNUC__
 #include <experimental/filesystem>
 #endif
-#include "shogi/move.hpp"
+#include "move.hpp"
 
 struct OneTurnElement {
     //このターンに選択された指し手

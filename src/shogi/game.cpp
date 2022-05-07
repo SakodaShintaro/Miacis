@@ -1,4 +1,4 @@
-﻿#include "../game.hpp"
+﻿#include "game.hpp"
 #include "../shogi/position.hpp"
 using namespace Shogi;
 

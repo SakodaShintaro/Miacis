@@ -1,7 +1,7 @@
 ﻿#ifndef MIACIS_GAME_GENERATOR_HPP
 #define MIACIS_GAME_GENERATOR_HPP
 
-#include "../game.hpp"
+#include "../shogi/game.hpp"
 #include "../model/infer_model.hpp"
 #include "../search/search_options.hpp"
 #include "../search/searcher.hpp"
