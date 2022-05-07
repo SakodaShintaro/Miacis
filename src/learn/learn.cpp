@@ -11,8 +11,7 @@ static const std::string optimizer_file_name = "optimizer.pt";
 // モデルの拡張子 .ptの方が普通そうだが……
 static const std::string MODEL_SUFFIX = ".model";
 
-template<class ModelType>
-std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
+std::array<float, LOSS_TYPE_NUM> validation(InferModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size) {
     torch::NoGradGuard no_grad_guard;
     std::array<float, LOSS_TYPE_NUM> losses{};
     for (uint64_t index = 0; index < valid_data.size();) {
@@ -35,11 +34,7 @@ std::array<float, LOSS_TYPE_NUM> validation(ModelType& model, const std::vector<
     return losses;
 }
 
-template std::array<float, LOSS_TYPE_NUM> validation<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data,
-                                                                 uint64_t batch_size);
-
-template<class ModelType>
-std::array<float, LOSS_TYPE_NUM> validationWithSave(ModelType& model, const std::vector<LearningData>& valid_data,
+std::array<float, LOSS_TYPE_NUM> validationWithSave(InferModel& model, const std::vector<LearningData>& valid_data,
                                                     uint64_t batch_size) {
     torch::NoGradGuard no_grad_guard;
     std::ofstream ofs("valid_loss.tsv");
@@ -75,9 +70,6 @@ std::array<float, LOSS_TYPE_NUM> validationWithSave(ModelType& model, const std:
 
     return losses;
 }
-
-template std::array<float, LOSS_TYPE_NUM>
-validationWithSave<InferModel>(InferModel& model, const std::vector<LearningData>& valid_data, uint64_t batch_size);
 
 std::vector<LearningData> deleteDuplicate(std::vector<LearningData>& data_buffer) {
     std::sort(data_buffer.begin(), data_buffer.end(),
@@ -275,25 +267,4 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(con
     torch::Tensor value_target = torch::tensor(value_teachers).to(device);
 
     return std::make_tuple(input_tensor, policy_target, value_target);
-}
-
-int64_t loadStepNumFromLog(const std::string& log_file_path) {
-    std::ifstream log_file(log_file_path);
-    if (!log_file.is_open()) {
-        return 0;
-    }
-
-    // 最終行から読み込む
-    std::string line, final_line;
-    while (getline(log_file, line, '\r')) {
-        final_line = line;
-    }
-    int64_t first_tab = final_line.find('\t');
-    int64_t second_tab = final_line.find('\t', first_tab + 1);
-    std::string step_num_str = final_line.substr(first_tab + 1, second_tab - first_tab - 1);
-    if (step_num_str == "step") {
-        // ヘッダだけあって学習結果0行の場合、ステップ0からスタートで良い
-        return 0;
-    }
-    return std::stoll(step_num_str);
 }
