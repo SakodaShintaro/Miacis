@@ -24,9 +24,6 @@ set(SRCS ${COMMON_SRCS} ${MODEL_SRCS} ${LEARN_SRCS} ${SEARCH_SRCS})
 # 将棋用のバイナリをコンパイルするのに必要なソース
 file(GLOB SHOGI_SRCS ./shogi/*.cpp)
 
-# 囲碁用のバイナリをコンパイルするのに必要なソース
-file(GLOB GO_SRCS ./go/*.cpp)
-
 # 実行ファイルの定義
 add_executable(Miacis_shogi_scalar ${SRCS} ${SHOGI_SRCS})
 add_executable(Miacis_shogi_categorical ${SRCS} ${SHOGI_SRCS})
