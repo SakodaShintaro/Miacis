@@ -26,16 +26,6 @@ inline void checkCudaErrors(cudaError_t status) {
     }
 }
 
-struct InferDeleter {
-    template<typename T> void operator()(T* obj) const {
-        if (obj) {
-            obj->destroy();
-        }
-    }
-};
-
-template<typename T> using InferUniquePtr = std::unique_ptr<T, InferDeleter>;
-
 enum FP_MODE { FP16, INT8, FP_MODE_NUM };
 
 class InferModel {

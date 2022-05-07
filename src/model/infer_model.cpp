@@ -36,23 +36,23 @@ void InferModel::convertOnnxToEngine(const std::string& onnx_path, const FP_MODE
     const int64_t max_batch_size = opt_batch_size * 2;
 
     // build
-    auto builder = InferUniquePtr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(gLogger));
+    auto builder = std::unique_ptr<nvinfer1::IBuilder>(nvinfer1::createInferBuilder(gLogger));
     if (!builder) {
         throw std::runtime_error("createInferBuilder");
     }
 
     const auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
-    auto network = InferUniquePtr<nvinfer1::INetworkDefinition>(builder->createNetworkV2(explicitBatch));
+    auto network = std::unique_ptr<nvinfer1::INetworkDefinition>(builder->createNetworkV2(explicitBatch));
     if (!network) {
         throw std::runtime_error("createNetworkV2");
     }
 
-    auto config = InferUniquePtr<nvinfer1::IBuilderConfig>(builder->createBuilderConfig());
+    auto config = std::unique_ptr<nvinfer1::IBuilderConfig>(builder->createBuilderConfig());
     if (!config) {
         throw std::runtime_error("createBuilderConfig");
     }
 
-    auto parser = InferUniquePtr<nvonnxparser::IParser>(nvonnxparser::createParser(*network, gLogger));
+    auto parser = std::unique_ptr<nvonnxparser::IParser>(nvonnxparser::createParser(*network, gLogger));
     if (!parser) {
         throw std::runtime_error("createParser");
     }
@@ -163,7 +163,7 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     serialized_file.seekg(0, std::ios_base::beg);
     std::unique_ptr<char[]> blob(new char[modelSize]);
     serialized_file.read(blob.get(), modelSize);
-    auto runtime = InferUniquePtr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(gLogger));
+    auto runtime = std::unique_ptr<nvinfer1::IRuntime>(nvinfer1::createInferRuntime(gLogger));
     engine_ = runtime->deserializeCudaEngine(blob.get(), modelSize, nullptr);
 
     context_ = engine_->createExecutionContext();
