@@ -647,7 +647,7 @@ void checkInfer() {
     }
 }
 
-void checkValInferSuisho() {
+void checkValInferHcpe() {
     //データを取得
     SearchOptions search_options;
 
@@ -671,5 +671,5 @@ void checkValInferSuisho() {
     for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
         std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
     }
-    std::cout << "finish checkValInferSuisho" << std::endl;
+    std::cout << "finish checkValInferHcpe" << std::endl;
 }

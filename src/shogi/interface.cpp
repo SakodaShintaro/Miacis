@@ -38,7 +38,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["checkValidData"]     = checkValidData;
     command_["testHuffmanDecode"]  = testHuffmanDecode;
     command_["checkInfer"]         = checkInfer;
-    command_["checkValInferSuisho"]= checkValInferSuisho;
+    command_["checkValInferHcpe"]  = checkValInferHcpe;
     // clang-format on
 }
 
