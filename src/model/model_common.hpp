@@ -2,7 +2,7 @@
 #define MIACIS_MODEL_COMMON_HPP
 
 #include "../types.hpp"
-#include <torch/torch.h>
+#include <vector>
 
 //型のエイリアス
 using PolicyType = std::vector<float>;
@@ -25,11 +25,7 @@ struct LearningData {
     ValueTeacherType value;
 };
 
-//ネットワークの設定
-constexpr int32_t BLOCK_NUM = 10;
-constexpr int32_t CHANNEL_NUM = 256;
-
-extern const std::string MODEL_PREFIX;
+extern const std::string DEFAULT_MODEL_PREFIX;
 extern const std::string DEFAULT_MODEL_NAME;
 extern const std::string DEFAULT_ONNX_NAME;
 extern const std::string DEFAULT_ENGINE_NAME;
@@ -39,13 +35,6 @@ enum LossType { POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM };
 
 //各損失の名前を示す文字列
 const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{ "policy", "value" };
-
-//入力のvectorをTensorに変換する関数
-torch::Tensor inputVectorToTensor(const std::vector<float>& input);
-
-//推論時の補助関数
-//CPU上にあるTensorのペア(それぞれPolicy, Value)をstd::vector<へ変換する
-std::pair<std::vector<PolicyType>, std::vector<ValueType>> tensorToVector(const std::tuple<torch::Tensor, torch::Tensor>& output);
 
 //Categorical分布に対する操作
 #ifdef USE_CATEGORICAL
@@ -65,6 +54,11 @@ inline float expOfValueDist(ValueType dist) {
         exp += (MIN_SCORE + (i + 0.5) * VALUE_WIDTH) * dist[i];
     }
     return exp;
+}
+#else
+
+inline float expOfValueDist(ValueType dist) {
+    return dist;
 }
 #endif
 

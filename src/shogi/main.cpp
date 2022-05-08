@@ -1,7 +1,9 @@
 ﻿#include "interface.hpp"
 
 int main() {
-    std::cout << (torch::cuda::is_available() ? "CUDA is available." : "CUDA is not available.") << std::endl;
+    int gpu_num;
+    cudaGetDeviceCount(&gpu_num);
+    std::cout << "CUDA available gpu_num: " << gpu_num << std::endl;
 
     Position::initHashSeed();
 

@@ -3,6 +3,8 @@
 #include "../model/infer_model.hpp"
 #include "../search/searcher_for_play.hpp"
 #include "book.hpp"
+#include <iomanip>
+#include <thread>
 
 void checkGenSpeed() {
     constexpr int64_t buffer_size = 1048576;
@@ -125,36 +127,6 @@ void checkSearchSpeed() {
     std::cout << "finish checkSearchSpeed" << std::endl;
 }
 
-void checkVal() {
-    //データを取得
-    std::string path;
-    std::cout << "validation kifu path : ";
-    std::cin >> path;
-    int64_t batch_size;
-    std::cout << "batch_size : ";
-    std::cin >> batch_size;
-    std::string model_file;
-    std::cout << "model_file : ";
-    std::cin >> model_file;
-    float rate_threshold;
-    std::cout << "rate_threshold : ";
-    std::cin >> rate_threshold;
-
-    std::vector<LearningData> data = loadData(path, false, rate_threshold);
-    std::cout << "data.size() = " << data.size() << std::endl;
-
-    //ネットワークの準備
-    LearningModel nn;
-    nn.load(model_file, 0);
-    nn.eval();
-
-    std::array<float, LOSS_TYPE_NUM> v = validation(nn, data, batch_size);
-    std::cout << std::fixed << std::setprecision(4);
-    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
-        std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
-    }
-}
-
 void checkValInfer() {
     //データを取得
     SearchOptions search_options;
@@ -215,7 +187,7 @@ void checkPredictSpeed() {
         float time = 0.0;
         for (int64_t i = 0; i < REPEAT_NUM; i++) {
             auto start = std::chrono::steady_clock::now();
-            torch::NoGradGuard no_grad_guard;
+
             nn.policyAndValueBatch(input);
             auto end = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
@@ -457,84 +429,6 @@ void testModel() {
     std::exit(0);
 }
 
-void checkLearningModel() {
-    //データを取得
-    std::string path;
-    std::cout << "validation kifu path : ";
-    std::cin >> path;
-    int64_t batch_size;
-    std::cout << "batch_size : ";
-    std::cin >> batch_size;
-    std::string model_file;
-    std::cout << "model_file : ";
-    std::cin >> model_file;
-    float rate_threshold;
-    std::cout << "rate_threshold : ";
-    std::cin >> rate_threshold;
-
-    std::vector<LearningData> valid_data = loadData(path, false, rate_threshold);
-    std::cout << "valid_data.size() = " << valid_data.size() << std::endl;
-
-    //ネットワークの準備
-    LearningModel model;
-    model.load(model_file, 0);
-    model.eval();
-
-    std::cout << std::fixed;
-
-    torch::NoGradGuard no_grad_guard;
-    std::array<float, LOSS_TYPE_NUM> losses{};
-    for (uint64_t index = 0; index < valid_data.size();) {
-        std::vector<LearningData> curr_data;
-        while (index < valid_data.size() && curr_data.size() < batch_size) {
-            curr_data.push_back(valid_data[index++]);
-        }
-
-        std::vector<torch::Tensor> reps = model.getRepresentations(curr_data);
-
-        std::cout << "表現の平均\t";
-        for (int64_t i = 0; i < reps.size(); i++) {
-            torch::Tensor r = reps[i];
-            r = r.mean({ 0, 2, 3 });
-            r = (r * r).mean();
-            std::cout << r.item<float>() << "\t\n"[i == reps.size() - 1];
-        }
-
-        std::cout << "表現の分散\t";
-        for (int64_t i = 0; i < reps.size(); i++) {
-            torch::Tensor r = reps[i];
-            r = r.var({ 0, 2, 3 });
-            r = r.mean();
-            std::cout << r.item<float>() << "\t\n"[i == reps.size() - 1];
-        }
-
-        for (torch::Tensor& t : reps) {
-            t = t.flatten(1);
-        }
-
-        std::cout << "1ループ前の表現とのコサイン類似度" << std::endl;
-        for (int64_t i = 1; i < reps.size(); i++) {
-            torch::Tensor cos_sim = torch::cosine_similarity(reps[i], reps[i - 1]);
-            for (int64_t j = 0; j < batch_size; j++) {
-                std::cout << cos_sim[j].item<float>() << "\t\n"[j == batch_size - 1];
-            }
-        }
-
-        // 0と1の表現について見てみよう
-        std::cout << "先頭2データの表現について" << std::endl;
-        for (int64_t i = 0; i < reps.size(); i++) {
-            for (int64_t j = 0; j < reps.size(); j++) {
-                torch::Tensor cos_sim = torch::cosine_similarity(reps[i][0], reps[j][1], 0);
-                std::cout << cos_sim.item<float>() << "\t\n"[j == reps.size() - 1];
-            }
-        }
-
-        break;
-    }
-
-    std::cout << "finish checkLibTorchModel" << std::endl;
-}
-
 void checkValidData() {
     //データを取得
     std::string path;
@@ -694,22 +588,6 @@ void checkValidData() {
     std::cout << "finish checkValidData" << std::endl;
 }
 
-void checkBuildOnnx() {
-    LearningModel model;
-    model.load(DEFAULT_MODEL_NAME, 0);
-    model.save(DEFAULT_MODEL_NAME);
-    const std::string filepath = __FILE__;
-    const std::string dirpath = filepath.substr(0, filepath.rfind('/'));
-    const std::string script_dirpath = dirpath + "/../../scripts/convert_ts_model_to_onnx.py";
-    const std::string command = script_dirpath + " " + DEFAULT_MODEL_NAME;
-    std::cout << "command = " << command << std::endl;
-    int result = system(command.c_str());
-    InferModel infer_model;
-    SearchOptions search_options;
-    search_options.model_name = DEFAULT_ONNX_NAME;
-    infer_model.load(0, search_options);
-}
-
 void testHuffmanDecode() {
     std::vector<LearningData> data = loadHCPE("../../data/ShogiAIBookData/dlshogi_with_gct-001.hcpe", false);
     std::cout << "data.size() = " << data.size() << std::endl;
@@ -741,7 +619,6 @@ void checkInfer() {
 
     std::vector<Move> moves = pos.generateAllMoves();
 
-    torch::NoGradGuard no_grad_guard;
     auto [policy, value] = nn.policyAndValueBatch(input);
 
     const int64_t batch_size = policy.size();

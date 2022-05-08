@@ -25,13 +25,9 @@ Interface::Interface() : searcher_(nullptr) {
 
     //メンバ関数以外
     command_["cleanGames"]         = cleanGames;
-    command_["supervisedLearn"]    = supervisedLearn;
-    command_["reinforcementLearn"] = reinforcementLearn;
-    command_["contrastiveLearn"]   = contrastiveLearn;
     command_["checkSearchSpeed"]   = checkSearchSpeed;
     command_["checkGenSpeed"]      = checkGenSpeed;
     command_["checkPredictSpeed"]  = checkPredictSpeed;
-    command_["checkVal"]           = checkVal;
     command_["checkValInfer"]      = checkValInfer;
     command_["checkDoAndUndo"]     = checkDoAndUndo;
     command_["checkMirror"]        = checkMirror;
@@ -39,9 +35,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["makeBook"]           = makeBook;
     command_["searchWithLog"]      = searchWithLog;
     command_["testModel"]          = testModel;
-    command_["checkLearningModel"] = checkLearningModel;
     command_["checkValidData"]     = checkValidData;
-    command_["checkBuildOnnx"]     = checkBuildOnnx;
     command_["testHuffmanDecode"]  = testHuffmanDecode;
     command_["checkInfer"]         = checkInfer;
     command_["checkValInferSuisho"]= checkValInferSuisho;

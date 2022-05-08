@@ -6,9 +6,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-# LibTorch
-list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.10.1)
-find_package(Torch REQUIRED)
+# CUDA
+find_package(CUDA REQUIRED)
+if(CUDA_FOUND)
+    message("Cuda version: " ${CUDA_VERSION})
+endif()
 
 # TensorRT
 set(TENSORRT_INCLUDE ../../TensorRT-8.2.2.1/include)
@@ -35,12 +37,12 @@ set(BIN Miacis_shogi_scalar
 
 if (MSVC)
     foreach (bin IN ITEMS ${BIN})
-        target_link_libraries(${bin} ${TORCH_LIBRARIES})
-        target_include_directories(${bin} PRIVATE)
+        target_link_libraries(${bin} ${CUDA_LIBRARIES} ${TENSORRT_LIBRARIES})
+        target_include_directories(${bin} PRIVATE ${CUDA_INCLUDE_DIRS} ${TENSORRT_INCLUDE})
     endforeach ()
 else ()
     foreach (bin IN ITEMS ${BIN})
-        target_link_libraries(${bin} pthread stdc++fs ${TORCH_LIBRARIES} ${TENSORRT_LIBRARIES})
-        target_include_directories(${bin} PRIVATE ${TENSORRT_INCLUDE})
+        target_link_libraries(${bin} pthread stdc++fs ${CUDA_LIBRARIES} ${TENSORRT_LIBRARIES})
+        target_include_directories(${bin} PRIVATE ${CUDA_INCLUDE_DIRS} ${TENSORRT_INCLUDE})
     endforeach ()
 endif ()

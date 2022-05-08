@@ -1,5 +1,6 @@
 ﻿#include "game.hpp"
 #include "../shogi/position.hpp"
+#include <atomic>
 
 #ifdef _MSC_VER
 namespace sys = std::filesystem;
