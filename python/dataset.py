@@ -13,10 +13,6 @@ class HcpeDataSet(Dataset):
         self.board_ = cshogi.Board()
         self.is_valid_ = is_valid
 
-        # validデータのときは減らす
-        if is_valid:
-            self.hcpes_ = self.hcpes_[:len(self.hcpes_) // 20]
-
     def __len__(self):
         return len(self.hcpes_)
 
