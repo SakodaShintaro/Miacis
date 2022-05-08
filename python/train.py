@@ -99,7 +99,7 @@ def calc_loss(batch):
     policy, value = model(x)
     policy = policy.flatten(1)
     policy_loss = torch.nn.functional.cross_entropy(policy, policy_label)
-    value_loss = torch.nn.functional.cross_entropy(value, value_label)
+    value_loss = torch.nn.functional.mse_loss(value, value_label)
     return policy_loss, value_loss
 
 # timer start

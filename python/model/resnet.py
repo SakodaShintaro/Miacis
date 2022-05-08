@@ -127,6 +127,7 @@ class ScalarNetwork(nn.Module):
         policy = self.policy_head_.forward(x)
         value = self.value_head_.forward(x)
         value = torch.tanh(value)
+        value = value.flatten()
         return policy, value
 
 
