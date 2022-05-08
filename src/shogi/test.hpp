@@ -14,6 +14,6 @@ void testModel();
 void checkValidData();
 void testHuffmanDecode();
 void checkInfer();
-void checkValInferSuisho();
+void checkValInferHcpe();
 
 #endif //MIACIS_SHOGI_TEST_HPP

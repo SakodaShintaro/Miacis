@@ -202,7 +202,7 @@ std::vector<LearningData> __hcpe_decode_with_value(const size_t len, char* ndhcp
 
         float score = 1.0f / (1.0f + expf(-(float)hcpe->eval * 0.0013226f)) * (MAX_SCORE - MIN_SCORE) + MIN_SCORE;
         float result = make_result(hcpe->gameResult, pos.color());
-        float target_value = (score + result) / 2;
+        float target_value = result;
 
         for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
             LearningData datum{};
