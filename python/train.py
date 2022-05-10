@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import torch
 from constant import *
 from dataset import HcpeDataSet
@@ -93,13 +94,21 @@ if scheduler.last_epoch == 0:
     train_log.write(header_text)
     valid_log.write(header_text)
 
-def calc_loss(batch):
+def calc_loss(batch, is_valid):
     x, policy_label, value_label = batch
     x, policy_label, value_label = x.to(device), policy_label.to(device), value_label.to(device)
     policy, value = model(x)
     policy = policy.flatten(1)
     policy_loss = torch.nn.functional.cross_entropy(policy, policy_label)
-    value_loss = torch.nn.functional.cross_entropy(value, value_label)
+
+    if is_valid:
+        value = torch.nn.functional.softmax(value, dim=1)
+        value_item = [MIN_SCORE + VALUE_WIDTH * (i + 0.5) for i in range(BIN_SIZE)]
+        value_item = torch.tensor(value_item, device=value.device)
+        value = (value * value_item).sum(1)
+        value_loss = torch.nn.functional.mse_loss(value, value_label)
+    else:
+        value_loss = torch.nn.functional.cross_entropy(value, value_label)
     return policy_loss, value_loss
 
 # timer start
@@ -125,7 +134,7 @@ while continue_flag:
             break
 
         model.train()
-        policy_loss, value_loss = calc_loss(batch)
+        policy_loss, value_loss = calc_loss(batch, is_valid=False)
         optim.zero_grad()
         (policy_loss + value_loss).backward()
         optim.step()
@@ -145,7 +154,7 @@ while continue_flag:
             value_loss_sum = 0
             for batch in validloader:
                 with torch.no_grad():
-                    policy_loss, value_loss = calc_loss(batch)
+                    policy_loss, value_loss = calc_loss(batch, is_valid=True)
                     policy_loss_sum += policy_loss.item() * len(batch[0])
                     value_loss_sum += value_loss.item() * len(batch[0])
             policy_loss = policy_loss_sum / len(validset)
