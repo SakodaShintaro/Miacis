@@ -7,11 +7,13 @@ import math
 
 
 class HcpeDataSet(Dataset):
-    def __init__(self, hcpe_file_path: str, is_valid: bool) -> None:
+    def __init__(self, hcpe_file_path: str, is_valid: bool, score_coeff: float = 0) -> None:
         super().__init__()
         self.hcpes_ = np.fromfile(hcpe_file_path, dtype=cshogi.HuffmanCodedPosAndEval)
         self.board_ = cshogi.Board()
         self.is_valid_ = is_valid
+        self.score_coeff_ = score_coeff
+        assert 0 <= score_coeff <= 1
 
     def __len__(self):
         return len(self.hcpes_)
@@ -55,8 +57,10 @@ class HcpeDataSet(Dataset):
         score = (score_eval + score_result) / 2 if not self.is_valid_ else score_result
 
         if self.is_valid_:
+            score = score_result
             value_label = score
         else:
+            score = self.score_coeff_ * score_eval + (1 - self.score_coeff_) * score_result
             value_label = min(int((score - MIN_SCORE) // VALUE_WIDTH), int(BIN_SIZE - 1))
         value_label = torch.tensor(value_label)
 

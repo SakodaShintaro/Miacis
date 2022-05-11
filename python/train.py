@@ -22,6 +22,7 @@ parser.add_argument("--learn_rate_decay_period", type=int, default=1600000)
 parser.add_argument("--model_name", type=str, default="resnet")
 parser.add_argument("--block_num", type=int, default=20)
 parser.add_argument("--channel_num", type=int, default=512)
+parser.add_argument("--score_coeff", type=float, default=0.5)
 parser.add_argument("--break_near_24h", action="store_true")
 parser.add_argument("--resume", action="store_true")
 args = parser.parse_args()
@@ -118,7 +119,7 @@ start_time = time.time()
 continue_flag = True
 while continue_flag:
     curr_data_path = path_manager.get_next_path()
-    trainset = HcpeDataSet(curr_data_path, is_valid=False)
+    trainset = HcpeDataSet(curr_data_path, is_valid=False, score_coeff=args.score_coeff)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
     for batch in trainloader:
