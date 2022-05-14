@@ -54,6 +54,7 @@ optimizer_name = "optimizer.pt"
 scheduler_name = "scheduler.pt"
 
 model = model_class(INPUT_CHANNEL_NUM, block_num, channel_num, POLICY_CHANNEL_NUM, BOARD_SIZE)
+model = torch.nn.DataParallel(model)
 
 path_manager = PathManager(args.data_dir)
 
