@@ -9,6 +9,7 @@ from scheduler import LinearWarmupAndCooldownScheduler
 import time
 from model_dict import model_dict
 import os
+from sam import SAM
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_dir", type=str, required=True)
@@ -63,6 +64,7 @@ model.to(device)
 
 # optimizer
 optim = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.weight_decay)
+optim = SAM(model.parameters(), base_optimizer=torch.optim.SGD, lr=args.learning_rate, momentum=0.9)
 scheduler = LinearWarmupAndCooldownScheduler(optim, warmup_step, args.max_step)
 
 # resume
@@ -136,10 +138,17 @@ while continue_flag:
             break
 
         model.train()
+
+        # SAM : first step
         policy_loss, value_loss = calc_loss(batch, is_valid=False)
         optim.zero_grad()
         (policy_loss + value_loss).backward()
-        optim.step()
+        optim.first_step(zero_grad=True)
+
+        # SAM : second step
+        policy_loss, value_loss = calc_loss(batch, is_valid=False)
+        (policy_loss + value_loss).backward()
+        optim.second_step(zero_grad=True)
         scheduler.step()
 
         if scheduler.last_epoch % print_interval == 0:
