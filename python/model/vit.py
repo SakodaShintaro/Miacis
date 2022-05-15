@@ -18,6 +18,8 @@ class TransformerModel(nn.Module):
             nhead = 16
         elif channel_num == 768:
             nhead = 12
+        elif channel_num == 1024:
+            nhead = 16
         encoder_layer = torch.nn.TransformerEncoderLayer(
             channel_num,
             nhead=nhead,
