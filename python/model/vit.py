@@ -63,9 +63,8 @@ class TransformerModel(nn.Module):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-value_type", default="cat", choices=["sca", "cat"])
     parser.add_argument("--block_num", type=int, default=12)
-    parser.add_argument("--channel_num", type=int, default=384)
+    parser.add_argument("--channel_num", type=int, default=768)
     args = parser.parse_args()
 
     input_channel_num = 42
@@ -83,7 +82,7 @@ def main():
     input_data = torch.randn([16, input_channel_num, board_size, board_size])
     script_model = torch.jit.trace(model, input_data)
     script_model = torch.jit.script(model)
-    model_path = f"./{args.game}_cat_transformer_bl{args.block_num}_ch{args.channel_num}.model"
+    model_path = f"./vit_bl{args.block_num}_ch{args.channel_num}.model"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
 
