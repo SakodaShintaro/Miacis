@@ -54,12 +54,12 @@ class HcpeDataSet(Dataset):
         # value教師
         score_eval = 1 / (1 + math.exp(-hcpe["eval"] * 0.0013226)) * (MAX_SCORE - MIN_SCORE) + MIN_SCORE
         score_result = HcpeDataSet.make_value_label(hcpe["gameResult"], self.board_.turn)
-        score = (score_eval + score_result) / 2 if not self.is_valid_ else score_result
 
         if self.is_valid_:
-            score = score_result
-            value_label = score
+            # validationのときは最終結果を使う
+            value_label = score_result
         else:
+            # trainingのときはscore_coeff_で混合したscoreを使う
             score = self.score_coeff_ * score_eval + (1 - self.score_coeff_) * score_result
             value_label = min(int((score - MIN_SCORE) // VALUE_WIDTH), int(BIN_SIZE - 1))
         value_label = torch.tensor(value_label)
