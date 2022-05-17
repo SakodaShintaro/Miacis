@@ -3,6 +3,7 @@ import argparse
 import torch
 import torch.jit
 import torch.nn as nn
+from .vit_channel_num_to_nhead import channel_num_to_nhead
 
 
 class TransformerBlock(nn.Module):
@@ -46,17 +47,11 @@ class TransformerBlock(nn.Module):
         return x
 
 
-class TransformerModel(nn.Module):
+class DeepNet(nn.Module):
     def __init__(self, input_channel_num, block_num, channel_num, policy_channel_num, board_size):
-        super(TransformerModel, self).__init__()
+        super(DeepNet, self).__init__()
         self.first_encoding_ = torch.nn.Linear(input_channel_num, channel_num)
-        nhead = None
-        if channel_num == 256:
-            nhead = 8
-        elif channel_num == 384:
-            nhead = 6
-        elif channel_num == 768:
-            nhead = 12
+        nhead = channel_num_to_nhead[channel_num]
         alpha = (2 * block_num) ** (1 / 4)
         beta = (8 * block_num) ** (-1 / 4)
         self.encoder_ = [TransformerBlock(channel_num, nhead, alpha, beta) for _ in range(block_num)]
@@ -105,7 +100,7 @@ def main():
     board_size = 9
     policy_channel_num = 27
 
-    model = TransformerModel(input_channel_num, args.block_num, args.channel_num, policy_channel_num, board_size)
+    model = DeepNet(input_channel_num, args.block_num, args.channel_num, policy_channel_num, board_size)
 
     params = 0
     for p in model.parameters():
