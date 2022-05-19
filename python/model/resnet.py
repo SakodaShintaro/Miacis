@@ -90,29 +90,12 @@ class ValueHead(nn.Module):
     def forward(self, x):
         value = self.value_conv_and_norm_.forward(x)
         value = F.relu(value)
-        # value = F.avg_pool2d(value, [int(value.shape[2]), int(value.shape[3])])
         value = F.adaptive_avg_pool2d(value, [1, 1])
         value = value.view([-1, value.shape[1]])
         value = self.value_linear0_.forward(value)
         value = F.relu(value)
         value = self.value_linear1_.forward(value)
         return value
-
-
-class EncodeHead(nn.Module):
-    def __init__(self, in_features, hidden_features, out_features):
-        super(EncodeHead, self).__init__()
-        self.linear0 = nn.Linear(in_features, hidden_features)
-        self.linear1 = nn.Linear(hidden_features, out_features)
-
-    def forward(self, x):
-        y = F.adaptive_avg_pool2d(x, [1, 1])
-        y = y.view([-1, x.shape[1]])
-        y = y.flatten(1)
-        y = self.linear0(y)
-        y = F.relu(y)
-        y = self.linear1(y)
-        return y
 
 
 class ScalarNetwork(nn.Module):
@@ -136,23 +119,15 @@ class CategoricalNetwork(nn.Module):
         self.encoder_ = Encoder(input_channel_num, block_num, channel_num)
         self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
         self.value_head_ = ValueHead(channel_num, 51)
-        self.encoder_head = EncodeHead(channel_num, channel_num, channel_num)
 
     def forward(self, x):
         x = self.encoder_.forward(x)
         policy = self.policy_head_.forward(x)
         value = self.value_head_.forward(x)
         return policy, value
-
-    # @torch.jit.export
-    # def encode(self, x):
-    #     x = self.encoder_.forward(x)
-    #     x = self.encoder_head.forward(x)
-    #     return x
-    #
-    # @torch.jit.export
-    # def getRepresentations(self, x):
-    #     return self.encoder_.getRepresentations(x)
+    
+    def forward_representation(self, x):
+        return self.encoder_.forward(x)
 
 
 def main():
