@@ -1,20 +1,17 @@
 from torch.utils.data import Dataset
 import torch
 import cshogi
-import numpy as np
 from constant import *
-import math
 import random
 
 
 class RandomMoveDataSet(Dataset):
-    def __init__(self, is_valid: bool) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.board_ = cshogi.Board()
-        self.is_valid_ = is_valid
 
     def __len__(self):
-        return 1000
+        return 100000
 
     def __getitem__(self, index):
         moves = list(self.board_.legal_moves)
@@ -115,20 +112,3 @@ class RandomMoveDataSet(Dataset):
         move_label = 9 * 9 * move_direction + move_to
 
         return move_label
-
-    @staticmethod
-    def make_value_label(result, color):
-        if color == cshogi.BLACK:
-            if result == cshogi.DRAW:
-                return (MIN_SCORE + MAX_SCORE) / 2
-            elif result == cshogi.BLACK_WIN:
-                return MAX_SCORE
-            else:
-                return MIN_SCORE
-        else:
-            if result == cshogi.DRAW:
-                return (MIN_SCORE + MAX_SCORE) / 2
-            elif result == cshogi.BLACK_WIN:
-                return MIN_SCORE
-            else:
-                return MAX_SCORE
