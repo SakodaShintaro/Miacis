@@ -4,12 +4,14 @@ import cshogi
 import numpy as np
 from constant import *
 import math
+from typing import Tuple
 
 
 class HcpeDataSet(Dataset):
-    def __init__(self, hcpe_file_path: str, is_valid: bool, score_coeff: float = 0) -> None:
+    def __init__(self, hcpe_file_path: Tuple[str], is_valid: bool, score_coeff: float = 0) -> None:
         super().__init__()
-        self.hcpes_ = np.fromfile(hcpe_file_path, dtype=cshogi.HuffmanCodedPosAndEval)
+        self.hcpes_ = [np.fromfile(p, dtype=cshogi.HuffmanCodedPosAndEval) for p in hcpe_file_path]
+        self.hcpes_ = np.concatenate(self.hcpes_, 0)
         self.board_ = cshogi.Board()
         self.is_valid_ = is_valid
         self.score_coeff_ = score_coeff

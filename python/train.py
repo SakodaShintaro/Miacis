@@ -83,7 +83,8 @@ if args.resume:
         scheduler.load_state_dict(torch.load(scheduler_name))
 
 # valid data ファイルはfloodgateの棋譜を決め打ち
-validset = HcpeDataSet(f"{args.data_dir}/floodgate_2019-2021_r3500-001.hcpe", is_valid=True)
+# HcpeDataSetの仕組み上、パスは1個だけど要素数1のタプルとして渡す必要あり
+validset = HcpeDataSet((f"{args.data_dir}/floodgate_2019-2021_r3500-001.hcpe", ), is_valid=True)
 validloader = torch.utils.data.DataLoader(validset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
 # prepare output file
