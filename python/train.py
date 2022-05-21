@@ -97,6 +97,9 @@ if scheduler.last_epoch == 0:
     train_log.write(header_text)
     valid_log.write(header_text)
 
+# その他のログ
+other_info = open("other_info_log.txt", "a")
+
 def calc_loss(batch, is_valid):
     x, policy_label, value_label = batch
     x, policy_label, value_label = x.to(device), policy_label.to(device), value_label.to(device)
@@ -123,6 +126,13 @@ while continue_flag:
     curr_data_path = path_manager.get_next_path()
     trainset = HcpeDataSet(curr_data_path, is_valid=False, score_coeff=args.score_coeff)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
+
+    # データの切り替わりタイミングを記録
+    elapsed_sec = time.time() - start_time
+    time_str = seconds_to_pretty_str(elapsed_sec)
+    text = f"{time_str}\t{scheduler.last_epoch}\t{curr_data_path}\n"
+    other_info.write(text)
+    other_info.flush()
 
     for batch in trainloader:
         # Google Colaboratoryで動かすことを想定して24h近くになったら止める機能を準備する
