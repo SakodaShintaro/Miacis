@@ -170,10 +170,10 @@ while continue_flag:
             print(text, end="")
             valid_log.write(text)
             valid_log.flush()
-            torch.save(model.state_dict(), f"{model_name_prefix}.pt")
+            torch.save(model.module.state_dict(), f"{model_name_prefix}.pt")
             torch.save(optim.state_dict(), optimizer_name)
             torch.save(scheduler.state_dict(), scheduler_name)
 
-torch.save(model.state_dict(), f"{model_name_prefix}.pt")
+torch.save(model.module.state_dict(), f"{model_name_prefix}.pt")
 torch.save(optim.state_dict(), optimizer_name)
 torch.save(scheduler.state_dict(), scheduler_name)
