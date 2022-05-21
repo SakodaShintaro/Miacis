@@ -32,16 +32,9 @@ validation_interval = max(args.max_step // 40, 5)
 print_interval = max(validation_interval // 500, 1)
 warmup_step = min(args.max_step // 20, 80000)
 
+# 引数の保存
 with open("supervised_learn_settings.txt", "w") as f:
-    f.write(f"learn_rate\t{args.learning_rate}\n")
-    f.write(f"weight_decay\t{args.weight_decay}\n")
-    f.write(f"batch_size\t{args.batch_size}\n")
-    f.write(f"max_step\t{args.max_step}\n")
-    f.write(f"save_interval\t{args.save_interval}\n")
-    f.write(f"learn_rate_decay_mode\t{args.learn_rate_decay_mode}\n")
-    f.write(f"learn_rate_decay_period\t{args.learn_rate_decay_period}\n")
-    f.write(f"warm_up_step\t{warmup_step}\n")
-    f.write(f"model_name\t{args.model_name}\n")
+    f.write(f"{args}")
 
 block_num = args.block_num
 channel_num = args.channel_num
