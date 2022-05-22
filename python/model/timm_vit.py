@@ -9,6 +9,7 @@ from functools import partial
 import torch.nn as nn
 from timm.models.helpers import named_apply
 from timm.models.layers import PatchEmbed, trunc_normal_
+from .vit_channel_num_to_nhead import channel_num_to_nhead
 
 
 # 参考) timmのVisionTransformer
@@ -100,15 +101,7 @@ class VisionTransformer(nn.Module):
 class TimmVit(nn.Module):
     def __init__(self, input_channel_num, block_num, channel_num, policy_channel_num, board_size):
         super(TimmVit, self).__init__()
-        nhead = None
-        if channel_num == 256:
-            nhead = 8
-        elif channel_num == 384:
-            nhead = 6
-        elif channel_num == 512:
-            nhead = 16
-        elif channel_num == 768:
-            nhead = 12
+        nhead = channel_num_to_nhead[channel_num]
         self.encoder_ = VisionTransformer(
             img_size=9,
             patch_size=1,
@@ -125,9 +118,9 @@ class TimmVit(nn.Module):
         batch_size = x.shape[0]
         x = self.encoder_.forward(x)
 
-        # 先頭81マスに相当するところはpolicyへ、残りの1個はvalueへ
-        policy_x = x[:, 0:81]
-        value_x = x[:, 81:82]
+        # timm_vitでは先頭にcls_tokenが来るのでそれをvalueとして扱う
+        value_x = x[:, 0:1]
+        policy_x = x[:, 1:82]
 
         policy_x = policy_x.permute([0, 2, 1])
         policy_x = policy_x.view([batch_size, policy_x.shape[1], self.board_size, self.board_size])
