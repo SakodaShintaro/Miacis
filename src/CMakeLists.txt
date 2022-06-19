@@ -6,11 +6,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-# CUDA
-find_package(CUDA REQUIRED)
-if(CUDA_FOUND)
-    message("Cuda version: " ${CUDA_VERSION})
-endif()
+# LibTorch
+list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.11.0)
+find_package(Torch REQUIRED)
 
 # TensorRT
 set(TENSORRT_INCLUDE ../../TensorRT-8.2.2.1/include)
@@ -33,7 +31,7 @@ target_compile_definitions(Miacis_shogi_scalar PUBLIC SHOGI)
 target_compile_definitions(Miacis_shogi_categorical PUBLIC SHOGI USE_CATEGORICAL)
 
 set(BIN Miacis_shogi_scalar
-        Miacis_shogi_categorical)
+    Miacis_shogi_categorical)
 
 if (MSVC)
     foreach (bin IN ITEMS ${BIN})
