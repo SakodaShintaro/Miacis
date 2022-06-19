@@ -27,6 +27,29 @@ std::array<float, LOSS_TYPE_NUM> validation(InferModel& model, const std::vector
     return losses;
 }
 
+std::array<float, LOSS_TYPE_NUM> validation(LearningModel& model, const std::vector<LearningData>& valid_data,
+                                            uint64_t batch_size) {
+    std::array<float, LOSS_TYPE_NUM> losses{};
+    for (uint64_t index = 0; index < valid_data.size();) {
+        std::vector<LearningData> curr_data;
+        while (index < valid_data.size() && curr_data.size() < batch_size) {
+            curr_data.push_back(valid_data[index++]);
+        }
+
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = model.validLoss(curr_data);
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            losses[i] += loss[i].sum().item<float>();
+        }
+    }
+
+    //データサイズで割って平均
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        losses[i] /= valid_data.size();
+    }
+
+    return losses;
+}
+
 std::array<float, LOSS_TYPE_NUM> validationWithSave(InferModel& model, const std::vector<LearningData>& valid_data,
                                                     uint64_t batch_size) {
     std::ofstream ofs("valid_loss.tsv");
@@ -229,4 +252,34 @@ std::vector<LearningData> loadHCPE(const std::string& file_path, bool data_augme
     hcpe_file.read(blob.get(), file_size);
     const size_t len = file_size / sizeof(HuffmanCodedPosAndEval);
     return __hcpe_decode_with_value(len, blob.get(), data_augmentation);
+}
+
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
+                                                                             torch::Device device) {
+    static Position pos;
+    std::vector<float> inputs;
+    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
+    std::vector<ValueTeacherType> value_teachers;
+
+    for (uint64_t i = 0; i < data.size(); i++) {
+        pos.fromStr(data[i].position_str);
+
+        //入力
+        const std::vector<float> feature = pos.makeFeature();
+        inputs.insert(inputs.end(), feature.begin(), feature.end());
+
+        //policyの教師信号
+        for (const std::pair<int32_t, float>& e : data[i].policy) {
+            policy_teachers[i * POLICY_DIM + e.first] = e.second;
+        }
+
+        //valueの教師信号
+        value_teachers.push_back(data[i].value);
+    }
+
+    torch::Tensor input_tensor = inputVectorToTensor(inputs).to(device);
+    torch::Tensor policy_target = torch::tensor(policy_teachers).view({ -1, POLICY_DIM }).to(device);
+    torch::Tensor value_target = torch::tensor(value_teachers).to(device);
+
+    return std::make_tuple(input_tensor, policy_target, value_target);
 }

@@ -2,6 +2,7 @@
 #define MIACIS_MODEL_COMMON_HPP
 
 #include "../types.hpp"
+#include <torch/torch.h>
 #include <vector>
 
 //型のエイリアス
@@ -36,6 +37,9 @@ enum LossType { POLICY_LOSS_INDEX, VALUE_LOSS_INDEX, LOSS_TYPE_NUM };
 //各損失の名前を示す文字列
 const std::array<std::string, LOSS_TYPE_NUM> LOSS_TYPE_NAME{ "policy", "value" };
 
+//入力のvectorをTensorに変換する関数
+torch::Tensor inputVectorToTensor(const std::vector<float>& input);
+
 //Categorical分布に対する操作
 #ifdef USE_CATEGORICAL
 inline int32_t valueToIndex(float value) { return std::min((int32_t)((value - MIN_SCORE) / VALUE_WIDTH), BIN_SIZE - 1); }
@@ -57,9 +61,7 @@ inline float expOfValueDist(ValueType dist) {
 }
 #else
 
-inline float expOfValueDist(ValueType dist) {
-    return dist;
-}
+inline float expOfValueDist(ValueType dist) { return dist; }
 #endif
 
 #endif //MIACIS_MODEL_COMMON_HPP
