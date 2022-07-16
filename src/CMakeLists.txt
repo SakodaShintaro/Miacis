@@ -14,6 +14,10 @@ find_package(Torch REQUIRED)
 set(TENSORRT_INCLUDE ../../TensorRT-8.2.2.1/include)
 file(GLOB TENSORRT_LIBRARIES ../../TensorRT-8.2.2.1/lib/*.so)
 
+# TorchTensorRT
+set(TORCHTRT_INCLUDE ../../torch_tensorrt/include)
+file(GLOB TORCHTRT_LIBRARIES ../../torch_tensorrt/lib/*.so)
+
 # 各ゲームで共通する部分のソース
 file(GLOB COMMON_SRCS ./*.cpp)
 file(GLOB MODEL_SRCS ./model/*.cpp)
@@ -33,14 +37,14 @@ target_compile_definitions(Miacis_shogi_categorical PUBLIC SHOGI USE_CATEGORICAL
 set(BIN Miacis_shogi_scalar
     Miacis_shogi_categorical)
 
-if (MSVC)
-    foreach (bin IN ITEMS ${BIN})
-        target_link_libraries(${bin} ${CUDA_LIBRARIES} ${TENSORRT_LIBRARIES})
-        target_include_directories(${bin} PRIVATE ${CUDA_INCLUDE_DIRS} ${TENSORRT_INCLUDE})
-    endforeach ()
-else ()
-    foreach (bin IN ITEMS ${BIN})
-        target_link_libraries(${bin} pthread stdc++fs ${CUDA_LIBRARIES} ${TENSORRT_LIBRARIES} ${TORCH_LIBRARIES})
-        target_include_directories(${bin} PRIVATE ${CUDA_INCLUDE_DIRS} ${TENSORRT_INCLUDE} ${TORCH_INCLUDE_DIRS})
-    endforeach ()
-endif ()
+if(MSVC)
+    foreach(bin IN ITEMS ${BIN})
+        target_link_libraries(${bin} ${CUDA_LIBRARIES} ${TENSORRT_LIBRARIES} ${TORCHTRT_LIBRARIES})
+        target_include_directories(${bin} PRIVATE ${CUDA_INCLUDE_DIRS} ${TENSORRT_INCLUDE} ${TORCHTRT_INCLUDE})
+    endforeach()
+else()
+    foreach(bin IN ITEMS ${BIN})
+        target_link_libraries(${bin} pthread stdc++fs ${CUDA_LIBRARIES} ${TENSORRT_LIBRARIES} ${TORCH_LIBRARIES} ${TORCHTRT_LIBRARIES})
+        target_include_directories(${bin} PRIVATE ${CUDA_INCLUDE_DIRS} ${TENSORRT_INCLUDE} ${TORCH_INCLUDE_DIRS} ${TORCHTRT_INCLUDE})
+    endforeach()
+endif()
