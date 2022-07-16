@@ -181,7 +181,7 @@ def main():
     input_data = torch.randn([16, input_channel_num, board_size, board_size])
     script_model = torch.jit.trace(model, input_data)
     script_model = torch.jit.script(model)
-    model_path = f"./{args.game}_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.model"
+    model_path = f"./shogi_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.ts"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
 
