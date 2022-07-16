@@ -1,4 +1,4 @@
-#include "../model/infer_model.hpp"
+#include "../model/tensorrt_model.hpp"
 #include "game_generator.hpp"
 #include "hyperparameter_loader.hpp"
 #include "learn.hpp"

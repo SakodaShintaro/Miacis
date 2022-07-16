@@ -1,6 +1,6 @@
 ﻿#include "test.hpp"
 #include "../learn/game_generator.hpp"
-#include "../model/infer_model.hpp"
+#include "../model/tensorrt_model.hpp"
 #include "../search/searcher_for_play.hpp"
 #include "book.hpp"
 #include <iomanip>
@@ -146,7 +146,7 @@ void checkValInfer() {
     std::cout << "data.size() = " << data.size() << std::endl;
 
     //ネットワークの準備
-    InferModel nn;
+    TensorRTModel nn;
     nn.load(0, search_options);
 
     std::array<float, LOSS_TYPE_NUM> v = validationWithSave(nn, data, search_options.search_batch_size);
@@ -165,7 +165,7 @@ void checkPredictSpeed() {
 
     SearchOptions search_options;
 
-    InferModel nn;
+    TensorRTModel nn;
     nn.load(0, search_options);
 
     for (int64_t batch_size = 1; batch_size <= BATCH_SIZE; batch_size *= 2) {
@@ -407,7 +407,7 @@ void testModel() {
     std::cout << "model_file : ";
     std::cin >> search_options.model_name;
 
-    InferModel nn;
+    TensorRTModel nn;
     nn.load(0, search_options);
 
     Position pos;
@@ -609,7 +609,7 @@ void checkInfer() {
     Position pos;
     pos.fromStr(sfen);
 
-    InferModel nn;
+    TensorRTModel nn;
     nn.load(0, search_options);
 
     //入力を取得
@@ -663,7 +663,7 @@ void checkValInferHcpe() {
     std::cout << "data.size() = " << data.size() << std::endl;
 
     //ネットワークの準備
-    InferModel nn;
+    TensorRTModel nn;
     nn.load(0, search_options);
 
     std::array<float, LOSS_TYPE_NUM> v = validationWithSave(nn, data, search_options.search_batch_size);

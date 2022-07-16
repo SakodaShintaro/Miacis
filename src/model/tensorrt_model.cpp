@@ -1,4 +1,4 @@
-#include "infer_model.hpp"
+#include "tensorrt_model.hpp"
 #include "../common.hpp"
 #include "../learn/learn.hpp"
 #include "../shogi/position.hpp"
@@ -29,8 +29,8 @@ class Logger : public nvinfer1::ILogger {
     }
 } gLogger;
 
-void InferModel::convertOnnxToEngine(const std::string& onnx_path, const FP_MODE fp_mode, const int64_t opt_batch_size,
-                                     const std::string& calibration_data_path) {
+void TensorRTModel::convertOnnxToEngine(const std::string& onnx_path, const FP_MODE fp_mode, const int64_t opt_batch_size,
+                                        const std::string& calibration_data_path) {
     // 最大バッチサイズは目的バッチサイズの2倍で決め打ち
     const int64_t max_batch_size = opt_batch_size * 2;
 
@@ -110,7 +110,7 @@ void InferModel::convertOnnxToEngine(const std::string& onnx_path, const FP_MODE
     }
 }
 
-InferModel::~InferModel() {
+TensorRTModel::~TensorRTModel() {
     checkCudaErrors(cudaFree(x1_dev_));
     checkCudaErrors(cudaFree(y1_dev_));
     checkCudaErrors(cudaFree(y2_dev_));
@@ -121,7 +121,7 @@ InferModel::~InferModel() {
     //context_->destroy();
 }
 
-void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
+void TensorRTModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     gpu_id_ = gpu_id;
     opt_batch_size_ = search_option.search_batch_size;
     max_batch_size_ = search_option.search_batch_size * 2;
@@ -165,7 +165,7 @@ void InferModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     }
 }
 
-void InferModel::forward(const int64_t batch_size, const float* x1, void* y1, void* y2) {
+void TensorRTModel::forward(const int64_t batch_size, const float* x1, void* y1, void* y2) {
     checkCudaErrors(cudaMemcpy(x1_dev_, x1, batch_size * sizeof(float) * INPUT_CHANNEL_NUM * SQUARE_NUM, cudaMemcpyHostToDevice));
 
     nvinfer1::Dims dims = engine_->getBindingDimensions(0);
@@ -177,7 +177,7 @@ void InferModel::forward(const int64_t batch_size, const float* x1, void* y1, vo
     checkCudaErrors(cudaMemcpy(y2, y2_dev_, batch_size * sizeof(float) * BIN_SIZE, cudaMemcpyDeviceToHost));
 }
 
-std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAndValueBatch(const std::vector<float>& inputs) {
+std::pair<std::vector<PolicyType>, std::vector<ValueType>> TensorRTModel::policyAndValueBatch(const std::vector<float>& inputs) {
     constexpr int64_t element_num = INPUT_CHANNEL_NUM * SQUARE_NUM;
     const int64_t batch_size = inputs.size() / element_num;
 
@@ -209,7 +209,7 @@ std::pair<std::vector<PolicyType>, std::vector<ValueType>> InferModel::policyAnd
     return std::make_pair(policy, value);
 }
 
-std::array<std::vector<float>, LOSS_TYPE_NUM> InferModel::validLoss(const std::vector<LearningData>& data) {
+std::array<std::vector<float>, LOSS_TYPE_NUM> TensorRTModel::validLoss(const std::vector<LearningData>& data) {
     static Position pos;
     std::vector<float> inputs;
     std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);

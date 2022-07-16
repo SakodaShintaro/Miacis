@@ -1,9 +1,9 @@
 #ifndef MIACIS_LEARN_MANAGER_HPP
 #define MIACIS_LEARN_MANAGER_HPP
 
-#include "../model/infer_model.hpp"
 #include "../model/learning_model.hpp"
 #include "../model/model_common.hpp"
+#include "../model/tensorrt_model.hpp"
 #include "../timer.hpp"
 
 class LearnManager {

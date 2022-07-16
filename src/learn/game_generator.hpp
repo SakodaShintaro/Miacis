@@ -1,11 +1,11 @@
 ﻿#ifndef MIACIS_GAME_GENERATOR_HPP
 #define MIACIS_GAME_GENERATOR_HPP
 
-#include "../shogi/game.hpp"
-#include "../model/infer_model.hpp"
+#include "../model/tensorrt_model.hpp"
 #include "../search/search_options.hpp"
 #include "../search/searcher.hpp"
 #include "../search/searcher_for_mate.hpp"
+#include "../shogi/game.hpp"
 #include "replay_buffer.hpp"
 #include <atomic>
 #include <mutex>
@@ -76,7 +76,7 @@ private:
     ReplayBuffer& replay_buffer_;
 
     //局面評価に用いるネットワーク
-    InferModel neural_network_;
+    TensorRTModel neural_network_;
 
     //CUDAがスレッドごとに紐付くのでgpu_id_を明に保持する必要がある
     int64_t gpu_id_;
