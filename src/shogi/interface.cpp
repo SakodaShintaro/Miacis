@@ -39,6 +39,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["testHuffmanDecode"]  = testHuffmanDecode;
     command_["checkInfer"]         = checkInfer;
     command_["checkValInferHcpe"]  = checkValInferHcpe;
+    command_["checkTorchTensorRTModel"] = checkTorchTensorRTModel;
     // clang-format on
 }
 

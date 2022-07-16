@@ -21,7 +21,7 @@ void TorchTensorRTModel::load(int64_t gpu_id, const SearchOptions& search_option
     torch_tensorrt::Input input = torch_tensorrt::Input(in_min, torch::kHalf);
     torch_tensorrt::ts::CompileSpec compile_spec = torch_tensorrt::ts::CompileSpec({ input });
     compile_spec.enabled_precisions = { torch::kHalf };
-    module = torch_tensorrt::ts::compile(module, compile_spec);
+    module_ = torch_tensorrt::ts::compile(module, compile_spec);
 }
 
 std::pair<std::vector<PolicyType>, std::vector<ValueType>>
@@ -64,9 +64,7 @@ TorchTensorRTModel::policyAndValueBatch(const std::vector<float>& inputs) {
 
 std::tuple<torch::Tensor, torch::Tensor> TorchTensorRTModel::infer(const std::vector<float>& inputs) {
     torch::Tensor x = inputVectorToTensor(inputs).to(device_);
-    if (use_fp16_) {
-        x = x.to(torch::kFloat16);
-    }
+    x = x.to(torch::kFloat16);
     auto out = module_.forward({ x });
     auto tuple = out.toTuple();
     torch::Tensor policy = tuple->elements()[0].toTensor();
@@ -87,9 +85,7 @@ std::tuple<torch::Tensor, torch::Tensor> TorchTensorRTModel::infer(const std::ve
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> TorchTensorRTModel::validLoss(const std::vector<LearningData>& data) {
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
-    if (use_fp16_) {
-        input = input.to(torch::kFloat16);
-    }
+    input = input.to(torch::kFloat16);
     auto out = module_.forward({ input });
     auto tuple = out.toTuple();
     torch::Tensor policy_logit = tuple->elements()[0].toTensor().view({ -1, POLICY_DIM });

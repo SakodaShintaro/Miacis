@@ -17,7 +17,6 @@ public:
 private:
     torch::jit::Module module_;
     torch::Device device_;
-    bool use_fp16_{};
 };
 
 #endif

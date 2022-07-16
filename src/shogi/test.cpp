@@ -1,6 +1,7 @@
 ﻿#include "test.hpp"
 #include "../learn/game_generator.hpp"
 #include "../model/tensorrt_model.hpp"
+#include "../model/torch_tensorrt_model.hpp"
 #include "../search/searcher_for_play.hpp"
 #include "book.hpp"
 #include <iomanip>
@@ -672,4 +673,18 @@ void checkValInferHcpe() {
         std::cout << v[i] << " \n"[i == LOSS_TYPE_NUM - 1];
     }
     std::cout << "finish checkValInferHcpe" << std::endl;
+}
+
+void checkTorchTensorRTModel() {
+    SearchOptions search_option;
+    std::cout << "model_path: ";
+    std::string model_path;
+    std::cin >> search_option.model_name;
+    TorchTensorRTModel model;
+    model.load(0, search_option);
+
+    Position pos;
+    std::vector<float> input = pos.makeFeature();
+    auto [policy, value] = model.policyAndValueBatch(input);
+    std::cout << "finish checkTorchTensorRTModel" << std::endl;
 }

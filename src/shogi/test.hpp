@@ -15,5 +15,6 @@ void checkValidData();
 void testHuffmanDecode();
 void checkInfer();
 void checkValInferHcpe();
+void checkTorchTensorRTModel();
 
 #endif //MIACIS_SHOGI_TEST_HPP
