@@ -19,10 +19,11 @@ void TorchTensorRTModel::load(int64_t gpu_id, const SearchOptions& search_option
     std::vector<int64_t> in_min = { 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
     std::vector<int64_t> in_opt = { opt_batch_size, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
     std::vector<int64_t> in_max = { opt_batch_size * 2, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
-    torch_tensorrt::Input input = torch_tensorrt::Input(in_min, in_opt, in_max, torch::kHalf);
-    torch_tensorrt::ts::CompileSpec compile_spec = torch_tensorrt::ts::CompileSpec({ input });
-    compile_spec.enabled_precisions = { torch::kHalf };
+    torch_tensorrt::Input input(in_min, in_opt, in_max, torch::kFloat16);
+    torch_tensorrt::ts::CompileSpec compile_spec({ input });
+    compile_spec.enabled_precisions = { torch::kFloat16 };
     compile_spec.require_full_compilation = true;
+    compile_spec.device.gpu_id = gpu_id;
     module_ = torch_tensorrt::ts::compile(module, compile_spec);
 }
 
@@ -34,7 +35,7 @@ tensorToVector(const std::tuple<torch::Tensor, torch::Tensor>& output) {
     std::vector<PolicyType> policies(batch_size);
     std::vector<ValueType> values(batch_size);
 
-    if (policy.dtype() == torch::kHalf) {
+    if (policy.dtype() == torch::kFloat16) {
         torch::Half* p = policy.data_ptr<torch::Half>();
         for (uint64_t i = 0; i < batch_size; i++) {
             policies[i].assign(p + i * POLICY_DIM, p + (i + 1) * POLICY_DIM);
@@ -73,11 +74,11 @@ std::tuple<torch::Tensor, torch::Tensor> TorchTensorRTModel::infer(const std::ve
     torch::Tensor value = tuple->elements()[1].toTensor();
 
     //CPUに持ってくる
-    policy = policy.to(torch::kFloat).cpu();
+    policy = policy.cpu();
 
     //valueはcategoricalのときだけはsoftmaxをかけてからcpuへ
 #ifdef USE_CATEGORICAL
-    value = torch::softmax(value.to(torch::kFloat), 1).cpu();
+    value = torch::softmax(value, 1).cpu();
 #else
     value = value.cpu();
 #endif
