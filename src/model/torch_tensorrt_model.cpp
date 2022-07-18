@@ -5,7 +5,6 @@
 #include <torch/torch.h>
 #include <torch_tensorrt/torch_tensorrt.h>
 
-#ifndef DLSHOGI
 void TorchTensorRTModel::load(int64_t gpu_id, const SearchOptions& search_option) {
     //マルチGPU環境で同時にloadすると時々Segmentation Faultが発生するので排他制御を入れる
     static std::mutex load_mutex;
@@ -120,5 +119,3 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> TorchTensorRTModel::validLoss(const std
 
     return { policy_loss, value_loss };
 }
-
-#endif
