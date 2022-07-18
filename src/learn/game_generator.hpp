@@ -1,7 +1,7 @@
 ﻿#ifndef MIACIS_GAME_GENERATOR_HPP
 #define MIACIS_GAME_GENERATOR_HPP
 
-#include "../model/tensorrt_model.hpp"
+#include "../model/torch_tensorrt_model.hpp"
 #include "../search/search_options.hpp"
 #include "../search/searcher.hpp"
 #include "../search/searcher_for_mate.hpp"
@@ -76,7 +76,7 @@ private:
     ReplayBuffer& replay_buffer_;
 
     //局面評価に用いるネットワーク
-    TensorRTModel neural_network_;
+    TorchTensorRTModel neural_network_;
 
     //CUDAがスレッドごとに紐付くのでgpu_id_を明に保持する必要がある
     int64_t gpu_id_;

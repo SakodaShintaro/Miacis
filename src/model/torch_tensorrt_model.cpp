@@ -17,9 +17,12 @@ void TorchTensorRTModel::load(int64_t gpu_id, const SearchOptions& search_option
 
     const int64_t opt_batch_size = search_option.search_batch_size;
     std::vector<int64_t> in_min = { 1, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
-    torch_tensorrt::Input input = torch_tensorrt::Input(in_min, torch::kHalf);
+    std::vector<int64_t> in_opt = { opt_batch_size, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
+    std::vector<int64_t> in_max = { opt_batch_size * 2, INPUT_CHANNEL_NUM, BOARD_WIDTH, BOARD_WIDTH };
+    torch_tensorrt::Input input = torch_tensorrt::Input(in_min, in_opt, in_max, torch::kHalf);
     torch_tensorrt::ts::CompileSpec compile_spec = torch_tensorrt::ts::CompileSpec({ input });
     compile_spec.enabled_precisions = { torch::kHalf };
+    compile_spec.require_full_compilation = true;
     module_ = torch_tensorrt::ts::compile(module, compile_spec);
 }
 
@@ -70,11 +73,11 @@ std::tuple<torch::Tensor, torch::Tensor> TorchTensorRTModel::infer(const std::ve
     torch::Tensor value = tuple->elements()[1].toTensor();
 
     //CPUに持ってくる
-    policy = policy.cpu();
+    policy = policy.to(torch::kFloat).cpu();
 
     //valueはcategoricalのときだけはsoftmaxをかけてからcpuへ
 #ifdef USE_CATEGORICAL
-    value = torch::softmax(value, 1).cpu();
+    value = torch::softmax(value.to(torch::kFloat), 1).cpu();
 #else
     value = value.cpu();
 #endif

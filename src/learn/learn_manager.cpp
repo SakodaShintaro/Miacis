@@ -12,7 +12,7 @@
 static const std::string optimizer_file_name = "optimizer.pt";
 
 // モデルの拡張子 .ptの方が普通そうだが……
-static const std::string MODEL_SUFFIX = ".model";
+static const std::string MODEL_SUFFIX = ".ts";
 
 LearnManager::LearnManager(const std::string& learn_name, int64_t initial_step_num) {
     assert(learn_name == "supervised" || learn_name == "reinforcement" || learn_name == "contrastive");

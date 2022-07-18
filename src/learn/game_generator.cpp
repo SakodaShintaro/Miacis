@@ -20,9 +20,6 @@ void GameGenerator::genGames() {
 }
 
 void GameGenerator::genSlave(int64_t thread_id) {
-    //スレッドごとにCUDAをセットしておかないとエラーが出る
-    cudaSetDevice(gpu_id_);
-
     //Workerを準備
     std::vector<std::unique_ptr<GenerateWorker>> workers(worker_num_);
     for (int32_t i = 0; i < worker_num_; i++) {

@@ -40,6 +40,7 @@ Interface::Interface() : searcher_(nullptr) {
     command_["checkInfer"]         = checkInfer;
     command_["checkValInferHcpe"]  = checkValInferHcpe;
     command_["checkTorchTensorRTModel"] = checkTorchTensorRTModel;
+    command_["reinforcementLearn"] = reinforcementLearn;
     // clang-format on
 }
 

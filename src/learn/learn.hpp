@@ -25,4 +25,7 @@ std::array<float, LOSS_TYPE_NUM> validationWithSave(TensorRTModel& model, const 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
                                                                              torch::Device device);
 
+// 強化学習を行う関数
+void reinforcementLearn();
+
 #endif //MIACIS_LEARN_HPP

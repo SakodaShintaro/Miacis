@@ -40,7 +40,7 @@ void reinforcementLearn() {
     std::string model_prefix          = settings.get<std::string>("model_prefix");
     // clang-format on
 
-    search_options.model_name = model_prefix + ".onnx";
+    search_options.model_name = model_prefix + ".ts";
 
     const std::string prefix = "reinforcement";
 
@@ -113,13 +113,6 @@ void reinforcementLearn() {
             for (uint64_t i = 0; i < gpu_num; i++) {
                 generators[i]->gpu_mutex.lock();
             }
-
-            //保存されたパラメータをONNXへ変換
-            const std::string filepath = __FILE__;
-            const std::string dirpath = filepath.substr(0, filepath.rfind('/'));
-            const std::string script_dirpath = dirpath + "/../../scripts/convert_ts_model_to_onnx.py";
-            const std::string command = script_dirpath + " " + model_prefix + ".model" + " --no_message";
-            int result = system(command.c_str());
 
             //各ネットワークで保存されたパラメータを読み込み
             for (uint64_t i = 0; i < gpu_num; i++) {

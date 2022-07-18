@@ -33,12 +33,13 @@ class ResidualBlock(nn.Module):
         t = self.conv_and_norm1_.forward(t)
 
         y = F.adaptive_avg_pool2d(t, [1, 1])
-        y = y.view([-1, t.shape[1]])
+        y = y.flatten(1)
         y = self.linear0_.forward(y)
         y = F.relu(y)
         y = self.linear1_.forward(y)
         y = torch.sigmoid(y)
-        y = y.view([-1, t.shape[1], 1, 1])
+        y = y.unsqueeze(2)
+        y = y.unsqueeze(2)
         t = t * y
 
         t = F.relu(x + t)
@@ -92,27 +93,11 @@ class ValueHead(nn.Module):
         value = F.relu(value)
         # value = F.avg_pool2d(value, [int(value.shape[2]), int(value.shape[3])])
         value = F.adaptive_avg_pool2d(value, [1, 1])
-        value = value.view([-1, value.shape[1]])
+        value = value.flatten(1)
         value = self.value_linear0_.forward(value)
         value = F.relu(value)
         value = self.value_linear1_.forward(value)
         return value
-
-
-class EncodeHead(nn.Module):
-    def __init__(self, in_features, hidden_features, out_features):
-        super(EncodeHead, self).__init__()
-        self.linear0 = nn.Linear(in_features, hidden_features)
-        self.linear1 = nn.Linear(hidden_features, out_features)
-
-    def forward(self, x):
-        y = F.adaptive_avg_pool2d(x, [1, 1])
-        y = y.view([-1, x.shape[1]])
-        y = y.flatten(1)
-        y = self.linear0(y)
-        y = F.relu(y)
-        y = self.linear1(y)
-        return y
 
 
 class ScalarNetwork(nn.Module):
@@ -136,23 +121,12 @@ class CategoricalNetwork(nn.Module):
         self.encoder_ = Encoder(input_channel_num, block_num, channel_num)
         self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
         self.value_head_ = ValueHead(channel_num, 51)
-        self.encoder_head = EncodeHead(channel_num, channel_num, channel_num)
 
     def forward(self, x):
         x = self.encoder_.forward(x)
         policy = self.policy_head_.forward(x)
         value = self.value_head_.forward(x)
         return policy, value
-
-    # @torch.jit.export
-    # def encode(self, x):
-    #     x = self.encoder_.forward(x)
-    #     x = self.encoder_head.forward(x)
-    #     return x
-    #
-    # @torch.jit.export
-    # def getRepresentations(self, x):
-    #     return self.encoder_.getRepresentations(x)
 
 
 def main():
@@ -184,14 +158,6 @@ def main():
     model_path = f"./shogi_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.ts"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
-
-    # model = torch.jit.load(model_path)
-    # reps = model.getRepresentations(input_data)
-    # for i, r in enumerate(reps, 1):
-    #     m = r.mean([0, 2, 3])
-    #     m = (m * m).mean()
-    #     v = r.var([0, 2, 3]).mean()
-    #     print(f"{i}\t{m.item():.4f}\t{v.item():.4f}")
 
 
 if __name__ == "__main__":
