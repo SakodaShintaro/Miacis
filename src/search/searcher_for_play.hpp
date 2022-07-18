@@ -2,7 +2,7 @@
 #define MIACIS_SEARCHER_FOR_PLAY_HPP
 
 #include "../model/model_common.hpp"
-#include "../model/tensorrt_model.hpp"
+#include "../model/torch_tensorrt_model.hpp"
 #include "../shogi/book.hpp"
 #include "searcher.hpp"
 #include "searcher_for_mate.hpp"
@@ -44,7 +44,7 @@ private:
     HashTable hash_table_;
 
     //GPUは複数
-    std::vector<TensorRTModel> neural_networks_;
+    std::vector<TorchTensorRTModel> neural_networks_;
     std::vector<std::mutex> gpu_mutexes_;
 
     //1つのGPUに対してgpu_queue,searcherを複数
