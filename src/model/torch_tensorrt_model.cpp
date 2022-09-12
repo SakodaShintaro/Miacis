@@ -3,6 +3,7 @@
 #include "../learn/learn.hpp"
 #include "../shogi/position.hpp"
 #include <torch/torch.h>
+#include <torch_tensorrt/logging.h>
 #include <torch_tensorrt/torch_tensorrt.h>
 
 void TorchTensorRTModel::load(int64_t gpu_id, const SearchOptions& search_option) {
@@ -24,6 +25,7 @@ void TorchTensorRTModel::load(int64_t gpu_id, const SearchOptions& search_option
     compile_spec.enabled_precisions = { torch::kFloat16 };
     compile_spec.require_full_compilation = true;
     compile_spec.device.gpu_id = gpu_id;
+    torch_tensorrt::logging::set_reportable_log_level(torch_tensorrt::logging::kINTERNAL_ERROR);
     module_ = torch_tensorrt::ts::compile(module, compile_spec);
 }
 
