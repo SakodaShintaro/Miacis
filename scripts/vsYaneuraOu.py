@@ -76,7 +76,7 @@ f = open(curr_path + "result.txt", mode="a")
 f.write(f"\ntime1 = {args.time1}, time2 = {args.time2}, NodesLimit = {args.NodesLimit}\n")
 
 # 引数で指定したエンジンで対局
-model_name = args.engine_path
+model_name = os.path.abspath(args.engine_path)
 
 binary_suffix = None
 if "sca" in model_name:
@@ -88,6 +88,8 @@ else:
     exit()
 
 start_time = time.time()
+
+os.environ["LD_LIBRARY_PATH"] = "${LD_LIBRARY_PATH}:/root/libtorch-1.11.0/lib/"
 
 if args.option is None:
     # Miacisを準備
