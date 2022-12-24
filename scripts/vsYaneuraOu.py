@@ -10,7 +10,6 @@ import shogi.Ayane as ayane
 # その他必要なものをインポート
 import time
 import glob
-from natsort import natsorted
 from collections import defaultdict
 import argparse
 from calc_elo_rate import calc_elo_rate
@@ -73,7 +72,8 @@ if curr_path[-1] != "/":
 
 # 結果を書き込むファイルを取得
 f = open(curr_path + "result.txt", mode="a")
-f.write(f"\ntime1 = {args.time1}, time2 = {args.time2}, NodesLimit = {args.NodesLimit}\n")
+command_str = " ".join(sys.argv)
+f.write(f"\n{command_str}\n")
 
 # 引数で指定したエンジンで対局
 model_name = os.path.abspath(args.engine_path)
