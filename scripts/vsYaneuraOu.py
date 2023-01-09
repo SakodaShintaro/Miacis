@@ -1,18 +1,18 @@
 #! /usr/bin/env python3
+from calc_elo_rate import calc_elo_rate
+import argparse
+from collections import defaultdict
+import glob
+import time
+import shogi.Ayane as ayane
 import os
 import sys
 
 # Ayaneをインポート
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(script_dir + "/../../Ayane/source")
-import shogi.Ayane as ayane
 
 # その他必要なものをインポート
-import time
-import glob
-from collections import defaultdict
-import argparse
-from calc_elo_rate import calc_elo_rate
 
 parser = argparse.ArgumentParser()
 parser.add_argument("engine_path", type=str)
@@ -89,7 +89,7 @@ else:
 
 start_time = time.time()
 
-os.environ["LD_LIBRARY_PATH"] = "${LD_LIBRARY_PATH}:/root/libtorch-1.11.0/lib/"
+os.environ["LD_LIBRARY_PATH"] = "${LD_LIBRARY_PATH}:/root/libtorch-1.12.0/lib/"
 
 if args.option is None:
     # Miacisを準備

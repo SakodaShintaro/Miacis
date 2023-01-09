@@ -14,10 +14,10 @@ void LearningModel::save(const std::string& model_path) { module_.save(model_pat
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<LearningData>& data) {
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
-    auto out = module_.forward({ input });
-    auto tuple = out.toTuple();
-    torch::Tensor policy = tuple->elements()[0].toTensor();
-    torch::Tensor value = tuple->elements()[1].toTensor();
+    torch::Tensor out = module_.forward({ input }).toTensor();
+    auto list = torch::split(out, POLICY_DIM, 1);
+    torch::Tensor policy = list[0];
+    torch::Tensor value = list[1];
 
     torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
     torch::Tensor policy_softmax = torch::softmax(policy_logits, 1);
@@ -41,10 +41,10 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<L
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vector<LearningData>& data) {
 #ifdef USE_CATEGORICAL
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
-    auto out = module_.forward({ input });
-    auto tuple = out.toTuple();
-    torch::Tensor policy_logit = tuple->elements()[0].toTensor();
-    torch::Tensor value_logit = tuple->elements()[1].toTensor();
+    torch::Tensor out = module_.forward({ input }).toTensor();
+    auto list = torch::split(out, POLICY_DIM, 1);
+    torch::Tensor policy_logit = list[0];
+    torch::Tensor value_logit = list[1];
 
     torch::Tensor logits = policy_logit.view({ -1, POLICY_DIM });
 
@@ -92,10 +92,10 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::mixUpLoss(const std::vec
     policy_target = beta * policy_target + (1 - beta) * policy_target.roll(1, 0);
     value_target = beta * value_target + (1 - beta) * value_target.roll(1, 0);
 
-    auto out = module_.forward({ input_tensor });
-    auto tuple = out.toTuple();
-    torch::Tensor policy = tuple->elements()[0].toTensor();
-    torch::Tensor value = tuple->elements()[1].toTensor();
+    torch::Tensor out = module_.forward({ input_tensor }).toTensor();
+    auto list = torch::split(out, POLICY_DIM, 1);
+    torch::Tensor policy = list[0];
+    torch::Tensor value = list[1];
 
     torch::Tensor policy_logits = policy.view({ -1, POLICY_DIM });
 

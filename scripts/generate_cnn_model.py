@@ -126,7 +126,8 @@ class CategoricalNetwork(nn.Module):
         x = self.encoder_.forward(x)
         policy = self.policy_head_.forward(x)
         value = self.value_head_.forward(x)
-        return policy, value
+        policy = policy.flatten(1)
+        return torch.cat([policy, value], dim=1)
 
 
 def main():
@@ -158,6 +159,8 @@ def main():
     model_path = f"./shogi_{args.value_type}_bl{args.block_num}_ch{args.channel_num}.ts"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
+    out = script_model(input_data)
+    print(out.shape)
 
 
 if __name__ == "__main__":

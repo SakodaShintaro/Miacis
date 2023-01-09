@@ -70,10 +70,10 @@ TorchTensorRTModel::policyAndValueBatch(const std::vector<float>& inputs) {
 std::tuple<torch::Tensor, torch::Tensor> TorchTensorRTModel::infer(const std::vector<float>& inputs) {
     torch::Tensor x = inputVectorToTensor(inputs).to(device_);
     x = x.to(torch::kFloat16);
-    auto out = module_.forward({ x });
-    auto tuple = out.toTuple();
-    torch::Tensor policy = tuple->elements()[0].toTensor();
-    torch::Tensor value = tuple->elements()[1].toTensor();
+    torch::Tensor out = module_.forward({ x }).toTensor();
+    auto list = torch::split(out, POLICY_DIM, 1);
+    torch::Tensor policy = list[0];
+    torch::Tensor value = list[1];
 
     //CPUに持ってくる
     policy = policy.cpu();
@@ -91,10 +91,10 @@ std::tuple<torch::Tensor, torch::Tensor> TorchTensorRTModel::infer(const std::ve
 std::array<torch::Tensor, LOSS_TYPE_NUM> TorchTensorRTModel::validLoss(const std::vector<LearningData>& data) {
     auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
     input = input.to(torch::kFloat16);
-    auto out = module_.forward({ input });
-    auto tuple = out.toTuple();
-    torch::Tensor policy_logit = tuple->elements()[0].toTensor().view({ -1, POLICY_DIM });
-    torch::Tensor value = tuple->elements()[1].toTensor();
+    torch::Tensor out = module_.forward({ input }).toTensor();
+    auto list = torch::split(out, POLICY_DIM, 1);
+    torch::Tensor policy_logit = list[0];
+    torch::Tensor value = list[1];
 
     torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logit, 1), 1, false);
 

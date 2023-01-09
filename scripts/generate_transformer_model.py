@@ -3,6 +3,52 @@ import argparse
 import torch
 import torch.jit
 import torch.nn as nn
+from timm.models.vision_transformer import Mlp
+
+
+class Attention(nn.Module):
+    def __init__(self, dim, num_heads=8, qkv_bias=False, attn_drop=0., proj_drop=0.):
+        super().__init__()
+        self.num_heads = num_heads
+        head_dim = dim // num_heads
+        self.scale = head_dim ** -0.5
+
+        self.head_dim = head_dim
+        self.q = nn.Linear(dim, dim, bias=qkv_bias)
+        self.k = nn.Linear(dim, dim, bias=qkv_bias)
+        self.v = nn.Linear(dim, dim, bias=qkv_bias)
+        self.proj = nn.Linear(dim, dim)
+
+    def forward(self, x):
+        B, N, C = x.shape
+
+        q = self.q(x).reshape(B, N, self.num_heads, self.head_dim).permute([0, 2, 1, 3])
+        k = self.k(x).reshape(B, N, self.num_heads, self.head_dim).permute([0, 2, 1, 3])
+        v = self.v(x).reshape(B, N, self.num_heads, self.head_dim).permute([0, 2, 1, 3])
+
+        attn = (q @ k.transpose(-2, -1)) * self.scale
+        # attn = attn.softmax(dim=-1)
+        attn = torch.sigmoid(attn)
+
+        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x = self.proj(x)
+        return x
+
+
+class Block(nn.Module):
+    def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, drop=0., attn_drop=0.,
+                 drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm):
+        super().__init__()
+        self.norm1 = norm_layer(dim)
+        self.attn = Attention(dim, num_heads=num_heads, qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=drop)
+        self.norm2 = norm_layer(dim)
+        mlp_hidden_dim = int(dim * mlp_ratio)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+
+    def forward(self, x):
+        x = x + self.attn(self.norm1(x))
+        x = x + self.mlp(self.norm2(x))
+        return x
 
 
 class TransformerModel(nn.Module):
@@ -20,14 +66,9 @@ class TransformerModel(nn.Module):
             nhead = 12
         elif channel_num == 1024:
             nhead = 16
-        encoder_layer = torch.nn.TransformerEncoderLayer(
-            channel_num,
-            nhead=nhead,
-            dim_feedforward=channel_num * 4,
-            norm_first=True,
-            activation="gelu",
-            dropout=0.0)
-        self.encoder_ = torch.nn.TransformerEncoder(encoder_layer, block_num)
+        self.encoder_ = nn.Sequential(*[
+            Block(dim=channel_num, num_heads=nhead)
+            for i in range(block_num)])
         self.board_size = board_size
         square_num = board_size ** 2
         self.policy_head_ = nn.Conv2d(channel_num, policy_channel_num, 1, bias=True, padding=0)
@@ -58,7 +99,8 @@ class TransformerModel(nn.Module):
         value_x = value_x.view([batch_size, value_x.shape[1], 1, 1])
         value = self.value_head_(value_x)
         value = value.squeeze(3).squeeze(2)
-        return policy, value
+        policy = policy.flatten(1)
+        return torch.cat([policy, value], dim=1)
 
 
 def main():
@@ -86,6 +128,8 @@ def main():
     model_path = f"./shogi_cat_transformer_bl{args.block_num}_ch{args.channel_num}.ts"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
+    out = script_model(input_data)
+    print(out.shape)
 
 
 if __name__ == "__main__":

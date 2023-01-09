@@ -5,7 +5,7 @@ cd $(dirname $0)
 # どこに保存するかの基準位置
 root_dir=../..
 
-version=1.11.0
+version=1.12.0
 cuda_version=113
 CUDA_STR=cu${cuda_version}
 url_file_name=libtorch-cxx11-abi-shared-with-deps-${version}%2B${CUDA_STR}.zip
