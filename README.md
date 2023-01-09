@@ -34,4 +34,12 @@ docker build -t miacis_image:latest .
 docker run --gpus all -it --name miacis_container miacis_image:latest bash
 ```
 
+4. ビルドする
+```shell
+mkdir ./Miacis/build/
+cd ./Miacis/build/
+cmake -DCMAKE_BUILD_TYPE=Release ../src
+make -j$(nproc) Miacis_shogi_categorical
+```
+
 正常にコンパイルが進むとコンテナ内の```/root/Miacis/build```以下に```Miacis_shogi_categorical```というプログラムが得られます。
