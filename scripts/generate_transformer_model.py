@@ -27,8 +27,7 @@ class Attention(nn.Module):
         v = self.v(x).reshape(B, N, self.num_heads, self.head_dim).permute([0, 2, 1, 3])
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
-        # attn = attn.softmax(dim=-1)
-        attn = torch.sigmoid(attn)
+        attn = attn.softmax(dim=-1)
 
         x = (attn @ v).transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
