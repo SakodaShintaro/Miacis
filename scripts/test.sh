@@ -12,7 +12,7 @@ make -j$(nproc) Miacis_shogi_categorical
 
 # テスト実行
 command="usi
-setoption name model_name value shogi_cat_bl10_ch256.ts
+setoption name model_name value shogi_cat_transformer_bl12_ch384.ts
 isready
 testSearch
 "

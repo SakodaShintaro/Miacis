@@ -4,7 +4,6 @@ import torch
 import torch.jit
 import torch.nn as nn
 from timm.models.vision_transformer import Mlp
-from generate_cnn_model import PolicyHead, ValueHead
 
 
 class Attention(nn.Module):
@@ -67,14 +66,14 @@ class TransformerModel(nn.Module):
         elif channel_num == 1024:
             nhead = 16
         self.encoder_ = nn.Sequential(*[
-            Block(dim=channel_num, num_heads=nhead, norm_layer=nn.Identity)
+            Block(dim=channel_num, num_heads=nhead)
             for i in range(block_num)])
-        self.channel_num = channel_num
         self.board_size = board_size
         square_num = board_size ** 2
-        self.policy_head_ = PolicyHead(channel_num, policy_channel_num)
-        self.value_head_ = ValueHead(channel_num, 51)
+        self.policy_head_ = nn.Conv2d(channel_num, policy_channel_num, 1, bias=True, padding=0)
+        self.value_head_ = nn.Conv2d(channel_num, 51, 1, bias=True, padding=0)
         self.positional_encoding_ = torch.nn.Parameter(torch.zeros([square_num, 1, channel_num]), requires_grad=True)
+        self.value_token_ = torch.nn.Parameter(torch.zeros([1, 1, channel_num]), requires_grad=True)
 
     def forward(self, x):
         batch_size = x.shape[0]
@@ -83,12 +82,22 @@ class TransformerModel(nn.Module):
         x = self.first_encoding_(x)
         x = x + self.positional_encoding_
 
-        x = self.encoder_(x)
-        x = x.permute([1, 2, 0])
-        x = x.view([batch_size, self.channel_num, self.board_size, self.board_size])
+        value_token = self.value_token_.expand((1, batch_size, x.shape[2]))
+        x = torch.cat([x, value_token], dim=0)
 
-        policy = self.policy_head_.forward(x)
-        value = self.value_head_.forward(x)
+        x = self.encoder_(x)
+
+        # 先頭81マスに相当するところはpolicyへ、残りの1個はvalueへ
+        policy_x = x[0:81]
+        value_x = x[81:82]
+
+        policy_x = policy_x.permute([1, 2, 0])
+        policy_x = policy_x.view([batch_size, policy_x.shape[1], self.board_size, self.board_size])
+        policy = self.policy_head_(policy_x)
+        value_x = value_x.permute([1, 2, 0])
+        value_x = value_x.view([batch_size, value_x.shape[1], 1, 1])
+        value = self.value_head_(value_x)
+        value = value.squeeze(3).squeeze(2)
         policy = policy.flatten(1)
         return torch.cat([policy, value], dim=1)
 
