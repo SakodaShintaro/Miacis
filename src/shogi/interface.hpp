@@ -25,6 +25,9 @@ public:
     //setoptionで設定した後テストする関数
     void testSelfPlay(int64_t game_num);
 
+    //setoptionで設定した後テストする関数
+    void testSearch();
+
     //onnxをTensorRTエンジンへ変換する
     void convertOnnxToEngine();
 

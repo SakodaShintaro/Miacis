@@ -22,6 +22,7 @@ Interface::Interface() : searcher_(nullptr) {
     //テスト
     command_["test"]         = [this] { testSelfPlay(1); };
     command_["infiniteTest"] = [this] { testSelfPlay(INT_MAX); };
+    command_["testSearch"]   = [this] { testSearch(); };
 
     //メンバ関数以外
     command_["cleanGames"]         = cleanGames;
@@ -259,6 +260,14 @@ void Interface::testSelfPlay(int64_t game_num) {
         }
     }
     std::cout << "finish testSelfPlay" << std::endl;
+    std::exit(0);
+}
+
+void Interface::testSearch() {
+    std::cout << "starch testSearch" << std::endl;
+    Position pos;
+    Move best_move = searcher_->think(pos, 1000);
+    std::cout << "finish testSearch" << std::endl;
     std::exit(0);
 }
 
