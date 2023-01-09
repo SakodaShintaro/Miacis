@@ -14,8 +14,12 @@ class TransformerModel(nn.Module):
             nhead = 8
         elif channel_num == 384:
             nhead = 6
+        elif channel_num == 512:
+            nhead = 16
         elif channel_num == 768:
             nhead = 12
+        elif channel_num == 1024:
+            nhead = 16
         encoder_layer = torch.nn.TransformerEncoderLayer(
             channel_num,
             nhead=nhead,
@@ -79,7 +83,7 @@ def main():
     input_data = torch.randn([16, input_channel_num, board_size, board_size])
     script_model = torch.jit.trace(model, input_data)
     script_model = torch.jit.script(model)
-    model_path = f"./{args.game}_cat_transformer_bl{args.block_num}_ch{args.channel_num}.model"
+    model_path = f"./shogi_cat_transformer_bl{args.block_num}_ch{args.channel_num}.ts"
     script_model.save(model_path)
     print(f"{model_path}にパラメータを保存")
 
