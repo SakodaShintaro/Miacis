@@ -11,8 +11,8 @@ list(APPEND CMAKE_PREFIX_PATH ../../libtorch-1.13.1)
 find_package(Torch REQUIRED)
 
 # TensorRT
-set(TENSORRT_INCLUDE ../../TensorRT-8.2.2.1/include)
-file(GLOB TENSORRT_LIBRARIES ../../TensorRT-8.2.2.1/lib/*.so)
+set(TENSORRT_INCLUDE ../../TensorRT-8.5.1/include)
+file(GLOB TENSORRT_LIBRARIES ../../TensorRT-8.5.1/lib/*.so)
 
 # TorchTensorRT
 set(TORCHTRT_INCLUDE ../../torch_tensorrt-1.3.0/include)

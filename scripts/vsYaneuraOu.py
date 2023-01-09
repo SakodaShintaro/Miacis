@@ -89,7 +89,7 @@ else:
 
 start_time = time.time()
 
-os.environ["LD_LIBRARY_PATH"] = "${LD_LIBRARY_PATH}:/root/libtorch-1.12.0/lib/"
+os.environ["LD_LIBRARY_PATH"] = "${LD_LIBRARY_PATH}:/root/libtorch-1.13.1/lib/"
 
 if args.option is None:
     # Miacisを準備
