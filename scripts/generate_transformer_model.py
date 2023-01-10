@@ -39,9 +39,9 @@ class Block(nn.Module):
     def __init__(self, dim, num_heads, mlp_ratio=4., qkv_bias=False, drop=0., attn_drop=0.,
                  drop_path=0., act_layer=nn.GELU, norm_layer=nn.LayerNorm):
         super().__init__()
-        self.norm1 = norm_layer(dim)
+        self.norm1 = norm_layer(dim, elementwise_affine=False)
         self.attn = Attention(dim, num_heads=num_heads, qkv_bias=qkv_bias, attn_drop=attn_drop, proj_drop=drop)
-        self.norm2 = norm_layer(dim)
+        self.norm2 = norm_layer(dim, elementwise_affine=False)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
@@ -66,9 +66,7 @@ class TransformerModel(nn.Module):
             nhead = 12
         elif channel_num == 1024:
             nhead = 16
-        self.encoder_ = nn.Sequential(*[
-            Block(dim=channel_num, num_heads=nhead, norm_layer=nn.Identity)
-            for i in range(block_num)])
+        self.encoder_ = nn.Sequential(*[Block(dim=channel_num, num_heads=nhead) for _ in range(block_num)])
         self.channel_num = channel_num
         self.board_size = board_size
         square_num = board_size ** 2
