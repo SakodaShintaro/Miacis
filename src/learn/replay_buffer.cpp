@@ -73,11 +73,7 @@ void ReplayBuffer::push(Game& game) {
 
         float teacher_signal = (pos.color() == BLACK ? win_rate_for_black : MAX_SCORE + MIN_SCORE - win_rate_for_black);
 
-#ifdef USE_CATEGORICAL
-        ValueTeacherType value_teacher = valueToIndex(teacher_signal);
-#else
         ValueTeacherType value_teacher = teacher_signal;
-#endif
 
         //priorityを計算
         float priority = 0.0f;
@@ -89,7 +85,8 @@ void ReplayBuffer::push(Game& game) {
 
         //Value損失
 #ifdef USE_CATEGORICAL
-        priority += -std::log(e.nn_output_value[value_teacher] + 1e-9f);
+        const float nn_output_value = expOfValueDist(e.nn_output_value);
+        priority += std::pow(nn_output_value - value_teacher, 2.0f);
 #else
 #ifdef USE_SIGMOID
         constexpr float eps = 1e-5f;
