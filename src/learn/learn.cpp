@@ -294,8 +294,32 @@ torch::Tensor getValueTargetTensor(const std::vector<LearningData>& data, torch:
 torch::Tensor getCategoricalValueTargetTensor(const std::vector<LearningData>& data, torch::Device device) {
     std::vector<ValueTeacherType> value_teachers(data.size() * BIN_SIZE, 0.0);
     for (uint64_t i = 0; i < data.size(); i++) {
-        const int32_t index = valueToIndex(data[i].value);
-        value_teachers[i * BIN_SIZE + index] = 1.0f;
+        const float v = data[i].value;
+        const int32_t index = valueToIndex(v);
+        const float represent_value = indexToValue(index);
+        if (v < represent_value) {
+            // index - 1とindexを組み合わせてvを作る
+            if (index == 0) {
+                // index - 1が無いのでindexだけ
+                value_teachers[i * BIN_SIZE + index] = 1.0f;
+            } else {
+                const float represent_value2 = indexToValue(index - 1);
+                const float x = (v - represent_value2) / (represent_value - represent_value2);
+                value_teachers[i * BIN_SIZE + index] = x;
+                value_teachers[i * BIN_SIZE + index - 1] = 1.0f - x;
+            }
+        } else {
+            // indexとindex + 1を組み合わせてvを作る
+            if (index == BIN_SIZE - 1) {
+                // index + 1が無いのでindexだけ
+                value_teachers[i * BIN_SIZE + index] = 1.0f;
+            } else {
+                const float represent_value2 = indexToValue(index + 1);
+                const float x = (v - represent_value2) / (represent_value - represent_value2);
+                value_teachers[i * BIN_SIZE + index] = x;
+                value_teachers[i * BIN_SIZE + index + 1] = 1.0f - x;
+            }
+        }
     }
     return torch::tensor(value_teachers).view({ -1, BIN_SIZE }).to(device);
 }

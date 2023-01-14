@@ -42,6 +42,7 @@ torch::Tensor inputVectorToTensor(const std::vector<float>& input);
 //Categorical分布に対する操作
 #ifdef USE_CATEGORICAL
 inline int32_t valueToIndex(float value) { return std::min((int32_t)((value - MIN_SCORE) / VALUE_WIDTH), BIN_SIZE - 1); }
+inline float indexToValue(int32_t index) { return (MIN_SCORE + (index + 0.5) * VALUE_WIDTH); }
 
 inline ValueType onehotDist(float value) {
     //valueForBlackのところだけ1.0, 他は0.0とした分布を返す
@@ -53,8 +54,7 @@ inline ValueType onehotDist(float value) {
 inline float expOfValueDist(ValueType dist) {
     float exp = 0.0;
     for (int32_t i = 0; i < BIN_SIZE; i++) {
-        //i番目の要素が示す値はMIN_SCORE + (i + 0.5) * VALUE_WIDTH
-        exp += (MIN_SCORE + (i + 0.5) * VALUE_WIDTH) * dist[i];
+        exp += indexToValue(i) * dist[i];
     }
     return exp;
 }
