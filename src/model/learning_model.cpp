@@ -13,7 +13,8 @@ void LearningModel::load(const std::string& model_path, int64_t gpu_id) {
 void LearningModel::save(const std::string& model_path) { module_.save(model_path); }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<LearningData>& data) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
+    torch::Tensor input = getInputTensor(data, device_);
+    torch::Tensor policy_target = getPolicyTargetTensor(data, device_);
     torch::Tensor out = module_.forward({ input }).toTensor();
     auto list = torch::split(out, POLICY_DIM, 1);
     torch::Tensor policy = list[0];
@@ -25,8 +26,10 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<L
     torch::Tensor policy_loss = torch::sum(-policy_target * focal_coeff * torch::log_softmax(policy_logits, 1), 1, false);
 
 #ifdef USE_CATEGORICAL
-    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_target);
+    torch::Tensor value_target = getCategoricalValueTargetTensor(data, device_);
+    torch::Tensor value_loss = torch::sum(-value_target * torch::log_softmax(value, 1), 1, false);
 #else
+    torch::Tensor value_target = getValueTargetTensor(data, device_);
     value = value.view(-1);
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
@@ -40,7 +43,9 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::loss(const std::vector<L
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vector<LearningData>& data) {
 #ifdef USE_CATEGORICAL
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
+    torch::Tensor input = getInputTensor(data, device_);
+    torch::Tensor policy_target = getPolicyTargetTensor(data, device_);
+    torch::Tensor value_target = getValueTargetTensor(data, device_);
     torch::Tensor out = module_.forward({ input }).toTensor();
     auto list = torch::split(out, POLICY_DIM, 1);
     torch::Tensor policy_logit = list[0];
@@ -63,9 +68,6 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vec
     //Categorical分布と内積を取ることで期待値を求める
     torch::Tensor value = (each_value_tensor * value_cat).sum(1);
 
-    //target側も数値に変換
-    value_target = MIN_SCORE + (value_target + 0.5f) * VALUE_WIDTH;
-
 #ifdef USE_SIGMOID
     torch::Tensor value_loss = torch::binary_cross_entropy(value, value_target, {}, torch::Reduction::None);
 #else
@@ -80,7 +82,9 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::validLoss(const std::vec
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::mixUpLoss(const std::vector<LearningData>& data, float alpha) {
-    auto [input_tensor, policy_target, value_target] = learningDataToTensor(data, device_);
+    torch::Tensor input_tensor = getInputTensor(data, device_);
+    torch::Tensor policy_target = getPolicyTargetTensor(data, device_);
+    torch::Tensor value_target = getCategoricalValueTargetTensor(data, device_);
 
     //混合比率の振り出し
     std::gamma_distribution<float> gamma_dist(alpha);
@@ -102,7 +106,7 @@ std::array<torch::Tensor, LOSS_TYPE_NUM> LearningModel::mixUpLoss(const std::vec
     torch::Tensor policy_loss = torch::sum(-policy_target * torch::log_softmax(policy_logits, 1), 1, false);
 
 #ifdef USE_CATEGORICAL
-    torch::Tensor value_loss = torch::nll_loss(torch::log_softmax(value, 1), value_target);
+    torch::Tensor value_loss = torch::sum(-value_target * torch::log_softmax(value, 1), 1, false);
 #else
     value = value.view(-1);
 #ifdef USE_SIGMOID
@@ -124,14 +128,14 @@ std::vector<torch::Tensor> LearningModel::parameters() {
 }
 
 torch::Tensor LearningModel::contrastiveLoss(const std::vector<LearningData>& data) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
+    torch::Tensor input = getInputTensor(data, device_);
     torch::Tensor representation = module_.get_method("encode")({ input }).toTensor();
     torch::Tensor loss = representation.norm();
     return loss;
 }
 
 std::vector<torch::Tensor> LearningModel::getRepresentations(const std::vector<LearningData>& data) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
+    torch::Tensor input = getInputTensor(data, device_);
     auto output = module_.get_method("get_representations")({ input });
     auto list = output.toTensorList();
     std::vector<torch::Tensor> result;

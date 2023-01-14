@@ -89,7 +89,9 @@ std::tuple<torch::Tensor, torch::Tensor> TorchTensorRTModel::infer(const std::ve
 }
 
 std::array<torch::Tensor, LOSS_TYPE_NUM> TorchTensorRTModel::validLoss(const std::vector<LearningData>& data) {
-    auto [input, policy_target, value_target] = learningDataToTensor(data, device_);
+    torch::Tensor input = getInputTensor(data, device_);
+    torch::Tensor policy_target = getPolicyTargetTensor(data, device_);
+    torch::Tensor value_target = getValueTargetTensor(data, device_);
     input = input.to(torch::kFloat16);
     torch::Tensor out = module_.forward({ input }).toTensor();
     auto list = torch::split(out, POLICY_DIM, 1);

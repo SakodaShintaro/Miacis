@@ -4,13 +4,15 @@ import argparse
 from collections import defaultdict
 import glob
 import time
-import shogi.Ayane as ayane
 import os
 import sys
 
 # Ayaneをインポート
+# autopep8: off
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(script_dir + "/../../Ayane/source")
+import shogi.Ayane as ayane
+# autopep8: on
 
 # その他必要なものをインポート
 

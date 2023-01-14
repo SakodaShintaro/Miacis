@@ -51,6 +51,29 @@ std::array<float, LOSS_TYPE_NUM> validation(LearningModel& model, const std::vec
     return losses;
 }
 
+std::array<float, LOSS_TYPE_NUM> validation(TorchTensorRTModel& model, const std::vector<LearningData>& valid_data,
+                                            uint64_t batch_size) {
+    std::array<float, LOSS_TYPE_NUM> losses{};
+    for (uint64_t index = 0; index < valid_data.size();) {
+        std::vector<LearningData> curr_data;
+        while (index < valid_data.size() && curr_data.size() < batch_size) {
+            curr_data.push_back(valid_data[index++]);
+        }
+
+        std::array<torch::Tensor, LOSS_TYPE_NUM> loss = model.validLoss(curr_data);
+        for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+            losses[i] += loss[i].sum().item<float>();
+        }
+    }
+
+    //データサイズで割って平均
+    for (int64_t i = 0; i < LOSS_TYPE_NUM; i++) {
+        losses[i] /= valid_data.size();
+    }
+
+    return losses;
+}
+
 std::array<float, LOSS_TYPE_NUM> validationWithSave(TensorRTModel& model, const std::vector<LearningData>& valid_data,
                                                     uint64_t batch_size) {
     std::ofstream ofs("valid_loss.tsv");
@@ -101,11 +124,7 @@ std::vector<LearningData> deleteDuplicate(std::vector<LearningData>& data_buffer
     for (uint64_t i = 0; i < data_buffer.size(); i++) {
         const LearningData& curr = data_buffer[i];
         redundant_num++;
-#ifdef USE_CATEGORICAL
-        value_sum += (MIN_SCORE + (curr.value + 0.5) * VALUE_WIDTH);
-#else
         value_sum += curr.value;
-#endif
         for (auto [label, prob] : curr.policy) {
             policy_map[label] += prob;
         }
@@ -114,11 +133,7 @@ std::vector<LearningData> deleteDuplicate(std::vector<LearningData>& data_buffer
             LearningData datum;
             datum.position_str = curr.position_str;
             float v = value_sum / redundant_num;
-#ifdef USE_CATEGORICAL
-            datum.value = valueToIndex(v);
-#else
             datum.value = v;
-#endif
             for (auto [label, prob_sum] : policy_map) {
                 datum.policy.push_back({ label, prob_sum / redundant_num });
             }
@@ -160,11 +175,7 @@ std::vector<LearningData> loadData(const std::string& file_path, bool data_augme
             for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
                 LearningData datum{};
                 datum.policy.push_back({ Move::augmentLabel(label, i), 1.0 });
-#ifdef USE_CATEGORICAL
-                datum.value = valueToIndex((pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result));
-#else
                 datum.value = (float)(pos.color() == BLACK ? game.result : MAX_SCORE + MIN_SCORE - game.result);
-#endif
                 datum.position_str = Position::augmentStr(position_str, i);
                 data_buffer.push_back(datum);
             }
@@ -231,11 +242,7 @@ std::vector<LearningData> __hcpe_decode_with_value(const size_t len, char* ndhcp
         for (int64_t i = 0; i < (data_augmentation ? Position::DATA_AUGMENTATION_PATTERN_NUM : 1); i++) {
             LearningData datum{};
             datum.policy.push_back({ Move::augmentLabel(label, i), 1.0 });
-#ifdef USE_CATEGORICAL
-            datum.value = valueToIndex(target_value);
-#else
             datum.value = target_value;
-#endif
             datum.position_str = Position::augmentStr(position_str, i);
             data_buffer.push_back(datum);
         }
@@ -255,32 +262,40 @@ std::vector<LearningData> loadHCPE(const std::string& file_path, bool data_augme
     return __hcpe_decode_with_value(len, blob.get(), data_augmentation);
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> learningDataToTensor(const std::vector<LearningData>& data,
-                                                                             torch::Device device) {
-    static Position pos;
+torch::Tensor getInputTensor(const std::vector<LearningData>& data, torch::Device device) {
+    Position pos;
     std::vector<float> inputs;
-    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
-    std::vector<ValueTeacherType> value_teachers;
-
     for (uint64_t i = 0; i < data.size(); i++) {
         pos.fromStr(data[i].position_str);
-
-        //入力
         const std::vector<float> feature = pos.makeFeature();
         inputs.insert(inputs.end(), feature.begin(), feature.end());
+    }
+    return inputVectorToTensor(inputs).to(device);
+}
 
-        //policyの教師信号
+torch::Tensor getPolicyTargetTensor(const std::vector<LearningData>& data, torch::Device device) {
+    std::vector<float> policy_teachers(data.size() * POLICY_DIM, 0.0);
+    for (uint64_t i = 0; i < data.size(); i++) {
         for (const std::pair<int32_t, float>& e : data[i].policy) {
             policy_teachers[i * POLICY_DIM + e.first] = e.second;
         }
-
-        //valueの教師信号
-        value_teachers.push_back(data[i].value);
     }
+    return torch::tensor(policy_teachers).view({ -1, POLICY_DIM }).to(device);
+}
 
-    torch::Tensor input_tensor = inputVectorToTensor(inputs).to(device);
-    torch::Tensor policy_target = torch::tensor(policy_teachers).view({ -1, POLICY_DIM }).to(device);
-    torch::Tensor value_target = torch::tensor(value_teachers).to(device);
+torch::Tensor getValueTargetTensor(const std::vector<LearningData>& data, torch::Device device) {
+    std::vector<ValueTeacherType> value_teachers(data.size());
+    for (uint64_t i = 0; i < data.size(); i++) {
+        value_teachers[i] = data[i].value;
+    }
+    return torch::tensor(value_teachers).to(device);
+}
 
-    return std::make_tuple(input_tensor, policy_target, value_target);
+torch::Tensor getCategoricalValueTargetTensor(const std::vector<LearningData>& data, torch::Device device) {
+    std::vector<ValueTeacherType> value_teachers(data.size() * BIN_SIZE, 0.0);
+    for (uint64_t i = 0; i < data.size(); i++) {
+        const int32_t index = valueToIndex(data[i].value);
+        value_teachers[i * BIN_SIZE + index] = 1.0f;
+    }
+    return torch::tensor(value_teachers).view({ -1, BIN_SIZE }).to(device);
 }
