@@ -137,7 +137,7 @@ def main():
     parser.add_argument("--channel_num", type=int, default=256)
     args = parser.parse_args()
 
-    input_channel_num = 42
+    input_channel_num = 43
     board_size = 9
     policy_channel_num = 27
 

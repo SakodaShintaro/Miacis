@@ -90,7 +90,7 @@ extern const std::array<Piece, HAND_PIECE_KIND_NUM> DLShogiHandPieceKindList;
 #ifdef DLSHOGI
 constexpr int64_t INPUT_CHANNEL_NUM = DLSHOGI_FEATURES1_NUM + DLSHOGI_FEATURES2_NUM;
 #else
-constexpr int64_t INPUT_CHANNEL_NUM = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2;
+constexpr int64_t INPUT_CHANNEL_NUM = (PIECE_KIND_NUM + HAND_PIECE_KIND_NUM) * 2 + 1;
 #endif
 
 extern const std::array<Piece, PIECE_KIND_NUM * 2> PieceList;

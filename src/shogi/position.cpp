@@ -1193,28 +1193,31 @@ std::vector<float> Position::makeFeature() const {
     //盤上の駒の特徴量
     for (i = 0; i < PieceList.size(); i++) {
         //いま考慮している駒
-        Piece t = (color_ == BLACK ? PieceList[i] : oppositeColor(PieceList[i]));
+        const Piece t = PieceList[i];
 
         //各マスについてそこにあるなら1,ないなら0とする
         for (Square sq : SquareList) {
             //後手のときは盤面を180度反転させる
-            Piece p = (color_ == BLACK ? board_[sq] : board_[InvSquare[sq]]);
-            features[i * SQUARE_NUM + SquareToNum[sq]] = (t == p ? 1 : 0);
+            features[i * SQUARE_NUM + SquareToNum[sq]] = (board_[sq] == t);
         }
     }
 
     //持ち駒の特徴量:最大枚数で割って正規化する
-    static constexpr std::array<Color, ColorNum> colors[2] = { { BLACK, WHITE }, { WHITE, BLACK } };
     static constexpr int32_t HAND_PIECE_NUM = 7;
     static constexpr std::array<Piece, HAND_PIECE_NUM> HAND_PIECES = { PAWN, LANCE, KNIGHT, SILVER, GOLD, BISHOP, ROOK };
     static constexpr std::array<float, HAND_PIECE_NUM> MAX_NUMS = { 18.0, 4.0, 4.0, 4.0, 4.0, 2.0, 2.0 };
-    for (int32_t c : colors[color_]) {
+    for (int32_t c : { BLACK, WHITE }) {
         for (int32_t j = 0; j < HAND_PIECE_NUM; j++) {
             for (Square sq : SquareList) {
                 features[i * SQUARE_NUM + SquareToNum[sq]] = hand_[c].num(HAND_PIECES[j]) / MAX_NUMS[j];
             }
             i++;
         }
+    }
+
+    // 手番(先手なら0、後手なら1)
+    for (Square sq : SquareList) {
+        features[i * SQUARE_NUM + SquareToNum[sq]] = color_;
     }
 
     return features;

@@ -52,12 +52,10 @@ std::array<MOVE_DIRECTION, MOVE_DIRECTION_NUM> mirror = {
 // }
 
 uint32_t Move::toLabel() const {
-    Color c = pieceToColor(subject());
-
-    Square to_sq = (c == BLACK ? to() : InvSquare[to()]);
+    Square to_sq = to();
     File to_file = SquareToFile[to_sq];
     Rank to_rank = SquareToRank[to_sq];
-    Square from_sq = (c == BLACK ? from() : InvSquare[from()]);
+    Square from_sq = from();
     File from_file = SquareToFile[from_sq];
     Rank from_rank = SquareToRank[from_sq];
 
