@@ -47,5 +47,4 @@ public:
       For more information, see ostream header */
 };
 
-
 #endif

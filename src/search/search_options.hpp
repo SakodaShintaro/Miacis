@@ -3,9 +3,9 @@
 
 #include "../model/model_common.hpp"
 #include <cstdint>
+#include <cuda_runtime_api.h>
 #include <map>
 #include <string>
-#include <cuda_runtime_api.h>
 
 struct CheckOption {
     explicit CheckOption(bool& v) : value(v) {}

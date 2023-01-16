@@ -1,7 +1,7 @@
 ﻿#ifndef MIACIS_REPLAY_BUFFER_HPP
 #define MIACIS_REPLAY_BUFFER_HPP
-#include "../shogi/game.hpp"
 #include "../model/model_common.hpp"
+#include "../shogi/game.hpp"
 #include "learn.hpp"
 #include "segment_tree.hpp"
 #include <mutex>
